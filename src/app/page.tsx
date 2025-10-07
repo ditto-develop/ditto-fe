@@ -1,7 +1,7 @@
 "use client"
 import { Blackbutton } from "@/components/Button";
 import {ImgContainer, HomeContainer, ButtonContainer} from "@/components/home/Container"
-
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 
@@ -13,8 +13,11 @@ export default function Home() {
     <>
     <HomeContainer>
       <ImgContainer>
-        <img 
+        <Image
+          alt="text" 
           src='/DittoGroup.svg'
+          width={351}
+          height={348}
         />
       </ImgContainer>
 

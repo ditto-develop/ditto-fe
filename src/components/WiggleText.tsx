@@ -9,6 +9,7 @@ import styled from 'styled-components';
 const WobblyTextWrapper = styled.span`
   filter: url('#wobble-filter');
 
+  text-align: center;
   font-size: clamp(1rem, 8vw, 2.5rem);
   font-weight: bold;
   color: black;

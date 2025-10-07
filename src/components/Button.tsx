@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { HTMLAttributes } from "react";
-import { styled } from "styled-components";
+import { keyframes, styled } from "styled-components";
 
 
 const Leftbox = styled.div`
@@ -38,8 +38,17 @@ const Rightbox = styled.div`
     z-index: 0;
   }
 `;
+const fadeIn = keyframes`
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1;
+  }
+`;
 
 const Middlebox = styled.div`
+    animation: ${fadeIn} 0.5s ease-in-out forwards;
     display: flex;
     position: relative;
     width: 345px;
@@ -51,10 +60,18 @@ const Middlebox = styled.div`
     content: "";
     position: absolute;
     inset: 3px;   /* 👈 inset 값이 클수록 더 작아짐 */
-    background: black;
     border-radius: 1px;
+    background-color: black;
     z-index: 0;
   }
+`;
+const MiddleWhitebox = styled.div`
+    display: flex;
+    position: relative;
+    width: 305px;
+    height: 62.8px;
+    align-items:center; 
+    justify-content:center;
 `;
 
 const Imgbox = styled.img`
@@ -110,6 +127,59 @@ export const Blackbutton = ({children, ...props}:divType) => {
                     style={{color: "white"}}
                 >{children}</Boxtext>
             </Middlebox> 
+        </>
+    )
+}
+
+
+type enableType = HTMLAttributes<HTMLDivElement> &{
+    enable: boolean
+};
+const MiddleGraybox = styled.div`
+    display: flex;
+    position: relative;
+    width: 345px;
+    height: 62.8px;
+    align-items:center; 
+    justify-content:center;
+
+    &::before {
+    content: "";
+    position: absolute;
+    inset: 3px;   
+    border-radius: 1px;
+    background-color: #9b9b9b;
+    z-index: 0;
+  }
+`;
+export const BlackEnablebutton = ({enable,children, ...props}:enableType) => {
+    return(
+        <>
+            {enable?<><Blackbutton {...props}>{children}</Blackbutton></>:
+            <MiddleGraybox>
+                <Imgbox src='/graybutton.svg' />
+                <Boxtext
+                    style={{color: "white"}}
+                >{children}</Boxtext>
+            </MiddleGraybox> 
+            }
+        </>
+    )
+}
+
+export const Whitebutton = ({children, ...props}:divType) => {
+    return(
+        <>
+            <MiddleWhitebox
+                {...props}    
+            >
+                <Imgbox 
+                    src='/button.svg'
+                />
+                <Boxtext
+                    style={{color: "black"}}
+                >{children}</Boxtext>
+            </MiddleWhitebox> 
         </>
     )
 }

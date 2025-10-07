@@ -13,8 +13,10 @@ const SplashWrapper = styled.div`
   font-size: 2rem;
 `;
 
-const Logo = styled.img`
-    width: 226px;
+const Logo = styled.p`
+  font-family: 'IM Fell Double Pica';
+  font-size: 120px;
+  font-weight: 400;
 `;
 
 export default function SplashLayout({ children }: { children: React.ReactNode }) {
@@ -36,9 +38,7 @@ export default function SplashLayout({ children }: { children: React.ReactNode }
                 transition={{ duration: 0.4 }}
             >
                 <SplashWrapper>
-                <Logo 
-                    src='/ditto.png'
-                />
+                <Logo>ditto</Logo>
                 </SplashWrapper>
             </motion.div>
         </AnimatePresence>

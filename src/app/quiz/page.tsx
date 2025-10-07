@@ -120,6 +120,11 @@ export default function Quiz() {
             quizNumber: dummyData[quizindex].quizNumber,
             answer: isLeft? 0 : 1
         };
+        if(quizindex === 11) {
+            router.push('/result');
+            
+            return;
+        }
 
         setDirection(isLeft ? 1 : -1);
         SetQuizData(dummyData[quizindex].quizNumber+1);
