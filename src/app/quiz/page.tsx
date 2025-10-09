@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { GameService } from "@/api";
 
 const dummyData = 
     [
@@ -97,40 +98,73 @@ const dummyData =
         }
 ]
 
+type Question = {
+  id: string;
+  round: number;
+  text: string;
+  options: { index: string; label: string }[];
+};
 
+type SuccessApiResponseWithData = {
+  success: boolean;
+  data: Question[];
+};
 
 export default function Quiz() {
     const router = useRouter();
 
-    const [quizindex, setQuizindex] = useState(0);
+    /** State Section */
+    const [questions, setQuestions] = useState<Question[]>([]);
+    const [quizindex, setQuizindex] = useState<number>(0);
     const [direction, setDirection] = useState<number>(1);
     const [disabled, setDisabled] = useState(false); //뒤로가기 연속터치 방지용
+    const [isLoading, setIsLoading] = useState(true);
 
-    const SetQuizData = (i: number) => {        
+
+    /** Effect Section */
+    useEffect(()=>{ //첫 화면 Init시 작동
+        GameService.gameControllerGetQuestions("1")
+            .then((res) => {
+                const result = res as SuccessApiResponseWithData;
+                setQuestions(result.data);
+                setIsLoading(false);
+            })
+
+        SetQuizData(1);
+    },[])
+
+    /** Function Section */
+    const SetQuizData = (i: number) => {   //퀴즈 정보 셋팅      
         const index = i-1;
         setQuizindex(index);
     }
 
-    useEffect(()=>{
-        SetQuizData(1);
-    },[])
-
-    const ClickedAns = (isLeft: boolean) => {
+    const ClickedAns = (isLeft: boolean) => { //답변 입력 함수
         const ansData = {
-            quizNumber: dummyData[quizindex].quizNumber,
-            answer: isLeft? 0 : 1
+            round: String(quizindex),
+            questionId: questions[quizindex].id,
+            requestBody: {
+                selectedIndex: isLeft? 0 : 1
+            }
         };
-        if(quizindex === 11) {
+        GameService.gameControllerSubmitAnswers(ansData.round,ansData.questionId,ansData.requestBody)
+            .then((res)=>{
+                console.log(res);
+            })
+            .catch((err)=>{
+                console.error(err);
+            })
+
+        if(quizindex === 0) {
             router.push('/result');
-            
             return;
-        }
+        };
 
         setDirection(isLeft ? 1 : -1);
         SetQuizData(dummyData[quizindex].quizNumber+1);
     }
 
-    const PrevQuiz = () => {
+    const PrevQuiz = () => { //이전 퀴즈로 돌아가는 함수
         if (disabled) return;
         if (quizindex === 0){
             router.back();
@@ -140,6 +174,10 @@ export default function Quiz() {
         setQuizindex((prev) => prev - 1);
         setTimeout(() => setDisabled(false), 700);     
     }
+    
+    
+    /** Return Section */
+    if (isLoading) return <div></div>; //첫 정보 로딩시 작동
 
 
     return (
@@ -148,7 +186,7 @@ export default function Quiz() {
             <div style={{overflow: "hidden", width:"100%"}}>
             <AnimatePresence mode="wait" custom={direction}>
                 <motion.div
-                    key={dummyData[quizindex].quizNumber} // 클릭할 때마다 새 key
+                    key={questions[quizindex].round} // 클릭할 때마다 새 key
                     custom={direction}
                     initial={{ x: direction * 300, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
@@ -158,14 +196,14 @@ export default function Quiz() {
                     <MainContainer>
                         <InfomationContainer>
                             <p style={{textAlign: "center", fontWeight: "500", fontSize: "18px"}}>
-                                {dummyData[quizindex].quizNumber}/{dummyData[quizindex].quizTotal}
+                                {questions[quizindex].round}/{12}
                             </p>
-                            <WiggleText>{dummyData[quizindex].quiz}</WiggleText>
+                            <WiggleText>{questions[quizindex].text}</WiggleText>
                         </InfomationContainer>
 
                         <ButtonContainer>
-                            <Leftbutton onClick={()=>{ClickedAns(true)}}>{dummyData[quizindex].leftAns}</Leftbutton>
-                            <Rightbutton onClick={()=>{ClickedAns(false)}}>{dummyData[quizindex].rightAns}</Rightbutton>
+                            <Leftbutton onClick={()=>{ClickedAns(true)}}>{questions[quizindex].options[0].label}</Leftbutton>
+                            <Rightbutton onClick={()=>{ClickedAns(false)}}>{questions[quizindex].options[1].label}</Rightbutton>
                         </ButtonContainer>
                     </MainContainer>
                 </motion.div>

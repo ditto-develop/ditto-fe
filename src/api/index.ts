@@ -1,0 +1,26 @@
+/* generated using openapi-typescript-codegen -- do not edit */
+/* istanbul ignore file */
+/* tslint:disable */
+/* eslint-disable */
+export { ApiError } from './core/ApiError';
+export { CancelablePromise, CancelError } from './core/CancelablePromise';
+export { OpenAPI } from './core/OpenAPI';
+export type { OpenAPIConfig } from './core/OpenAPI';
+
+export type { AnswerItem } from './models/AnswerItem';
+export type { ApiResponse } from './models/ApiResponse';
+export type { CalculateResultRarityResponseDto } from './models/CalculateResultRarityResponseDto';
+export type { CreateUserResponseDto } from './models/CreateUserResponseDto';
+export type { FailApiResponse } from './models/FailApiResponse';
+export type { OptionDto } from './models/OptionDto';
+export type { QuestionDto } from './models/QuestionDto';
+export type { RegisterEmailRequestDto } from './models/RegisterEmailRequestDto';
+export type { RegisterEmailResponseDto } from './models/RegisterEmailResponseDto';
+export type { SimilarUsersCountResponseDto } from './models/SimilarUsersCountResponseDto';
+export type { StartResponseDto } from './models/StartResponseDto';
+export type { SuccessApiResponse } from './models/SuccessApiResponse';
+
+export { AppService } from './services/AppService';
+export { GameService } from './services/GameService';
+export { MatchService } from './services/MatchService';
+export { UsersService } from './services/UsersService';

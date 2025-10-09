@@ -1,6 +1,6 @@
 "use client"
 
-import { BlackEnablebutton } from '@/components/Button'
+import { Blackbutton, BlackEnablebutton } from '@/components/Button'
 import { Checkbox, Input } from '@/components/Input'
 import Navbar from '@/components/Navbar'
 import { BottomContainer, CheckContainer, MainContainer } from '@/components/register/Container'
@@ -13,7 +13,13 @@ import styled from 'styled-components'
 export default function Register() {
     const router = useRouter();
     const [ischecked, setIschecked] = useState(false);
-    const [isSubscribe, setIsSubscribe] = useState(true);
+    const [isSubscribe, setIsSubscribe] = useState(false);
+
+    const handleSubscribe = () => {
+        /** 추후 이메일 저장 api 호출 */
+
+        setIsSubscribe(true);
+    }
     
   return (
     <>
@@ -50,7 +56,7 @@ export default function Register() {
                             <Checklabel>만남과 선택지 소식을 이메일로 받는 것에 동의할게요.</Checklabel>
                         </CheckContainer>
                         <BlackEnablebutton
-                            onClick={()=>{alert("눌렸다!")}}
+                            onClick={handleSubscribe}
                             enable={ischecked}
                         >완료</BlackEnablebutton>
                     </BottomContainer>
@@ -77,19 +83,33 @@ const SubContainer = styled.div`
 `;
 
 const AlertContainer = styled.div`
-    
+    padding: 32px;
+    display: grid;
+    gap: 17px;
 `;
 
 const Imgbox = styled.img`
     position: absolute;
-    width: 100%;
 `;
 
+const SubscribeTitle = styled.h1`
+    text-align: center;
+    font-size: 30px;
+`
+
 const Subscribe = () => {
+    const router = useRouter();
+
     return(
         <SubContainer>
+            <Imgbox  src='/Container.svg'/>
             <AlertContainer>
-                <Imgbox />
+                <SubscribeTitle>구독 완료!</SubscribeTitle>
+                <SubtitleText>상대방의 의사를 여쭈어보고</SubtitleText>
+                <SubtitleText>만남의 장소가 준비되면 알려드릴게요</SubtitleText>
+                <Blackbutton
+                    onClick={()=>{router.push('/')}}
+                >처음으로</Blackbutton>
             </AlertContainer>
         </SubContainer>
     )
