@@ -98,4 +98,12 @@ const IconContainer = styled.div`
   height: 64px;
 `
 
-export {IconContainer,ShareIconContainer,ShareImgContainer,Backdrop,BottomSheetContainer,LoadingContainer,MainContainer,TextContiner,ButtonContainer}
+const CaptuerContainer = styled.div`
+  background-color: var(--Background);
+  display: grid;
+  gap: 32px;
+  padding: 24px 0px;
+  place-items: center;
+`
+
+export {CaptuerContainer,IconContainer,ShareIconContainer,ShareImgContainer,Backdrop,BottomSheetContainer,LoadingContainer,MainContainer,TextContiner,ButtonContainer}

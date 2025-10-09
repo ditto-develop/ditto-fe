@@ -131,6 +131,41 @@ export const Blackbutton = ({children, ...props}:divType) => {
     )
 }
 
+const Smallbox = styled.div`
+    animation: ${fadeIn} 0.5s ease-in-out forwards;
+    display: flex;
+    position: relative;
+    width: 281px;
+    height: 52px;
+    align-items:center; 
+    justify-content:center;
+
+    &::before {
+    content: "";
+    position: absolute;
+    inset: 3px;   /* 👈 inset 값이 클수록 더 작아짐 */
+    border-radius: 1px;
+    background-color: black;
+    z-index: 0;
+  }
+`;
+export const MiddleBlackbutton = ({children, ...props}:divType) => {
+    return(
+        <>
+            <Smallbox
+                {...props}    
+            >
+                <Imgbox 
+                    src='/button.svg'
+                />
+                <Boxtext
+                    style={{color: "white"}}
+                >{children}</Boxtext>
+            </Smallbox> 
+        </>
+    )
+}
+
 
 type enableType = HTMLAttributes<HTMLDivElement> &{
     enable: boolean
@@ -167,14 +202,19 @@ export const BlackEnablebutton = ({enable,children, ...props}:enableType) => {
     )
 }
 
+const ImgMiddlebox = styled.img`
+    position: absolute;
+    z-index: 0;
+    width: 60%;
+`;
 export const Whitebutton = ({children, ...props}:divType) => {
     return(
         <>
             <MiddleWhitebox
                 {...props}    
             >
-                <Imgbox 
-                    src='/button.svg'
+                <ImgMiddlebox 
+                    src='/middlebutton.svg'
                 />
                 <Boxtext
                     style={{color: "black"}}

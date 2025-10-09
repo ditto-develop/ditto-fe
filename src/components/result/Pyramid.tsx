@@ -6,9 +6,8 @@ const Wrapper = styled.div`
   display: inline-block; /* 이미지 크기에 맞게 컨테이너 크기 조절 */
 `;
 
-const BgImg = styled.img`
-
-`;
+const BgImg = styled.img``;
+const InfoImg = styled.img``;
 
 const TextArea = styled.div`
   position: absolute; 
@@ -38,12 +37,53 @@ const Text = styled.p<textProps>`
   font-style: italic;
 `;
 
-const PyramidA = () => {
+interface infoAreaProps {
+  top: number;
+  left: number;
+};
+
+const InfoArea = styled.div<infoAreaProps>`
+  position: absolute; 
+  top: ${({top})=>top}%;
+  left: ${({left})=>left}%;
+  width: 119.628px;
+  height: 75.502px;
+
+  background-repeat: no-repeat;
+  padding: 18px 16px;
+
+  background-image: url('/PyramidInfo.svg'); 
+  display: grid;
+`;
+
+const InfoText = styled.p`
+  color: white;
+  text-align: center;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  letter-spacing: -0.27px;
+  z-index: 99;
+`;
+
+type InfoType = {
+  total: number,
+  number :number
+}
+const PyramidA = ({total,number}:InfoType) => {
   return (
     <Wrapper>
       <BgImg 
         src='/Tier/Tier.svg'
       />
+      <InfoArea
+        top={-5}
+        left={66}
+      >
+        <InfoText style={{fontSize: "12px"}}>전체 {total.toLocaleString()}명 중</InfoText>
+        <InfoText>{number}명 {(number/total*100).toFixed(2)}%</InfoText>
+      </InfoArea>
       <TextArea>
         <Text color='black'>Super Rare</Text>
         <Text color='white'>Rare</Text>
@@ -54,75 +94,98 @@ const PyramidA = () => {
   );
 };
 
-const PyramidB = () => {
+const PyramidB = ({total,number}:InfoType) => {
   return (
-    <>
+    <Wrapper>
       <BgImg 
         src='/Tier/Tier2.svg'
       />
+      <InfoArea
+        top={18}
+        left={65}
+      >
+        <InfoText style={{fontSize: "12px"}}>전체 {total.toLocaleString()}명 중</InfoText>
+        <InfoText>{number}명 {(number/total*100).toFixed(2)}%</InfoText>
+      </InfoArea>
       <TextArea>
         <Text color='#C93D2E'>Super Rare</Text>
         <Text color='white'>Rare</Text>
         <Text color='white'>Medium Rare</Text>
         <Text color='white'>Welldone</Text>
       </TextArea>
-    </>
+    </Wrapper>
   );
 };
 
-const PyramidC = () => {
+const PyramidC = ({total,number}:InfoType) => {
   return (
-    <>
+    <Wrapper>
       <BgImg 
         src='/Tier/Tier3.svg'
       />
+      <InfoArea
+        top={33}
+        left={70}
+      >
+        <InfoText style={{fontSize: "12px"}}>전체 {total.toLocaleString()}명 중</InfoText>
+        <InfoText>{number}명 {(number/total*100).toFixed(2)}%</InfoText>
+      </InfoArea>
       <TextArea>
         <Text color='#C93D2E'>Super Rare</Text>
         <Text color='white'>Rare</Text>
         <Text color='white'>Medium Rare</Text>
         <Text color='white'>Welldone</Text>
       </TextArea>
-    </>
+    </Wrapper>
   );
 };
 
-const PyramidD = () => {
+const PyramidD = ({total,number}:InfoType) => {
   return (
-    <>
+    <Wrapper>
       <BgImg 
         src='/Tier/Tier4.svg'
       />
+      <InfoArea
+        top={60}
+        left={84}
+      >
+        <InfoText style={{fontSize: "12px"}}>전체 {total.toLocaleString()}명 중</InfoText>
+        <InfoText>{number}명 {(number/total*100).toFixed(2)}%</InfoText>
+      </InfoArea>
       <TextArea>
         <Text color='#C93D2E'>Super Rare</Text>
         <Text color='white'>Rare</Text>
         <Text color='white'>Medium Rare</Text>
         <Text color='white'>Welldone</Text>
       </TextArea>
-    </>
+    </Wrapper>
   );
 };
 
 type PyramidType = {
-  type: string
+  type: string,
+  total: number,
+  number: number
 };
 
-const Pyramid = ({type}:PyramidType) => {
+const Pyramid = ({type,total,number}:PyramidType) => {
   switch(type){
-    case "superrare" : 
+    case "Super Rare" : 
       return (
-        <PyramidA />
+        <PyramidA total={total} number={number}/>
       );
-    case "rare" : 
+    case "Rare" : 
       return(
-        <PyramidB />
+        <PyramidB total={total} number={number}/>
       );
-    case "mediumrare" : 
+    case "Medium Rare" : 
       return(
-        <PyramidC />
+        <PyramidC total={total} number={number}/>
       );
-    case "welldone" : 
+    case "Well-Done" : 
       return(
-        <PyramidD />
+        <PyramidD total={total} number={number}/>
       );
     default :
       return (

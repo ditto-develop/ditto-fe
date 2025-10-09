@@ -1,6 +1,6 @@
 "use client"
 
-import { Blackbutton, BlackEnablebutton } from '@/components/Button'
+import { MiddleBlackbutton, BlackEnablebutton } from '@/components/Button'
 import { Checkbox, Input } from '@/components/Input'
 import Navbar from '@/components/Navbar'
 import { BottomContainer, CheckContainer, MainContainer } from '@/components/register/Container'
@@ -17,7 +17,7 @@ export default function Register() {
 
     const handleSubscribe = () => {
         /** 추후 이메일 저장 api 호출 */
-
+        
         setIsSubscribe(true);
     }
     
@@ -107,9 +107,9 @@ const Subscribe = () => {
                 <SubscribeTitle>구독 완료!</SubscribeTitle>
                 <SubtitleText>상대방의 의사를 여쭈어보고</SubtitleText>
                 <SubtitleText>만남의 장소가 준비되면 알려드릴게요</SubtitleText>
-                <Blackbutton
+                <MiddleBlackbutton
                     onClick={()=>{router.push('/')}}
-                >처음으로</Blackbutton>
+                >처음으로</MiddleBlackbutton>
             </AlertContainer>
         </SubContainer>
     )

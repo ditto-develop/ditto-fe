@@ -5,10 +5,22 @@ import {BottomTitle, BottomSubTitle} from './Text';
 import { Whitebutton } from '../Button';
 
 type shareType = {
-    handleIsshare: () => void
+    handleIsshare: () => void,
+    handleCapture: () => void,
+    capturedImage: string
 }
 
-export default function Share({handleIsshare}: shareType) {
+export default function Share({capturedImage,handleCapture,handleIsshare}: shareType) {
+    
+    /**
+     * 공유하기에 대한 개발노트 10.09
+     * - 인스타그램 스토리 공유는 웹에서는 이론상 불가능하다고 판단
+     * - 브라우저 자체 바텀시트 공유기능은 사용 가능.
+     * - 카카오톡/X 공유하기 역시 가능. 따라서 이부분만 개발하면 될듯 함.
+     */
+
+    
+
   return (
     <>
       <Backdrop />
@@ -30,15 +42,20 @@ export default function Share({handleIsshare}: shareType) {
             </div>
         </div>
         <ShareImgContainer>
-            <Image 
-                src="/testImg.png"
-                alt='테스트'
-                width={168}
-                height={328}
-            />
+            {capturedImage && (
+                <Image
+                    src={capturedImage}
+                    alt="테스트"
+                    width={168}
+                    height={328}
+                    unoptimized
+                />
+            )}
         </ShareImgContainer>
         <ButtonContainer>
-            <Whitebutton>이미지 저장하기</Whitebutton>
+            <Whitebutton
+                onClick={handleCapture}
+                >이미지 저장하기</Whitebutton>
             <ShareIconContainer>
                 <IconContainer>
                     <Image src='./icons/link.svg'

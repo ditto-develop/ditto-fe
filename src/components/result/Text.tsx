@@ -29,13 +29,17 @@ const SubtitleText = styled.p`
     font-weight: 500;
 `;
 
-const TitleText = styled.p`
+type TitleTextType = {
+    color: string
+};
+
+const TitleText = styled.p<TitleTextType>`
     font-family: 'IM Fell Double Pica';
     text-align: center;
     font-style: italic;
     font-weight: 600;
     font-size: 48px;
-    color: #C93D2E;
+    color: ${({color})=>color}
 `;
 
 const ShareText = styled.p`
