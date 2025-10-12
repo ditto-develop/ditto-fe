@@ -214,7 +214,7 @@ export const Whitebutton = ({children, ...props}:divType) => {
                 {...props}    
             >
                 <ImgMiddlebox 
-                    src='/middlebutton.svg'
+                    src='/MiddleButton.svg'
                 />
                 <Boxtext
                     style={{color: "black"}}

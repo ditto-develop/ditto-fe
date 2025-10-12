@@ -1,20 +1,13 @@
-'use client';
+"use client";
 
-import Script from 'next/script';
+import Script from "next/script";
 
-declare global {
-  interface Window {
-    Kakao: Record<string, unknown>;
-  }
-}
-
-function KakaoScript() {
+export default function KakaoScript() {
   const onLoad = () => {
-    if (window.Kakao && typeof window.Kakao.init === 'function') {
-      window.Kakao.init(process.env.NEXT_PUBLIC_KAKAO_API_KEY as string);
-    }
+    window.Kakao.init(process.env.NEXT_PUBLIC_KAKAO_API_KEY);
   };
 
+  
   return (
     <Script
       src="https://developers.kakao.com/sdk/js/kakao.js"
@@ -23,5 +16,3 @@ function KakaoScript() {
     />
   );
 }
-
-export default KakaoScript;

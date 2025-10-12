@@ -70,10 +70,9 @@ export default function Result() {
 
   /** Funtion Section */
   const handleCapture = async () => { //이미지 자동 캡쳐
-    console.log(captureRef.current);
     if (!captureRef.current) return;
 
-    const canvas = await html2canvas(captureRef.current);
+    const canvas = await html2canvas(captureRef.current, { useCORS: true });
 
     const dataUrl = canvas.toDataURL("image/png");
     setCapturedImage(dataUrl);
