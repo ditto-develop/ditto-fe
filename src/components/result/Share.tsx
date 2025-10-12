@@ -19,7 +19,6 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
      * - 카카오톡/X 공유하기 역시 가능. 따라서 이부분만 개발하면 될듯 함.
      */
 
-    
 
   return (
     <>
@@ -57,7 +56,8 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
                 onClick={handleCapture}
                 >이미지 저장하기</Whitebutton>
             <ShareIconContainer>
-                <IconContainer>
+                <IconContainer
+                >
                     <Image src='./icons/link.svg'
                            alt='link' width={32} height={32}/>
                 </IconContainer>

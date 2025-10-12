@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import SplashLayout from "@/components/Splash";
 import StyledComponentsRegistry from "./StyledComponentsRegistry";
+import KakaoScript from '@/common/KakaoScript';
 
 export const metadata: Metadata = {
   title: "Create Next App",
