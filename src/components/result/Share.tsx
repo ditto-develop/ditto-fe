@@ -3,7 +3,6 @@ import {IconContainer, ShareIconContainer,Backdrop,BottomSheetContainer,ShareImg
 import Image from 'next/image';
 import {BottomTitle, BottomSubTitle} from './Text';
 import { Whitebutton } from '../Button';
-import { CldImage } from 'next-cloudinary';
 
 type shareType = {
     handleIsshare: () => void,
