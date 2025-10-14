@@ -10,7 +10,7 @@ import { request as __request } from '../core/request';
 export class UsersService {
     /**
      * 무정보 가입 및 jwt 발급 API
-     * @param referredBy
+     * @param referredBy 추천 받은 코드 값
      * @returns any
      * @throws ApiError
      */

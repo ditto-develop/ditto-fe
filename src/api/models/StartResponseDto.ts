@@ -9,10 +9,6 @@ export type StartResponseDto = {
      */
     user: CreateUserResponseDto;
     /**
-     * jwt
-     */
-    jwt: string;
-    /**
      * 추천인 링크
      */
     referralLink: string;

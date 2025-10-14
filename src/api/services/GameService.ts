@@ -15,7 +15,7 @@ export class GameService {
      * @throws ApiError
      */
     public static gameControllerGetQuestions(
-        round: string,
+        round: number,
     ): CancelablePromise<SuccessApiResponse> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -35,7 +35,7 @@ export class GameService {
     public static gameControllerGetQuestion(
         round: string,
         questionId: string,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<SuccessApiResponse> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/game/{round}/questions/{questionId}',
@@ -54,10 +54,10 @@ export class GameService {
      * @throws ApiError
      */
     public static gameControllerSubmitAnswers(
-        round: string,
+        round: number,
         questionId: string,
         requestBody: AnswerItem,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<SuccessApiResponse> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/game/{round}/questions/{questionId}/answer',
@@ -66,7 +66,7 @@ export class GameService {
                 'questionId': questionId,
             },
             body: requestBody,
-            mediaType: 'application/json',
+            mediaType: 'application/json'
         });
     }
 }

@@ -9,13 +9,19 @@ import { request as __request } from '../core/request';
 export class MatchService {
     /**
      * x% 이상 일치한 사용자 수 조회 API
+     * @param matchRate 매치율 (x%)
      * @returns any
      * @throws ApiError
      */
-    public static matchControllerGetSimilarUsersCount(): CancelablePromise<SuccessApiResponse> {
+    public static matchControllerGetSimilarUsersCount(
+        matchRate?: number,
+    ): CancelablePromise<SuccessApiResponse> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/match/similar-user-count',
+            query: {
+                'matchRate': matchRate,
+            },
         });
     }
     /**

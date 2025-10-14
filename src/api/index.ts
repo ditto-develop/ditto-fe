@@ -8,12 +8,11 @@ export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { AnswerItem } from './models/AnswerItem';
-export type { ApiResponse } from './models/ApiResponse';
 export type { CalculateResultRarityResponseDto } from './models/CalculateResultRarityResponseDto';
 export type { CreateUserResponseDto } from './models/CreateUserResponseDto';
 export type { FailApiResponse } from './models/FailApiResponse';
-export type { OptionDto } from './models/OptionDto';
-export type { QuestionDto } from './models/QuestionDto';
+export type { GameDto } from './models/GameDto';
+export type { GameOptionDto } from './models/GameOptionDto';
 export type { RegisterEmailRequestDto } from './models/RegisterEmailRequestDto';
 export type { RegisterEmailResponseDto } from './models/RegisterEmailResponseDto';
 export type { SimilarUsersCountResponseDto } from './models/SimilarUsersCountResponseDto';

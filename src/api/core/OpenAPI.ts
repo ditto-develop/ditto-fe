@@ -20,8 +20,8 @@ export type OpenAPIConfig = {
 };
 
 export const OpenAPI: OpenAPIConfig = {
-    BASE: 'http://localhost:4000', //local 환경 테스트용 주소. 추후 env 로 설정
-    VERSION: '0.1.0',
+    BASE: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
+    VERSION: '0.1.3',
     WITH_CREDENTIALS: false,
     CREDENTIALS: 'include',
     TOKEN: undefined,

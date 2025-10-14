@@ -6,6 +6,7 @@ export type SuccessApiResponse = {
     /**
      * 요청 성공 여부
      */
-    success: boolean;
+    success?: boolean;
+    data?: Record<string, any> | null;
 };
 

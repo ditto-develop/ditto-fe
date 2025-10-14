@@ -3,6 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type AnswerItem = {
+    /**
+     * 선택지의 순서번호
+     */
     selectedIndex: number;
 };
 
