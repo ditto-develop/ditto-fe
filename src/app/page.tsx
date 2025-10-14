@@ -14,7 +14,7 @@ export default function Home() {
   const handleStart = async() => {
       const user = await UsersService.usersControllerStart();
       if(user.data) {
-        //console.log(user.data.user.id)
+        console.log(user)
         //OpenAPI.TOKEN = user.data.user.id || '';
         router.push('/quiz');
       }

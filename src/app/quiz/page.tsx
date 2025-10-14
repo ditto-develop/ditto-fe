@@ -62,21 +62,14 @@ export default function Quiz() {
             requestBody: {
                 selectedIndex: 0
             }
-        };
-
-        console.log('🌟 Submit Answer Request:', ansData);
-        console.log('🌟 JWT Token:', OpenAPI.TOKEN);
-
-
+        }
         GameService.gameControllerSubmitAnswers(
           ansData.round,
           ansData.questionId,
           ansData.requestBody)
-
             .then((res)=>{
                 console.log(res);
             })
-
             .catch((err)=>{
                 console.error("에러발생",err);
           });
@@ -87,7 +80,7 @@ export default function Quiz() {
         };
 
         setDirection(isLeft ? 1 : -1);
-        SetQuizData(questions[quizindex].round+1);
+        SetQuizData(questions[quizindex].index+1);
     }
 
     const PrevQuiz = () => { //이전 퀴즈로 돌아가는 함수
