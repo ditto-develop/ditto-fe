@@ -1,8 +1,8 @@
 import styled from "styled-components"
 
 export const MainContainer = styled.div`
-  padding: 32px 0px;
-  height: 95vh;
+  padding: 64px 0px;
+  height: 100%;
   display: grid;
   grid-template-rows: 1fr 2fr 1fr;
   align-content: space-between;

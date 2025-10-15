@@ -63,24 +63,25 @@ export default function Quiz() {
                 selectedIndex: 0
             }
         }
-        GameService.gameControllerSubmitAnswers(
+
+        GameService.gameControllerSubmitAnswers( //답변제출 API
           ansData.round,
           ansData.questionId,
           ansData.requestBody)
             .then((res)=>{
-                console.log(res);
+                setDirection(isLeft ? 1 : -1);
+                SetQuizData(questions[quizindex].index+1);
             })
             .catch((err)=>{
                 console.error("에러발생",err);
           });
+        
 
-        if(quizindex === 11) {
+        if(quizindex === 10) {
             router.push('/result');
             return;
         };
 
-        setDirection(isLeft ? 1 : -1);
-        SetQuizData(questions[quizindex].index+1);
     }
 
     const PrevQuiz = () => { //이전 퀴즈로 돌아가는 함수
@@ -105,7 +106,7 @@ export default function Quiz() {
             <div style={{overflow: "hidden", width:"100%"}}>
             <AnimatePresence mode="wait" custom={direction}>
                 <motion.div
-                    key={questions[quizindex].round} // 클릭할 때마다 새 key
+                    key={questions[quizindex].index} // 클릭할 때마다 새 key
                     custom={direction}
                     initial={{ x: direction * 300, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}

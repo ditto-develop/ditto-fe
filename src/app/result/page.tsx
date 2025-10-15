@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import html2canvas from "html2canvas";
 import styled from "styled-components";
+import { MatchService } from "@/api";
 
 /** Dummy Data */
 const TierText = [
@@ -53,19 +54,37 @@ export default function Result() {
   const [isshare, setIsShare] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string>('');
   const [tierIndex, setTierIndex] = useState<number>(0);
+  const [similerUser, setSimilerUser] = useState<number>(0); //x%이상 일치한 사용자 수
+  const [rarity, setRarity] = useState<number>(0); //게임 결과 희귀도
+
 
   /** Effect Section */
   useLayoutEffect(() => { //이미지 캡쳐를 위한 마운트 제어
-  setTimeout(() => {
-    handleCapture();
-  }, 3100);
+    setTimeout(() => {
+      handleCapture();
+    }, 3100);
   }, []);
 
   useEffect(() => { //로딩 화면 제어
-    const timer = setTimeout(() => {
-      setIsloading(false);
-    }, 3000);
-    return () => clearTimeout(timer);
+    const loadData = async() => {
+          try{
+            const rarityFetch =  MatchService.matchControllerCalculateResultRarity();
+            const similerUserFetch =  MatchService.matchControllerGetSimilarUsersCount();
+
+            
+            const minLoadingTimePromise = new Promise((resolve) => setTimeout(resolve, 3000)); //최소 3초 로딩제한
+            const [rarityResult, similarUserResult] = await Promise.all([rarityFetch,similerUserFetch, minLoadingTimePromise]);
+
+            setSimilerUser(similarUserResult.data?.count);
+            setRarity(rarityResult.data?.rarity);
+          }catch(err){
+            console.log(err);
+          }finally{
+            setIsloading(false);
+          }
+    }
+    
+    loadData();
   }, []);
 
   /** Funtion Section */

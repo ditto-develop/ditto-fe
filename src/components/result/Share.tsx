@@ -70,7 +70,7 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
       <Backdrop />
       <BottomSheetContainer>
         <div style={{display: "grid", gap: "10px"}}>
-            <div style={{display: "flex", justifyContent: "space-between"}}>
+            <div style={{display: "flex", justifyContent: "space-between", position: 'relative' }}>
                 <BottomTitle>공유해보세요</BottomTitle>
                 <Image 
                     onClick={handleIsshare}
@@ -90,7 +90,7 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
                 <Image
                     crossOrigin='anonymous'
                     src={capturedImage}
-                    alt="테스트"
+                    alt="결과 이미지"
                     width={168}
                     height={328}
                     unoptimized

@@ -25,7 +25,7 @@ const ButtonContainer = styled.div`
   padding: 0px 24px 64px 24px;
   display: grid;
   place-items: center;
-  grid-template-rows: 1fr 1fr;
+  grid-template-rows: auto auto;
   gap: 16px;
 `;
 
@@ -59,21 +59,23 @@ const Backdrop = styled.div`
 `;
 
 const BottomSheetContainer = styled.div`
-    padding: 32px 24px;
-    display: grid;
-    grid-template-rows: 1fr 8fr 2fr;
-    gap: 32px;
+  position: fixed;
+  top: 50px;
+  width: 100%;
+  height: calc(100% - 50px);
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
 
-    z-index: 999; 
-    top: 50px;
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    background-color: #F3F1EF;
-    
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
-    animation: ${slideUp} 0.5s ease-out;
+  z-index: 999;
+  background-color: #F3F1EF;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  animation: ${slideUp} 0.5s ease-out;
+
+  overflow-y: auto;
+  overflow-x: auto;
 `;
 
 const ShareImgContainer = styled.div`
