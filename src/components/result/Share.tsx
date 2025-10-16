@@ -87,7 +87,7 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
                     alt="결과 이미지"
                     width={168}
                     height={328}
-                    unoptimized
+                    unoptimized={true}
                 />
             )}
         </ShareImgContainer>
