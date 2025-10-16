@@ -6,7 +6,7 @@ const Wrapper = styled.div`
   display: inline-block; /* 이미지 크기에 맞게 컨테이너 크기 조절 */
 `;
 
-const BgImg = styled.img``;
+const BgImg = styled.img.attrs({ crossOrigin: 'anonymous' })``;
 const InfoImg = styled.img``;
 
 const TextArea = styled.div`
