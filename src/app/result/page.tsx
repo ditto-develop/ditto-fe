@@ -112,13 +112,18 @@ export default function Result() {
   }
 
   const handleCapture = async () => { //이미지 자동 캡쳐
-
-    if (!captureRef.current) return;
-    const canvas = await html2canvas(captureRef.current, { useCORS: true });
-    const dataUrl = canvas.toDataURL("image/png");
-    const imgURL = await uploadToCloudinary(dataUrl);
-    
-    setCapturedImage(imgURL);
+    try {
+      if (!captureRef.current) return;
+      console.log("🖼️ 이미지 캡쳐 시작");
+      const canvas = await html2canvas(captureRef.current, { useCORS: true });
+      const dataUrl = canvas.toDataURL("image/png");
+      console.log("✅ 캔버스 -> DataURL 변환 성공");
+      const imgURL = await uploadToCloudinary(dataUrl);
+      console.log("✅ Cloudinary 업로드 성공");
+      setCapturedImage(imgURL);
+    } catch (error) {
+      console.error("❌ 이미지 캡쳐 또는 업로드 실패:", error);
+    }
   };
 
   const downloadImage = () => { //이미지 다운로드 함수

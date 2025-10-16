@@ -80,7 +80,7 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
         </div>
         <ShareImgContainer>
             {
-            capturedImage && (
+            capturedImage ? (
                 <Image
                     crossOrigin='anonymous'
                     src={capturedImage}
@@ -89,6 +89,20 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
                     height={328}
                     unoptimized={true}
                 />
+            ) : (
+                <div style={{
+                    width: 168,
+                    height: 328,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#f0f0f0',
+                    color: '#888',
+                    textAlign: 'center',
+                    borderRadius: '10px'
+                }}>
+                    이미지 생성 중...
+                </div>
             )}
         </ShareImgContainer>
         <ButtonContainer>
