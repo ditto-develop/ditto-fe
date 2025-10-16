@@ -62,7 +62,7 @@ export default function Result() {
   useLayoutEffect(() => { //이미지 캡쳐를 위한 마운트 제어
     setTimeout(() => {
       handleCapture();
-    }, 3100);
+    }, 4000);
   }, []);
 
   useEffect(() => { //로딩 화면 제어
