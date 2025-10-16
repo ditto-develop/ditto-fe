@@ -15,7 +15,7 @@ import ScrollablePageStyle from "@/styles/ScrollablePageStyle";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import html2canvas from "html2canvas";
+import html2canvas from "html2canvas-pro";
 import styled from "styled-components";
 import { MatchService } from "@/api";
 
@@ -62,7 +62,7 @@ export default function Result() {
   useLayoutEffect(() => { //이미지 캡쳐를 위한 마운트 제어
     setTimeout(() => {
       handleCapture();
-    }, 4000);
+    }, 3100);
   }, []);
 
   useEffect(() => { //로딩 화면 제어
