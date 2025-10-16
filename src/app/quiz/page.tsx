@@ -56,6 +56,11 @@ export default function Quiz() {
     }
 
     const ClickedAns = (isLeft: boolean) => { //답변 입력 함수
+        if(quizindex === 11) {
+            router.push('/result');
+            return;
+        };
+        
         const ansData = {
             round: 1, //임시지정 (라운드가 변화할 시 변수로 사용 예정)
             questionId: questions[quizindex].id,
@@ -77,10 +82,7 @@ export default function Quiz() {
           });
         
 
-        if(quizindex === 10) {
-            router.push('/result');
-            return;
-        };
+        
 
     }
 

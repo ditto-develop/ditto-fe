@@ -74,16 +74,24 @@ export default function Result() {
             
             const minLoadingTimePromise = new Promise((resolve) => setTimeout(resolve, 3000)); //최소 3초 로딩제한
             const [rarityResult, similarUserResult] = await Promise.all([rarityFetch,similerUserFetch, minLoadingTimePromise]);
+            const similer = similarUserResult.data?.count;
+            const rarityraw = rarityResult.data?.rarity;
 
-            setSimilerUser(similarUserResult.data?.count);
-            setRarity(rarityResult.data?.rarity);
+            if(similer < 15) setTierIndex(0);
+            else if (similer >= 15 && similer < 30) setTierIndex(1);
+            else if (similer >= 30 && similer < 60) setTierIndex(2);
+            else if (similer >= 60) setTierIndex(3);
+
+
+            setSimilerUser(similer);
+            setRarity(rarityraw);
           }catch(err){
             console.log(err);
           }finally{
             setIsloading(false);
           }
     }
-    
+
     loadData();
   }, []);
 
