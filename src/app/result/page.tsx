@@ -96,17 +96,34 @@ export default function Result() {
   }, []);
 
   /** Funtion Section */
+  async function uploadToCloudinary(base64: string) {
+        const formData = new FormData();
+        formData.append("file", base64);
+        formData.append("upload_preset", "ditto-image"); // ✅ preset 이름
+
+        const res = await fetch("https://api.cloudinary.com/v1_1/dpqoxddn1/image/upload", {
+            method: "POST",
+            body: formData,
+        });
+
+        const data = await res.json();
+        console.log("✅ Cloudinary 업로드 결과:", data);
+        return data.secure_url; // 업로드된 이미지의 public URL
+  }
+
   const handleCapture = async () => { //이미지 자동 캡쳐
+
     if (!captureRef.current) return;
-
     const canvas = await html2canvas(captureRef.current, { useCORS: true });
-
     const dataUrl = canvas.toDataURL("image/png");
-    setCapturedImage(dataUrl);
+    const imgURL = await uploadToCloudinary(dataUrl);
+    
+    setCapturedImage(imgURL);
   };
 
   const downloadImage = () => { //이미지 다운로드 함수
     if (!capturedImage) return;
+    console.log(capturedImage);
 
     const link = document.createElement("a");
     link.href = capturedImage;

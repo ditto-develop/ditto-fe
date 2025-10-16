@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {IconContainer, ShareIconContainer,Backdrop,BottomSheetContainer,ShareImgContainer, ButtonContainer } from './Container';
 import Image from 'next/image';
 import {BottomTitle, BottomSubTitle} from './Text';
@@ -18,47 +18,30 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
      * - 카카오톡/X 공유하기 역시 가능. 따라서 이부분만 개발하면 될듯 함.
      */
 
+    /**State Section */
+
+    /**Effect Section */
     useEffect(() => {
-        if (typeof window !== "undefined" && !window.Kakao?.isInitialized()) {
-          window.Kakao.init(process.env.NEXT_PUBLIC_KAKAO_API_KEY);
-          console.log("✅ Kakao SDK 초기화 완료");
-        }
-      }, []);
 
-    async function uploadToCloudinary(base64: string) {
-        const formData = new FormData();
-        formData.append("file", base64);
-        formData.append("upload_preset", "ditto-image"); // ✅ preset 이름
+    }, []);
 
-        const res = await fetch("https://api.cloudinary.com/v1_1/dpqoxddn1/image/upload", {
-            method: "POST",
-            body: formData,
-        });
-
-        const data = await res.json();
-        console.log("✅ Cloudinary 업로드 결과:", data);
-        return data.secure_url; // 업로드된 이미지의 public URL
-    }
+    /**Function Section */
+    
 
     async function handleOnClickKakao() {
       try {
-        // ✅ 1️⃣ Cloudinary 업로드 완료까지 기다리기
-        const imgURL = await uploadToCloudinary(capturedImage);
-        console.log("✅ 업로드 완료:", imgURL);
-
         if (!window.Kakao?.isInitialized()) {
           window.Kakao.init(process.env.NEXT_PUBLIC_KAKAO_API_KEY);
           console.log("⚠️ Kakao SDK가 늦게 초기화되어 지금 초기화함");
         }
 
-        // ✅ 2️⃣ Kakao SDK가 로드되었는지 확인 후 실행
         if (window.Kakao && window.Kakao.Share) {
           window.Kakao.Share.sendDefault({
             objectType: 'feed',
             content: {
               title: "ditto - 공통의 끌림[수정예정]",
               description: "4096개의 질문 중 저와 같은 질문을 선택한 사람은 8명이였습니다. 단순한 우연일까요, 가치관의 차이일까요?",
-              imageUrl: imgURL, // ✅ 카멜케이스가 맞음 (image_url ❌ → imageUrl ✅)
+              imageUrl: capturedImage,
               imageWidth: 640,
               imageHeight: 640,
               link: {
@@ -74,9 +57,6 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
         console.error("❌ 이미지 업로드 또는 공유 실패:", err);
       }
     }
-
-
-
 
   return (
     <>
@@ -99,7 +79,8 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
             </div>
         </div>
         <ShareImgContainer>
-            {capturedImage && (
+            {
+            capturedImage && (
                 <Image
                     crossOrigin='anonymous'
                     src={capturedImage}
