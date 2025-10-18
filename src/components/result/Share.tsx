@@ -48,6 +48,7 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
     
     function handleOnClickKakao() {
         if (typeof window === "undefined" || !window.Kakao) {
+          
           console.log("⚠️ Kakao SDK not ready");
           return;
         }
