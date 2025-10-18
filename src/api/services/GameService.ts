@@ -66,7 +66,24 @@ export class GameService {
                 'questionId': questionId,
             },
             body: requestBody,
-            mediaType: 'application/json'
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * 라운드의 모든 답안 제출 완료
+     * @param round
+     * @returns any
+     * @throws ApiError
+     */
+    public static gameControllerSubmitEnd(
+        round: number,
+    ): CancelablePromise<SuccessApiResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/game/{round}/end',
+            path: {
+                'round': round,
+            },
         });
     }
 }

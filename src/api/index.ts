@@ -8,7 +8,6 @@ export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { AnswerItem } from './models/AnswerItem';
-export type { CalculateResultRarityResponseDto } from './models/CalculateResultRarityResponseDto';
 export type { CreateUserResponseDto } from './models/CreateUserResponseDto';
 export type { FailApiResponse } from './models/FailApiResponse';
 export type { GameDto } from './models/GameDto';
@@ -18,6 +17,7 @@ export type { RegisterEmailResponseDto } from './models/RegisterEmailResponseDto
 export type { SimilarUsersCountResponseDto } from './models/SimilarUsersCountResponseDto';
 export type { StartResponseDto } from './models/StartResponseDto';
 export type { SuccessApiResponse } from './models/SuccessApiResponse';
+export type { UploadFileDto } from './models/UploadFileDto';
 
 export { AppService } from './services/AppService';
 export { GameService } from './services/GameService';

@@ -4,8 +4,16 @@
 /* eslint-disable */
 export type SimilarUsersCountResponseDto = {
     /**
-     * x% 일치한 사용자 수
+     * 전체 사용자 수 (본인 제외)
      */
-    count: number;
+    totalCount: number;
+    /**
+     * x% 일치한 사용자 수 (본인 제외)
+     */
+    similarCount: number;
+    /**
+     * 100% 일치한 사용자 수 (본인 제외)
+     */
+    sameCount: number;
 };
 

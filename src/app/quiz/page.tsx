@@ -31,8 +31,8 @@ export default function Quiz() {
     const [quizindex, setQuizindex] = useState<number>(0);
     const [direction, setDirection] = useState<number>(1);
     const [disabled, setDisabled] = useState(false); //뒤로가기 연속터치 방지용
-    const [isClient, setIsClient] = useState(false); // ✅ 클라이언트 렌더링 플래그
-    const [isLoading, setIsLoading] = useState(true);
+    const [isClient, setIsClient] = useState(false); // 클라이언트 렌더링 플래그
+    const [isLoading, setIsLoading] = useState(true); // 서버셋팅 렌더링 플래그
 
 
     /** Effect Section */
@@ -55,12 +55,7 @@ export default function Quiz() {
         setQuizindex(index);
     }
 
-    const ClickedAns = (isLeft: boolean) => { //답변 입력 함수
-        if(quizindex === 11) {
-            router.push('/result');
-            return;
-        };
-        
+    const ClickedAns = (isLeft: boolean) => { //답변 입력 함수    
         const ansData = {
             round: 1, //임시지정 (라운드가 변화할 시 변수로 사용 예정)
             questionId: questions[quizindex].id,
@@ -74,8 +69,22 @@ export default function Quiz() {
           ansData.questionId,
           ansData.requestBody)
             .then((res)=>{
-                setDirection(isLeft ? 1 : -1);
-                SetQuizData(questions[quizindex].index+1);
+                if(quizindex === 11) { //12문제 종료시 (quizindex 11) 종료 API 호출 후 결과창 이동
+                    try{
+                        GameService.gameControllerSubmitEnd(1)
+                            .then((res) => {
+                                const result = res as SuccessApiResponseWithData;
+                                console.log("END: ",result);
+                            });
+                        router.push('/result');
+                    }catch(err){
+                        console.error(err);
+                    }
+                    return;
+                }else{
+                    setDirection(isLeft ? 1 : -1);
+                    SetQuizData(questions[quizindex].index+1);
+                };
             })
             .catch((err)=>{
                 console.error("에러발생",err);

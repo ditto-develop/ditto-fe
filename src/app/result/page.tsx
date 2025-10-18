@@ -44,6 +44,12 @@ const TierText = [
   
 ]
 
+/** Type Section */
+type gameresultType = {
+    totalCount: number,
+    similarCount: number,
+    sameCount: number
+}
 export default function Result() {
   /** Hook Section */
   const router = useRouter();
@@ -54,9 +60,8 @@ export default function Result() {
   const [isshare, setIsShare] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string>('');
   const [tierIndex, setTierIndex] = useState<number>(0);
-  const [similerUser, setSimilerUser] = useState<number>(0); //x%이상 일치한 사용자 수
-  const [rarity, setRarity] = useState<number>(0); //게임 결과 희귀도
 
+  const [gameResult, setGameResult] = useState<gameresultType>();
 
   /** Effect Section */
   useLayoutEffect(() => { //이미지 캡쳐를 위한 마운트 제어
@@ -68,23 +73,22 @@ export default function Result() {
   useEffect(() => { //로딩 화면 제어
     const loadData = async() => {
           try{
-            const rarityFetch =  MatchService.matchControllerCalculateResultRarity();
-            const similerUserFetch =  MatchService.matchControllerGetSimilarUsersCount();
-
-            
+            const matchResult =  MatchService.matchControllerGetSimilarUsersCount(1,80); //최종 매치 결과
             const minLoadingTimePromise = new Promise((resolve) => setTimeout(resolve, 3000)); //최소 3초 로딩제한
-            const [rarityResult, similarUserResult] = await Promise.all([rarityFetch,similerUserFetch, minLoadingTimePromise]);
-            const similer = similarUserResult.data?.count;
-            const rarityraw = rarityResult.data?.rarity;
+            const [matchres] = await Promise.all([matchResult, minLoadingTimePromise]);
 
+            const totalCount = matchres.data?.totalCount;
+            const similarCount = matchres.data?.similarCount;
+
+            const similer = similarCount/totalCount * 100 ;
+            
             if(similer < 15) setTierIndex(0);
             else if (similer >= 15 && similer < 30) setTierIndex(1);
             else if (similer >= 30 && similer < 60) setTierIndex(2);
             else if (similer >= 60) setTierIndex(3);
 
+            setGameResult(matchres.data as gameresultType);
 
-            setSimilerUser(similer);
-            setRarity(rarityraw);
           }catch(err){
             console.log(err);
           }finally{
@@ -175,15 +179,15 @@ export default function Result() {
 
               <Pyramid 
                 type={TierText[tierIndex].en}
-                total={2037}
-                number={8}
+                total={gameResult?.totalCount || 2024}
+                number={gameResult?.similarCount || 8}
               />
 
               <div>
                   <div>
                     <SubtitleText>4096개의 질문 중</SubtitleText>
                     <SubtitleText>당신과 같은 질문을 선택한 사람들은</SubtitleText>
-                    <SubtitleText>8명이였습니다.</SubtitleText>
+                    <SubtitleText>{gameResult?.sameCount}명이였습니다.</SubtitleText>
                   </div>
 
                   <div style={{ marginTop: "30px" }}>

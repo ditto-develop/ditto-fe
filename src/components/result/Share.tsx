@@ -3,6 +3,23 @@ import {IconContainer, ShareIconContainer,Backdrop,BottomSheetContainer,ShareImg
 import Image from 'next/image';
 import {BottomTitle, BottomSubTitle} from './Text';
 import { Whitebutton } from '../Button';
+import useDeviceType from '@/hooks/useDeviceType';
+import toast, { Toaster } from 'react-hot-toast';
+import styled from 'styled-components';
+
+const CustomToast = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* ✅ 왼쪽 정렬 */
+  padding: 12px 16px;
+  background-color: #00000066;
+  color: white;
+  font-size: 16px;
+  width: 327px;
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+  text-align: left;
+`;
 
 type shareType = {
     handleIsshare: () => void,
@@ -17,6 +34,8 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
      * - 브라우저 자체 바텀시트 공유기능은 사용 가능.
      * - 카카오톡/X 공유하기 역시 가능. 따라서 이부분만 개발하면 될듯 함.
      */
+    /**Hook Section */
+    const device = useDeviceType();
 
     /**State Section */
 
@@ -27,7 +46,6 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
 
     /**Function Section */
     
-
     async function handleOnClickKakao() {
       try {
         if (!window.Kakao?.isInitialized()) {
@@ -39,8 +57,8 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
           window.Kakao.Share.sendDefault({
             objectType: 'feed',
             content: {
-              title: "ditto - 공통의 끌림[수정예정]",
-              description: "4096개의 질문 중 저와 같은 질문을 선택한 사람은 8명이였습니다. 단순한 우연일까요, 가치관의 차이일까요?",
+              title: "ditto - 수백만의 스침 속, 단 하나의 멈춤",
+              description: "4096개의 질문 중 저와 같은 질문을 선택한 사람은 8명이였습니다. 단순한 우연일까요?",
               imageUrl: capturedImage,
               imageWidth: 640,
               imageHeight: 640,
@@ -57,6 +75,40 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
         console.error("❌ 이미지 업로드 또는 공유 실패:", err);
       }
     }
+
+    const handleCopyLink = async () => {
+      await navigator.clipboard.writeText(String(process.env.NEXT_PUBLIC_DNS));
+    };
+
+    const handleShare = async () => {
+      if(device === 'mobile' || device === 'tablet'){
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: "ditto - 수백만의 스침 속, 단 하나의 멈춤",
+              text: "4096개의 질문 중 저와 같은 질문을 선택한 사람은 8명이였습니다.",
+              url: process.env.NEXT_PUBLIC_DNS,
+            });
+            console.log("✅ 공유 성공");
+          } catch (err) {
+            console.error("❌ 공유 실패:", err);
+          }
+      }}else {
+          handleCopyLink();
+      }
+
+      toast.custom(
+        (t) => (
+          <CustomToast aria-live="polite">
+            <div>링크가 복사되었습니다.</div>
+          </CustomToast>
+        ),
+        { 
+          duration: 3000 
+        }
+      );
+  };
+
 
   return (
     <>
@@ -111,6 +163,7 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
                 >이미지 저장하기</Whitebutton>
             <ShareIconContainer>
                 <IconContainer
+                    onClick={handleShare}
                 >
                     <Image src='./icons/link.svg'
                            alt='link' width={32} height={32}/>
@@ -126,6 +179,10 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
                            alt='link' width={24} height={32}/>
                 </IconContainer>                
             </ShareIconContainer>
+            <Toaster 
+                position="bottom-center"
+                reverseOrder={false}
+            />
         </ButtonContainer>
       </BottomSheetContainer>
     </>
