@@ -53,7 +53,7 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
           console.log("⚠️ Kakao SDK가 늦게 초기화되어 지금 초기화함");
         }
 
-        if (window.Kakao && window.Kakao.Share) {
+        if (window.Kakao && window.Kakao.isInitialized()) {
           window.Kakao.Share.sendDefault({
             objectType: 'feed',
             content: {
