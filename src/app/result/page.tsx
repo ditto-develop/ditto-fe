@@ -132,8 +132,8 @@ export default function Result() {
       console.log("✅ 캔버스 -> blob 변환 성공");
 
       const imgURL = await uploadToCloudinary(blob);
-      console.log("✅ 서버 업로드 성공");
-      const imgLink = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000' + imgURL
+      const imgLink = process.env.NEXT_PUBLIC_API_URL+imgURL || 'http://localhost:4000'+imgURL
+      console.log("✅ 서버 업로드 성공", imgLink);
       
       setCapturedImage(imgLink);
     } catch (error) {
