@@ -1,13 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import {IconContainer, ShareIconContainer,Backdrop,BottomSheetContainer,ShareImgContainer, ButtonContainer } from './Container';
+
+/** Library */
 import Image from 'next/image';
-import {BottomTitle, BottomSubTitle} from './Text';
-import { Whitebutton } from '../Button';
-import useDeviceType from '@/hooks/useDeviceType';
 import toast, { Toaster } from 'react-hot-toast';
 import styled from 'styled-components';
 
-const CustomToast = styled.div`
+/** Components */
+import {IconContainer, ShareIconContainer,Backdrop,BottomSheetContainer,ShareImgContainer, ButtonContainer } from './Container';
+import {BottomTitle, BottomSubTitle} from './Text';
+import { Whitebutton } from '../Button';
+
+/** Hooks */
+import React, { useCallback, useEffect, useState } from 'react';
+import useDeviceType from '@/hooks/useDeviceType';
+
+/** Styles */
+
+const CustomToast = styled.div` //임시 (삭제예정)
   display: flex;
   flex-direction: column;
   align-items: flex-start; /* ✅ 왼쪽 정렬 */
@@ -30,9 +38,7 @@ type shareType = {
 export default function Share({capturedImage,handleCapture,handleIsshare}: shareType) {
     /**
      * 공유하기에 대한 개발노트 10.09
-     * - 인스타그램 스토리 공유는 웹에서는 이론상 불가능하다고 판단
-     * - 브라우저 자체 바텀시트 공유기능은 사용 가능.
-     * - 카카오톡/X 공유하기 역시 가능. 따라서 이부분만 개발하면 될듯 함.
+     * - X 공유하기 역시 가능. 따라서 이부분만 개발하면 될듯 함.
      */
     /**Hook Section */
     const device = useDeviceType();
@@ -45,8 +51,7 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
     }, []);
 
     /**Function Section */
-    
-    function handleOnClickKakao() {
+    function handleOnClickKakao() { //카카오톡 공유하기 핸들러
         if (typeof window === "undefined" || !window.Kakao) {
           
           console.log("⚠️ Kakao SDK not ready");
@@ -73,12 +78,11 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
         });
     }
 
-
-    const handleCopyLink = async () => {
+    const handleCopyLink = async () => { //링크 클립보드 복사 함수
       await navigator.clipboard.writeText(String(process.env.NEXT_PUBLIC_DNS));
     };
 
-    const handleShare = async () => {
+    const handleShare = async () => { //링크 공유하기(시스템 바텀시트) 핸들러
       if(device === 'mobile' || device === 'tablet'){
         if (navigator.share) {
           try {
@@ -95,6 +99,7 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
           handleCopyLink();
       }
 
+      /** 스낵바 토스트 테스트 */
       toast.custom(
         (t) => (
           <CustomToast aria-live="polite">
@@ -105,7 +110,19 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
           duration: 3000 
         }
       );
-  };
+      /** 스낵바 토스트 테스트 */
+    };
+    
+    const shareText = "4096개의 질문 중 저와 같은 질문을 선택한 사람은 8명이였습니다. 단순한 우연일까요? 지금 여러분도 확인해보세요!";
+    const shareUrl = process.env.NEXT_PUBLIC_API_URL || '';
+
+    const handleShareToX = useCallback(() => {
+        const text = encodeURIComponent(shareText);
+        const url = encodeURIComponent(shareUrl);
+        const intentUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
+        window.open(intentUrl, "_blank");
+    }, [shareText, shareUrl]);
+
 
 
   return (
@@ -172,7 +189,9 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
                     <Image src='./icons/chat.svg'
                            alt='link' width={24} height={32}/>
                 </IconContainer>
-                <IconContainer>
+                <IconContainer
+                    onClick={handleShareToX}
+                >
                     <Image src='./icons/twitter.svg'
                            alt='link' width={24} height={32}/>
                 </IconContainer>                

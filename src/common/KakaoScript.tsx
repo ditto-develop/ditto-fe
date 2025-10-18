@@ -1,3 +1,7 @@
+/** 카카오톡 SDK init
+ * 문제 : 주소로 호출하면 CORS에 걸리는지 Safari 환경에서는 적용되지 않음.
+ * 해결 : 정적 파일로 업로드해서 활용
+ */
 "use client";
 import Script from "next/script";
 

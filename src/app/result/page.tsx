@@ -16,10 +16,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import html2canvas from "html2canvas-pro";
-import styled from "styled-components";
 
 /** API */
 import { MatchService, SuccessApiResponse, UsersService } from "@/api";
+import { resolve } from "path";
 
 /** Dummy Data */
 const TierText = [
@@ -66,22 +66,58 @@ export default function Result() {
   const [gameResult, setGameResult] = useState<gameresultType>();
 
   /** Effect Section */
-  useLayoutEffect(() => { //이미지 캡쳐를 위한 마운트 제어
-    setTimeout(() => {
-      handleCapture();
-    }, 4000);
-  }, []);
-
   useEffect(() => { //로딩 화면 제어
-    const loadData = async() => {
+          const loadData = async() => {
+            async function handleCapture(): Promise<string | undefined> {
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+
+              if (!captureRef.current) throw new Error("captureRef가 비어있습니다.");
+
+              try {
+                console.log("🖼️ 이미지 캡쳐 시작");
+                const canvas = await html2canvas(captureRef.current, { useCORS: true });
+                const dataUrl = canvas.toDataURL("image/png");
+
+                const byteString = atob(dataUrl.split(",")[1]);
+                const mimeString = dataUrl.split(",")[0].split(":")[1].split(";")[0];
+                const ab = new ArrayBuffer(byteString.length);
+                const ia = new Uint8Array(ab);
+                for (let i = 0; i < byteString.length; i++) {
+                  ia[i] = byteString.charCodeAt(i);
+                }
+
+                const blob = new Blob([ab], { type: mimeString });
+                console.log("✅ 캔버스 -> blob 변환 성공");
+                console.log(blob);
+
+                // await the upload directly and validate the response before using .data
+                const uploadResponse = await UsersService.usersControllerUploadGameResultImage(1, { file: blob });
+                const result = uploadResponse as unknown as SuccessApiResponse | undefined;
+                if (!result || !result.data || !result.data.url) {
+                  console.error("❌ 서버 업로드 실패 또는 응답에 URL이 없습니다.", result);
+                  return undefined;
+                }
+
+                const imgURL = result.data.url;
+                const imgLink = process.env.NEXT_PUBLIC_API_URL + imgURL;
+                console.log("✅ 서버 업로드 성공", imgLink);
+                
+                setCapturedImage(imgLink);
+                return imgLink;
+              } catch (error) {
+                console.error("❌ 이미지 캡쳐 또는 업로드 실패:", error);
+                return undefined;
+              }
+            };
+
           try{
             const matchResult =  MatchService.matchControllerGetSimilarUsersCount(1,80); //최종 매치 결과
+            const capturePromise = handleCapture();
             const minLoadingTimePromise = new Promise((resolve) => setTimeout(resolve, 3000)); //최소 3초 로딩제한
-            const [matchres] = await Promise.all([matchResult, minLoadingTimePromise]);
+            const [matchres] = await Promise.all([matchResult,capturePromise, minLoadingTimePromise]);
 
             const totalCount = matchres.data?.totalCount;
             const similarCount = matchres.data?.similarCount;
-
             const similer = similarCount/totalCount * 100 ;
             
             if(similer < 15) setTierIndex(0);
@@ -102,44 +138,6 @@ export default function Result() {
   }, []);
 
   /** Funtion Section */
-  async function uploadToCloudinary(blob: Blob) {
-      const res = await UsersService.usersControllerUploadGameResultImage(1,{file: blob})
-          .then((res)=>{
-              const result = res as unknown as SuccessApiResponse;
-              return result;
-          })
-
-      console.log("✅ 서버 업로드 결과:", res);
-      return res.data?.url; 
-  }
-
-  const handleCapture = async () => { //이미지 자동 캡쳐
-    try {
-      if (!captureRef.current) return;
-      console.log("🖼️ 이미지 캡쳐 시작");
-      const canvas = await html2canvas(captureRef.current, { useCORS: true });
-      const dataUrl = canvas.toDataURL("image/png");
-
-      const byteString = atob(dataUrl.split(",")[1]);
-      const mimeString = dataUrl.split(",")[0].split(":")[1].split(";")[0];
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-      }
-
-      const blob = new Blob([ab], { type: mimeString });
-      console.log("✅ 캔버스 -> blob 변환 성공");
-
-      const imgURL = await uploadToCloudinary(blob);
-      const imgLink = process.env.NEXT_PUBLIC_API_URL+imgURL || 'http://localhost:4000'+imgURL
-      console.log("✅ 서버 업로드 성공", imgLink);
-      
-      setCapturedImage(imgLink);
-    } catch (error) {
-      console.error("❌ 이미지 캡쳐 또는 업로드 실패:", error);
-    }
-  };
 
   const downloadImage = () => { //이미지 다운로드 함수
     if (!capturedImage) return;
@@ -157,16 +155,23 @@ export default function Result() {
   return (
     <>
       <AnimatePresence mode="wait">
-        {isloading ? (
-            <LoadingContainer>
-              <LoadingText>Loading</LoadingText>
-            </LoadingContainer>
-        ) : (
+        {isloading && 
+          <LoadingContainer>
+            <LoadingText>Loading</LoadingText>
+          </LoadingContainer>}
+        
           <motion.div
             key="main"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 1 }}
+            style={{
+              display: "static",
+              top: 0,
+              left: 0,
+              width: "100%",
+              pointerEvents: isloading ? "none" : "auto", // 로딩 중에는 클릭 방지
+            }}
           >
             {isshare && <Share 
                   capturedImage={capturedImage}
@@ -216,7 +221,6 @@ export default function Result() {
               </ButtonContainer>
             </MainContainer>
           </motion.div>
-        )}
       </AnimatePresence>
     </>
   );

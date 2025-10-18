@@ -14,6 +14,7 @@ const TextContiner = styled.div`
 `
 
 const LoadingContainer = styled.div`
+    z-index: 999;
     height: 100%;
     display: flex;
     justify-content: center;
