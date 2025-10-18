@@ -29,9 +29,9 @@ jobs:
             echo "📦 Pulling latest code..."
             git pull origin main
             echo "📦 Installing dependencies..."
-            pnpm install --frozen-lockfile
+            npm install --frozen-lockfile
             echo "🏗️ Building Next.js..."
-            pnpm build
+            npm build
             echo "🚀 Restarting app..."
             pm2 restart ditto-fe || pm2 start "npm start" --name ditto-fe
             echo "✅ Deployment finished successfully!"
