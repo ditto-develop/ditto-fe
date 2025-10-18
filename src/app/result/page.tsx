@@ -17,7 +17,9 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import html2canvas from "html2canvas-pro";
 import styled from "styled-components";
-import { MatchService } from "@/api";
+
+/** API */
+import { MatchService, SuccessApiResponse, UsersService } from "@/api";
 
 /** Dummy Data */
 const TierText = [
@@ -100,19 +102,15 @@ export default function Result() {
   }, []);
 
   /** Funtion Section */
-  async function uploadToCloudinary(base64: string) {
-        const formData = new FormData();
-        formData.append("file", base64);
-        formData.append("upload_preset", "ditto-image"); // ✅ preset 이름
+  async function uploadToCloudinary(blob: Blob) {
+      const res = await UsersService.usersControllerUploadGameResultImage(1,{file: blob})
+          .then((res)=>{
+              const result = res as unknown as SuccessApiResponse;
+              return result;
+          })
 
-        const res = await fetch("https://api.cloudinary.com/v1_1/dpqoxddn1/image/upload", {
-            method: "POST",
-            body: formData,
-        });
-
-        const data = await res.json();
-        console.log("✅ Cloudinary 업로드 결과:", data);
-        return data.secure_url; // 업로드된 이미지의 public URL
+      console.log("✅ 서버 업로드 결과:", res);
+      return res.data?.url; 
   }
 
   const handleCapture = async () => { //이미지 자동 캡쳐
@@ -121,10 +119,23 @@ export default function Result() {
       console.log("🖼️ 이미지 캡쳐 시작");
       const canvas = await html2canvas(captureRef.current, { useCORS: true });
       const dataUrl = canvas.toDataURL("image/png");
-      console.log("✅ 캔버스 -> DataURL 변환 성공");
-      const imgURL = await uploadToCloudinary(dataUrl);
-      console.log("✅ Cloudinary 업로드 성공");
-      setCapturedImage(imgURL);
+
+      const byteString = atob(dataUrl.split(",")[1]);
+      const mimeString = dataUrl.split(",")[0].split(":")[1].split(";")[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+
+      const blob = new Blob([ab], { type: mimeString });
+      console.log("✅ 캔버스 -> blob 변환 성공");
+
+      const imgURL = await uploadToCloudinary(blob);
+      console.log("✅ 서버 업로드 성공");
+      const imgLink = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000' + imgURL
+      
+      setCapturedImage(imgLink);
     } catch (error) {
       console.error("❌ 이미지 캡쳐 또는 업로드 실패:", error);
     }
@@ -132,8 +143,7 @@ export default function Result() {
 
   const downloadImage = () => { //이미지 다운로드 함수
     if (!capturedImage) return;
-    console.log(capturedImage);
-
+  
     const link = document.createElement("a");
     link.href = capturedImage;
     link.download = "ditto_result.png";
