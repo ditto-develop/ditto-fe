@@ -31,7 +31,7 @@ jobs:
             echo "📦 Installing dependencies..."
             npm install --frozen-lockfile
             echo "🏗️ Building Next.js..."
-            npm build
+            npm run build
             echo "🚀 Restarting app..."
             pm2 restart ditto-fe || pm2 start "npm start" --name ditto-fe
             echo "✅ Deployment finished successfully!"
