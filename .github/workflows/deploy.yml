@@ -33,5 +33,5 @@ jobs:
             echo "🏗️ Building Next.js..."
             pnpm build
             echo "🚀 Restarting app..."
-            pm2 restart ditto-fe || pm2 start "pnpm start" --name ditto-fe
+            pm2 restart ditto-fe || pm2 start "npm start" --name ditto-fe
             echo "✅ Deployment finished successfully!"
