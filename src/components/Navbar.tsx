@@ -41,7 +41,7 @@ type NavbarType = HTMLAttributes<HTMLDivElement> & {
 
 export default function Navbar({Prev,header,share,shareHandle}:NavbarType) {
     return(
-        <nav>
+        <>
             <Nav>
                 <Leftbox>
                     <Image 
@@ -61,6 +61,6 @@ export default function Navbar({Prev,header,share,shareHandle}:NavbarType) {
                             height={20}
                 />}
             </Nav>
-        </nav>
+        </>
     )
 }

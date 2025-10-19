@@ -182,6 +182,8 @@ export default function Result() {
                   handleCapture={downloadImage}
                   handleIsshare={handleIsshare} />}
             <ScrollablePageStyle />
+
+
             <Navbar
               Prev={() => {
                 router.push("/");
@@ -189,6 +191,7 @@ export default function Result() {
               shareHandle={handleIsshare}
               share={true}
             />
+
             <MainContainer>
               <CaptuerContainer ref={captureRef}>
               <TextContiner>

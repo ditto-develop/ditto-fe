@@ -1,8 +1,7 @@
 
 /** Library */
 import Image from 'next/image';
-import toast, { Toaster } from 'react-hot-toast';
-import styled from 'styled-components';
+import toast from 'react-hot-toast';
 
 /** Components */
 import {IconContainer, ShareIconContainer,Backdrop,BottomSheetContainer,ShareImgContainer, ButtonContainer } from './Container';
@@ -10,7 +9,7 @@ import {BottomTitle, BottomSubTitle} from './Text';
 import { Whitebutton } from '../Button';
 
 /** Hooks */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import useDeviceType from '@/hooks/useDeviceType';
 import Toast, { CustomToast } from './Toast';
 
@@ -75,7 +74,7 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
             },
           },
         });
-        toastHandler("공유하기가 완료되었어요.");
+        toastHandler("카카오톡을 실행합니다.");
     }
 
     const handleCopyLink = async () => { //링크 클립보드 복사 함수
@@ -91,13 +90,13 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
               text: "4096개의 질문 중 저와 같은 질문을 선택한 사람은 8명이였습니다.",
               url: process.env.NEXT_PUBLIC_DNS,
             });
-            toastHandler("공유하기가 완료되었어요.")
+            toastHandler("공유하기가 완료되었습니다.")
           } catch (err) {
-            toastHandler("공유하기에 실패했어요.")
+            toastHandler("공유하기를 실패했습니다.")
           }
       }}else {
           handleCopyLink();
-          toastHandler("링크가 복사되었어요.")
+          toastHandler("링크가 복사되었습니다.")
       }
 
     };
@@ -110,7 +109,7 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
         const url = encodeURIComponent(shareUrl);
         const intentUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
         window.open(intentUrl, "_blank");
-        toastHandler("공유하기가 완료되었어요.")
+        toastHandler("공유하기가 완료되었습니다.")
     }, [shareText, shareUrl]);
 
 

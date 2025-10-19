@@ -117,11 +117,11 @@ export default function Quiz() {
             <div style={{overflow: "hidden", width:"100%"}}>
             <AnimatePresence mode="wait" custom={direction}>
                 <motion.div
-                    key={questions[quizindex].index} // 클릭할 때마다 새 key
+                    key={questions[quizindex].index} 
                     custom={direction}
-                    initial={{ x: direction * 300, opacity: 0 }}
+                    initial={{ x: direction * 100, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
-                    exit={{ y: 300, opacity: 0 }} 
+                    exit={{ y: 100, opacity: 0 }} 
                     transition={{ duration: 0.4 }}
                 >
                     <MainContainer>

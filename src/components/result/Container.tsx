@@ -14,12 +14,20 @@ const TextContiner = styled.div`
 `
 
 const LoadingContainer = styled.div`
-    z-index: 999;
+    position: fixed;
+    
+    top: 0;                  
+    left: 0;
+    width: 100%;              
+    z-index: 1000;
     height: 100%;
+    
     display: flex;
     justify-content: center;
     flex-direction: column;
     align-items: center;
+
+    background-color: #F3F1EF;
 `;
 
 const ButtonContainer = styled.div`
