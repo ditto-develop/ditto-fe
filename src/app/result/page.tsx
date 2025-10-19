@@ -12,14 +12,13 @@ import Share from "@/components/result/Share";
 import ScrollablePageStyle from "@/styles/ScrollablePageStyle";
 
 /** Library */
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import html2canvas from "html2canvas-pro";
 
 /** API */
 import { MatchService, SuccessApiResponse, UsersService } from "@/api";
-import { resolve } from "path";
 
 /** Dummy Data */
 const TierText = [
@@ -52,6 +51,7 @@ type gameresultType = {
     similarCount: number,
     sameCount: number
 }
+
 export default function Result() {
   /** Hook Section */
   const router = useRouter();
@@ -67,78 +67,82 @@ export default function Result() {
 
   /** Effect Section */
   useEffect(() => { //로딩 화면 제어
-          const loadData = async() => {
-            async function handleCapture(): Promise<string | undefined> {
-              await new Promise((resolve) => setTimeout(resolve, 1000));
+    const loadData = async() => {
+      async function handleCapture(): Promise<string | undefined> { //캡쳐 핸들러
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
-              if (!captureRef.current) throw new Error("captureRef가 비어있습니다.");
+        if (!captureRef.current) throw new Error("captureRef가 비어있습니다.");
 
-              try {
-                console.log("🖼️ 이미지 캡쳐 시작");
-                const canvas = await html2canvas(captureRef.current, { useCORS: true });
-                const dataUrl = canvas.toDataURL("image/png");
+        try {
+          console.log("🖼️ 이미지 캡쳐 시작");
+          const canvas = await html2canvas(captureRef.current, { useCORS: true });
+          const dataUrl = canvas.toDataURL("image/png");
 
-                const byteString = atob(dataUrl.split(",")[1]);
-                const mimeString = dataUrl.split(",")[0].split(":")[1].split(";")[0];
-                const ab = new ArrayBuffer(byteString.length);
-                const ia = new Uint8Array(ab);
-                for (let i = 0; i < byteString.length; i++) {
-                  ia[i] = byteString.charCodeAt(i);
-                }
-
-                const blob = new Blob([ab], { type: mimeString });
-                console.log("✅ 캔버스 -> blob 변환 성공");
-                console.log(blob);
-
-                // await the upload directly and validate the response before using .data
-                const uploadResponse = await UsersService.usersControllerUploadGameResultImage(1, { file: blob });
-                const result = uploadResponse as unknown as SuccessApiResponse | undefined;
-                if (!result || !result.data || !result.data.url) {
-                  console.error("❌ 서버 업로드 실패 또는 응답에 URL이 없습니다.", result);
-                  return undefined;
-                }
-
-                const imgURL = result.data.url;
-                const imgLink = process.env.NEXT_PUBLIC_API_URL + imgURL;
-                console.log("✅ 서버 업로드 성공", imgLink);
-                
-                setCapturedImage(imgLink);
-                return imgLink;
-              } catch (error) {
-                console.error("❌ 이미지 캡쳐 또는 업로드 실패:", error);
-                return undefined;
-              }
-            };
-
-          try{
-            const matchResult =  MatchService.matchControllerGetSimilarUsersCount(1,80); //최종 매치 결과
-            const capturePromise = handleCapture();
-            const minLoadingTimePromise = new Promise((resolve) => setTimeout(resolve, 3000)); //최소 3초 로딩제한
-            const [matchres] = await Promise.all([matchResult,capturePromise, minLoadingTimePromise]);
-
-            const totalCount = matchres.data?.totalCount;
-            const similarCount = matchres.data?.similarCount;
-            const similer = similarCount/totalCount * 100 ;
-            
-            if(similer < 15) setTierIndex(0);
-            else if (similer >= 15 && similer < 30) setTierIndex(1);
-            else if (similer >= 30 && similer < 60) setTierIndex(2);
-            else if (similer >= 60) setTierIndex(3);
-
-            setGameResult(matchres.data as gameresultType);
-
-          }catch(err){
-            console.log(err);
-          }finally{
-            setIsloading(false);
+          const byteString = atob(dataUrl.split(",")[1]);
+          const mimeString = dataUrl.split(",")[0].split(":")[1].split(";")[0];
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
           }
-    }
 
+          const blob = new Blob([ab], { type: mimeString });
+          console.log("✅ 캔버스 -> blob 변환 성공");
+          console.log(blob);
+
+          // await the upload directly and validate the response before using .data
+          const uploadResponse = await UsersService.usersControllerUploadGameResultImage(1, { file: blob });
+          const result = uploadResponse as unknown as SuccessApiResponse | undefined;
+          if (!result || !result.data || !result.data.url) {
+            console.error("❌ 서버 업로드 실패 또는 응답에 URL이 없습니다.", result);
+            return undefined;
+          }
+
+          const imgURL = result.data.url;
+          const imgLink = process.env.NEXT_PUBLIC_API_URL + imgURL;
+          console.log("✅ 서버 업로드 성공", imgLink);
+          
+          setCapturedImage(imgLink);
+          return imgLink;
+        } catch (error) {
+          console.error("❌ 이미지 캡쳐 또는 업로드 실패:", error);
+          return undefined;
+        }
+      };
+
+      /** Loading Promise 처리 */
+      try{
+        /** Promise Section */
+        const matchResult =  MatchService.matchControllerGetSimilarUsersCount(1,80); //최종 매치 결과
+        const capturePromise = handleCapture();
+        const minLoadingTimePromise = new Promise((resolve) => setTimeout(resolve, 3000)); //최소 3초 로딩제한
+
+        const [matchres] = await Promise.all([matchResult,capturePromise, minLoadingTimePromise]); // 병렬처리
+
+        /** 데이터 가공 (totalCount : 전체 참여자 명수 / similarCount : 비슷한 답변을 한 인원 수(기준80) / similer : 비슷한 인원 비율 (단위 %)) */
+        const totalCount = matchres.data?.totalCount;
+        const similarCount = matchres.data?.similarCount;
+        const similer = similarCount/totalCount * 100 ;
+        
+        /** 티어표 셋팅 (피라미드 수정 예정) */
+        if(similer < 15) setTierIndex(0);
+        else if (similer >= 15 && similer < 30) setTierIndex(1);
+        else if (similer >= 30 && similer < 60) setTierIndex(2);
+        else if (similer >= 60) setTierIndex(3);
+
+        /** 최종 결과 셋팅 */
+        setGameResult(matchres.data as gameresultType);
+
+      }catch(err){
+        console.log(err);
+      }finally{
+        setIsloading(false);
+      }
+    }
     loadData();
   }, []);
 
   /** Funtion Section */
-
   const downloadImage = () => { //이미지 다운로드 함수
     if (!capturedImage) return;
   

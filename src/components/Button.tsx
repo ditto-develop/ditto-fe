@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image";
-import { HTMLAttributes } from "react";
+import { ButtonHTMLAttributes, HTMLAttributes } from "react";
 import { keyframes, styled } from "styled-components";
 
 
@@ -47,7 +47,7 @@ const fadeIn = keyframes`
   }
 `;
 
-const Middlebox = styled.div`
+const Middlebox = styled.button`
     animation: ${fadeIn} 0.5s ease-in-out forwards;
     display: flex;
     position: relative;
@@ -81,6 +81,8 @@ const Imgbox = styled.img`
 `;
 
 type divType = HTMLAttributes<HTMLDivElement>
+type buttonType = ButtonHTMLAttributes<HTMLButtonElement>
+
 
 export const Leftbutton = ({children, ...props}:divType) => {
     return(
@@ -114,7 +116,7 @@ export const Rightbutton = ({children, ...props}:divType) => {
     )
 }
 
-export const Blackbutton = ({children, ...props}:divType) => {
+export const Blackbutton = ({children, ...props}:buttonType) => {
     return(
         <>
             <Middlebox
@@ -167,7 +169,7 @@ export const MiddleBlackbutton = ({children, ...props}:divType) => {
 }
 
 
-type enableType = HTMLAttributes<HTMLDivElement> &{
+type enableType = ButtonHTMLAttributes<HTMLButtonElement> &{
     enable: boolean
 };
 const MiddleGraybox = styled.div`

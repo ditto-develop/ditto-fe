@@ -12,22 +12,9 @@ import { Whitebutton } from '../Button';
 /** Hooks */
 import React, { useCallback, useEffect, useState } from 'react';
 import useDeviceType from '@/hooks/useDeviceType';
+import Toast, { CustomToast } from './Toast';
 
 /** Styles */
-
-const CustomToast = styled.div` //임시 (삭제예정)
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start; /* ✅ 왼쪽 정렬 */
-  padding: 12px 16px;
-  background-color: #00000066;
-  color: white;
-  font-size: 16px;
-  width: 327px;
-  border-radius: 8px;
-  backdrop-filter: blur(4px);
-  text-align: left;
-`;
 
 type shareType = {
     handleIsshare: () => void,
@@ -51,7 +38,19 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
     }, []);
 
     /**Function Section */
-    function handleOnClickKakao() { //카카오톡 공유하기 핸들러
+    const toastHandler = (text: string) => {
+      toast.custom(
+            (t) => (
+                <CustomToast aria-live="polite">
+                  <div>{text}</div>
+                </CustomToast>
+            ),
+            { 
+                duration: 1500 
+            }
+        );
+    }
+    const handleOnClickKakao = () => { //카카오톡 공유하기 핸들러
         if (typeof window === "undefined" || !window.Kakao) {
           
           console.log("⚠️ Kakao SDK not ready");
@@ -76,6 +75,7 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
             },
           },
         });
+        toastHandler("공유하기가 완료되었어요.");
     }
 
     const handleCopyLink = async () => { //링크 클립보드 복사 함수
@@ -91,26 +91,15 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
               text: "4096개의 질문 중 저와 같은 질문을 선택한 사람은 8명이였습니다.",
               url: process.env.NEXT_PUBLIC_DNS,
             });
-            console.log("✅ 공유 성공");
+            toastHandler("공유하기가 완료되었어요.")
           } catch (err) {
-            console.error("❌ 공유 실패:", err);
+            toastHandler("공유하기에 실패했어요.")
           }
       }}else {
           handleCopyLink();
+          toastHandler("링크가 복사되었어요.")
       }
 
-      /** 스낵바 토스트 테스트 */
-      toast.custom(
-        (t) => (
-          <CustomToast aria-live="polite">
-            <div>링크가 복사되었습니다.</div>
-          </CustomToast>
-        ),
-        { 
-          duration: 3000 
-        }
-      );
-      /** 스낵바 토스트 테스트 */
     };
     
     const shareText = "4096개의 질문 중 저와 같은 질문을 선택한 사람은 8명이였습니다. 단순한 우연일까요? 지금 여러분도 확인해보세요!";
@@ -121,6 +110,7 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
         const url = encodeURIComponent(shareUrl);
         const intentUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
         window.open(intentUrl, "_blank");
+        toastHandler("공유하기가 완료되었어요.")
     }, [shareText, shareUrl]);
 
 
@@ -174,7 +164,10 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
         </ShareImgContainer>
         <ButtonContainer>
             <Whitebutton
-                onClick={handleCapture}
+                onClick={()=>{
+                  handleCapture();
+                  toastHandler("이미지가 사진첩에 저장되었습니다.");
+                }}
                 >이미지 저장하기</Whitebutton>
             <ShareIconContainer>
                 <IconContainer
@@ -195,12 +188,9 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
                     <Image src='./icons/twitter.svg'
                            alt='link' width={24} height={32}/>
                 </IconContainer>                
-            </ShareIconContainer>
-            <Toaster 
-                position="bottom-center"
-                reverseOrder={false}
-            />
+            </ShareIconContainer>            
         </ButtonContainer>
+        <Toast />
       </BottomSheetContainer>
     </>
   );

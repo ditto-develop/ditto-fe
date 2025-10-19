@@ -22,3 +22,28 @@ export const BottomContainer = styled.div`
     display: grid;
     gap: 12px;
 `;
+
+export const SubContainer = styled.div`
+    position: fixed;
+    background-color: #F3F1EF;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+`;
+
+export const AlertContainer = styled.div`
+    padding: 32px;
+    display: grid;
+    gap: 17px;
+`;
+
+export const Imgbox = styled.img`
+    position: absolute;
+`;
+

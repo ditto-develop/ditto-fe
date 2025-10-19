@@ -21,3 +21,8 @@ export const Checklabel = styled.p`
     line-height: 18px;
     font-weight: 400;
 `;
+
+export const SubscribeTitle = styled.h1`
+    text-align: center;
+    font-size: 30px;
+`

@@ -1,25 +1,46 @@
 "use client"
 
+/** API */
+import { UsersService } from '@/api'
+
+/** Components */
 import { MiddleBlackbutton, BlackEnablebutton } from '@/components/Button'
 import { Checkbox, Input } from '@/components/Input'
 import Navbar from '@/components/Navbar'
-import { BottomContainer, CheckContainer, MainContainer } from '@/components/register/Container'
-import { Checklabel, SubtitleText, TitleText } from '@/components/register/Text'
+import { BottomContainer, CheckContainer, MainContainer, SubContainer, Imgbox, AlertContainer } from '@/components/register/Container'
+import { Checklabel, SubtitleText, TitleText, SubscribeTitle } from '@/components/register/Text'
+
+/** Library */
 import { motion, AnimatePresence } from 'framer-motion'
+
+/** Hook */
 import { useRouter } from 'next/navigation'
-import React, { useState } from 'react'
-import styled from 'styled-components'
+import React, { ChangeEvent, useState } from 'react'
 
 export default function Register() {
+    /** Hook Section */
     const router = useRouter();
-    const [ischecked, setIschecked] = useState(false);
-    const [isSubscribe, setIsSubscribe] = useState(false);
 
-    const handleSubscribe = () => {
-        /** 추후 이메일 저장 api 호출 */
-        
+    /** State Section */
+    const [email, setEmail] = useState<string>('');
+    const [ischecked, setIschecked] = useState<boolean>(false);
+    const [isSubscribe, setIsSubscribe] = useState<boolean>(false);
+
+
+    /** Function Section */
+    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+        setEmail(e.target.value);
+    };
+
+    const handleSubscribe = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+
+        UsersService.usersControllerUpdateEmail({email: email})
+            .then((res)=>{console.log("이메일 전송 성공", res)});
+
         setIsSubscribe(true);
-    }
+    };
+
     
   return (
     <>
@@ -28,6 +49,7 @@ export default function Register() {
             Prev={()=>{router.back()}}
             share={true}
         />
+        <form onSubmit={handleSubscribe}>
         <AnimatePresence mode='wait'>
             <motion.div
                 key="main"
@@ -42,9 +64,12 @@ export default function Register() {
                         <SubtitleText>새로운 선택지가 준비 될 때 알려드릴게요.</SubtitleText>
                     </div>
 
+
                     <Input 
+                        onChange={handleChange}
                         type='email'
                         placeholder='email@example.com'
+                        required
                     />
 
                     <BottomContainer>
@@ -56,7 +81,6 @@ export default function Register() {
                             <Checklabel>만남과 선택지 소식을 이메일로 받는 것에 동의할게요.</Checklabel>
                         </CheckContainer>
                         <BlackEnablebutton
-                            onClick={handleSubscribe}
                             enable={ischecked}
                         >완료</BlackEnablebutton>
                     </BottomContainer>
@@ -64,38 +88,10 @@ export default function Register() {
                 </MainContainer>
             </motion.div>
         </AnimatePresence>
+        </form>
     </>
   )
 }
-
-const SubContainer = styled.div`
-    position: fixed;
-    background-color: #F3F1EF;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1000;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-`;
-
-const AlertContainer = styled.div`
-    padding: 32px;
-    display: grid;
-    gap: 17px;
-`;
-
-const Imgbox = styled.img`
-    position: absolute;
-`;
-
-const SubscribeTitle = styled.h1`
-    text-align: center;
-    font-size: 30px;
-`
 
 const Subscribe = () => {
     const router = useRouter();
@@ -114,3 +110,4 @@ const Subscribe = () => {
         </SubContainer>
     )
 }
+

@@ -1,9 +1,9 @@
-name: 🚀 Deploy to EC2
+name: 🚀 Ditto 배포 Action
 
 on:
   push:
     branches:
-      - main  # main 브랜치에 push 될 때마다 실행
+      - main 
 
 jobs:
   deploy:
