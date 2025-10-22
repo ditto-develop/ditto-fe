@@ -118,25 +118,31 @@ export default function Result() {
       /** Loading Promise 처리 */
       try{
         /** Promise Section */
-        const matchResult =  MatchService.matchControllerGetSimilarUsersCount(1,80); //최종 매치 결과
-        const capturePromise = handleCapture();
+        const setMatchResult = new Promise(async (resolve)=>{
+            const matchResult =  await MatchService.matchControllerGetSimilarUsersCount(1,80); //최종 매치 결과
+            /** 데이터 가공 (totalCount : 전체 참여자 명수 / similarCount : 비슷한 답변을 한 인원 수(기준80) / similer : 비슷한 인원 비율 (단위 %)) */
+            const totalCount = matchResult.data?.totalCount;
+            const similarCount = matchResult.data?.similarCount;
+            const similer = similarCount/totalCount * 100 ;
+            
+            /** 티어표 셋팅 (피라미드 수정 예정) */
+            if(similer < 15) setTierIndex(0);
+            else if (similer >= 15 && similer < 30) setTierIndex(1);
+            else if (similer >= 30 && similer < 60) setTierIndex(2);
+            else if (similer >= 60) setTierIndex(3);
+
+            /** 최종 결과 셋팅 */
+            resolve(setGameResult(matchResult.data as gameresultType));
+        })
+        const capturePromise = new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(handleCapture());
+          }, 50); // 👈 50ms 지연 후 시작
+        });
         const minLoadingTimePromise = new Promise((resolve) => setTimeout(resolve, 3000)); //최소 3초 로딩제한
 
-        const [matchres] = await Promise.all([matchResult,capturePromise, minLoadingTimePromise]); // 병렬처리
+        const [finish] = await Promise.all([setMatchResult,capturePromise, minLoadingTimePromise]); // 병렬처리
 
-        /** 데이터 가공 (totalCount : 전체 참여자 명수 / similarCount : 비슷한 답변을 한 인원 수(기준80) / similer : 비슷한 인원 비율 (단위 %)) */
-        const totalCount = matchres.data?.totalCount;
-        const similarCount = matchres.data?.similarCount;
-        const similer = similarCount/totalCount * 100 ;
-        
-        /** 티어표 셋팅 (피라미드 수정 예정) */
-        if(similer < 15) setTierIndex(0);
-        else if (similer >= 15 && similer < 30) setTierIndex(1);
-        else if (similer >= 30 && similer < 60) setTierIndex(2);
-        else if (similer >= 60) setTierIndex(3);
-
-        /** 최종 결과 셋팅 */
-        setGameResult(matchres.data as gameresultType);
 
       }catch(err){
         console.log(err);

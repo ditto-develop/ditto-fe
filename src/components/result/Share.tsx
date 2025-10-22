@@ -15,7 +15,6 @@ import Toast, { CustomToast } from './Toast';
 import { useAppContext } from '@/contexts/AppContext';
 
 /** Styles */
-
 type shareType = {
     handleIsshare: () => void,
     handleCapture: (capturedImage: string) => void,
