@@ -19,8 +19,10 @@ const Nav = styled.div`
     display: flex;
     justify-content: space-between;
     top: 0;                  
-    left: 0;
-    width: 100%;              
+    left: 50%;                       
+    transform: translateX(-50%);     
+    width: 100%;   
+    max-width: 640px;           
     background-color: #F3F1EF;  
     z-index: 996;            
 `;

@@ -26,3 +26,13 @@ export const SubscribeTitle = styled.h1`
     text-align: center;
     font-size: 30px;
 `
+
+export const SubscribeText = styled.p`
+    text-align: center;
+    font-family: Pretendard;
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 150%; /* 27px */
+    letter-spacing: -0.27px;
+`;

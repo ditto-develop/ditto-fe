@@ -12,12 +12,13 @@ import { Whitebutton } from '../Button';
 import React, { useCallback, useEffect } from 'react';
 import useDeviceType from '@/hooks/useDeviceType';
 import Toast, { CustomToast } from './Toast';
+import { useAppContext } from '@/contexts/AppContext';
 
 /** Styles */
 
 type shareType = {
     handleIsshare: () => void,
-    handleCapture: () => void,
+    handleCapture: (capturedImage: string) => void,
     capturedImage: string
 }
 
@@ -28,6 +29,7 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
      */
     /**Hook Section */
     const device = useDeviceType();
+    const { capturedImg } = useAppContext();
 
     /**State Section */
 
@@ -164,7 +166,7 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
         <ButtonContainer>
             <Whitebutton
                 onClick={()=>{
-                  handleCapture();
+                  handleCapture(capturedImg);
                   toastHandler("이미지가 사진첩에 저장되었습니다.");
                 }}
                 >이미지 저장하기</Whitebutton>

@@ -6,6 +6,7 @@ import "./globals.css";
 import SplashLayout from "@/components/Splash";
 import StyledComponentsRegistry from "./StyledComponentsRegistry";
 import KakaoScript from '@/common/KakaoScript';
+import { AppProvider } from "@/contexts/AppContext";
 
 export const metadata: Metadata = {
   title: "Ditto - 수백만의 스침 속, 단 하나의 멈춤",
@@ -31,7 +32,9 @@ export default function RootLayout({
       <body>
         <StyledComponentsRegistry>
           <SplashLayout>
+            <AppProvider>
               {children}
+            </AppProvider>
           </SplashLayout>
         </StyledComponentsRegistry>
       </body>

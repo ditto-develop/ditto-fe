@@ -2,13 +2,16 @@
 
 /** API */
 import { UsersService } from '@/api'
+import { downloadImage } from '@/common/ShareFunction'
 
 /** Components */
 import { MiddleBlackbutton, BlackEnablebutton } from '@/components/Button'
 import { Checkbox, Input } from '@/components/Input'
 import Navbar from '@/components/Navbar'
 import { BottomContainer, CheckContainer, MainContainer, SubContainer, Imgbox, AlertContainer } from '@/components/register/Container'
-import { Checklabel, SubtitleText, TitleText, SubscribeTitle } from '@/components/register/Text'
+import { Checklabel, SubtitleText, TitleText, SubscribeTitle, SubscribeText } from '@/components/register/Text'
+import Share from '@/components/result/Share'
+import { useAppContext } from '@/contexts/AppContext'
 
 /** Library */
 import { motion, AnimatePresence } from 'framer-motion'
@@ -20,11 +23,13 @@ import React, { ChangeEvent, useState } from 'react'
 export default function Register() {
     /** Hook Section */
     const router = useRouter();
+    const { capturedImg } = useAppContext();
 
     /** State Section */
     const [email, setEmail] = useState<string>('');
     const [ischecked, setIschecked] = useState<boolean>(false);
     const [isSubscribe, setIsSubscribe] = useState<boolean>(false);
+    const [isshare, setIsShare] = useState(false);
 
 
     /** Function Section */
@@ -41,12 +46,21 @@ export default function Register() {
         setIsSubscribe(true);
     };
 
+    const handleIsshare = () => setIsShare((state) => !state); //공유 바텀시트 제어
+
+
     
   return (
     <>
         {isSubscribe && <Subscribe />}
+        {isshare && <Share 
+                capturedImage={capturedImg}
+                handleCapture={downloadImage}
+                handleIsshare={handleIsshare} />}
+        
         <Navbar 
             Prev={()=>{router.back()}}
+            shareHandle={handleIsshare}
             share={true}
         />
         <form onSubmit={handleSubscribe}>
@@ -101,12 +115,14 @@ const Subscribe = () => {
             <Imgbox  src='/Container.svg'/>
             <AlertContainer>
                 <SubscribeTitle>구독 완료!</SubscribeTitle>
-                <SubtitleText>상대방의 의사를 여쭈어보고</SubtitleText>
-                <SubtitleText>만남의 장소가 준비되면 알려드릴게요</SubtitleText>
+                <div>
+                    <SubscribeText>상대방의 의사를 여쭈어보고</SubscribeText>
+                    <SubscribeText>만남의 장소가 준비되면 알려드릴게요</SubscribeText>
+                </div>
                 <MiddleBlackbutton
                     onClick={()=>{router.push('/')}}
                 >처음으로</MiddleBlackbutton>
-            </AlertContainer>
+            </AlertContainer> 
         </SubContainer>
     )
 }

@@ -20,6 +20,10 @@ import html2canvas from "html2canvas-pro";
 /** API */
 import { MatchService, SuccessApiResponse, UsersService } from "@/api";
 
+/** Context */
+import { useAppContext } from "@/contexts/AppContext";
+import { downloadImage } from "@/common/ShareFunction";
+
 /** Dummy Data */
 const TierText = [
   {
@@ -54,13 +58,13 @@ type gameresultType = {
 
 export default function Result() {
   /** Hook Section */
+  const { capturedImg, setCapturedImg } = useAppContext();
   const router = useRouter();
   const captureRef = useRef<HTMLDivElement>(null);
 
   /** State Section */
   const [isloading, setIsloading] = useState(true);
   const [isshare, setIsShare] = useState(false);
-  const [capturedImage, setCapturedImage] = useState<string>('');
   const [tierIndex, setTierIndex] = useState<number>(0);
 
   const [gameResult, setGameResult] = useState<gameresultType>();
@@ -102,7 +106,8 @@ export default function Result() {
           const imgLink = process.env.NEXT_PUBLIC_API_URL + imgURL;
           console.log("✅ 서버 업로드 성공", imgLink);
           
-          setCapturedImage(imgLink);
+          setCapturedImg(imgLink);
+
           return imgLink;
         } catch (error) {
           console.error("❌ 이미지 캡쳐 또는 업로드 실패:", error);
@@ -143,14 +148,7 @@ export default function Result() {
   }, []);
 
   /** Funtion Section */
-  const downloadImage = () => { //이미지 다운로드 함수
-    if (!capturedImage) return;
   
-    const link = document.createElement("a");
-    link.href = capturedImage;
-    link.download = "ditto_result.png";
-    link.click();
-  };
 
   const handleIsshare = () => setIsShare((state) => !state); //공유 바텀시트 제어
 
@@ -178,7 +176,7 @@ export default function Result() {
             }}
           >
             {isshare && <Share 
-                  capturedImage={capturedImage}
+                  capturedImage={capturedImg}
                   handleCapture={downloadImage}
                   handleIsshare={handleIsshare} />}
             <ScrollablePageStyle />

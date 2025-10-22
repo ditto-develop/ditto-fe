@@ -1,5 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=IM+Fell+Double+Pica:ital@0;1&display=swap');
+@font-face {
+	font-family: 'Pretendard';
+	font-weight: 45 920;
+	font-style: normal;
+	font-display: swap;
+	src: url('/fonts/pretendard/variable/woff2/PretendardVariable.woff2') format('woff2-variations');
+}
+
+@font-face {
+	font-family: 'IM Fell Double Pica';
+  font-style: italic;
+	src: url('/fonts/IM_Fell_Double_Pica/IMFellDoublePica-Italic.ttf') format('ttf');
+}
 
 :root {
   --primary-color: #000000;
@@ -12,14 +23,16 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Pretendard', sans-serif;
 }
 
 html, body {
-  font-family: 'Comfortaa', sans-serif;
+  font-family: 'Pretendard', sans-serif;
   background-color: #F3F1EF;
   height: 100%;
   width: 100%;
+  max-width: 640px;
+  margin: 0 auto; 
   overflow: hidden;
 }
 

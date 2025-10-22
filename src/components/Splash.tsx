@@ -15,8 +15,13 @@ const SplashWrapper = styled.div`
 
 const Logo = styled.p`
   font-family: 'IM Fell Double Pica';
+  font-style: italic;
   font-size: 120px;
   font-weight: 400;
+  line-height: normal;
+  -webkit-text-stroke-width: 2px;
+  -webkit-text-stroke-color: #000;
+
 `;
 
 export default function SplashLayout({ children }: { children: React.ReactNode }) {

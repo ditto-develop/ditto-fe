@@ -3,21 +3,38 @@ import styled from 'styled-components';
 
 
 const Inputbg = styled.input`
-    background-image: url('/button.svg');
-    width: 305px;
-    height: 59px;
-    padding: 16px;
+    width: 345px;
+    height: 62.8px;
+    z-index: 888;
+    padding: 16px 16px;
 `
+const Imgbox = styled.img`
+    position: absolute;
+    z-index: 0;
+    width: 100%;
+`;
+
+const Middlebox = styled.div`
+    display: flex;
+    position: relative;
+    width: 345px;
+    height: 62.8px;
+    align-items:center; 
+    justify-content:center;
+`;
 
 type inputType = InputHTMLAttributes<HTMLInputElement>;
 
 export function Input({...props}:inputType) {
   return (
-    <>
+    <Middlebox>
         <Inputbg 
             {...props}
         />
-    </>
+        <Imgbox 
+            src='/button.svg'
+        />
+    </Middlebox>
   )
 }
 

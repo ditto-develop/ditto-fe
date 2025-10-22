@@ -49,10 +49,10 @@ const fadeIn = keyframes`
 
 const slideUp = keyframes`
   from {
-    transform: translateY(100%); 
+    transform: translate(-50%, 100%);
   }
   to {
-    transform: translateY(0);
+    transform: translate(-50%, 0);
   }
 `;
 
@@ -70,8 +70,12 @@ const Backdrop = styled.div`
 const BottomSheetContainer = styled.div`
   position: fixed;
   top: 50px;
-  width: 100%;
-  height: calc(100% - 50px);
+  left: 50%;                       
+  width: 100%;   
+  max-width: 640px;
+  transform: translateX(-50%);
+
+  height: calc(100% - 50px);  
   padding: 32px 24px;
   display: flex;
   flex-direction: column;

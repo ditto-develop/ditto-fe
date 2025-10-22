@@ -29,7 +29,7 @@ export default function Home() {
       <ImgContainer>
         <Image
           alt="text" 
-          src='/dittoGroup.svg'
+          src='/homeImg.png'
           width={348}
           height={345}
         />
