@@ -60,7 +60,7 @@ export default function Quiz() {
             round: 1, //임시지정 (라운드가 변화할 시 변수로 사용 예정)
             questionId: questions[quizindex].id,
             requestBody: {
-                selectedIndex: 0
+                selectedIndex: isLeft ? 0 : 1
             }
         }
 
