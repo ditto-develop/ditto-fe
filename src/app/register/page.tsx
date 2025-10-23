@@ -2,7 +2,6 @@
 
 /** API */
 import { UsersService } from '@/api'
-import { downloadImage } from '@/common/ShareFunction'
 
 /** Components */
 import { MiddleBlackbutton, BlackEnablebutton } from '@/components/Button'
@@ -11,7 +10,6 @@ import Navbar from '@/components/Navbar'
 import { BottomContainer, CheckContainer, MainContainer, SubContainer, Imgbox, AlertContainer } from '@/components/register/Container'
 import { Checklabel, SubtitleText, TitleText, SubscribeTitle, SubscribeText } from '@/components/register/Text'
 import Share from '@/components/result/Share'
-import { useAppContext } from '@/contexts/AppContext'
 
 /** Library */
 import { motion, AnimatePresence } from 'framer-motion'
@@ -23,7 +21,6 @@ import React, { ChangeEvent, useState } from 'react'
 export default function Register() {
     /** Hook Section */
     const router = useRouter();
-    const { capturedImg } = useAppContext();
 
     /** State Section */
     const [email, setEmail] = useState<string>('');
@@ -54,8 +51,6 @@ export default function Register() {
     <>
         {isSubscribe && <Subscribe />}
         {isshare && <Share 
-                capturedImage={capturedImg}
-                handleCapture={downloadImage}
                 handleIsshare={handleIsshare} />}
         
         <Navbar 

@@ -2,9 +2,8 @@
 
 /** Components */
 import Navbar from "@/components/Navbar";
-import { CaptuerContainer, MainContainer, LoadingContainer, TextContiner, ButtonContainer, TextContainer } from "@/components/result/Container";
-import TypingEffect, { SubtitleText, TitleText, ShareText, BottomSubTitle, ButtonTitleText } from "@/components/result/Text";
-import Pyramid from "@/components/result/Pyramid";
+import { MainContainer, ButtonContainer, TextContainer } from "@/components/result/Container";
+import TypingEffect, { SubtitleText, TitleText, ShareText, ButtonTitleText } from "@/components/result/Text";
 import { Blackbutton } from "@/components/Button";
 import Share from "@/components/result/Share";
 
@@ -15,39 +14,9 @@ import ScrollablePageStyle from "@/styles/ScrollablePageStyle";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import html2canvas from "html2canvas-pro";
 
 /** API */
-import { MatchService, SuccessApiResponse, UsersService } from "@/api";
-
-/** Context */
-import { useAppContext } from "@/contexts/AppContext";
-import { downloadImage } from "@/common/ShareFunction";
-
-/** Dummy Data */
-const TierText = [
-  {
-    ko: "슈퍼레어",
-    en: "Super Rare",
-    color: "#C93D2E"
-  },
-  {
-    ko: "레어",
-    en: "Rare",
-    color: "#25459B"
-  },
-  {
-    ko: "미디엄 레어",
-    en: "Medium Rare",
-    color: "#37607E"
-  },
-  {
-    ko: "웰던",
-    en: "Well-Done",
-    color: "#775E4F"
-  },
-  
-]
+import { MatchService } from "@/api";
 
 /** Type Section */
 type gameresultType = {
@@ -58,13 +27,11 @@ type gameresultType = {
 
 export default function Result() {
   /** Hook Section */
-  const { capturedImg, setCapturedImg } = useAppContext();
   const router = useRouter();
   const captureRef = useRef<HTMLDivElement>(null);
 
   /** State Section */
   const [isshare, setIsShare] = useState(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [gameResult, setGameResult] = useState<gameresultType>();
   const [step, setStep] = useState<number>(0);
   const [isVisible, setIsVisible] = useState(true);

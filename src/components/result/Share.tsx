@@ -12,7 +12,6 @@ import { Whitebutton } from '../Button';
 import React, { useCallback, useEffect } from 'react';
 import useDeviceType from '@/hooks/useDeviceType';
 import Toast, { CustomToast } from './Toast';
-import { useAppContext } from '@/contexts/AppContext';
 
 /** Styles */
 type shareType = {
