@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { GameService, OpenAPI } from "@/api";
+import { GameService } from "@/api";
 
 type Question = {
   id: string;
@@ -29,7 +29,7 @@ export default function Quiz() {
     /** State Section */
     const [questions, setQuestions] = useState<Question[]>([]);
     const [quizindex, setQuizindex] = useState<number>(0);
-    const [direction, setDirection] = useState<number>(1);
+    const [moved, setMoved] = useState<number>(0);
     const [disabled, setDisabled] = useState(false); //뒤로가기 연속터치 방지용
     const [isClient, setIsClient] = useState(false); // 클라이언트 렌더링 플래그
     const [isLoading, setIsLoading] = useState(true); // 서버셋팅 렌더링 플래그
@@ -55,7 +55,7 @@ export default function Quiz() {
         setQuizindex(index);
     }
 
-    const ClickedAns = (isLeft: boolean) => { //답변 입력 함수    
+    const ClickedAns = (isLeft: boolean) => { //답변 입력 함수 
         const ansData = {
             round: 1, //임시지정 (라운드가 변화할 시 변수로 사용 예정)
             questionId: questions[quizindex].id,
@@ -63,12 +63,13 @@ export default function Quiz() {
                 selectedIndex: isLeft ? 0 : 1
             }
         }
+        if(quizindex !== 11) setMoved(isLeft?-1:1);   
 
         GameService.gameControllerSubmitAnswers( //답변제출 API
           ansData.round,
           ansData.questionId,
           ansData.requestBody)
-            .then((res)=>{
+            .then(()=>{
                 if(quizindex === 11) { //12문제 종료시 (quizindex 11) 종료 API 호출 후 결과창 이동
                     try{
                         GameService.gameControllerSubmitEnd(1)
@@ -82,18 +83,14 @@ export default function Quiz() {
                     }
                     return;
                 }else{
-                    setDirection(isLeft ? 1 : -1);
                     SetQuizData(questions[quizindex].index+1);
+                    setMoved(0);
                 };
             })
             .catch((err)=>{
                 console.error("에러발생",err);
           });
-        
-
-        
-
-    }
+    };
 
     const PrevQuiz = () => { //이전 퀴즈로 돌아가는 함수
         if (disabled) return;
@@ -104,9 +101,9 @@ export default function Quiz() {
         setDisabled(true);
         setQuizindex((prev) => prev - 1);
         setTimeout(() => setDisabled(false), 700);     
-    }
+    };
     
-    
+
     /** Return Section */
     if (!isClient || isLoading) return <div />; // ✅ 서버와 클라이언트의 초기 HTML을 일치시킴
 
@@ -115,14 +112,14 @@ export default function Quiz() {
         <>
         <Navbar Prev={PrevQuiz}/>
             <div style={{overflow: "hidden", width:"100%"}}>
-            <AnimatePresence mode="wait" custom={direction}>
+            <AnimatePresence mode="wait" custom={moved}>
                 <motion.div
                     key={questions[quizindex].index} 
-                    custom={direction}
-                    initial={{ x: direction * 100, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    exit={{ y: 100, opacity: 0 }} 
-                    transition={{ duration: 0.4 }}
+                    custom={moved}
+                    initial={{opacity: 0 }}
+                    animate={{ x: moved==1 ? 300 : moved==-1 ? -300 : 0, opacity: 1}}   
+                    exit={{opacity: 0 }} 
+                    transition={{ duration: 0.6 }}
                 >
                     <MainContainer>
                         <InfomationContainer>

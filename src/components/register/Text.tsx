@@ -1,13 +1,15 @@
 import styled from "styled-components";
 
 export const TitleText = styled.p`
-    font-family: 'IM Fell Double Pica';
+    color: #000;
     text-align: center;
-    font-style: italic;
-    font-weight: 600;
+    -webkit-text-stroke-width: 2px;
+    -webkit-text-stroke-color: #000;
+    font-family: "IM FELL Double Pica";
     font-size: 48px;
-    color: black;
-    margin-bottom: 16px;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 150%; /* 72px */
 `;
 
 export const SubtitleText = styled.p`

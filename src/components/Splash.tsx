@@ -13,15 +13,8 @@ const SplashWrapper = styled.div`
   font-size: 2rem;
 `;
 
-const Logo = styled.p`
-  font-family: 'IM Fell Double Pica';
-  font-style: italic;
-  font-size: 120px;
-  font-weight: 400;
-  line-height: normal;
-  -webkit-text-stroke-width: 2px;
-  -webkit-text-stroke-color: #000;
-
+const Logo = styled.img`
+  
 `;
 
 export default function SplashLayout({ children }: { children: React.ReactNode }) {
@@ -43,7 +36,9 @@ export default function SplashLayout({ children }: { children: React.ReactNode }
                 transition={{ duration: 0.4 }}
             >
                 <SplashWrapper>
-                <Logo>ditto</Logo>
+                <Logo 
+                  src='/logo.svg'
+                />
                 </SplashWrapper>
             </motion.div>
         </AnimatePresence>

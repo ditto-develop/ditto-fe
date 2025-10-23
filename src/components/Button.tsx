@@ -1,9 +1,7 @@
 "use client"
 
-import Image from "next/image";
 import { ButtonHTMLAttributes, HTMLAttributes } from "react";
 import { keyframes, styled } from "styled-components";
-
 
 const Leftbox = styled.div`
     justify-self: left;

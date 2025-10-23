@@ -1,12 +1,45 @@
 "use client"
 import styled, { keyframes } from "styled-components";
 
+const fadeIn = keyframes`
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+`;
+
+const slideUp = keyframes`
+  from {
+    transform: translate(-50%, 100%);
+  }
+  to {
+    transform: translate(-50%, 0);
+  }
+`;
+
 const MainContainer = styled.div`
-  padding: 64px 0px;
-  display: grid;
-  gap: 32px;
-  place-items: center;
+  padding: 64px 0;
+  width: 100%;
+  height: 100vh; /* 화면 전체 높이 */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* 가로 중앙 정렬 */
+  align-items: center;     /* 세로 중앙 정렬 */
+  overflow-y: scroll;
 `
+
+export const TextContainer = styled.div<{ hidden?: boolean }>`
+  padding: 64px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  opacity: ${({ hidden }) => (hidden ? 0 : 1)};
+  transition: opacity 1s ease;
+`
+
 
 const TextContiner = styled.div`
   display: grid;
@@ -31,30 +64,16 @@ const LoadingContainer = styled.div`
 `;
 
 const ButtonContainer = styled.div`
-  padding: 0px 24px 64px 24px;
-  display: grid;
-  place-items: center;
-  grid-template-rows: auto auto;
+  display: flex;
+  padding: 32px 24px;
+  flex-direction: column;
+  align-items: center;
   gap: 16px;
+  align-self: stretch;
+  animation: ${fadeIn} 0.6s ease-in-out;
 `;
 
-const fadeIn = keyframes`
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-`;
 
-const slideUp = keyframes`
-  from {
-    transform: translate(-50%, 100%);
-  }
-  to {
-    transform: translate(-50%, 0);
-  }
-`;
 
 const Backdrop = styled.div`
   position: fixed;

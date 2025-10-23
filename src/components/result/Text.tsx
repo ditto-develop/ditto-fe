@@ -1,63 +1,108 @@
 import styled, { keyframes } from "styled-components";
+import { useEffect, useState } from "react";
 
-const dotAnimation = keyframes`
-  0% { content: ''; }
-  25% { content: '.'; }
-  50% { content: '..'; }
-  75% { content: '...'; }
-  100% { content: '....'; }
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 `;
 
-const LoadingText = styled.p`
-    font-family: 'IM Fell Double Pica';
-    font-style: italic;
-    font-size: 40px;
-    font-weight: 600;
-    line-height: 100%;
-     &::after {
-        content: '';
-        font-family: 'IM Fell Double Pica';
-        font-style: italic;
-        font-size: 40px;
-        font-weight: 600;
-        animation: ${dotAnimation} 2s steps(1, end) infinite;
-    }
-`;
-
-const SubtitleText = styled.p`
+export const SubtitleText = styled.p`
+    color: var(--primary-40, rgba(0, 0, 0, 0.40));
     text-align: center;
+    font-family: Pretendard;
+    font-size: 18px;
+    font-style: normal;
     font-weight: 500;
+    line-height: 150%; 
+    letter-spacing: -0.27px;
+    opacity: 0;
+    animation: ${fadeIn} 1.5s ease forwards;
 `;
 
-type TitleTextType = {
-    color: string
-};
-
-const TitleText = styled.p<TitleTextType>`
-    font-family: 'IM Fell Double Pica';
+export const TitleText = styled.p`
+    color: var(--Color-Red, #C93D2E);
     text-align: center;
-    font-style: italic;
-    font-weight: 600;
+    -webkit-text-stroke-width: 2px;
+    -webkit-text-stroke-color: var(--Color-Red, #C93D2E);
+    font-family: Pretendard;
     font-size: 48px;
-    color: ${({color})=>color}
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+    opacity: 0;
+    animation: ${fadeIn} 0.6s ease forwards;
 `;
 
-const ShareText = styled.p`
+export const ButtonTitleText = styled.p`
+    color: var(--Primary-Primary, #000);
+    text-align: center;
+    font-family: Pretendard;
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 150%; /* 27px */
+    letter-spacing: -0.27px;  
+`;
+
+export const ShareText = styled.p`
     padding-top: 16px;
     text-align: center;
     color: #0000005c;
 `;
 
-const BottomTitle = styled.h1`
+export const BottomTitle = styled.h1`
     font-weight: 700;
     font-weight: bold;
     font-size: 24px;
 `
 
-const BottomSubTitle = styled.p`
+export const BottomSubTitle = styled.p`
     font-size: 14px;
     font-weight: 500;
     color: #0000005c;
 `
 
-export {BottomSubTitle,BottomTitle, LoadingText,SubtitleText,TitleText,ShareText};
+const TypingWrapper = styled.div`
+    text-align: center;
+    font-family: Pretendard;
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 150%; /* 27px */
+    letter-spacing: -0.27px;
+    animation: blink 0.8s step-end infinite;
+
+    @keyframes blink {
+        50% {
+            border-color: transparent;
+        }
+    }
+`;
+
+type TypingProps = {
+  text: string;
+  speed?: number;
+  onFinish?: () => void;
+};
+
+export default function TypingEffect({ text, speed = 50, onFinish }: TypingProps) {
+  const [displayedText, setDisplayedText] = useState("");
+
+  useEffect(() => {
+    let i = 0;
+    const interval = setInterval(() => {
+      setDisplayedText(text.slice(0, i + 1));
+      i++;
+      if (i === text.length) {
+        clearInterval(interval);
+        if (onFinish){
+            setTimeout(()=>{onFinish();},1000);
+        }
+    }
+    }, speed);
+
+    return () => clearInterval(interval);
+  }, [text, speed]);
+
+  return <TypingWrapper>{displayedText}</TypingWrapper>;
+}

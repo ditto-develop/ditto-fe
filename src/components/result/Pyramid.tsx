@@ -32,7 +32,9 @@ const Text = styled.p<textProps>`
   color: ${({color})=>color};
 
   font-size: 24px;
-  font-weight: bold;
+  font-weight: 400;
+  -webkit-text-stroke-width: 2px;
+  -webkit-text-stroke-color: ${({color})=>color};
   text-align: center;
   font-style: italic;
 `;

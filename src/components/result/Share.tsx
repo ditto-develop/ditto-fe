@@ -4,7 +4,7 @@ import Image from 'next/image';
 import toast from 'react-hot-toast';
 
 /** Components */
-import {IconContainer, ShareIconContainer,Backdrop,BottomSheetContainer,ShareImgContainer, ButtonContainer } from './Container';
+import {IconContainer, ShareIconContainer,Backdrop,BottomSheetContainer, ButtonContainer } from './Container';
 import {BottomTitle, BottomSubTitle} from './Text';
 import { Whitebutton } from '../Button';
 
@@ -17,18 +17,15 @@ import { useAppContext } from '@/contexts/AppContext';
 /** Styles */
 type shareType = {
     handleIsshare: () => void,
-    handleCapture: (capturedImage: string) => void,
-    capturedImage: string
 }
 
-export default function Share({capturedImage,handleCapture,handleIsshare}: shareType) {
+export default function Share({handleIsshare}: shareType) {
     /**
      * 공유하기에 대한 개발노트 10.09
      * - X 공유하기 역시 가능. 따라서 이부분만 개발하면 될듯 함.
      */
     /**Hook Section */
     const device = useDeviceType();
-    const { capturedImg } = useAppContext();
 
     /**State Section */
 
@@ -49,7 +46,8 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
                 duration: 1500 
             }
         );
-    }
+    };
+
     const handleOnClickKakao = () => { //카카오톡 공유하기 핸들러
         if (typeof window === "undefined" || !window.Kakao) {
           
@@ -66,7 +64,6 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
           content: {
             title: "ditto - 수백만의 스침 속, 단 하나의 멈춤",
             description: "4096개의 질문 중 저와 같은 질문을 선택한 사람은 8명이였습니다. 단순한 우연일까요?",
-            imageUrl: capturedImage,
             imageWidth: 640,
             imageHeight: 640,
             link: {
@@ -110,7 +107,7 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
         const url = encodeURIComponent(shareUrl);
         const intentUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
         window.open(intentUrl, "_blank");
-        toastHandler("공유하기가 완료되었습니다.")
+        toastHandler("공유하기가 완료되었습니다.");
     }, [shareText, shareUrl]);
 
 
@@ -135,40 +132,13 @@ export default function Share({capturedImage,handleCapture,handleIsshare}: share
                 <BottomSubTitle>당신의 선택이 얼마나 드문지 공유하고 친구와 비교해보세요.</BottomSubTitle>
             </div>
         </div>
-        <ShareImgContainer>
-            {
-            capturedImage ? (
-                <Image
-                    crossOrigin='anonymous'
-                    src={capturedImage}
-                    alt="결과 이미지"
-                    width={168}
-                    height={328}
-                    unoptimized={true}
-                />
-            ) : (
-                <div style={{
-                    width: 168,
-                    height: 328,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: '#f0f0f0',
-                    color: '#888',
-                    textAlign: 'center',
-                    borderRadius: '10px'
-                }}>
-                    이미지 생성 중...
-                </div>
-            )}
-        </ShareImgContainer>
         <ButtonContainer>
             <Whitebutton
                 onClick={()=>{
-                  handleCapture(capturedImg);
-                  toastHandler("이미지가 사진첩에 저장되었습니다.");
+                  handleCopyLink();
+                  toastHandler("링크가 클립보드에 복사되었습니다.");
                 }}
-                >이미지 저장하기</Whitebutton>
+                >링크 복사하기</Whitebutton>
             <ShareIconContainer>
                 <IconContainer
                     onClick={handleShare}
