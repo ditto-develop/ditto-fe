@@ -19,10 +19,6 @@ type shareType = {
 }
 
 export default function Share({handleIsshare}: shareType) {
-    /**
-     * 공유하기에 대한 개발노트 10.09
-     * - X 공유하기 역시 가능. 따라서 이부분만 개발하면 될듯 함.
-     */
     /**Hook Section */
     const device = useDeviceType();
 
@@ -57,18 +53,14 @@ export default function Share({handleIsshare}: shareType) {
         if (!window.Kakao.isInitialized()) {
           window.Kakao.init(process.env.NEXT_PUBLIC_KAKAO_API_KEY);
         }
-
+ 
         window.Kakao.Share.sendDefault({
-          objectType: 'feed',
-          content: {
-            title: "ditto - 수백만의 스침 속, 단 하나의 멈춤",
-            description: "4096개의 질문 중 저와 같은 질문을 선택한 사람은 8명이였습니다. 단순한 우연일까요?",
-            imageWidth: 640,
-            imageHeight: 640,
-            link: {
-              webUrl: process.env.NEXT_PUBLIC_DNS,
-              mobileWebUrl: process.env.NEXT_PUBLIC_DNS,
-            },
+          objectType: 'text',
+          text:
+            '4096개의 질문 중 저와 같은 질문을 선택한 사람은 8명이였습니다. 단순한 우연일까요?',
+          link: {
+            mobileWebUrl: process.env.NEXT_PUBLIC_DNS,
+            webUrl: process.env.NEXT_PUBLIC_DNS,
           },
         });
         toastHandler("카카오톡을 실행합니다.");
@@ -104,7 +96,7 @@ export default function Share({handleIsshare}: shareType) {
     const handleShareToX = useCallback(() => {
         const text = encodeURIComponent(shareText);
         const url = encodeURIComponent(shareUrl);
-        const intentUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
+        const intentUrl = `https://x.com/intent/tweet?text=${text}&url=${url}`;
         window.open(intentUrl, "_blank");
         toastHandler("공유하기가 완료되었습니다.");
     }, [shareText, shareUrl]);
@@ -113,7 +105,7 @@ export default function Share({handleIsshare}: shareType) {
 
   return (
     <>
-      <Backdrop />
+      <Backdrop onClick={handleIsshare} />
       <BottomSheetContainer>
         <div style={{display: "grid", gap: "10px"}}>
             <div style={{display: "flex", justifyContent: "space-between", position: 'relative' }}>
@@ -127,17 +119,11 @@ export default function Share({handleIsshare}: shareType) {
                 />
             </div>
             <div>
-                <BottomSubTitle>주변 사람들은 어떤 선택을 고를까요?</BottomSubTitle>
-                <BottomSubTitle>당신의 선택이 얼마나 드문지 공유하고 친구와 비교해보세요.</BottomSubTitle>
+                <BottomSubTitle>나와 비슷한 사람, 같이 찾아볼까요?</BottomSubTitle>
+                <BottomSubTitle>이 링크가 당신과 같은 사람을 이어줄지도 몰라요.</BottomSubTitle>
             </div>
         </div>
         <ButtonContainer>
-            <Whitebutton
-                onClick={()=>{
-                  handleCopyLink();
-                  toastHandler("링크가 클립보드에 복사되었습니다.");
-                }}
-                >링크 복사하기</Whitebutton>
             <ShareIconContainer>
                 <IconContainer
                     onClick={handleShare}
@@ -149,13 +135,13 @@ export default function Share({handleIsshare}: shareType) {
                     onClick={handleOnClickKakao}
                 >
                     <Image src='./icons/chat.svg'
-                           alt='link' width={24} height={32}/>
+                           alt='chat' width={24} height={32}/>
                 </IconContainer>
                 <IconContainer
                     onClick={handleShareToX}
                 >
                     <Image src='./icons/twitter.svg'
-                           alt='link' width={24} height={32}/>
+                           alt='twitter' width={24} height={32}/>
                 </IconContainer>                
             </ShareIconContainer>            
         </ButtonContainer>

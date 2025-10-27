@@ -57,7 +57,8 @@ export default function Result() {
 
   /** Funtion Section */
   const handleIsshare = () => setIsShare((state) => !state); //공유 바텀시트 제어
- 
+  if(!gameResult) return <></>;
+
   /** Return Section */
   return (
     <>
@@ -79,9 +80,9 @@ export default function Result() {
               shareHandle={handleIsshare}
               share={true}
             />
-            {gameResult?.sameCount},{gameResult?.similarCount},{gameResult?.totalCount}
  
             <MainContainer isFinsih={step >= 9 ? true : false}>
+
               <TextContainer padding={pControl}>
                 <div style={{gap: '8px',display: 'grid'}}>
                   {
@@ -114,7 +115,7 @@ export default function Result() {
                         >
                           <TypingColorEffect 
                               color="#775E4F"
-                              text="2,037명 중"
+                              text={gameResult?.totalCount+"명 중"}
                               speed={120} 
                               onFinish={()=>{setStep(2)}}
                           />
@@ -132,7 +133,7 @@ export default function Result() {
                           layout 
                         >
                     <IntegerCounter
-                        target={8}
+                        target={gameResult?.similarCount || 8}
                         onFinish={()=>{setStep(3)}}
                     /></Line>)
                   }
@@ -165,7 +166,7 @@ export default function Result() {
                           layout 
                         >
                     <FloatCounter
-                        target={0.39}
+                        target={gameResult?.similarCount/gameResult?.totalCount*100}
                         onFinish={()=>{
                           setStep(5);
                           setPControl(48);

@@ -96,13 +96,13 @@ const Backdrop = styled.div`
 
 const BottomSheetContainer = styled.div`
   position: fixed;
-  top: 50px;
+  bottom: 0px;
   left: 50%;                       
   width: 100%;   
   max-width: 640px;
   transform: translateX(-50%);
 
-  height: calc(100% - 50px);  
+  height: 280px;  
   padding: 32px 24px;
   display: flex;
   flex-direction: column;

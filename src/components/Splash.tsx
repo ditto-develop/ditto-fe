@@ -37,7 +37,7 @@ export default function SplashLayout({ children }: { children: React.ReactNode }
             >
                 <SplashWrapper>
                 <Logo 
-                  src='/logo.svg'
+                  src='/titles/logo.svg'
                 />
                 </SplashWrapper>
             </motion.div>

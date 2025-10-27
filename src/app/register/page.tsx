@@ -7,12 +7,13 @@ import { UsersService } from '@/api'
 import { MiddleBlackbutton, BlackEnablebutton } from '@/components/Button'
 import { Checkbox, Input } from '@/components/Input'
 import Navbar from '@/components/Navbar'
-import { BottomContainer, CheckContainer, MainContainer, SubContainer, Imgbox, AlertContainer } from '@/components/register/Container'
+import { BottomContainer, CheckContainer, MainContainer, SubContainer, Imgbox, AlertContainer, LogoContainer } from '@/components/register/Container'
 import { Checklabel, SubtitleText, TitleText, SubscribeTitle, SubscribeText } from '@/components/register/Text'
 import Share from '@/components/result/Share'
 
 /** Library */
 import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
 
 /** Hook */
 import { useRouter } from 'next/navigation'
@@ -68,7 +69,10 @@ export default function Register() {
             >
                 <MainContainer>
                     <div>
-                        <TitleText>Register</TitleText>
+                        <LogoContainer 
+                            src='/titles/register.svg'
+                            alt='register'
+                        />
                         <SubtitleText>이메일 한 줄만 남겨주세요. 만남의 소식이 있을 때,</SubtitleText>
                         <SubtitleText>새로운 선택지가 준비 될 때 알려드릴게요.</SubtitleText>
                     </div>
@@ -111,14 +115,14 @@ const Subscribe = () => {
             <AlertContainer>
                 <SubscribeTitle>구독 완료!</SubscribeTitle>
                 <div>
-                    <SubscribeText>상대방의 의사를 여쭈어보고</SubscribeText>
-                    <SubscribeText>만남의 장소가 준비되면 알려드릴게요</SubscribeText>
+                    <SubscribeText>비슷한 사람이 나타나면 알려드릴게요.</SubscribeText>
+                    <SubscribeText>새로운 만남이 준비되는 순간을 기다려주세요.</SubscribeText>
                 </div>
                 <MiddleBlackbutton
                     onClick={()=>{router.push('/')}}
                 >처음으로</MiddleBlackbutton>
             </AlertContainer> 
         </SubContainer>
-    )
+    ) 
 }
 

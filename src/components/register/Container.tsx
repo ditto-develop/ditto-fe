@@ -1,5 +1,10 @@
 import styled from "styled-components"
 
+export const LogoContainer = styled.img`
+    margin: auto;
+    padding-bottom: 16px;
+`;
+
 export const MainContainer = styled.div`
   padding: 64px 0px;
   height: 100%;
@@ -7,7 +12,7 @@ export const MainContainer = styled.div`
   grid-template-rows: 1fr 2fr 1fr;
   align-content: space-between;
   place-items: center;
-`
+`;
 
 
 export const CheckContainer = styled.div`

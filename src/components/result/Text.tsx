@@ -44,12 +44,24 @@ export const ButtonTitleText = styled.p`
     letter-spacing: -0.27px;  
 `;
 
-export const ShareText = styled.p`
-    padding-top: 16px;
-    text-align: center;
-    color: #0000005c;
-`;
+export const ShareText = styled.div`
+  display: flex;
+  width: 297px;
+  height: 52px;
+  padding: 16px;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
 
+  color: var(--primary-40, rgba(0, 0, 0, 0.40));
+  text-align: center;
+  font-family: Pretendard;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+`;
+ 
 export const BottomTitle = styled.h1`
     font-weight: 700;
     font-weight: bold;
