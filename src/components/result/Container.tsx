@@ -19,11 +19,11 @@ const slideUp = keyframes`
     transform: translate(-50%, 0);
   }
 `;
-
-const MainContainer = styled.div<{isFinsih?: boolean}>`
-  padding: ${(props)=>props.isFinsih?178:108}px 0 64px 0;
+ 
+const MainContainer = styled.div<{$isFinsihed?: boolean}>`
+  padding: ${(props)=>props.$isFinsihed?178:108}px 0 64px 0;
   width: 100%; 
-  height: 100vh; /* 화면 전체 높이 */ 
+  height: ${(props)=>props.$isFinsihed?100:80}vh; /* 화면 전체 높이 */ 
   display: flex; 
   flex-direction: column; 
   justify-content: center; /* 가로 중앙 정렬 */ 

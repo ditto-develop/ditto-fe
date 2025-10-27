@@ -43,6 +43,7 @@ next-env.d.ts
 #openapi
 openapi.json
 
+#pwa
 **/public/workbox-*.js
 **/public/sw.js
 **/public/worker-*.js

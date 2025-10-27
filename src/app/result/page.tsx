@@ -81,7 +81,7 @@ export default function Result() {
               share={true}
             />
  
-            <MainContainer isFinsih={step >= 9 ? true : false}>
+            <MainContainer $isFinsihed={step >= 9 ? true : false}>
 
               <TextContainer padding={pControl}>
                 <div style={{gap: '8px',display: 'grid'}}>
