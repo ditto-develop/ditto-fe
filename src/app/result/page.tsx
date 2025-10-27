@@ -34,7 +34,6 @@ export default function Result() {
   const [isshare, setIsShare] = useState(false);
   const [gameResult, setGameResult] = useState<gameresultType>();
   const [step, setStep] = useState<number>(0);
-  const [isVisible, setIsVisible] = useState(true);
 
   /** 임시 변수 (패딩 관리 변수 추후 수정) */
   const [pControl, setPControl] = useState<number>(0);
@@ -55,12 +54,6 @@ export default function Result() {
     loadData();
 
   }, []);
-
-  useEffect(() => {
-    if (step >= 4) {
-      setTimeout(() => setIsVisible(false), 700); // fade-out 끝난 뒤 제거
-    }
-  }, [step]);
 
   /** Funtion Section */
   const handleIsshare = () => setIsShare((state) => !state); //공유 바텀시트 제어
@@ -86,6 +79,7 @@ export default function Result() {
               shareHandle={handleIsshare}
               share={true}
             />
+            {gameResult?.sameCount},{gameResult?.similarCount},{gameResult?.totalCount}
  
             <MainContainer isFinsih={step >= 9 ? true : false}>
               <TextContainer padding={pControl}>
