@@ -1,5 +1,5 @@
 import styled, { keyframes } from "styled-components";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(10px); }
@@ -63,6 +63,7 @@ export const BottomSubTitle = styled.p`
 `
 
 const TypingWrapper = styled.div`
+    color: var(--Primary-Primary, #000);
     text-align: center;
     font-family: Pretendard;
     font-size: 18px;
@@ -77,6 +78,21 @@ const TypingWrapper = styled.div`
             border-color: transparent;
         }
     }
+
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeInUp 0.6s ease-out forwards;
+
+    @keyframes fadeInUp {
+        0% {
+        opacity: 0;
+        transform: translateY(10px);
+        }
+        100% {
+        opacity: 1;
+        transform: translateY(0);
+        }
+    }
 `;
 
 type TypingProps = {
@@ -85,7 +101,7 @@ type TypingProps = {
   onFinish?: () => void;
 };
 
-export default function TypingEffect({ text, speed = 50, onFinish }: TypingProps) {
+export function TypingEffect({ text, speed = 50, onFinish }: TypingProps) {
   const [displayedText, setDisplayedText] = useState("");
 
   useEffect(() => {
@@ -96,7 +112,9 @@ export default function TypingEffect({ text, speed = 50, onFinish }: TypingProps
       if (i === text.length) {
         clearInterval(interval);
         if (onFinish){
-            setTimeout(()=>{onFinish();},1000);
+            setTimeout(()=>{
+                onFinish();
+            },1000);
         }
     }
     }, speed);
@@ -106,3 +124,148 @@ export default function TypingEffect({ text, speed = 50, onFinish }: TypingProps
 
   return <TypingWrapper>{displayedText}</TypingWrapper>;
 }
+
+type TypingColorProps = TypingProps & {
+    color: string
+};
+
+const TypingColorWrapper = styled.div<{color: string}>`
+    color: ${(props)=>props.color};
+    text-align: center;
+    font-family: Pretendard;
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 150%; /* 27px */
+    letter-spacing: -0.27px;
+    animation: blink 0.8s step-end infinite;
+    
+
+    @keyframes blink {
+        50% {
+            border-color: transparent;
+        }
+    }
+
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeInUp 0.6s ease-out forwards;
+
+    @keyframes fadeInUp {
+        0% {
+        opacity: 0;
+        transform: translateY(10px);
+        }
+        100% {
+        opacity: 1;
+        transform: translateY(0);
+        }
+    }
+
+
+`;
+
+export function TypingColorEffect({ text, color, speed = 50, onFinish }: TypingColorProps) {
+  const [displayedText, setDisplayedText] = useState("");
+  useEffect(() => {
+    let i = 0;
+    const interval = setInterval(() => {
+      setDisplayedText(text.slice(0, i + 1));
+      i++;
+      if (i === text.length) {
+        clearInterval(interval);
+        if (onFinish){
+            setTimeout(()=>{
+                onFinish();
+            },1000);
+        }
+    }
+    }, speed);
+
+    return () => clearInterval(interval);
+  }, [text, speed]);
+
+  return <TypingColorWrapper color={color}>{displayedText}</TypingColorWrapper>;
+}
+
+/////////////////
+
+const pureFadeIn = keyframes`
+  from { opacity: 0; transform: translateY(10px);}
+  to { opacity: 1; transform: translateY(0px);}
+`;
+
+type IntegerCounterProps = {
+  target: number;
+  duration?: number;
+  onFinish?: () => void;
+};
+
+export function IntegerCounter({ target, duration = 1800, onFinish }: IntegerCounterProps) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    Array.from({ length: target + 1 }, (_, i) => i).forEach((num, idx) => {
+      setTimeout(() => {
+        setCount(num);
+        if (num === target && onFinish) {
+          setTimeout(() => onFinish(), 2500); // 2.5초 유지 후 콜백
+        }
+      }, idx * (duration / target));
+    });
+  }, [target, duration]);
+
+  return <AnimatedNumber>{count}명</AnimatedNumber>;
+}
+
+type FloatCounterProps = {
+  target: number;
+  duration?: number;
+  onFinish?: () => void;
+};
+
+export function FloatCounter({ target, duration = 1800, onFinish }: FloatCounterProps) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    const fps = 60;
+    const totalSteps = Math.round((duration / 1000) * fps);
+    const increment = target / totalSteps;
+
+    let current = 0;
+    let step = 0;
+
+    const interval = setInterval(() => {
+      step++;
+      current += increment;
+      if (step >= totalSteps) {
+        current = target;
+        clearInterval(interval);
+
+        if (onFinish) {
+          setTimeout(() => onFinish(), 2500);
+        }
+      }
+      setCount(parseFloat(current.toFixed(2)));
+    }, 1000 / fps);
+
+    return () => clearInterval(interval);
+  }, [target, duration]);
+
+  return <AnimatedNumber>{count.toFixed(2)}%</AnimatedNumber>;
+}
+
+
+const AnimatedNumber = styled.span`
+    color: var(--Color-Red, #C93D2E);
+    text-align: center;
+    -webkit-text-stroke-width: 2px;
+    -webkit-text-stroke-color: var(--Color-Red, #C93D2E);
+    font-family: Pretendard;
+    font-size: 48px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+    opacity: 0;
+    animation: ${pureFadeIn} 1.2s ease-in-out forwards;
+`;

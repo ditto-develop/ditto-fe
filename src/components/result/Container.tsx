@@ -1,4 +1,5 @@
 "use client"
+import { motion } from "framer-motion";
 import styled, { keyframes } from "styled-components";
 
 const fadeIn = keyframes`
@@ -19,25 +20,24 @@ const slideUp = keyframes`
   }
 `;
 
-const MainContainer = styled.div`
-  padding: 64px 0;
-  width: 100%;
-  height: 100vh; /* 화면 전체 높이 */
-  display: flex;
-  flex-direction: column;
-  justify-content: center; /* 가로 중앙 정렬 */
-  align-items: center;     /* 세로 중앙 정렬 */
-  overflow-y: scroll;
+const MainContainer = styled.div<{isFinsih?: boolean}>`
+  padding: ${(props)=>props.isFinsih?178:108}px 0 64px 0;
+  width: 100%; 
+  height: 100vh; /* 화면 전체 높이 */ 
+  display: flex; 
+  flex-direction: column; 
+  justify-content: center; /* 가로 중앙 정렬 */ 
+  align-items: center; /* 세로 중앙 정렬 */ 
+  overflow-y: auto;
 `
 
-export const TextContainer = styled.div<{ hidden?: boolean }>`
-  padding: 64px 0;
+export const TextContainer = styled.div<{ padding?: number }>`
+  padding-bottom: ${(props)=>props.padding}px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 40px;
-  opacity: ${({ hidden }) => (hidden ? 0 : 1)};
-  transition: opacity 1s ease;
+  transition: padding-bottom 0.5s ease-in-out; 
 `
 
 
@@ -63,17 +63,25 @@ const LoadingContainer = styled.div`
     background-color: #F3F1EF;
 `;
 
+const ButtonfadeIn = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0px);
+  }
+`;
 const ButtonContainer = styled.div`
   display: flex;
-  padding: 32px 24px;
+  padding-bottom: 73px;
   flex-direction: column;
   align-items: center;
   gap: 16px;
   align-self: stretch;
-  animation: ${fadeIn} 0.6s ease-in-out;
+  animation: ${ButtonfadeIn} 0.6s ease-in-out;
 `;
-
-
 
 const Backdrop = styled.div`
   position: fixed;
@@ -139,5 +147,15 @@ const CaptuerContainer = styled.div`
   padding: 24px 0px;
   place-items: center;
 `
+
+export const Line = styled(motion.div)`
+  display: flex;
+  justify-content: center;
+`;
+
+export const variants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+};
 
 export {CaptuerContainer,IconContainer,ShareIconContainer,ShareImgContainer,Backdrop,BottomSheetContainer,LoadingContainer,MainContainer,TextContiner,ButtonContainer}

@@ -2,13 +2,13 @@
 
 import { Leftbutton, Rightbutton } from "@/components/Button";
 import Navbar from "@/components/Navbar";
-import WiggleText from "@/components/WiggleText";
 import {MainContainer,InfomationContainer,ButtonContainer} from "@/components/quiz/Container";
 import { useEffect, useState } from "react";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { GameService } from "@/api";
+import { QuizText } from "@/components/quiz/Text";
 
 type Question = {
   id: string;
@@ -126,7 +126,7 @@ export default function Quiz() {
                             <p style={{textAlign: "center", fontWeight: "500", fontSize: "18px"}}>
                                 {questions[quizindex].index}/{12}
                             </p>
-                            <WiggleText>{questions[quizindex].text}</WiggleText>
+                            <QuizText>{questions[quizindex].text}</QuizText>
                         </InfomationContainer>
 
                         <ButtonContainer>
@@ -140,4 +140,4 @@ export default function Quiz() {
 
         </>
     );
-}
+};

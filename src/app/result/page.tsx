@@ -2,8 +2,8 @@
 
 /** Components */
 import Navbar from "@/components/Navbar";
-import { MainContainer, ButtonContainer, TextContainer } from "@/components/result/Container";
-import TypingEffect, { SubtitleText, TitleText, ShareText, ButtonTitleText } from "@/components/result/Text";
+import { MainContainer, ButtonContainer, TextContainer, Line, variants } from "@/components/result/Container";
+import {TypingEffect, SubtitleText, TitleText, ShareText, ButtonTitleText, TypingColorEffect, IntegerCounter, FloatCounter } from "@/components/result/Text";
 import { Blackbutton } from "@/components/Button";
 import Share from "@/components/result/Share";
 
@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 /** API */
 import { MatchService } from "@/api";
+import styled from "styled-components";
 
 /** Type Section */
 type gameresultType = {
@@ -28,13 +29,17 @@ type gameresultType = {
 export default function Result() {
   /** Hook Section */
   const router = useRouter();
-  const captureRef = useRef<HTMLDivElement>(null);
 
   /** State Section */
   const [isshare, setIsShare] = useState(false);
   const [gameResult, setGameResult] = useState<gameresultType>();
   const [step, setStep] = useState<number>(0);
   const [isVisible, setIsVisible] = useState(true);
+
+  /** 임시 변수 (패딩 관리 변수 추후 수정) */
+  const [pControl, setPControl] = useState<number>(0);
+  const [ppControl, setPpControl] = useState<number>(0);
+  const [pppControl, setPppControl] = useState<number>(0);
 
   /** Effect Section */
   useEffect(() => { //화면 Init
@@ -59,8 +64,7 @@ export default function Result() {
 
   /** Funtion Section */
   const handleIsshare = () => setIsShare((state) => !state); //공유 바텀시트 제어
-
-
+ 
   /** Return Section */
   return (
     <>
@@ -82,63 +86,193 @@ export default function Result() {
               shareHandle={handleIsshare}
               share={true}
             />
-
-            <MainContainer>
-              {isVisible && 
-              <TextContainer hidden={step >= 4}>
+ 
+            <MainContainer isFinsih={step >= 9 ? true : false}>
+              <TextContainer padding={pControl}>
                 <div style={{gap: '8px',display: 'grid'}}>
                   {
-                    step >= 0 &&
-                    <TypingEffect
-                      text="당신과 답변이 일치하는 사람은..."
-                      speed={120} 
-                      onFinish={()=>{setStep(1)}}
-                    />
+                    step >= 0 &&(
+                        <Line
+                          key="line-0"
+                          initial="hidden"
+                          animate="visible"
+                          exit="hidden"
+                          variants={variants}
+                          layout 
+                        >
+                          <TypingEffect
+                            text="당신과 같은 선택을 한 사람은..."
+                            speed={120} 
+                            onFinish={()=>{setStep(1)}}
+                          />
+                      </Line>
+                    )
                   }
                   {
-                    step >= 1 &&
-                    <TitleText
-                        style={{ animationDelay: "0.6s" }}
-                        onAnimationEnd={() => setStep(2)}
-                    >8명</TitleText>
+                    step >= 1 &&(
+                        <Line
+                          key="line-1"
+                          initial="hidden"
+                          animate="visible"
+                          exit="hidden"
+                          variants={variants}
+                          layout 
+                        >
+                          <TypingColorEffect 
+                              color="#775E4F"
+                              text="2,037명 중"
+                              speed={120} 
+                              onFinish={()=>{setStep(2)}}
+                          />
+                        </Line>
+                    )
+                  }
+                  {
+                    step >= 2 &&(
+                        <Line
+                          key="line-2"
+                          initial="hidden"
+                          animate="visible"
+                          exit="hidden"
+                          variants={variants}
+                          layout 
+                        >
+                    <IntegerCounter
+                        target={8}
+                        onFinish={()=>{setStep(3)}}
+                    /></Line>)
                   }
                 </div>
                 <div style={{gap: '8px',display: 'grid'}}>
                   {
-                    step >= 2 &&
+                    step >= 3 &&(
+                        <Line
+                          key="line-3"
+                          initial="hidden"
+                          animate="visible"
+                          exit="hidden"
+                          variants={variants}
+                          layout 
+                        >
                     <TypingEffect
                       text="이렇게 선택할 확률은..."
-                      speed={120}
-                      onFinish={()=>{setStep(3)}}
-                    />
+                      speed={120} 
+                      onFinish={()=>{setStep(4)}}
+                    /></Line>)
                   }
                   {
-                    step >= 3 &&
-                    <TitleText
-                        style={{ animationDelay: "0.6s" }}
-                        onAnimationEnd={() => setStep(4)}
-                    >0.39%</TitleText>
+                    step >= 4 &&(
+                        <Line
+                          key="line-4"
+                          initial="hidden"
+                          animate="visible"
+                          exit="hidden"
+                          variants={variants}
+                          layout 
+                        >
+                    <FloatCounter
+                        target={0.39}
+                        onFinish={()=>{
+                          setStep(5);
+                          setPControl(48);
+                        }}
+                    /></Line>)
                   }
                 </div>
               </TextContainer>
-              }
 
-              <TextContainer>
-                <div>
-                  { step >= 4 && <SubtitleText style={{ animationDelay: "0.6s" }} onAnimationEnd={() => setStep(5)}>당신과 같은 선택을 한 사람은 단 8명.</SubtitleText>}
-                  { step >= 5 && <SubtitleText style={{ animationDelay: "0.6s" }} onAnimationEnd={() => setStep(6)}>단순한 우연일까요, 가치관의 일치일까요?</SubtitleText>}
-                  { step >= 6 && <SubtitleText style={{ animationDelay: "0.6s" }} onAnimationEnd={() => setStep(7)}>그들은 당신처럼 생각하고, 웃고, 고민하는 사람들</SubtitleText>}
-                  { step >= 7 && <SubtitleText style={{ animationDelay: "0.6s" }} onAnimationEnd={() => setStep(8)}>일지도 몰라요.</SubtitleText>}
-                </div>
+              <TextContainer padding={ppControl}>
+                  <div style={{gap: '8px',display: 'grid'}}>
+                  {
+                    step >= 5 &&(
+                        <Line
+                          key="line-5"
+                          initial="hidden"
+                          animate="visible"
+                          exit="hidden"
+                          variants={variants}
+                          layout 
+                        >
+                    <TypingEffect
+                      text="단순한 우연일까요, 가치관의 일치일까요?"
+                      speed={120} 
+                      onFinish={()=>{setStep(6)}}
+                    /></Line>)
+                  }
+                  {
+                    step >= 6 &&(
+                        <Line
+                          key="line-6"
+                          initial="hidden"
+                          animate="visible"
+                          exit="hidden"
+                          variants={variants}
+                          layout 
+                        >
+                    <TypingEffect
+                      text="그들은 당신처럼 생각하고, 웃고,"
+                      speed={120} 
+                      onFinish={()=>{setStep(7)}}
+                    /></Line>)
+                  }
+                  {
+                    step >= 7 &&(
+                        <Line
+                          key="line-7"
+                          initial="hidden"
+                          animate="visible"
+                          exit="hidden"
+                          variants={variants}
+                          layout 
+                        >
+                    <TypingEffect
+                      text="고민하는 사람들일지도 몰라요."
+                      speed={120} 
+                      onFinish={()=>{
+                        setStep(8);
+                        setPpControl(48);
+                      }}
+                    /></Line>)
+                  }
+                  </div>
               </TextContainer>
-              {step >= 8 &&
+              <TextContainer padding={pppControl}>
+                {
+                    step >= 8 &&(
+                        <Line
+                          key="line-8"
+                          initial="hidden"
+                          animate="visible"
+                          exit="hidden"
+                          variants={variants}
+                          layout 
+                        >
+                    <TypingEffect
+                      text="나와 같은 사람들, 만나볼까요?"
+                      speed={120} 
+                      onFinish={()=>{
+                        setStep(9);
+                        setPppControl(48);
+                      }}
+                    /></Line>)
+                }
+              </TextContainer>
+
+              {step >= 9 &&(
+                        <Line
+                          key="line-9"
+                          initial="hidden"
+                          animate="visible"
+                          exit="hidden"
+                          variants={variants}
+                          layout 
+                        >
                 <ButtonContainer>
-                  <ButtonTitleText>나와 같은 사람들, 만나볼까요?</ButtonTitleText>
                   <Blackbutton
                     onClick={()=>{router.push('/register')}}
                   >네</Blackbutton>
-                  <ShareText onClick={handleIsshare}>친구들에게만 공유하기</ShareText>
-                </ButtonContainer>
+                  <ShareText onClick={handleIsshare}>친구들에게만 공유할래요</ShareText>
+                </ButtonContainer></Line>)
               }
             </MainContainer>
           </motion.div>
