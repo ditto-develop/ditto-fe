@@ -128,10 +128,11 @@ export default function Quiz() {
                             </p>
                             <QuizText>{questions[quizindex].text}</QuizText>
                         </InfomationContainer>
-
+ 
                         <ButtonContainer>
                             <motion.div
-                                key={questions[quizindex].index + "left"} 
+                                key={questions[quizindex].index + "left"}
+                                style={{ flex: 0, display: 'flex', justifyContent: 'left' }}
                                 animate={{ x: moved==-1 ? -150 : 0}}   
                                 exit={{opacity: 0 }} 
                                 transition={{ duration: 1 }}
@@ -140,6 +141,7 @@ export default function Quiz() {
                             </motion.div>
                             <motion.div
                                 key={questions[quizindex].index + 'right'} 
+                                style={{ flex: 0, display: 'flex', justifyContent: 'right' }}
                                 animate={{ x: moved==1 ? 150 : 0}}   
                                 exit={{opacity: 0 }} 
                                 transition={{ duration: 1 }}
