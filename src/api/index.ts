@@ -12,6 +12,7 @@ export type { CreateUserResponseDto } from './models/CreateUserResponseDto';
 export type { FailApiResponse } from './models/FailApiResponse';
 export type { GameDto } from './models/GameDto';
 export type { GameOptionDto } from './models/GameOptionDto';
+export type { OmitTypeClass } from './models/OmitTypeClass';
 export type { RegisterEmailRequestDto } from './models/RegisterEmailRequestDto';
 export type { RegisterEmailResponseDto } from './models/RegisterEmailResponseDto';
 export type { SimilarUsersCountResponseDto } from './models/SimilarUsersCountResponseDto';

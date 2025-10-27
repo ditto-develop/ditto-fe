@@ -2,14 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type RegisterEmailResponseDto = {
+export type OmitTypeClass = {
     /**
-     * 이메일
+     * 요청 성공 여부
      */
-    email: string;
-    /**
-     * 유저 고유 ID
-     */
-    id: string;
+    success?: boolean;
 };
 

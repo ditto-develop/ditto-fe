@@ -37,8 +37,9 @@ export default function Register() {
 
     const handleSubscribe = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        const nowISO = new Date().toISOString();
 
-        UsersService.usersControllerUpdateEmail({email: email})
+        UsersService.usersControllerUpdateEmail({email: email, marketingAgreement: true, marketingAgreedAt: nowISO})
             .then((res)=>{console.log("이메일 전송 성공", res)});
 
         setIsSubscribe(true);

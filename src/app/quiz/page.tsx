@@ -117,9 +117,9 @@ export default function Quiz() {
                     key={questions[quizindex].index} 
                     custom={moved}
                     initial={{opacity: 0 }}
-                    animate={{ x: moved==1 ? 300 : moved==-1 ? -300 : 0, opacity: 1}}   
+                    animate={{ opacity: 1}}   
                     exit={{opacity: 0 }} 
-                    transition={{ duration: 0.6 }}
+                    transition={{ duration: 1 }}
                 >
                     <MainContainer>
                         <InfomationContainer>
@@ -130,8 +130,22 @@ export default function Quiz() {
                         </InfomationContainer>
 
                         <ButtonContainer>
+                            <motion.div
+                                key={questions[quizindex].index + "left"} 
+                                animate={{ x: moved==-1 ? -150 : 0}}   
+                                exit={{opacity: 0 }} 
+                                transition={{ duration: 1 }}
+                            >
                             <Leftbutton onClick={()=>{ClickedAns(true)}}>{questions[quizindex].options[0].label}</Leftbutton>
+                            </motion.div>
+                            <motion.div
+                                key={questions[quizindex].index + 'right'} 
+                                animate={{ x: moved==1 ? 150 : 0}}   
+                                exit={{opacity: 0 }} 
+                                transition={{ duration: 1 }}
+                            >
                             <Rightbutton onClick={()=>{ClickedAns(false)}}>{questions[quizindex].options[1].label}</Rightbutton>
+                            </motion.div>
                         </ButtonContainer>
                     </MainContainer>
                 </motion.div>

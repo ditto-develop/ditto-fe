@@ -10,10 +10,18 @@ export type FailApiResponse = {
     /**
      * 에러 메시지
      */
-    errMessage?: string;
+    errorMessage?: string;
     /**
      * 에러 코드
      */
     errorCode?: string;
+    /**
+     * 트레이스 ID
+     */
+    traceId?: string;
+    /**
+     * 추가 진단 정보
+     */
+    meta?: Record<string, any>;
 };
 

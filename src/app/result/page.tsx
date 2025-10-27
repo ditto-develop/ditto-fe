@@ -31,6 +31,7 @@ export default function Result() {
   const router = useRouter();
 
   /** State Section */
+  const [typespeed, setTypespeed] = useState<number>(90);
   const [isshare, setIsShare] = useState(false);
   const [gameResult, setGameResult] = useState<gameresultType>();
   const [step, setStep] = useState<number>(0);
@@ -97,7 +98,7 @@ export default function Result() {
                         >
                           <TypingEffect
                             text="당신과 같은 선택을 한 사람은..."
-                            speed={120} 
+                            speed={typespeed} 
                             onFinish={()=>{setStep(1)}}
                           />
                       </Line>
@@ -116,7 +117,7 @@ export default function Result() {
                           <TypingColorEffect 
                               color="#775E4F"
                               text={gameResult?.totalCount+"명 중"}
-                              speed={120} 
+                              speed={typespeed} 
                               onFinish={()=>{setStep(2)}}
                           />
                         </Line>
@@ -151,7 +152,7 @@ export default function Result() {
                         >
                     <TypingEffect
                       text="이렇게 선택할 확률은..."
-                      speed={120} 
+                      speed={typespeed} 
                       onFinish={()=>{setStep(4)}}
                     /></Line>)
                   }
@@ -190,7 +191,7 @@ export default function Result() {
                         >
                     <TypingEffect
                       text="단순한 우연일까요, 가치관의 일치일까요?"
-                      speed={120} 
+                      speed={typespeed} 
                       onFinish={()=>{setStep(6)}}
                     /></Line>)
                   }
@@ -206,7 +207,7 @@ export default function Result() {
                         >
                     <TypingEffect
                       text="그들은 당신처럼 생각하고, 웃고,"
-                      speed={120} 
+                      speed={typespeed} 
                       onFinish={()=>{setStep(7)}}
                     /></Line>)
                   }
@@ -222,7 +223,7 @@ export default function Result() {
                         >
                     <TypingEffect
                       text="고민하는 사람들일지도 몰라요."
-                      speed={120} 
+                      speed={typespeed} 
                       onFinish={()=>{
                         setStep(8);
                         setPpControl(48);
@@ -244,7 +245,7 @@ export default function Result() {
                         >
                     <TypingEffect
                       text="나와 같은 사람들, 만나볼까요?"
-                      speed={120} 
+                      speed={typespeed} 
                       onFinish={()=>{
                         setStep(9);
                         setPppControl(48);

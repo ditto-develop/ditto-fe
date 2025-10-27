@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AnswerItem } from '../models/AnswerItem';
+import type { OmitTypeClass } from '../models/OmitTypeClass';
 import type { SuccessApiResponse } from '../models/SuccessApiResponse';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -35,7 +36,7 @@ export class GameService {
     public static gameControllerGetQuestion(
         round: string,
         questionId: string,
-    ): CancelablePromise<SuccessApiResponse> {
+    ): CancelablePromise<OmitTypeClass> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/game/{round}/questions/{questionId}',
@@ -57,7 +58,7 @@ export class GameService {
         round: number,
         questionId: string,
         requestBody: AnswerItem,
-    ): CancelablePromise<SuccessApiResponse> {
+    ): CancelablePromise<OmitTypeClass> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/game/{round}/questions/{questionId}/answer',
@@ -77,7 +78,7 @@ export class GameService {
      */
     public static gameControllerSubmitEnd(
         round: number,
-    ): CancelablePromise<SuccessApiResponse> {
+    ): CancelablePromise<OmitTypeClass> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/game/{round}/end',

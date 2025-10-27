@@ -221,7 +221,7 @@ export function IntegerCounter({ target, duration = 1800, onFinish }: IntegerCou
       setTimeout(() => {
         setCount(num);
         if (num === target && onFinish) {
-          setTimeout(() => onFinish(), 2500); // 2.5초 유지 후 콜백
+          setTimeout(() => onFinish(), 1500); // 1.5초 유지 후 콜백
         }
       }, idx * (duration / target));
     });
@@ -255,7 +255,7 @@ export function FloatCounter({ target, duration = 1800, onFinish }: FloatCounter
         clearInterval(interval);
 
         if (onFinish) {
-          setTimeout(() => onFinish(), 2500);
+          setTimeout(() => onFinish(), 1500);
         }
       }
       setCount(parseFloat(current.toFixed(2)));
