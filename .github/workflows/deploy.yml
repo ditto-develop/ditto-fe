@@ -26,7 +26,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
-            cd /home/hoemin/ditto/ditto-fe
+            cd ${{ secrets.EC2_PATH }}
             echo "📦 Pulling latest code..."
             git pull origin main
             echo "📦 Installing dependencies..."
