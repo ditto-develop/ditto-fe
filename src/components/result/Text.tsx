@@ -128,6 +128,7 @@ const TypingColorWrapper = styled.div<{color: string}>`
     animation: ${fadeIn} 0.6s ease-out forwards;
 `;
 
+/** typing 시간 = 1000 / speed = count 글자/초 */
 export function TypingColorEffect({ text, color, speed = 50, onFinish }: TypingColorProps) {
   const [displayedText, setDisplayedText] = useState("");
   useEffect(() => {
@@ -135,15 +136,15 @@ export function TypingColorEffect({ text, color, speed = 50, onFinish }: TypingC
     const interval = setInterval(() => {
       setDisplayedText(text.slice(0, i + 1));
       i++;
-      if (i === text.length) {
+      if (i === text.length) { 
         clearInterval(interval);
         if (onFinish){
             setTimeout(()=>{
                 onFinish();
-            },1000);
+            },1000); //딜레이 타이밍 1초
         }
     }
-    }, speed);
+    }, speed); //speed 마다 1글자씩 실행
 
     return () => clearInterval(interval);
   }, [text, speed]);

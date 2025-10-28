@@ -6,6 +6,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { CustomToast } from "@/components/result/Toast";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
+import { useEffect } from "react";
 
 
 

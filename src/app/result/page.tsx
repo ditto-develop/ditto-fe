@@ -32,7 +32,7 @@ export default function Result() {
   const router = useRouter();
 
   /** State Section */
-  const [typespeed, setTypespeed] = useState<number>(90);
+  const [typespeed, setTypespeed] = useState<number>(45);
   const [isshare, setIsShare] = useState(false);
   const [gameResult, setGameResult] = useState<gameresultType>();
   const [step, setStep] = useState<number>(0);
@@ -63,7 +63,7 @@ export default function Result() {
   };
 
   const handleIsshare = () => setIsShare((state) => !state); //공유 바텀시트 제어
-  if(!gameResult) return <>잘못된 접근입니다.</>;
+  if(!gameResult) return <></>;
 
   /** Return Section */
   return (

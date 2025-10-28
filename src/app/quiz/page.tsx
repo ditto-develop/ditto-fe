@@ -126,7 +126,7 @@ export default function Quiz() {
                     initial={{opacity: 0 }}
                     animate={{ opacity: 1}}   
                     exit={{opacity: 0 }} 
-                    transition={{ duration: 1 }}
+                    transition={{ duration: 0.5 }}
                 >
                     <MainContainer>
                         <InfomationContainer>
@@ -142,7 +142,7 @@ export default function Quiz() {
                                 style={{ flex: 0, display: 'flex', justifyContent: 'left' }}
                                 animate={{ x: moved==-1 ? -150 : 0}}   
                                 exit={{opacity: 0 }} 
-                                transition={{ duration: 1 }}
+                                transition={{ duration: 0.5 }}
                             >
                             <QuizButton isblack={false} onClick={()=>{ClickedAns(true)}}>{questions[quizindex].options[0].label}</QuizButton>
                             </motion.div>
@@ -151,7 +151,7 @@ export default function Quiz() {
                                 style={{ flex: 0, display: 'flex', justifyContent: 'right' }}
                                 animate={{ x: moved==1 ? 150 : 0}}   
                                 exit={{opacity: 0 }} 
-                                transition={{ duration: 1 }}
+                                transition={{ duration: 0.5 }}
                             >
                             <QuizButton isblack={true} onClick={()=>{ClickedAns(false)}}>{questions[quizindex].options[1].label}</QuizButton>
                             </motion.div>
