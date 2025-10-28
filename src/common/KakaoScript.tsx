@@ -20,7 +20,7 @@ export default function KakaoScript() {
       src='/scripts/kakao.js'
       strategy="afterInteractive"
       onLoad={() => {onLoad}}
-      onError={() => console.log("❌ Kakao SDK 로드 실패")}
+      onError={() => {}}
     />
   );
 }

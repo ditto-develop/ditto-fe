@@ -27,8 +27,8 @@ export const metadata: Metadata = {
     ],
     locale: "ko_KR",
     type: "website",
-      },
-    twitter: {
+    },
+    twitter: { //현재 적용되지 않는 상황. 추후 수정
       card: "summary_large_image",
       title: "Ditto - 수백만의 스침 속, 단 하나의 멈춤",
       description: "흔한 선택은 쉽게 잊히지만, 같은 답은 오래 남습니다",

@@ -40,7 +40,7 @@ export default function Register() {
         const nowISO = new Date().toISOString();
 
         UsersService.usersControllerUpdateEmail({email: email, marketingAgreement: true, marketingAgreedAt: nowISO})
-            .then((res)=>{console.log("이메일 전송 성공", res)});
+            .then((res)=>{});
 
         setIsSubscribe(true);
     };
@@ -74,8 +74,8 @@ export default function Register() {
                             src='/titles/register.svg'
                             alt='register'
                         />
-                        <SubtitleText>이메일 한 줄만 남겨주세요. 만남의 소식이 있을 때,</SubtitleText>
-                        <SubtitleText>새로운 선택지가 준비 될 때 알려드릴게요.</SubtitleText>
+                        <SubtitleText>답이 비슷했을 뿐인데, 생각보다 잘 맞을지도 몰라요.</SubtitleText>
+                        <SubtitleText>이메일을 남기면 새로운 사람들과 이어질 수 있어요.</SubtitleText>
                     </div>
 
 
@@ -116,7 +116,6 @@ const Subscribe = () => {
             <AlertContainer>
                 <SubscribeTitle>구독 완료!</SubscribeTitle>
                 <div>
-                    <SubscribeText>비슷한 사람이 나타나면 알려드릴게요.</SubscribeText>
                     <SubscribeText>새로운 만남이 준비되는 순간을 기다려주세요.</SubscribeText>
                 </div>
                 <MiddleBlackbutton

@@ -75,7 +75,6 @@ export default function Quiz() {
                         GameService.gameControllerSubmitEnd(1)
                             .then((res) => {
                                 const result = res as SuccessApiResponseWithData;
-                                console.log("END: ",result);
                             });
                         router.push('/result');
                     }catch(err){

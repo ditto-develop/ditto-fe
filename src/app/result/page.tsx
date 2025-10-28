@@ -48,7 +48,7 @@ export default function Result() {
         const matchResult =  await MatchService.matchControllerGetSimilarUsersCount(1,80); //최종 매치 결과
         setGameResult(matchResult.data as gameresultType);
       }catch(err){
-        console.log(err);
+
       }
     };
 

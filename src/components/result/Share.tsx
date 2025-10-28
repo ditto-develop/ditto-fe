@@ -6,7 +6,6 @@ import toast from 'react-hot-toast';
 /** Components */
 import {IconContainer, ShareIconContainer,Backdrop,BottomSheetContainer, ButtonContainer } from './Container';
 import {BottomTitle, BottomSubTitle} from './Text';
-import { Whitebutton } from '../Button';
 
 /** Hooks */
 import React, { useCallback, useEffect } from 'react';
@@ -32,7 +31,7 @@ export default function Share({handleIsshare}: shareType) {
     /**Function Section */
     const toastHandler = (text: string) => {
       toast.custom(
-            (t) => (
+            () => (
                 <CustomToast aria-live="polite">
                   <div>{text}</div>
                 </CustomToast>
@@ -46,7 +45,6 @@ export default function Share({handleIsshare}: shareType) {
     const handleOnClickKakao = () => { //카카오톡 공유하기 핸들러
         if (typeof window === "undefined" || !window.Kakao) {
           
-          console.log("⚠️ Kakao SDK not ready");
           return;
         }
 
@@ -80,6 +78,7 @@ export default function Share({handleIsshare}: shareType) {
             });
             toastHandler("공유하기가 완료되었습니다.")
           } catch (err) {
+            console.error(err);
             toastHandler("공유하기를 실패했습니다.")
           }
       }}else {
