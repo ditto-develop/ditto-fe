@@ -1,225 +1,99 @@
-"use client"
+"use client";
 
 import { ButtonHTMLAttributes, HTMLAttributes } from "react";
 import { keyframes, styled } from "styled-components";
 
-const Leftbox = styled.div`
-    justify-self: left;
-    display: flex;
-    position: relative;
-    width: 305px;
-    align-items:center; 
-    justify-content:center;
-`;
-
-const Boxtext = styled.span`
-    text-align: center;
-    z-index: 1;
-`;
-
-
-const Rightbox = styled.div`
-    justify-self: right;
-    display: flex;
-    position: relative;
-    width: 305px;
-    height: 56.1px;
-    align-items:center; 
-    justify-content:center;
-
-    &::before {
-    content: "";
-    position: absolute;
-    inset: 3px;   /* 👈 inset 값이 클수록 더 작아짐 */
-    background: black;
-    border-radius: 1px;
-    z-index: 0;
-  }
-`;
+/** 📌 Animation */
 const fadeIn = keyframes`
-  from {
-    opacity: 0.4;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0.4; }
+  to { opacity: 1; }
 `;
 
-const Middlebox = styled.button`
-    animation: ${fadeIn} 0.5s ease-in-out forwards;
-    display: flex;
-    position: relative;
-    width: 345px;
-    height: 62.8px;
-    align-items:center; 
-    justify-content:center;
+const BaseBox = styled.div<{ width?: number; height?: number; bg?: string }>`
+  animation: ${fadeIn} 0.5s ease-in-out forwards;
+  display: flex;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  width: ${({ width }) => (width ? `${width}px` : "305px")};
+  height: ${({ height }) => (height ? `${height}px` : "56px")};
+  justify-self: center;
 
-    &::before {
+  &::before {
     content: "";
     position: absolute;
-    inset: 3px;   /* 👈 inset 값이 클수록 더 작아짐 */
+    inset: 3px;
     border-radius: 1px;
-    background-color: black;
+    background-color: ${({ bg }) => bg || "transparent"};
     z-index: 0;
   }
 `;
-const MiddleWhitebox = styled.div`
-    display: flex;
-    position: relative;
-    width: 305px;
-    height: 62.8px;
-    align-items:center; 
-    justify-content:center;
+
+const BaseText = styled.span<{ color?: string }>`
+  text-align: center;
+  z-index: 1;
+  color: ${({ color }) => color || "black"};
 `;
 
-const Imgbox = styled.img`
-    position: absolute;
-    z-index: 0;
-    width: 100%;
+const BaseImg = styled.img<{ w?: string }>`
+  position: absolute;
+  z-index: 0;
+  width: ${({ w }) => w || "100%"};
 `;
 
-type divType = HTMLAttributes<HTMLDivElement>
-type buttonType = ButtonHTMLAttributes<HTMLButtonElement>
+/** 📌 Prop 타입 */
+type DivType = HTMLAttributes<HTMLDivElement>;
+type BtnType = ButtonHTMLAttributes<HTMLButtonElement>;
 
 
-export const Leftbutton = ({children, ...props}:divType) => {
-    return(
-        <>
-            <Leftbox
-                {...props}    
-            >
-                <Imgbox 
-                    src='/buttons/button.svg'
-                />
-                <Boxtext>{children}</Boxtext>
-            </Leftbox>
-        </>
-    )
-}
+/** 📌 quiz 버튼 */
+type QuizType = DivType & { isblack: boolean };
 
-export const Rightbutton = ({children, ...props}:divType) => {
-    return(
-        <>
-            <Rightbox
-                {...props}    
-            >
-                <Imgbox 
-                    src='/buttons/button.svg'
-                />
-                <Boxtext
-                    style={{color: "white"}}
-                >{children}</Boxtext>
-            </Rightbox> 
-        </>
-    )
-}
+/** 📌 QuizButton */
+export const QuizButton = ({ isblack, children, ...props }: QuizType) => (
+  <BaseBox {...props} width={305} bg={isblack ? 'black' : ''}>
+    <BaseImg src="/buttons/button.svg" />
+    <BaseText color={isblack ? 'white' : ''}>{children}</BaseText>
+  </BaseBox>
+);
 
-export const Blackbutton = ({children, ...props}:buttonType) => {
-    return(
-        <>
-            <Middlebox
-                {...props}    
-            >
-                <Imgbox 
-                    src='/buttons/button.svg'
-                />
-                <Boxtext
-                    style={{color: "white"}}
-                >{children}</Boxtext>
-            </Middlebox> 
-        </>
-    )
-}
+/** 📌 BlackButton */
+export const Blackbutton = ({ children, ...props }: BtnType) => (
+  <BaseBox as="button" {...props} width={345} height={62.8} bg="black">
+    <BaseImg src="/buttons/button.svg" />
+    <BaseText color="white">{children}</BaseText>
+  </BaseBox>
+);
 
-const Smallbox = styled.div`
-    animation: ${fadeIn} 0.5s ease-in-out forwards;
-    display: flex;
-    position: relative;
-    width: 281px;
-    height: 52px;
-    align-items:center; 
-    justify-content:center;
+/** 📌 Small Black Button */
+export const MiddleBlackbutton = ({ children, ...props }: DivType) => (
+  <BaseBox {...props} width={281} height={52} bg="black">
+    <BaseImg src="/buttons/button.svg" />
+    <BaseText color="white">{children}</BaseText>
+  </BaseBox>
+);
 
-    &::before {
-    content: "";
-    position: absolute;
-    inset: 3px;   /* 👈 inset 값이 클수록 더 작아짐 */
-    border-radius: 1px;
-    background-color: black;
-    z-index: 0;
-  }
-`;
-export const MiddleBlackbutton = ({children, ...props}:divType) => {
-    return(
-        <>
-            <Smallbox
-                {...props}    
-            >
-                <Imgbox 
-                    src='/buttons/button.svg'
-                />
-                <Boxtext
-                    style={{color: "white"}}
-                >{children}</Boxtext>
-            </Smallbox> 
-        </>
-    )
-}
+/** 📌 Enable 상태가 있는 버튼 */
+type EnableBtnProps = BtnType & { enable: boolean };
 
+export const BlackEnablebutton = ({ enable, children, ...props }: EnableBtnProps) => (
+  <BaseBox
+    as={enable ? "button" : "div"}
+    {...props}
+    width={345}
+    height={62.8}
+    bg={enable ? "black" : "#9b9b9b"}
+    style={{ cursor: enable ? "pointer" : "not-allowed", opacity: enable ? 1 : 0.6 }}
+  >
+    <BaseImg src={enable ? "/buttons/button.svg" : "/buttons/graybutton.svg"} />
+    <BaseText color="white">{children}</BaseText>
+  </BaseBox>
+);
 
-type enableType = ButtonHTMLAttributes<HTMLButtonElement> &{
-    enable: boolean
-};
-const MiddleGraybox = styled.div`
-    display: flex;
-    position: relative;
-    width: 345px;
-    height: 62.8px;
-    align-items:center; 
-    justify-content:center;
-
-    &::before {
-    content: "";
-    position: absolute;
-    inset: 3px;   
-    border-radius: 1px;
-    background-color: #9b9b9b;
-    z-index: 0;
-  }
-`;
-export const BlackEnablebutton = ({enable,children, ...props}:enableType) => {
-    return(
-        <>
-            {enable?<><Blackbutton {...props}>{children}</Blackbutton></>:
-            <MiddleGraybox>
-                <Imgbox src='/buttons/graybutton.svg' />
-                <Boxtext
-                    style={{color: "white"}}
-                >{children}</Boxtext>
-            </MiddleGraybox> 
-            }
-        </>
-    )
-}
-
-const ImgMiddlebox = styled.img`
-    position: absolute;
-    z-index: 0;
-    width: 60%;
-`;
-export const Whitebutton = ({children, ...props}:divType) => {
-    return(
-        <>
-            <MiddleWhitebox
-                {...props}    
-            >
-                <ImgMiddlebox 
-                    src='/buttons/MiddleButton.svg'
-                />
-                <Boxtext
-                    style={{color: "black"}}
-                >{children}</Boxtext>
-            </MiddleWhitebox> 
-        </>
-    )
-}
+/** 📌 White Button */
+export const Whitebutton = ({ children, ...props }: DivType) => (
+  <BaseBox {...props} width={305} height={62.8}>
+    <BaseImg src="/buttons/MiddleButton.svg" w="60%" />
+    <BaseText color="black">{children}</BaseText>
+  </BaseBox>
+);

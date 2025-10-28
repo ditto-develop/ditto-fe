@@ -1,6 +1,6 @@
 "use client"
 
-import { Leftbutton, Rightbutton } from "@/components/Button";
+import { QuizButton } from "@/components/Button";
 import Navbar from "@/components/Navbar";
 import {MainContainer,InfomationContainer,ButtonContainer} from "@/components/quiz/Container";
 import { useEffect, useState } from "react";
@@ -136,16 +136,16 @@ export default function Quiz() {
                                 exit={{opacity: 0 }} 
                                 transition={{ duration: 1 }}
                             >
-                            <Leftbutton onClick={()=>{ClickedAns(true)}}>{questions[quizindex].options[0].label}</Leftbutton>
+                            <QuizButton isblack={false} onClick={()=>{ClickedAns(true)}}>{questions[quizindex].options[0].label}</QuizButton>
                             </motion.div>
-                            <motion.div
+                            <motion.div 
                                 key={questions[quizindex].index + 'right'} 
                                 style={{ flex: 0, display: 'flex', justifyContent: 'right' }}
                                 animate={{ x: moved==1 ? 150 : 0}}   
                                 exit={{opacity: 0 }} 
                                 transition={{ duration: 1 }}
                             >
-                            <Rightbutton onClick={()=>{ClickedAns(false)}}>{questions[quizindex].options[1].label}</Rightbutton>
+                            <QuizButton isblack={true} onClick={()=>{ClickedAns(false)}}>{questions[quizindex].options[1].label}</QuizButton>
                             </motion.div>
                         </ButtonContainer>
                     </MainContainer>

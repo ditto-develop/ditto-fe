@@ -4,7 +4,8 @@ import { Blackbutton } from "@/components/Button";
 import {ImgContainer, HomeContainer, ButtonContainer} from "@/components/home/Container"
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { OpenAPI } from "@/api";
+import toast from "react-hot-toast";
+import { CustomToast } from "@/components/result/Toast";
 
 
 
@@ -14,11 +15,19 @@ export default function Home() {
   const handleStart = async() => {
       const user = await UsersService.usersControllerStart();
       if(user.data) {
-        //OpenAPI.TOKEN = user.data.user.id || '';
         router.push('/quiz');
       }
       else {
-        alert("서버인증실패(알러트수정예정)");
+        toast.custom(
+            () => (
+                <CustomToast aria-live="polite">
+                  <div>서버와의 연결을 실패했습니다.</div>
+                </CustomToast>
+            ),
+            { 
+                duration: 1500 
+            }
+        );
       }
   }
 

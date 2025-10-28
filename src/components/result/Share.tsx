@@ -107,7 +107,7 @@ export default function Share({handleIsshare}: shareType) {
       <BottomSheetContainer>
         <div style={{display: "grid", gap: "10px"}}>
             <div style={{display: "flex", justifyContent: "space-between", position: 'relative' }}>
-                <BottomTitle>공유해보세요</BottomTitle>
+                <BottomTitle>링크 공유하기</BottomTitle>
                 <Image 
                     onClick={handleIsshare}
                     src='/icons/x.svg'
