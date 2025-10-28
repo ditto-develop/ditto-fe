@@ -54,15 +54,14 @@ export default function Share({handleIsshare}: shareType) {
           window.Kakao.init(process.env.NEXT_PUBLIC_KAKAO_API_KEY);
         }
  
-        window.Kakao.Share.sendDefault({
-          objectType: 'text',
-          text:
-            '4096개의 질문 중 저와 같은 질문을 선택한 사람은 8명이였습니다. 단순한 우연일까요?',
-          link: {
-            mobileWebUrl: process.env.NEXT_PUBLIC_DNS,
-            webUrl: process.env.NEXT_PUBLIC_DNS,
-          },
+        window.Kakao.Share.sendCustom({
+            templateId: 124986,
+            templateArgs: { //전체 인원/선택 인원 파라미터로 전달
+              totalcount: 4096,
+              samecount: 8
+            },
         });
+
         toastHandler("카카오톡을 실행합니다.");
     }
 
@@ -90,7 +89,7 @@ export default function Share({handleIsshare}: shareType) {
 
     };
     
-    const shareText = "4096개의 질문 중 저와 같은 질문을 선택한 사람은 8명이였습니다. 단순한 우연일까요? 지금 여러분도 확인해보세요!";
+    const shareText = "당신의 선택이 새로운 모임으로 이어지는 순간.";
     const shareUrl = process.env.NEXT_PUBLIC_API_URL || '';
 
     const handleShareToX = useCallback(() => {

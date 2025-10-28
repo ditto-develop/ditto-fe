@@ -89,7 +89,7 @@ export const Leftbutton = ({children, ...props}:divType) => {
                 {...props}    
             >
                 <Imgbox 
-                    src='/button.svg'
+                    src='/buttons/button.svg'
                 />
                 <Boxtext>{children}</Boxtext>
             </Leftbox>
@@ -104,7 +104,7 @@ export const Rightbutton = ({children, ...props}:divType) => {
                 {...props}    
             >
                 <Imgbox 
-                    src='/button.svg'
+                    src='/buttons/button.svg'
                 />
                 <Boxtext
                     style={{color: "white"}}
@@ -121,7 +121,7 @@ export const Blackbutton = ({children, ...props}:buttonType) => {
                 {...props}    
             >
                 <Imgbox 
-                    src='/button.svg'
+                    src='/buttons/button.svg'
                 />
                 <Boxtext
                     style={{color: "white"}}
@@ -156,7 +156,7 @@ export const MiddleBlackbutton = ({children, ...props}:divType) => {
                 {...props}    
             >
                 <Imgbox 
-                    src='/button.svg'
+                    src='/buttons/button.svg'
                 />
                 <Boxtext
                     style={{color: "white"}}
@@ -192,7 +192,7 @@ export const BlackEnablebutton = ({enable,children, ...props}:enableType) => {
         <>
             {enable?<><Blackbutton {...props}>{children}</Blackbutton></>:
             <MiddleGraybox>
-                <Imgbox src='/graybutton.svg' />
+                <Imgbox src='/buttons/graybutton.svg' />
                 <Boxtext
                     style={{color: "white"}}
                 >{children}</Boxtext>
@@ -214,7 +214,7 @@ export const Whitebutton = ({children, ...props}:divType) => {
                 {...props}    
             >
                 <ImgMiddlebox 
-                    src='/MiddleButton.svg'
+                    src='/buttons/MiddleButton.svg'
                 />
                 <Boxtext
                     style={{color: "black"}}

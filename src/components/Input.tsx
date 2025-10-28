@@ -32,7 +32,7 @@ export function Input({...props}:inputType) {
             {...props}
         />
         <Imgbox 
-            src='/button.svg'
+            src='/buttons/button.svg'
         />
     </Middlebox>
   )
