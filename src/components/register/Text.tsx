@@ -35,8 +35,8 @@ export const SubscribeTitle = styled.h1`
     letter-spacing: -0.48px;
 `
 
-export const SubscribeText = styled.p`
-    color: #000;
+export const SubscribeText = styled.p<{color: string}>`
+    color: ${(props)=>props.color};
     text-align: center;
     font-family: Pretendard;
     font-size: 16px;

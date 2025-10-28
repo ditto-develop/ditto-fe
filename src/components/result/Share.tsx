@@ -54,7 +54,7 @@ export default function Share({handleIsshare}: shareType) {
  
         window.Kakao.Share.sendCustom({
             templateId: 124986,
-            templateArgs: { //전체 인원/선택 인원 파라미터로 전달
+            templateArgs: { //전체 인원/선택 인원 파라미터로 전달 (수정예정)
               totalcount: 4096,
               samecount: 8
             },

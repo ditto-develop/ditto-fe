@@ -1,4 +1,3 @@
-import type { NextConfig } from "next";
 import withPWAInit from 'next-pwa';
 
 const withPWA = withPWAInit({
@@ -6,6 +5,7 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig = {
+  output: 'export',
   compiler: {
     styledComponents: true, // 꼭 켜야 SSR 스타일 적용됨
   },
@@ -19,6 +19,5 @@ const nextConfig = {
   }
 };
 
-
-export default withPWA({nextConfig});
+module.exports = withPWA({nextConfig});
 

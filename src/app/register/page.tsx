@@ -73,7 +73,7 @@ export default function Register() {
                             src='/titles/register.svg'
                             alt='register'
                         />
-                        <SubtitleText>답이 비슷했을 뿐인데, 생각보다 잘 맞을지도 몰라요.</SubtitleText>
+                        <SubtitleText>우연한 선택이지만 생각보다 잘 맞을지도 몰라요.</SubtitleText>
                         <SubtitleText>이메일을 남기면 새로운 사람들과 이어질 수 있어요.</SubtitleText>
                     </div>
 
@@ -115,7 +115,8 @@ const Subscribe = () => {
             <AlertContainer>
                 <SubscribeTitle>구독 완료!</SubscribeTitle>
                 <div>
-                    <SubscribeText>새로운 만남이 준비되는 순간을 기다려주세요.</SubscribeText>
+                    <SubscribeText color="#000">수신함에서 웰컴 메일을 꼭 확인해주세요.</SubscribeText>
+                    <SubscribeText color="rgba(0, 0, 0, 0.40)">스팸함도 함께 확인해주세요.</SubscribeText>
                 </div>
                 <MiddleBlackbutton
                     onClick={()=>{router.push('/')}}
@@ -124,4 +125,5 @@ const Subscribe = () => {
         </SubContainer>
     ) 
 }
+
 
