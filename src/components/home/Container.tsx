@@ -1,11 +1,11 @@
 "use Client"
 import styled from "styled-components";
 
-const ImgContainer = styled.div`
+export const ImgContainer = styled.div`
     position: relative;
 `;
 
-const HomeContainer = styled.div`
+export const HomeContainer = styled.div`
     width: 100%;
     height: 100%;
     display: flex;
@@ -14,8 +14,8 @@ const HomeContainer = styled.div`
     align-items: center;
     gap: 15%;
 `;
-const ButtonContainer = styled.div`
+
+export const ButtonContainer = styled.div`
     display: flex;
 `;
 
-export {ImgContainer, HomeContainer, ButtonContainer};

@@ -1,47 +1,33 @@
-import styled, { keyframes } from "styled-components";
-import { useEffect, useRef, useState } from "react";
+ import styled, { keyframes } from "styled-components";
+import { useEffect, useState } from "react";
 
+/** keyframes */
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 `;
 
-export const SubtitleText = styled.p`
-    color: var(--primary-40, rgba(0, 0, 0, 0.40));
-    text-align: center;
-    font-family: Pretendard;
-    font-size: 18px;
-    font-style: normal;
-    font-weight: 500;
-    line-height: 150%; 
-    letter-spacing: -0.27px;
-    opacity: 0;
-    animation: ${fadeIn} 1.5s ease forwards;
+const blink = keyframes`
+  50% {
+    border-color: transparent;
+  }
 `;
 
-export const TitleText = styled.p`
-    color: var(--Color-Red, #C93D2E);
-    text-align: center;
-    -webkit-text-stroke-width: 2px;
-    -webkit-text-stroke-color: var(--Color-Red, #C93D2E);
-    font-family: Pretendard;
-    font-size: 48px;
-    font-style: normal;
-    font-weight: 400;
-    line-height: normal;
-    opacity: 0;
-    animation: ${fadeIn} 0.6s ease forwards;
+const pureFadeIn = keyframes`
+  from { opacity: 0; transform: translateY(10px);}
+  to { opacity: 1; transform: translateY(0px);}
 `;
 
-export const ButtonTitleText = styled.p`
-    color: var(--Primary-Primary, #000);
-    text-align: center;
-    font-family: Pretendard;
-    font-size: 18px;
-    font-style: normal;
-    font-weight: 500;
-    line-height: 150%; /* 27px */
-    letter-spacing: -0.27px;  
+/** styled Text */
+export const BaseText = styled.p`
+  color: var(--Primary-Primary, #000);
+  text-align: center;
+  font-family: Pretendard;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 150%; /* 27px */
+  letter-spacing: -0.27px;
 `;
 
 export const ShareText = styled.div`
@@ -52,7 +38,7 @@ export const ShareText = styled.div`
   justify-content: center;
   align-items: center;
   gap: 10px;
-
+ 
   color: var(--primary-40, rgba(0, 0, 0, 0.40));
   text-align: center;
   font-family: Pretendard;
@@ -83,30 +69,14 @@ const TypingWrapper = styled.div`
     font-weight: 500;
     line-height: 150%; /* 27px */
     letter-spacing: -0.27px;
-    animation: blink 0.8s step-end infinite;
-
-    @keyframes blink {
-        50% {
-            border-color: transparent;
-        }
-    }
+    animation: ${blink} 0.8s step-end infinite;
 
     opacity: 0;
     transform: translateY(10px);
-    animation: fadeInUp 0.6s ease-out forwards;
-
-    @keyframes fadeInUp {
-        0% {
-        opacity: 0;
-        transform: translateY(10px);
-        }
-        100% {
-        opacity: 1;
-        transform: translateY(0);
-        }
-    }
+    animation: ${fadeIn} 0.6s ease-out forwards;
 `;
 
+/** Typeing Effect */
 type TypingProps = {
   text: string;
   speed?: number;
@@ -137,6 +107,7 @@ export function TypingEffect({ text, speed = 50, onFinish }: TypingProps) {
   return <TypingWrapper>{displayedText}</TypingWrapper>;
 }
 
+/** Color Typeing Effect */
 type TypingColorProps = TypingProps & {
     color: string
 };
@@ -150,31 +121,11 @@ const TypingColorWrapper = styled.div<{color: string}>`
     font-weight: 700;
     line-height: 150%; /* 27px */
     letter-spacing: -0.27px;
-    animation: blink 0.8s step-end infinite;
-    
-
-    @keyframes blink {
-        50% {
-            border-color: transparent;
-        }
-    }
-
+    animation: ${blink} 0.8s step-end infinite;
+  
     opacity: 0;
     transform: translateY(10px);
-    animation: fadeInUp 0.6s ease-out forwards;
-
-    @keyframes fadeInUp {
-        0% {
-        opacity: 0;
-        transform: translateY(10px);
-        }
-        100% {
-        opacity: 1;
-        transform: translateY(0);
-        }
-    }
-
-
+    animation: ${fadeIn} 0.6s ease-out forwards;
 `;
 
 export function TypingColorEffect({ text, color, speed = 50, onFinish }: TypingColorProps) {
@@ -200,13 +151,22 @@ export function TypingColorEffect({ text, color, speed = 50, onFinish }: TypingC
   return <TypingColorWrapper color={color}>{displayedText}</TypingColorWrapper>;
 }
 
-/////////////////
 
-const pureFadeIn = keyframes`
-  from { opacity: 0; transform: translateY(10px);}
-  to { opacity: 1; transform: translateY(0px);}
+/** Styled Counter Span */
+const AnimatedNumber = styled.span`
+    color: var(--Color-Red, #C93D2E);
+    text-align: center;
+    -webkit-text-stroke-width: 2px;
+    -webkit-text-stroke-color: var(--Color-Red, #C93D2E);
+    font-family: Pretendard;
+    font-size: 48px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+    opacity: 0;
+    animation: ${pureFadeIn} 1.2s ease-in-out forwards;
 `;
-
+/** Integer Counter Effect */
 type IntegerCounterProps = {
   target: number;
   duration?: number;
@@ -230,6 +190,7 @@ export function IntegerCounter({ target, duration = 1800, onFinish }: IntegerCou
   return <AnimatedNumber>{count}명</AnimatedNumber>;
 }
 
+/** Float Counter Effect */
 type FloatCounterProps = {
   target: number;
   duration?: number;
@@ -267,17 +228,3 @@ export function FloatCounter({ target, duration = 1800, onFinish }: FloatCounter
   return <AnimatedNumber>{count.toFixed(2)}%</AnimatedNumber>;
 }
 
-
-const AnimatedNumber = styled.span`
-    color: var(--Color-Red, #C93D2E);
-    text-align: center;
-    -webkit-text-stroke-width: 2px;
-    -webkit-text-stroke-color: var(--Color-Red, #C93D2E);
-    font-family: Pretendard;
-    font-size: 48px;
-    font-style: normal;
-    font-weight: 400;
-    line-height: normal;
-    opacity: 0;
-    animation: ${pureFadeIn} 1.2s ease-in-out forwards;
-`;

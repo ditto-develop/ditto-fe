@@ -1,5 +1,5 @@
 "use client"
-import { motion } from "framer-motion";
+import { delay, motion } from "framer-motion";
 import styled, { keyframes } from "styled-components";
 
 const fadeIn = keyframes`
@@ -20,7 +20,7 @@ const slideUp = keyframes`
   }
 `;
  
-const MainContainer = styled.div<{$isFinsihed?: boolean}>`
+export const MainContainer = styled.div<{$isFinsihed?: boolean}>`
   padding: ${(props)=>props.$isFinsihed?178:108}px 0 64px 0;
   width: 100%; 
   height: ${(props)=>props.$isFinsihed?100:80}vh; /* 화면 전체 높이 */ 
@@ -40,29 +40,6 @@ export const TextContainer = styled.div<{ padding?: number }>`
   transition: padding-bottom 0.5s ease-in-out; 
 `
 
-
-const TextContiner = styled.div`
-  display: grid;
-  justify-content: center;
-`
-
-const LoadingContainer = styled.div`
-    position: fixed;
-    
-    top: 0;                  
-    left: 0;
-    width: 100%;              
-    z-index: 1000;
-    height: 100%;
-    
-    display: flex;
-    justify-content: center;
-    flex-direction: column;
-    align-items: center;
-
-    background-color: #F3F1EF;
-`;
-
 const ButtonfadeIn = keyframes`
   from {
     opacity: 0;
@@ -73,7 +50,8 @@ const ButtonfadeIn = keyframes`
     transform: translateY(0px);
   }
 `;
-const ButtonContainer = styled.div`
+
+export const ButtonContainer = styled.div`
   display: flex;
   padding-bottom: 73px;
   flex-direction: column;
@@ -83,7 +61,7 @@ const ButtonContainer = styled.div`
   animation: ${ButtonfadeIn} 0.6s ease-in-out;
 `;
 
-const Backdrop = styled.div`
+export const Backdrop = styled.div`
   position: fixed;
   top: 0;
   left: 0;
@@ -94,7 +72,7 @@ const Backdrop = styled.div`
   animation: ${fadeIn} 0.3s ease-in-out;
 `;
 
-const BottomSheetContainer = styled.div`
+export const BottomSheetContainer = styled.div`
   position: fixed;
   bottom: 0px;
   left: 50%;                       
@@ -118,19 +96,13 @@ const BottomSheetContainer = styled.div`
   overflow-x: auto;
 `;
 
-const ShareImgContainer = styled.div`
-    display: flex;
-    justify-content: center;
-    align-items: center;
-`;
-
-const ShareIconContainer = styled.div`
+export const ShareIconContainer = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     gap: 24px;
 `
 
-const IconContainer = styled.div`
+export const IconContainer = styled.div`
   background-image: url('/icons/iconbox.svg');
   background-size: contain;
   display: grid;
@@ -138,14 +110,6 @@ const IconContainer = styled.div`
   align-items: center;
   width: 64px;
   height: 64px;
-`
-
-const CaptuerContainer = styled.div`
-  background-color: var(--Background);
-  display: grid;
-  gap: 32px;
-  padding: 24px 0px;
-  place-items: center;
 `
 
 export const Line = styled(motion.div)`
@@ -158,4 +122,16 @@ export const variants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
-export {CaptuerContainer,IconContainer,ShareIconContainer,ShareImgContainer,Backdrop,BottomSheetContainer,LoadingContainer,MainContainer,TextContiner,ButtonContainer}
+export const Textmotion = styled(motion.div)`
+  display: grid;
+  gap: 8px;
+`;
+
+export const textvariants = (delay = 0.25, duration = 1) => ({
+  hidden: { opacity: 0, y: 50 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration, delay },
+  },
+});

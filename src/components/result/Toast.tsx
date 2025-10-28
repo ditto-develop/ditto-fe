@@ -1,8 +1,7 @@
-import { ReactNode } from "react";
-import toast, { Toaster } from "react-hot-toast";
+import { Toaster } from "react-hot-toast";
 import styled from "styled-components";
 
-export const CustomToast = styled.div` //임시 (삭제예정)
+export const CustomToast = styled.div` 
   display: flex;
   flex-direction: column;
   align-items: flex-start; /* ✅ 왼쪽 정렬 */
@@ -16,13 +15,7 @@ export const CustomToast = styled.div` //임시 (삭제예정)
   text-align: left;
 `;
 
-type TaostProps = {
-    timer?: number;
-    children?: ReactNode; // ✅ 추가
-}
-
-export default function Toast({timer,children}:TaostProps){
-
+export default function Toast(){
     return(
         <Toaster 
                 position="bottom-center"

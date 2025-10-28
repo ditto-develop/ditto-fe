@@ -1,15 +1,22 @@
 "use client"
 
+/** Components */
 import { QuizButton } from "@/components/Button";
 import Navbar from "@/components/Navbar";
 import {MainContainer,InfomationContainer,ButtonContainer} from "@/components/quiz/Container";
-import { useEffect, useState } from "react";
-
-import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
-import { GameService } from "@/api";
 import { QuizText } from "@/components/quiz/Text";
 
+/** hooks */
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+/** library */
+import { motion, AnimatePresence } from "framer-motion";
+
+/** API */
+import { GameService } from "@/api";
+
+/** types */
 type Question = {
   id: string;
   round: number;
@@ -24,6 +31,7 @@ type SuccessApiResponseWithData = {
 };
 
 export default function Quiz() {
+    /** Hook Section */
     const router = useRouter();
 
     /** State Section */

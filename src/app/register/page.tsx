@@ -8,12 +8,11 @@ import { MiddleBlackbutton, BlackEnablebutton } from '@/components/Button'
 import { Checkbox, Input } from '@/components/Input'
 import Navbar from '@/components/Navbar'
 import { BottomContainer, CheckContainer, MainContainer, SubContainer, Imgbox, AlertContainer, LogoContainer } from '@/components/register/Container'
-import { Checklabel, SubtitleText, TitleText, SubscribeTitle, SubscribeText } from '@/components/register/Text'
+import { Checklabel, SubtitleText, SubscribeTitle, SubscribeText } from '@/components/register/Text'
 import Share from '@/components/result/Share'
 
 /** Library */
 import { motion, AnimatePresence } from 'framer-motion'
-import Image from 'next/image'
 
 /** Hook */
 import { useRouter } from 'next/navigation'

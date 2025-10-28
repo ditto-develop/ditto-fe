@@ -15,7 +15,6 @@ export const MainContainer = styled.div`
     overscroll-behavior: contain;
     touch-action: pan-y;
   }
-
 `;
 
 export const InfomationContainer = styled.div`

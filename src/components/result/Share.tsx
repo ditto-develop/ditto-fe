@@ -15,7 +15,7 @@ import Toast, { CustomToast } from './Toast';
 /** Styles */
 type shareType = {
     handleIsshare: () => void,
-}
+} 
 
 export default function Share({handleIsshare}: shareType) {
     /**Hook Section */
@@ -29,7 +29,7 @@ export default function Share({handleIsshare}: shareType) {
     }, []);
 
     /**Function Section */
-    const toastHandler = (text: string) => {
+    const toastHandler = (text: string) => { //Toast 생성 함수
       toast.custom(
             () => (
                 <CustomToast aria-live="polite">
@@ -73,7 +73,7 @@ export default function Share({handleIsshare}: shareType) {
           try {
             await navigator.share({
               title: "ditto - 수백만의 스침 속, 단 하나의 멈춤",
-              text: "4096개의 질문 중 저와 같은 질문을 선택한 사람은 8명이였습니다.",
+              text: "12개의 선택, 하나의 만남.",
               url: process.env.NEXT_PUBLIC_DNS,
             });
             toastHandler("공유하기가 완료되었습니다.")
@@ -88,10 +88,10 @@ export default function Share({handleIsshare}: shareType) {
 
     };
     
-    const shareText = "당신의 선택이 새로운 모임으로 이어지는 순간.";
+    const shareText = "12개의 선택, 하나의 만남";
     const shareUrl = process.env.NEXT_PUBLIC_API_URL || '';
 
-    const handleShareToX = useCallback(() => {
+    const handleShareToX = useCallback(() => { //X 공유하기용 함수
         const text = encodeURIComponent(shareText);
         const url = encodeURIComponent(shareUrl);
         const intentUrl = `https://x.com/intent/tweet?text=${text}&url=${url}`;

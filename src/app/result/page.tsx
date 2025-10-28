@@ -1,9 +1,13 @@
 "use client"
 
+/** Hooks */
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
 /** Components */
 import Navbar from "@/components/Navbar";
-import { MainContainer, ButtonContainer, TextContainer, Line, variants } from "@/components/result/Container";
-import {TypingEffect, SubtitleText, TitleText, ShareText, ButtonTitleText, TypingColorEffect, IntegerCounter, FloatCounter } from "@/components/result/Text";
+import { MainContainer, ButtonContainer, TextContainer, Line, variants, Textmotion, textvariants } from "@/components/result/Container";
+import {TypingEffect, ShareText, TypingColorEffect, IntegerCounter, FloatCounter, BaseText } from "@/components/result/Text";
 import { Blackbutton } from "@/components/Button";
 import Share from "@/components/result/Share";
 
@@ -11,15 +15,12 @@ import Share from "@/components/result/Share";
 import ScrollablePageStyle from "@/styles/ScrollablePageStyle";
 
 /** Library */
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
 /** API */
 import { MatchService } from "@/api";
-import styled from "styled-components";
 
-/** Type Section */
+/** Types */
 type gameresultType = {
     totalCount: number,
     similarCount: number,
@@ -35,11 +36,7 @@ export default function Result() {
   const [isshare, setIsShare] = useState(false);
   const [gameResult, setGameResult] = useState<gameresultType>();
   const [step, setStep] = useState<number>(0);
-
-  /** 임시 변수 (패딩 관리 변수 추후 수정) */
-  const [pControl, setPControl] = useState<number>(0);
-  const [ppControl, setPpControl] = useState<number>(0);
-  const [pppControl, setPppControl] = useState<number>(0);
+  const [pControls, setPControls] = useState<number[]>([0, 0, 0]);
 
   /** Effect Section */
   useEffect(() => { //화면 Init
@@ -57,8 +54,16 @@ export default function Result() {
   }, []);
 
   /** Funtion Section */
+  const updatePControl = (index: number, value: number) => { //pControls 상태관리용 함수
+    setPControls(prev => {
+      const newArr = [...prev];
+      newArr[index] = value;
+      return newArr;
+    });
+  };
+
   const handleIsshare = () => setIsShare((state) => !state); //공유 바텀시트 제어
-  if(!gameResult) return <></>;
+  if(!gameResult) return <>잘못된 접근입니다.</>;
 
   /** Return Section */
   return (
@@ -82,9 +87,9 @@ export default function Result() {
               share={true}
             />
  
-            <MainContainer $isFinsihed={step >= 9 ? true : false}>
+            <MainContainer $isFinsihed={step >= 7 ? true : false}>
 
-              <TextContainer padding={pControl}>
+              <TextContainer padding={pControls[0]}>
                 <div style={{gap: '8px',display: 'grid'}}>
                   {
                     step >= 0 &&(
@@ -169,92 +174,62 @@ export default function Result() {
                     <FloatCounter
                         target={gameResult?.similarCount/gameResult?.totalCount*100}
                         onFinish={()=>{
-                          setStep(5);
-                          setPControl(48);
+                          setTimeout(()=>{
+                            setStep(5);
+                            updatePControl(0,48);
+                          },250);
                         }}
                     /></Line>)
                   }
                 </div>
               </TextContainer>
 
-              <TextContainer padding={ppControl}>
-                  <div style={{gap: '8px',display: 'grid'}}>
+              <TextContainer padding={pControls[1]}>
                   {
                     step >= 5 &&(
-                        <Line
-                          key="line-5"
-                          initial="hidden"
-                          animate="visible"
-                          exit="hidden"
-                          variants={variants}
-                          layout 
-                        >
-                    <TypingEffect
-                      text="단순한 우연일까요, 가치관의 일치일까요?"
-                      speed={typespeed} 
-                      onFinish={()=>{setStep(6)}}
-                    /></Line>)
-                  }
-                  {
-                    step >= 6 &&(
-                        <Line
-                          key="line-6"
-                          initial="hidden"
-                          animate="visible"
-                          exit="hidden"
-                          variants={variants}
-                          layout 
-                        >
-                    <TypingEffect
-                      text="그들은 당신처럼 생각하고, 웃고,"
-                      speed={typespeed} 
-                      onFinish={()=>{setStep(7)}}
-                    /></Line>)
-                  }
-                  {
-                    step >= 7 &&(
-                        <Line
-                          key="line-7"
-                          initial="hidden"
-                          animate="visible"
-                          exit="hidden"
-                          variants={variants}
-                          layout 
-                        >
-                    <TypingEffect
-                      text="고민하는 사람들일지도 몰라요."
-                      speed={typespeed} 
-                      onFinish={()=>{
-                        setStep(8);
-                        setPpControl(48);
+                    <Textmotion
+                      key="line-5"
+                      initial="hidden"
+                      animate="visible"
+                      exit="hidden"
+                      variants={textvariants()}
+                      layout 
+                      onAnimationComplete={() => {
+                            setTimeout(()=>{
+                              setStep(6);
+                              updatePControl(1, 48);
+                            },250);
                       }}
-                    /></Line>)
+                    >
+                        <BaseText>단순한 우연일까요, 가치관의 일치일까요?</BaseText>
+                        <BaseText>그들은 당신처럼 생각하고, 웃고,</BaseText>
+                        <BaseText>고민하는 사람들일지도 몰라요.</BaseText>
+                    </Textmotion>)
                   }
-                  </div>
               </TextContainer>
-              <TextContainer padding={pppControl}>
+              <TextContainer padding={pControls[2]}>
                 {
-                    step >= 8 &&(
-                        <Line
-                          key="line-8"
-                          initial="hidden"
-                          animate="visible"
-                          exit="hidden"
-                          variants={variants}
-                          layout 
-                        >
-                    <TypingEffect
-                      text="나와 같은 사람들, 만나볼까요?"
-                      speed={typespeed} 
-                      onFinish={()=>{
-                        setStep(9);
-                        setPppControl(48);
+                    step >= 6 &&(
+                    <Textmotion
+                      key="line-8"
+                      initial="hidden"
+                      animate="visible"
+                      exit="hidden"
+                      variants={textvariants()}
+                      layout 
+                      onAnimationComplete={() => {
+                          setTimeout(() => {
+                            setStep(7);
+                            updatePControl(2, 48);
+                          }, 250);
                       }}
-                    /></Line>)
+                    >
+                      <BaseText>나와 같은 사람들, 만나볼까요?</BaseText>
+                    </Textmotion>)
                 }
               </TextContainer>
 
-              {step >= 9 &&(
+              {step >= 7 &&(
                         <Line
                           key="line-9"
                           initial="hidden"

@@ -18,7 +18,6 @@ export default function StyledComponentsRegistry({ children }: Props) {
   });
 
   if (typeof window !== "undefined") {
-    // 브라우저에서는 그냥 렌더
     return <>{children}</>;
   }
 
