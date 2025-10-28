@@ -26,15 +26,15 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
-            cd /home/hoemin/ditto/ditto-fe
+            sudo cd /home/hoemin/ditto/ditto-fe
             echo "📦 Pulling latest code..."
             git pull origin main
             echo "📦 Installing dependencies..."
-            npm install --frozen-lockfile
+            sudo npm install --frozen-lockfile
             echo "🏗️ Building Next.js..." 
-            npm run build
+            sudo npm run build
             echo "🚀 Restarting app..."
-            cd /home/hoemin/ditto
-            docker compose down
-            docker compose up -d
+            sudo cd /home/hoemin/ditto
+            sudo docker compose down
+            sudo docker compose up -d
             echo "✅ Deployment finished successfully!"
