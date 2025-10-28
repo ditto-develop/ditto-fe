@@ -2,8 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useParams } from 'next/navigation'
 
-export default function RedirectPage({ params }: { params: { refererby: string } }) {
+export default function RedirectPage(){  
+  const params = useParams<{ refererby: string;  }>()
   const router = useRouter();
 
   useEffect(() => {
