@@ -26,7 +26,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
-            cd ${{ secrets.EC2_PATH }}
+            cd /home/hoemin/ditto/ditto-fe
             echo "📦 Pulling latest code..."
             git pull origin main
             echo "📦 Installing dependencies..."
@@ -34,5 +34,7 @@ jobs:
             echo "🏗️ Building Next.js..."
             npm run build
             echo "🚀 Restarting app..."
-            pm2 restart ditto-fe || pm2 start "npm start" --name ditto-fe
+            cd /home/hoemin/ditto
+            docker compose down
+            docker compose up -d
             echo "✅ Deployment finished successfully!"
