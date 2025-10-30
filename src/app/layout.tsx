@@ -7,6 +7,9 @@ import SplashLayout from "@/components/Splash";
 import StyledComponentsRegistry from "./StyledComponentsRegistry";
 import KakaoScript from '@/common/KakaoScript';
 import Providers from "./Providers";
+import { UsersService } from "@/api";
+import { useTotalSessionTime } from "@/hooks/useTotalSessionTime";
+import SessionTracker from "@/components/Sessiontracker";
 
 export const metadata: Metadata = {
   title: "Ditto - 수백만의 스침 속, 단 하나의 멈춤",
@@ -47,13 +50,14 @@ export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
-}>) {
+}>) {  
   return (
     <html lang="en">
       <body>
         <Providers>
           <StyledComponentsRegistry>
             <SplashLayout>
+                <SessionTracker />
                 {children}
             </SplashLayout>
           </StyledComponentsRegistry>

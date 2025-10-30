@@ -8,9 +8,10 @@ import {IconContainer, ShareIconContainer,Backdrop,BottomSheetContainer, ButtonC
 import {BottomTitle, BottomSubTitle} from './Text';
 
 /** Hooks */
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import useDeviceType from '@/hooks/useDeviceType';
 import Toast, { CustomToast } from './Toast';
+import { UsersService } from '@/api';
 
 /** Styles */
 type shareType = {
@@ -22,10 +23,20 @@ export default function Share({handleIsshare}: shareType) {
     const device = useDeviceType();
 
     /**State Section */
+    const [shareUrls, setShareUrls] = useState<string>('');
 
     /**Effect Section */
-    useEffect(() => {
+    useEffect(() => { 
+        const initUrl = () => {
+          UsersService.usersControllerInvite().then(
+            (res)=>{
+                const url = res.data?.referralLink;
+                setShareUrls(String(url));
+            }
+          )
+        };
 
+        initUrl();
     }, []);
 
     /**Function Section */
@@ -42,6 +53,7 @@ export default function Share({handleIsshare}: shareType) {
         );
     };
 
+    /** 카카오톡 공유하기 utm/referal 링크를 적용하기 귀해 구조를 변경해야 함 */
     const handleOnClickKakao = () => { //카카오톡 공유하기 핸들러
         if (typeof window === "undefined" || !window.Kakao) {
           
@@ -64,17 +76,20 @@ export default function Share({handleIsshare}: shareType) {
     }
 
     const handleCopyLink = async () => { //링크 클립보드 복사 함수
-      await navigator.clipboard.writeText(String(process.env.NEXT_PUBLIC_DNS));
+      const url = shareUrls + '?utm=\'clipboard\''
+      await navigator.clipboard.writeText(String(url));
     };
 
     const handleShare = async () => { //링크 공유하기(시스템 바텀시트) 핸들러
+      const url = shareUrls + '?utm=\'bottomsheet\''
       if(device === 'mobile' || device === 'tablet'){
         if (navigator.share) {
           try {
             await navigator.share({
+              
               title: "Ditto -  12개의 선택, 하나의 만남",
               text: "4096개의 조합 중에 나와 같은 사람은 8명이었어. 너와 같은 사람은 몇 명이나 될까?",
-              url: process.env.NEXT_PUBLIC_DNS,
+              url: url,
             });
             toastHandler("공유하기가 완료되었습니다.")
           } catch (err) {
@@ -89,11 +104,11 @@ export default function Share({handleIsshare}: shareType) {
     };
     
     const shareText = "12개의 선택, 하나의 만남";
-    const shareUrl = process.env.NEXT_PUBLIC_API_URL || '';
+    const shareUrl = shareUrls || '';
 
     const handleShareToX = useCallback(() => { //X 공유하기용 함수
         const text = encodeURIComponent(shareText);
-        const url = encodeURIComponent(shareUrl);
+        const url = encodeURIComponent(shareUrl+'?\'x\'');
         const intentUrl = `https://x.com/intent/tweet?text=${text}&url=${url}`;
         window.open(intentUrl, "_blank");
         toastHandler("공유하기가 완료되었습니다.");

@@ -18,7 +18,7 @@ import ScrollablePageStyle from "@/styles/ScrollablePageStyle";
 import { motion, AnimatePresence } from "framer-motion";
 
 /** API */
-import { MatchService } from "@/api";
+import { MatchService, UsersService } from "@/api";
 
 /** Types */
 type gameresultType = {
@@ -42,6 +42,7 @@ export default function Result() {
   useEffect(() => { //화면 Init
     const loadData = async() => {
       try{
+        const arrivalResult = await UsersService.usersControllerSaveIsArrived();
         const matchResult =  await MatchService.matchControllerGetSimilarUsersCount(1,80); //최종 매치 결과
         setGameResult(matchResult.data as gameresultType);
       }catch(err){

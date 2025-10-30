@@ -8,9 +8,5 @@ export type StartResponseDto = {
      * 사용자 정보
      */
     user: CreateUserResponseDto;
-    /**
-     * 추천인 링크
-     */
-    referralLink: string;
 };
 

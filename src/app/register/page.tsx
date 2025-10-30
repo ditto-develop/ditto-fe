@@ -50,7 +50,11 @@ export default function Register() {
     
   return (
     <>
-        {isSubscribe && <Subscribe />}
+        {isSubscribe && <Subscribe 
+                            setIsSubscribe={setIsSubscribe}
+                            handleIsshare={handleIsshare}
+
+                        />}
         {isshare && <Share 
                 handleIsshare={handleIsshare} />}
         
@@ -106,11 +110,20 @@ export default function Register() {
   )
 }
 
-const Subscribe = () => {
+type subscribeType = {
+    setIsSubscribe: (type: boolean) => void,
+    handleIsshare: () => void,
+}
+const Subscribe = ({setIsSubscribe,handleIsshare}: subscribeType) => {
     const router = useRouter();
 
     return(
         <SubContainer>
+            <Navbar 
+                Prev={()=>{setIsSubscribe(false)}}
+                shareHandle={handleIsshare}
+                share={true}
+            />
             <Imgbox  src='/Container.svg'/>
             <AlertContainer>
                 <SubscribeTitle>구독 완료!</SubscribeTitle>

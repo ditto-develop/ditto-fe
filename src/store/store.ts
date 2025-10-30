@@ -1,9 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
 import counterReducer from "./counterSlice";
+import referalReducer from "./referalSlice";
 
 export const store = configureStore({
   reducer: {
     counter: counterReducer,
+    referal: referalReducer
   },
 });
 

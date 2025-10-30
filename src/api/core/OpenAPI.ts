@@ -21,8 +21,8 @@ export type OpenAPIConfig = {
 
 export const OpenAPI: OpenAPIConfig = {
     BASE: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
-    VERSION: '0.1.8',
-    WITH_CREDENTIALS: true, //서버에서 토큰 삽입을 위해서는 꼭 true로 바꿀 것. [관련해서 블로그 글 남기기]
+    VERSION: '1.0.0',
+    WITH_CREDENTIALS: true,
     CREDENTIALS: 'include',
     TOKEN: undefined,
     USERNAME: undefined,

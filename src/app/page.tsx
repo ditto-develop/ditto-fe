@@ -7,19 +7,22 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { CustomToast } from "@/components/result/Toast";
 import { useSelector } from "react-redux";
-import { RootState } from "@/store/store";
-import { useEffect } from "react";
-
+import type { RootState } from "@/store/store";
 
 
 export default function Home() {
   const router = useRouter();
+  const referal = useSelector((state: RootState) => state.referal.value);
+  const utm = useSelector((state: RootState) => state.referal.utm);
+  const isRevisit = useSelector((state: RootState) => state.referal.isRevisit);
 
   const handleStart = async() => {
-      const user = await UsersService.usersControllerStart();
+      const user = await UsersService.usersControllerStart(referal,utm,isRevisit);
+
       if(user.data) {
         router.push('/quiz');
       }
+      
       else {
         toast.custom(
             () => (
