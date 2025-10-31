@@ -22,7 +22,7 @@ type shareType = {
 
 export default function Share({handleIsshare}: shareType) {
     /**Store Section */
-    const sameCount = useSelector((state: RootState) => state.samecount.count);
+    const similCount = useSelector((state: RootState) => state.samecount.count);
 
     /**Hook Section */
     const device = useDeviceType();
@@ -75,7 +75,7 @@ export default function Share({handleIsshare}: shareType) {
               objectType: 'feed',
               content: {
                 title: '',
-                description: '4096개의 조합 중에 나와 같은 사람은 ' + sameCount+'명이었어. 너와 같은 사람은 몇 명이나 될까?',
+                description: '4096개의 조합 중에 나와 같은 사람은 ' + similCount+'명이었어. 너와 같은 사람은 몇 명이나 될까?',
                 imageUrl:
                   'https://i.postimg.cc/FFJPz8K0/OG-Image.png',
                 link: {
@@ -110,7 +110,7 @@ export default function Share({handleIsshare}: shareType) {
             await navigator.share({
               
               title: "Ditto -  12개의 선택, 하나의 만남",
-              text: "4096개의 조합 중에 나와 같은 사람은 "+sameCount+ "명이었어. 너와 같은 사람은 몇 명이나 될까?",
+              text: "4096개의 조합 중에 나와 같은 사람은 "+similCount+ "명이었어. 너와 같은 사람은 몇 명이나 될까?",
               url: url,
             });
             toastHandler("공유하기가 완료되었습니다.")
@@ -153,9 +153,9 @@ export default function Share({handleIsshare}: shareType) {
                     height={24}
                 />
             </div>
-            <div>
+            <div>나
                 <BottomSubTitle>나와 비슷한 사람, 같이 찾아볼까요?</BottomSubTitle>
-                <BottomSubTitle>이 링크가 당신과 같은 사람을 이어줄지도 몰라요.</BottomSubTitle>
+                <BottomSubTitle>이 링크가 새로운 친구를 이어줄지도 몰라요.</BottomSubTitle>
             </div>
         </div>
         <ButtonContainer>

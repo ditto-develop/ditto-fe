@@ -61,9 +61,9 @@ export default function Result() {
     
     const loadData = async() => {
       try{
-        const matchResult =  await MatchService.matchControllerGetSimilarUsersCount(1,80); //최종 매치 결과
+        const matchResult =  await MatchService.matchControllerGetSimilarUsersCount(1,90); //최종 매치 결과
         setGameResult(matchResult.data as gameresultType);
-        dispatch(setSamecount(matchResult.data?.sameCount));
+        dispatch(setSamecount(matchResult.data?.similarCount));
       }catch(err){
         
       }
@@ -197,7 +197,7 @@ export default function Result() {
                   <>
                     <ResultNormal>이렇게 선택할 확률은...</ResultNormal>
                     <ResultBigColor>
-                      {((gameResult?.similarCount / gameResult?.totalCount) * 100).toFixed(1)}%
+                      {((gameResult?.similarCount / gameResult?.totalCount) * 100).toFixed(2)}%
                     </ResultBigColor>
                   </>
                 ) : (
