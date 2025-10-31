@@ -47,6 +47,7 @@ export default function Navbar({Prev,header,share,shareHandle}:NavbarType) {
             <Nav>
                 <Leftbox>
                     <Image 
+                        draggable="false" 
                         onClick={Prev}
                         src='/prev.svg'
                         style={{cursor: 'pointer'}}
@@ -57,6 +58,7 @@ export default function Navbar({Prev,header,share,shareHandle}:NavbarType) {
                     <span style={{fontSize: "24px", fontWeight: "bold"}}>{header}</span>
                 </Leftbox>
                 {share && <Image 
+                            draggable="false" 
                             onClick={shareHandle}
                             src='/share.svg'
                             style={{cursor: 'pointer'}}

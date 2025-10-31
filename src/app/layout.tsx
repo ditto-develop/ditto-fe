@@ -10,21 +10,21 @@ import Providers from "./Providers";
 import SessionTracker from "@/components/Sessiontracker";
 
 export const metadata: Metadata = {
-  title: "ditto - 12개의 선택, 하나의 만남",
+  title: "Ditto - 12개의 선택, 하나의 만남",
   description: "",
-   icons: [
+  icons: [
       { url: "/icons/APPIcon.png", sizes: "48x48", type: "image/png" },
   ],
   openGraph: {
-    title: "ditto - 12개의 선택, 하나의 만남",
+    title: "Ditto - 12개의 선택, 하나의 만남",
     description: "",
     url: process.env.NEXT_PUBLIC_DNS,
-    siteName: "ditto",
+    siteName: "Ditto",
     images: [
       {
-        url: "https://i.ibb.co/wFZmv6ZD/APP-Icon.png",
-        width: 304,
-        height: 304,
+        url: "https://i.postimg.cc/wvZsfRjj/OG-Image.png",
+        width: 3600,
+        height: 1890,
       },
     ],
     locale: "ko_KR",
@@ -32,9 +32,9 @@ export const metadata: Metadata = {
     },
     twitter: { //현재 적용되지 않는 상황. 추후 수정
       card: "summary_large_image",
-      title: "ditto - 12개의 선택, 하나의 만남",
+      title: "Ditto - 12개의 선택, 하나의 만남",
       description: "",
-      images: ["https://i.ibb.co/wFZmv6ZD/APP-Icon.png"],
+      images: ["https://i.postimg.cc/wvZsfRjj/OG-Image.png"],
   },
 };
  

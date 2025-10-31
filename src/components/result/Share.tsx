@@ -145,6 +145,7 @@ export default function Share({handleIsshare}: shareType) {
             <div style={{display: "flex", justifyContent: "space-between", position: 'relative' }}>
                 <BottomTitle>링크 공유하기</BottomTitle>
                 <Image 
+                    draggable="false" 
                     onClick={handleIsshare}
                     src='/icons/x.svg'
                     style={{cursor: 'pointer'}}
@@ -164,18 +165,21 @@ export default function Share({handleIsshare}: shareType) {
                     onClick={handleShare}
                 >
                     <Image src='./icons/link.svg'
+                            draggable="false" 
                            alt='link' width={32} height={32}/>
                 </IconContainer>
                 <IconContainer
                     onClick={handleOnClickKakao}
                 >
                     <Image src='./icons/chat.svg'
+                          draggable="false" 
                            alt='chat' width={24} height={32}/>
                 </IconContainer>
                 <IconContainer
                     onClick={handleShareToX}
                 > 
                     <Image src='./icons/twitter.svg'
+                            draggable="false" 
                            alt='twitter' width={24} height={32}/>
                 </IconContainer>                
             </ShareIconContainer>            
