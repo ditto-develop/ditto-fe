@@ -103,6 +103,7 @@ export default function Result() {
   return (
     <>
           {isshare && <Share 
+                sameCount={gameResult?.similarCount || 8}
                 handleIsshare={handleIsshare} />}
 
           <AnimatePresence mode="wait" >

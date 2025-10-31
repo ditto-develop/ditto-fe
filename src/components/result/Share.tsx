@@ -15,10 +15,11 @@ import { UsersService } from '@/api';
 
 /** Styles */
 type shareType = {
+    sameCount: number,
     handleIsshare: () => void,
 } 
 
-export default function Share({handleIsshare}: shareType) {
+export default function Share({sameCount,handleIsshare}: shareType) {
     /**Hook Section */
     const device = useDeviceType();
 
@@ -63,13 +64,30 @@ export default function Share({handleIsshare}: shareType) {
         if (!window.Kakao.isInitialized()) {
           window.Kakao.init(process.env.NEXT_PUBLIC_KAKAO_API_KEY);
         }
+
+        const url = shareUrls + '?utm=\'kakao\''
  
-        window.Kakao.Share.sendCustom({
-            templateId: 124986,
-            templateArgs: { //전체 인원/선택 인원 파라미터로 전달 (수정예정)
-              totalcount: 4096,
-              samecount: 8
-            },
+        window.Kakao.Share.sendDefault({
+              objectType: 'feed',
+              content: {
+                title: '',
+                description: '4096개의 조합 중에 나와 같은 사람은 ' + sameCount+'명이었어. 너와 같은 사람은 몇 명이나 될까?',
+                imageUrl:
+                  'https://i.postimg.cc/FFJPz8K0/OG-Image.png',
+                link: {
+                  mobileWebUrl: url,
+                  webUrl: url,
+                },
+              },
+              buttons: [
+                {
+                  title: '자세히 보기',
+                  link: {
+                    mobileWebUrl: url,
+                    webUrl: url,
+                  },
+                }
+              ],
         });
 
         toastHandler("카카오톡을 실행합니다.");
@@ -88,7 +106,7 @@ export default function Share({handleIsshare}: shareType) {
             await navigator.share({
               
               title: "Ditto -  12개의 선택, 하나의 만남",
-              text: "4096개의 조합 중에 나와 같은 사람은 8명이었어. 너와 같은 사람은 몇 명이나 될까?",
+              text: "4096개의 조합 중에 나와 같은 사람은 "+sameCount+ "명이었어. 너와 같은 사람은 몇 명이나 될까?",
               url: url,
             });
             toastHandler("공유하기가 완료되었습니다.")
