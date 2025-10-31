@@ -10,8 +10,10 @@ export const MainContainer = styled.div`
   height: 100%;
   display: grid;
   grid-template-rows: 1fr 2fr 1fr;
-  align-content: space-between;
-  place-items: center;
+  align-items: center;        /* 각 row content 중앙 */
+  justify-items: center;      /* 가로 중앙 유지 */
+  justify-content: center;    /* grid 트랙을 전체 가운데로 */
+  row-gap: 0;                 /* 필요 시 */
 `;
 
 

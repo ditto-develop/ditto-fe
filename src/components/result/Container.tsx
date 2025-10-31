@@ -21,7 +21,7 @@ const slideUp = keyframes`
 `;
  
 export const MainContainer = styled.div<{$isFinsihed?: boolean}>`
-  padding: ${(props)=>props.$isFinsihed?178:108}px 0 64px 0;
+  padding: ${(props)=>props.$isFinsihed?268:118}px 0 64px 0;
   width: 100%; 
   height: ${(props)=>props.$isFinsihed?100:80}vh; /* 화면 전체 높이 */ 
   display: flex; 

@@ -260,7 +260,7 @@ export default function Result() {
               </TextContainer>
               <TextContainer padding={pControls[2]}>
                 {isStep.value ? (
-                  <ResultNormal>나와 같은 사람들, 만나볼까요?</ResultNormal>
+                  <ResultNormal>나와 같은 답을 한 사람들, 만나볼래요?</ResultNormal>
                 ) : (
                   <>
                     {step >= 6 && (
@@ -275,7 +275,7 @@ export default function Result() {
                           }, 250);
                         }}
                       >
-                        <BaseText>나와 같은 사람들, 만나볼까요?</BaseText>
+                        <BaseText>나와 같은 답을 한 사람들, 만나볼래요?</BaseText>
                       </Textmotion>
                     )}
                   </>
