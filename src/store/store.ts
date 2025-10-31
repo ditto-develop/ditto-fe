@@ -2,12 +2,14 @@ import { configureStore } from "@reduxjs/toolkit";
 import counterReducer from "./counterSlice";
 import referalReducer from "./referalSlice";
 import stepReducer from "./stepSlice";
+import sitemapReducer from "./sitemapSlice";
 
 export const store = configureStore({
   reducer: {
     counter: counterReducer,
     referal: referalReducer,
-    step: stepReducer
+    step: stepReducer,
+    where: sitemapReducer
   },
 });
 

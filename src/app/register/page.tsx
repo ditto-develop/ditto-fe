@@ -10,17 +10,22 @@ import Navbar from '@/components/Navbar'
 import { BottomContainer, CheckContainer, MainContainer, SubContainer, Imgbox, AlertContainer, LogoContainer } from '@/components/register/Container'
 import { Checklabel, SubtitleText, SubscribeTitle, SubscribeText } from '@/components/register/Text'
 import Share from '@/components/result/Share'
+import { RootState } from '@/store/store'
 
 /** Library */
 import { motion, AnimatePresence } from 'framer-motion'
 
 /** Hook */
 import { useRouter } from 'next/navigation'
-import React, { ChangeEvent, useState } from 'react'
+import React, { ChangeEvent, useEffect, useState } from 'react'
+import { useSelector } from 'react-redux'
 
 export default function Register() {
     /** Hook Section */
     const router = useRouter();
+
+    /** Store Section */
+    const sitemap = useSelector((state: RootState) => state.where);
 
     /** State Section */
     const [email, setEmail] = useState<string>('');
@@ -28,6 +33,12 @@ export default function Register() {
     const [isSubscribe, setIsSubscribe] = useState<boolean>(false);
     const [isshare, setIsShare] = useState(false);
 
+    /** Effect Section */
+    useEffect(()=>{
+        /** 이용가능 여부 검사 */
+        if(sitemap.where !== 'result' && sitemap.where !== 'register') router.push('/'); 
+        
+    },[]);
 
     /** Function Section */
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {

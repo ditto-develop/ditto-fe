@@ -15,6 +15,9 @@ import { motion, AnimatePresence } from "framer-motion";
 
 /** API */
 import { GameService } from "@/api";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/store/store";
+import { setWhere } from "@/store/sitemapSlice";
 
 /** types */
 type Question = {
@@ -33,6 +36,7 @@ type SuccessApiResponseWithData = {
 export default function Quiz() {
     /** Hook Section */
     const router = useRouter();
+    const dispatch = useDispatch<AppDispatch>();
 
     /** State Section */
     const [questions, setQuestions] = useState<Question[]>([]);
@@ -42,9 +46,14 @@ export default function Quiz() {
     const [isClient, setIsClient] = useState(false); // 클라이언트 렌더링 플래그
     const [isLoading, setIsLoading] = useState(true); // 서버셋팅 렌더링 플래그
 
+    /** Store Section */
+    const sitemap = useSelector((state: RootState) => state.where);
 
     /** Effect Section */
     useEffect(()=>{ //첫 화면 Init시 작동
+        /** 이용가능 여부 검사 */
+        if(sitemap.where !== 'quiz') router.push('/'); 
+
         setIsClient(true);
 
         GameService.gameControllerGetQuestions(1) //퀴즈정보 호출 gameControllerGetQuestions(round: number)
@@ -80,6 +89,7 @@ export default function Quiz() {
             .then(()=>{
                 if(quizindex === 11) { //12문제 종료시 (quizindex 11) 종료 API 호출 후 결과창 이동
                     try{
+                        dispatch(setWhere('result'));
                         GameService.gameControllerSubmitEnd(1)
                             .then((res) => {
                                 const result = res as SuccessApiResponseWithData;

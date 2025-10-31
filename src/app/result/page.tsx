@@ -37,6 +37,7 @@ export default function Result() {
 
   /** Store Section */
   const isStep = useSelector((state: RootState) => state.step);
+  const sitemap = useSelector((state: RootState) => state.where);
 
   /** State Section */
   const [typespeed, setTypespeed] = useState<number>(45);
@@ -48,6 +49,9 @@ export default function Result() {
 
   /** Effect Section */
   useEffect(() => { //화면 Init
+    /** 이용가능 여부 검사 */
+    if(sitemap.where !== 'result' && sitemap.where !== 'register') router.push('/'); 
+
     if(isStep.value) {
       updatePControl(0,48);
       updatePControl(1,48);

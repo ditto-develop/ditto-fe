@@ -9,6 +9,7 @@ import { CustomToast } from "@/components/result/Toast";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store/store";
 import { setSteper } from "@/store/stepSlice";
+import { setWhere } from "@/store/sitemapSlice";
 
 
 export default function Home() {
@@ -24,7 +25,8 @@ export default function Home() {
   const handleStart = async() => {
       const user = await UsersService.usersControllerStart(referal,utm,isRevisit);
       dispatch(setSteper(false));
-      
+      dispatch(setWhere('quiz'));
+
       if(user.data) {
         router.push('/quiz');
       }
