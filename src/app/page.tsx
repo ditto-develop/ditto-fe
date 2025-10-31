@@ -10,20 +10,22 @@ import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store/store";
 import { setSteper } from "@/store/stepSlice";
 import { setWhere } from "@/store/sitemapSlice";
+import { useVisitorTracker } from "@/hooks/useVisitorTracker";
 
 
 export default function Home() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
+  
+  useVisitorTracker();
 
   const referal = useSelector((state: RootState) => state.referal.value);
   const utm = useSelector((state: RootState) => state.referal.utm);
-  const isRevisit = useSelector((state: RootState) => state.referal.isRevisit);
-
+  const isRevisit = localStorage.getItem("visited");
   
 
   const handleStart = async() => {
-      const user = await UsersService.usersControllerStart(referal,utm,isRevisit);
+      const user = await UsersService.usersControllerStart(referal,utm,Boolean(isRevisit));
       dispatch(setSteper(false));
       dispatch(setWhere('quiz'));
 
