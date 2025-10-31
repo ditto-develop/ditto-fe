@@ -67,7 +67,7 @@ export default function Result() {
       }catch(err){
         
       }
-    };
+    }; 
 
     loadData();
 
