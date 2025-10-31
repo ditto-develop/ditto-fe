@@ -52,6 +52,10 @@ const ButtonfadeIn = keyframes`
 `;
 
 export const ButtonContainer = styled.div`
+  user-select: none;
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE/Edge */
+
   display: flex;
   padding-bottom: 73px;
   flex-direction: column;
@@ -92,8 +96,6 @@ export const BottomSheetContainer = styled.div`
   border-top-right-radius: 16px;
   animation: ${slideUp} 0.5s ease-out;
 
-  overflow-y: auto;
-  overflow-x: auto;
 `;
 
 export const ShareIconContainer = styled.div`

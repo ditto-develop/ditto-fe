@@ -34,6 +34,12 @@ html, body {
   max-width: 640px;
   margin: 0 auto; 
   overflow: hidden;
+
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  -webkit-user-drag: none;
+
 }
 
 /* 2. 버튼, input, select 등 기본 스타일 제거 */

@@ -105,8 +105,8 @@ export default function Register() {
                             <Checkbox 
                                 ischecked={ischecked}
                                 setIschecked={setIschecked}
+                                label='만남과 선택지 소식을 이메일로 받는 것에 동의할게요.'
                             />
-                            <Checklabel>만남과 선택지 소식을 이메일로 받는 것에 동의할게요.</Checklabel>
                         </CheckContainer>
                         <BlackEnablebutton
                             enable={ischecked}

@@ -73,6 +73,12 @@ export default function Result() {
 
   }, []);
 
+  useEffect(()=>{
+    if(step >= 7){
+      UsersService.usersControllerSaveIsArrived();
+    }
+  },[step])
+
   /** Funtion Section */
   const updatePControl = (index: number, value: number) => { //pControls 상태관리용 함수
     setPControls(prev => {
@@ -285,7 +291,6 @@ export default function Result() {
               {isStep.value ? (
                 <ButtonContainer>
                   <Blackbutton onClick={() => {
-                    UsersService.usersControllerSaveIsArrived();
                     router.push('/register');
                   }}>네</Blackbutton>
                   <ShareText onClick={handleIsshare}>친구들에게만 공유할래요</ShareText>

@@ -1,5 +1,6 @@
 import React, { InputHTMLAttributes } from 'react';
 import styled from 'styled-components';
+import { Checklabel } from './register/Text';
 
 
 const Inputbg = styled.input`
@@ -74,9 +75,10 @@ const CheckedBoxContainer = styled.div`
 
 type checkboxType = InputHTMLAttributes<HTMLInputElement> & {
     ischecked: boolean,
-    setIschecked: (arg0: boolean) => void
+    setIschecked: (arg0: boolean) => void,
+    label: string
 }
-export function Checkbox({ischecked,setIschecked,...props}:checkboxType) {
+export function Checkbox({ischecked,setIschecked,label,...props}:checkboxType) {
   return (
     <>
         <CheckedBoxContainer>
@@ -89,6 +91,7 @@ export function Checkbox({ischecked,setIschecked,...props}:checkboxType) {
             />
             <StyledLabel htmlFor="custom-checkbox" />
         </CheckedBoxContainer>
+        <Checklabel onClick={()=>{setIschecked(!ischecked)}}>{label}</Checklabel>
     </>
   )
 }
