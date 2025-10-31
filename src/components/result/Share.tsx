@@ -153,7 +153,7 @@ export default function Share({handleIsshare}: shareType) {
                     height={24}
                 />
             </div>
-            <div>나
+            <div>
                 <BottomSubTitle>나와 비슷한 사람, 같이 찾아볼까요?</BottomSubTitle>
                 <BottomSubTitle>이 링크가 새로운 친구를 이어줄지도 몰라요.</BottomSubTitle>
             </div>
