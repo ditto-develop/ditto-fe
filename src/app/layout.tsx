@@ -11,13 +11,13 @@ import SessionTracker from "@/components/Sessiontracker";
 
 export const metadata: Metadata = {
   title: "Ditto - 12개의 선택, 하나의 만남",
-  description: "흔한 선택은 쉽게 잊히지만, 같은 답은 오래 남습니다",
+  description: "",
   icons: {
 		icon: "/icons/APPIcon.png",
 	},
   openGraph: {
     title: "Ditto - 12개의 선택, 하나의 만남",
-    description: "흔한 선택은 쉽게 잊히지만, 같은 답은 오래 남습니다",
+    description: "",
     url: process.env.NEXT_PUBLIC_DNS,
     siteName: "Ditto",
     images: [
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     twitter: { //현재 적용되지 않는 상황. 추후 수정
       card: "summary_large_image",
       title: "Ditto - 12개의 선택, 하나의 만남",
-      description: "흔한 선택은 쉽게 잊히지만, 같은 답은 오래 남습니다",
+      description: "",
       images: ["https://i.postimg.cc/wvZsfRjj/OG-Image.png"],
   },
 };
