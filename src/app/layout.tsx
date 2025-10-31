@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: "ditto - 12개의 선택, 하나의 만남",
   description: "",
    icons: [
-      { url: "/icons/APPICON.png", sizes: "48x48", type: "image/png" },
+      { url: "/icons/APPIcon.png", sizes: "48x48", type: "image/png" },
   ],
   openGraph: {
     title: "ditto - 12개의 선택, 하나의 만남",
