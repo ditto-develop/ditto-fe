@@ -124,7 +124,7 @@ export default function Share({handleIsshare}: shareType) {
 
     };
     
-    const shareText = "12개의 선택, 하나의 만남";
+    const shareText = "ditto - 12개의 선택, 하나의 만남";
     const shareUrl = shareUrls || '';
 
     const handleShareToX = useCallback(() => { //X 공유하기용 함수
