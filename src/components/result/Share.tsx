@@ -12,14 +12,18 @@ import React, { useCallback, useEffect, useState } from 'react';
 import useDeviceType from '@/hooks/useDeviceType';
 import Toast, { CustomToast } from './Toast';
 import { UsersService } from '@/api';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
 
 /** Styles */
 type shareType = {
-    sameCount: number,
     handleIsshare: () => void,
 } 
 
-export default function Share({sameCount,handleIsshare}: shareType) {
+export default function Share({handleIsshare}: shareType) {
+    /**Store Section */
+    const sameCount = useSelector((state: RootState) => state.samecount.count);
+
     /**Hook Section */
     const device = useDeviceType();
 

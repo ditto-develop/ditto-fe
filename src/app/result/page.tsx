@@ -22,6 +22,7 @@ import { MatchService, UsersService } from "@/api";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { setSteper } from "@/store/stepSlice";
+import { setSamecount } from "@/store/sameCountSlice";
 
 /** Types */
 type gameresultType = {
@@ -62,6 +63,7 @@ export default function Result() {
       try{
         const matchResult =  await MatchService.matchControllerGetSimilarUsersCount(1,80); //최종 매치 결과
         setGameResult(matchResult.data as gameresultType);
+        dispatch(setSamecount(matchResult.data?.sameCount));
       }catch(err){
         
       }
@@ -103,7 +105,6 @@ export default function Result() {
   return (
     <>
           {isshare && <Share 
-                sameCount={gameResult?.similarCount || 8}
                 handleIsshare={handleIsshare} />}
 
           <AnimatePresence mode="wait" >
