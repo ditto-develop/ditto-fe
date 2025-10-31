@@ -170,7 +170,7 @@ export default function Share({sameCount,handleIsshare}: shareType) {
                 </IconContainer>
                 <IconContainer
                     onClick={handleShareToX}
-                >
+                > 
                     <Image src='./icons/twitter.svg'
                            alt='twitter' width={24} height={32}/>
                 </IconContainer>                
