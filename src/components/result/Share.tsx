@@ -108,7 +108,6 @@ export default function Share({handleIsshare}: shareType) {
         if (navigator.share) {
           try {
             await navigator.share({
-              
               title: "Ditto -  12개의 선택, 하나의 만남",
               text: "4096개의 조합 중에 나와 같은 사람은 "+similCount+ "명이었어. 너와 같은 사람은 몇 명이나 될까?",
               url: url,
@@ -148,6 +147,7 @@ export default function Share({handleIsshare}: shareType) {
                 <Image 
                     onClick={handleIsshare}
                     src='/icons/x.svg'
+                    style={{cursor: 'pointer'}}
                     alt='x icons'
                     width={24}
                     height={24}

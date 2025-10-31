@@ -46,6 +46,7 @@ export const ShareText = styled.div`
   font-style: normal;
   font-weight: 600;
   line-height: normal;
+  cursor: pointer;
 `;
  
 export const BottomTitle = styled.h1`

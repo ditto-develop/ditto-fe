@@ -10,6 +10,8 @@ const fadeIn = keyframes`
 `;
 
 const BaseBox = styled.div<{ width?: number; height?: number; bg?: string }>`
+  cursor: pointer;
+  
   animation: ${fadeIn} 0.5s ease-in-out forwards;
   display: flex;
   position: relative;
@@ -52,7 +54,7 @@ type QuizType = DivType & { isblack: boolean };
 /** 📌 QuizButton */
 export const QuizButton = ({ isblack, children, ...props }: QuizType) => (
   <BaseBox {...props} width={305} bg={isblack ? 'black' : ''}>
-    <BaseImg src="/buttons/button.svg" />
+    <BaseImg src="/buttons/button.svg" draggable="false"  />
     <BaseText color={isblack ? 'white' : ''}>{children}</BaseText>
   </BaseBox>
 );
@@ -60,7 +62,7 @@ export const QuizButton = ({ isblack, children, ...props }: QuizType) => (
 /** 📌 BlackButton */
 export const Blackbutton = ({ children, ...props }: BtnType) => (
   <BaseBox as="button" {...props} width={345} height={62.8} bg="black">
-    <BaseImg src="/buttons/button.svg" />
+    <BaseImg src="/buttons/button.svg" draggable="false"  />
     <BaseText color="white">{children}</BaseText>
   </BaseBox>
 );
@@ -68,7 +70,7 @@ export const Blackbutton = ({ children, ...props }: BtnType) => (
 /** 📌 Small Black Button */
 export const MiddleBlackbutton = ({ children, ...props }: DivType) => (
   <BaseBox {...props} width={281} height={52} bg="black">
-    <BaseImg src="/buttons/button.svg" />
+    <BaseImg src="/buttons/button.svg" draggable="false" />
     <BaseText color="white">{children}</BaseText>
   </BaseBox>
 );
@@ -85,7 +87,7 @@ export const BlackEnablebutton = ({ enable, children, ...props }: EnableBtnProps
     bg={enable ? "black" : "#9b9b9b"}
     style={{ cursor: enable ? "pointer" : "not-allowed", opacity: enable ? 1 : 0.6 }}
   >
-    <BaseImg src={enable ? "/buttons/button.svg" : "/buttons/graybutton.svg"} />
+    <BaseImg src={enable ? "/buttons/button.svg" : "/buttons/graybutton.svg"} draggable="false" />
     <BaseText color="white">{children}</BaseText>
   </BaseBox>
 );
@@ -93,7 +95,7 @@ export const BlackEnablebutton = ({ enable, children, ...props }: EnableBtnProps
 /** 📌 White Button */
 export const Whitebutton = ({ children, ...props }: DivType) => (
   <BaseBox {...props} width={305} height={62.8}>
-    <BaseImg src="/buttons/MiddleButton.svg" w="60%" />
+    <BaseImg src="/buttons/MiddleButton.svg" w="60%" draggable="false" />
     <BaseText color="black">{children}</BaseText>
   </BaseBox>
 );

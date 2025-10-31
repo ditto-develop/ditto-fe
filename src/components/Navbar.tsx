@@ -49,6 +49,7 @@ export default function Navbar({Prev,header,share,shareHandle}:NavbarType) {
                     <Image 
                         onClick={Prev}
                         src='/prev.svg'
+                        style={{cursor: 'pointer'}}
                         alt="뒤로가기"
                         width={7.5*1.5}
                         height={15}
@@ -58,6 +59,7 @@ export default function Navbar({Prev,header,share,shareHandle}:NavbarType) {
                 {share && <Image 
                             onClick={shareHandle}
                             src='/share.svg'
+                            style={{cursor: 'pointer'}}
                             alt="공유하기"
                             width={20}
                             height={20}

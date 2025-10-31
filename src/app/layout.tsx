@@ -12,9 +12,9 @@ import SessionTracker from "@/components/Sessiontracker";
 export const metadata: Metadata = {
   title: "Ditto - 12개의 선택, 하나의 만남",
   description: "",
-  icons: {
-		icon: "/icons/APPIcon.png",
-	},
+   icons: [
+      { url: "/icons/APPICON.png", sizes: "48x48", type: "image/png" },
+  ],
   openGraph: {
     title: "Ditto - 12개의 선택, 하나의 만남",
     description: "",
@@ -22,9 +22,9 @@ export const metadata: Metadata = {
     siteName: "Ditto",
     images: [
       {
-        url: "https://i.postimg.cc/wvZsfRjj/OG-Image.png",
-        width: 3600,
-        height: 1890,
+        url: "https://i.ibb.co/wFZmv6ZD/APP-Icon.png",
+        width: 304,
+        height: 304,
       },
     ],
     locale: "ko_KR",
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
       card: "summary_large_image",
       title: "Ditto - 12개의 선택, 하나의 만남",
       description: "",
-      images: ["https://i.postimg.cc/wvZsfRjj/OG-Image.png"],
+      images: ["https://i.ibb.co/wFZmv6ZD/APP-Icon.png"],
   },
 };
  

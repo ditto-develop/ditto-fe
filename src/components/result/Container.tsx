@@ -112,6 +112,7 @@ export const IconContainer = styled.div`
   align-items: center;
   width: 64px;
   height: 64px;
+  cursor: pointer;
 `
 
 export const Line = styled(motion.div)`
