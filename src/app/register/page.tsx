@@ -120,7 +120,7 @@ const Subscribe = ({setIsSubscribe,handleIsshare}: subscribeType) => {
     return(
         <SubContainer>
             <Navbar 
-                Prev={()=>{setIsSubscribe(false)}}
+                Prev={()=>{setIsSubscribe(false);router.back()}}
                 shareHandle={handleIsshare}
                 share={true}
             />

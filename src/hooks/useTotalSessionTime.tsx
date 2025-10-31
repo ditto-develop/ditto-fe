@@ -17,7 +17,7 @@ export function useTotalSessionTime() {
 
       // 👇 API 호출
       UsersService.usersControllerSaveStayTime(
-        {   stayTime: staySec, }
+        { stayTime: staySec, }
       ).catch(() => {});
 
       // ✅ sendBeacon도 fallback로 함께

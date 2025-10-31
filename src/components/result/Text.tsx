@@ -229,3 +229,37 @@ export function FloatCounter({ target, duration = 1800, onFinish }: FloatCounter
   return <AnimatedNumber>{count.toFixed(2)}%</AnimatedNumber>;
 }
 
+/** */
+export const ResultNormal = styled.p`
+  color: var(--Primary-Primary, #000);
+  text-align: center;
+  font-family: Pretendard;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 150%; /* 27px */
+  letter-spacing: -0.27px;
+`;
+
+export const ResultSmallColor = styled.p`
+  color: var(--Color-Brown, #775E4F);
+  text-align: center;
+  font-family: Pretendard;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 150%; /* 27px */
+  letter-spacing: -0.27px;
+`;
+
+export const ResultBigColor = styled.p`
+  color: var(--Color-Red, #C93D2E);
+  text-align: center;
+  -webkit-text-stroke-width: 2px;
+  -webkit-text-stroke-color: var(--Color-Red, #C93D2E);
+  font-family: Pretendard;
+  font-size: 48px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+`;

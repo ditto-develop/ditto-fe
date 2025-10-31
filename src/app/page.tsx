@@ -6,19 +6,25 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { CustomToast } from "@/components/result/Toast";
-import { useSelector } from "react-redux";
-import type { RootState } from "@/store/store";
+import { useDispatch, useSelector } from "react-redux";
+import type { AppDispatch, RootState } from "@/store/store";
+import { setSteper } from "@/store/stepSlice";
 
 
 export default function Home() {
   const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
+
   const referal = useSelector((state: RootState) => state.referal.value);
   const utm = useSelector((state: RootState) => state.referal.utm);
   const isRevisit = useSelector((state: RootState) => state.referal.isRevisit);
 
+  
+
   const handleStart = async() => {
       const user = await UsersService.usersControllerStart(referal,utm,isRevisit);
-
+      dispatch(setSteper(false));
+      
       if(user.data) {
         router.push('/quiz');
       }

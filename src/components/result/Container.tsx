@@ -68,7 +68,7 @@ export const Backdrop = styled.div`
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 998; 
+  z-index: 1000; 
   animation: ${fadeIn} 0.3s ease-in-out;
 `;
 
@@ -86,7 +86,7 @@ export const BottomSheetContainer = styled.div`
   flex-direction: column;
   gap: 32px;
 
-  z-index: 999;
+  z-index: 1001;
   background-color: #F3F1EF;
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;

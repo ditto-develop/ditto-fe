@@ -7,8 +7,6 @@ import SplashLayout from "@/components/Splash";
 import StyledComponentsRegistry from "./StyledComponentsRegistry";
 import KakaoScript from '@/common/KakaoScript';
 import Providers from "./Providers";
-import { UsersService } from "@/api";
-import { useTotalSessionTime } from "@/hooks/useTotalSessionTime";
 import SessionTracker from "@/components/Sessiontracker";
 
 export const metadata: Metadata = {
