@@ -37,7 +37,7 @@ export const metadata: Metadata = {
       images: ["https://i.postimg.cc/wvZsfRjj/OG-Image.png"],
   },
 };
-
+ 
 declare global {
   interface Window {
     Kakao: any;
