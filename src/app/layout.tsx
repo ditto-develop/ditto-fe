@@ -43,7 +43,7 @@ declare global {
     Kakao: any;
   }
 };
-
+ 
 export default function RootLayout({
   children,
 }: Readonly<{
