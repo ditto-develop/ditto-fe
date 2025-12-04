@@ -9,5 +9,5 @@ services:
     ports:
       - "3000:3000"   # EC2 3000 포트 → 컨테이너 3000 포트
     env_file:
-      - .env.production   # 있으면
+      - .env   # 있으면
     restart: unless-stopped
