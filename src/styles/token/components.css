@@ -1,0 +1,9 @@
+:root {
+  --button-primary-bg: var(--primary-default);
+  --button-primary-text: var(--text-inverse);
+  --button-primary-border: var(--primary-default);
+
+  --button-secondary-bg: transparent;
+  --button-secondary-text: var(--primary-default);
+  --button-secondary-border: var(--primary-default);
+}

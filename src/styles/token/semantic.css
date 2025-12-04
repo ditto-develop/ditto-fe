@@ -1,0 +1,109 @@
+:root {
+  /* =====================
+   * Primary
+   * ===================== */
+  --color-primary-normal:   var(--color-atomic-neutral-40); /* 버튼/주요 액션 기본 */
+  --color-primary-hover:    var(--color-atomic-neutral-50);
+  --color-primary-selected: var(--color-atomic-neutral-60);
+
+  /* =====================
+   * Label (Text)
+   * ===================== */
+  --color-label-strong:     var(--color-atomic-coolNeutral-10);
+  --color-label-normal:     var(--color-atomic-coolNeutral-20);
+  --color-label-neutral:    var(--color-atomic-coolNeutral-40);
+  --color-label-alternative:var(--color-atomic-coolNeutral-50);
+  --color-label-assistive:  var(--color-atomic-coolNeutral-60);
+  --color-label-disable:    var(--color-atomic-coolNeutral-80);
+
+  /* =====================
+   * Background
+   * ===================== */
+  --color-bg-normal:        var(--color-atomic-neutral-95); /* 전체 페이지 배경 */
+  --color-bg-normal-alt:    var(--color-atomic-neutral-90); /* 구분 영역 배경 */
+  --color-bg-elevated:      var(--color-atomic-common-100); /* 카드/모달 배경 */
+  --color-bg-elevated-alt:  var(--color-atomic-coolNeutral-99);
+
+  /* =====================
+   * Interaction
+   * ===================== */
+  --color-interaction-inactive: var(--color-atomic-coolNeutral-90);
+  --color-interaction-disable:  var(--color-atomic-coolNeutral-95);
+
+  /* =====================
+   * Line (Border / Divider)
+   * ===================== */
+  --color-line-normal:      var(--color-atomic-coolNeutral-60);
+  --color-line-neutral:     var(--color-atomic-coolNeutral-50);
+  --color-line-alternative: var(--color-atomic-coolNeutral-40);
+
+  /* =====================
+   * Status
+   * ===================== */
+  --color-status-positive:   var(--color-atomic-green-60);
+  --color-status-cautionary: var(--color-atomic-redOrange-60);
+  --color-status-destructive:var(--color-atomic-brickRed-60);
+
+  /* =====================
+   * Accent - Background
+   * (배경형 태그/뱃지 등)
+   * ===================== */
+  --color-accent-bg-redOrange:  var(--color-atomic-redOrange-60);
+  --color-accent-bg-lime:       var(--color-atomic-lime-60);
+  --color-accent-bg-cyan:       var(--color-atomic-cyan-60);
+  --color-accent-bg-lightBlue:  var(--color-atomic-lightBlue-60);
+  --color-accent-bg-violet:     var(--color-atomic-violet-60);
+  --color-accent-bg-purple:     var(--color-atomic-purple-60);
+  --color-accent-bg-pink:       var(--color-atomic-vintagePink-60);
+
+  /* =====================
+   * Accent - Foreground
+   * (아이콘/텍스트 강조)
+   * ===================== */
+  --color-accent-fg-brickRed:    var(--color-atomic-brickRed-60);
+  --color-accent-fg-redOrange:   var(--color-atomic-redOrange-60);
+  --color-accent-fg-brickOrange: var(--color-atomic-brickOrange-60);
+  --color-accent-fg-lime:        var(--color-atomic-lime-60);
+  --color-accent-fg-green:       var(--color-atomic-green-60);
+  --color-accent-fg-cyan:        var(--color-atomic-cyan-60);
+  --color-accent-fg-navy:        var(--color-atomic-navy-60);
+  --color-accent-fg-lightBlue:   var(--color-atomic-lightBlue-60);
+  --color-accent-fg-blue:        var(--color-atomic-blue-60);
+  --color-accent-fg-violet:      var(--color-atomic-violet-60);
+  --color-accent-fg-purple:      var(--color-atomic-purple-60);
+  --color-accent-fg-pink:        var(--color-atomic-vintagePink-60);
+
+  /* =====================
+   * Inverse (다크 배경 위)
+   * ===================== */
+  --color-inverse-primary:    var(--color-atomic-olive-80);
+  --color-inverse-background: var(--color-atomic-neutral-20);
+  --color-inverse-label:      var(--color-atomic-common-100);
+
+  /* =====================
+   * Static
+   * ===================== */
+  --color-static-white: var(--color-atomic-common-100);
+  --color-static-black: var(--color-atomic-common-0);
+
+  /* =====================
+   * Fill (Input, Chip 등 충전형)
+   * ===================== */
+  --color-fill-normal:      var(--color-atomic-neutral-95);
+  --color-fill-strong:      var(--color-atomic-neutral-90);
+  --color-fill-alternative: var(--color-atomic-coolNeutral-95);
+
+  /* =====================
+   * Material / Dimmer (Dimmed Overlay)
+   * ===================== */
+  --color-material-dimmer: rgba(0, 0, 0, var(--color-atomic-opacity-35));
+
+  /* =====================
+   * Elevation / Shadow
+   * (필요 시 box-shadow에서 참조)
+   * ===================== */
+  --shadow-opacity-normal:     var(--color-atomic-opacity-12);
+  --shadow-opacity-emphasize:  var(--color-atomic-opacity-16);
+  --shadow-opacity-strong:     var(--color-atomic-opacity-22);
+  --shadow-opacity-heavy:      var(--color-atomic-opacity-28);
+}
