@@ -2,12 +2,13 @@
 
 /** Styled */
 import { ButtonContainer, MainContainer, StepItem, StepperImgContainer, TopCarousleContainer, TopConatiner, TopImgContainer, TopProgressContainer, TopStepperContainer, TopTextContainer } from "@/styled/onboarding/Container";
-import { SubNeutralText, SubNormalText } from "@/styled/Text";
+import { CaptionAlternative, CaptionAlternativeBoldSpan, SubNeutralText, SubNormalText } from "@/styled/Text";
 
 
 /**임시 */
 import styled from "styled-components";
 import { SplashCarousel } from "./Carousle";
+import { KakaoShareButton } from "../Input";
 
 const TmpContainer = styled.div`
     padding-top: 40px;
@@ -52,7 +53,8 @@ export function Onboarding() {
                     </TopProgressContainer>
                 </TopConatiner>
                 <ButtonContainer>
-
+                    <KakaoShareButton />
+                    <CaptionAlternative>회원가입 시 <CaptionAlternativeBoldSpan>이용약관</CaptionAlternativeBoldSpan> 및 <CaptionAlternativeBoldSpan>개인정보처리방침</CaptionAlternativeBoldSpan>에 동의하는 것으로 간주됩니다.</CaptionAlternative>
                 </ButtonContainer>
             </MainContainer>
         </TmpContainer>
