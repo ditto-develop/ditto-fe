@@ -78,7 +78,7 @@
   --color-atomic-green-10: #00240C;
 
   --color-atomic-olive-99: #EEF4ED;
-  --color-atomic-olive-95: #D4E5D; /* ← PDF에 1자리 누락됨 but 그대로 사용 */
+  --color-atomic-olive-95: #D4E5DD; 
   --color-atomic-olive-90: #ADC9AD;
   --color-atomic-olive-80: #88AC88;
   --color-atomic-olive-70: #6E946E;

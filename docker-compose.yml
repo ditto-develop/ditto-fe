@@ -1,13 +1,32 @@
 version: "3.9"
 
 services:
-  ditto-next:
-    container_name: ditto-next
+  web:
     build:
       context: .
       dockerfile: Dockerfile
+      target: runner          # ✅ Next.js 앱용
+    container_name: ditto-web
     ports:
-      - "3000:3000"   # EC2 3000 포트 → 컨테이너 3000 포트
-    env_file:
-      - .env   # 있으면
-    restart: unless-stopped
+      - "3000:3000"
+    restart: always
+    # env_file:
+    #   - .env.production
+    # networks:
+    #   - ditto-net
+
+  storybook:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: storybook-runner   # ✅ Storybook 정적 서버용
+    container_name: ditto-storybook
+    ports:
+      - "6006:6006"
+    restart: always
+    # networks:
+    #   - ditto-net
+
+# networks:
+#   ditto-net:
+#     driver: bridge
