@@ -1,3 +1,17 @@
 /* token 파일들 import */
 @import "./styles/token/atomic.css";
 @import "./styles/token/semantic.css";
+
+@font-face {
+  font-family: 'PretendardJP';
+  src: url('./styles/fonts/pretendard/PretendardJPVariable.woff2') format('woff2-variations'),
+       url('./styles/fonts/pretendard/PretendardJPVariable.woff2') format('woff2');
+  font-weight: 100 900;  
+  font-style: normal;
+  font-display: swap;
+}
+
+html, body {
+  background-color: var(--color-bg-normal-alt);
+  font-family: 'PretendardJP', sans-serif;
+}
