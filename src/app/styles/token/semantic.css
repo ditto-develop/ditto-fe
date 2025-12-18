@@ -9,12 +9,12 @@
   /* =====================
    * Label (Text)
    * ===================== */
-  --color-label-strong:     var(--color-atomic-coolNeutral-10);
-  --color-label-normal:     var(--color-atomic-coolNeutral-20);
-  --color-label-neutral:    var(--color-atomic-coolNeutral-40);
-  --color-label-alternative:var(--color-atomic-coolNeutral-50);
-  --color-label-assistive:  var(--color-atomic-coolNeutral-60);
-  --color-label-disable:    var(--color-atomic-coolNeutral-80);
+  --color-label-strong:     var(--color-atomic-common-0);
+  --color-label-normal:     var(--color-atomic-neutral-20);
+  --color-label-neutral:    rgb(from var(--color-atomic-neutral-30) r g b / var(--color-atomic-opacity-88));
+  --color-label-alternative:rgb(from var(--color-atomic-neutral-30) r g b / var(--color-atomic-opacity-61));
+  --color-label-assistive:  rgb(from var(--color-atomic-neutral-30) r g b / var(--color-atomic-opacity-28));
+  --color-label-disable:    rgb(from var(--color-atomic-neutral-30) r g b / var(--color-atomic-opacity-16));
 
   /* =====================
    * Background
@@ -33,15 +33,18 @@
   /* =====================
    * Line (Border / Divider)
    * ===================== */
-  --color-line-normal:      var(--color-atomic-coolNeutral-60);
-  --color-line-neutral:     var(--color-atomic-coolNeutral-50);
-  --color-line-alternative: var(--color-atomic-coolNeutral-40);
+  --color-line-normal:      rgb(from var(--color-atomic-neutral-50) r g b / var(--color-atomic-opacity-22));
+  --color-line-neutral:     rgb(from var(--color-atomic-neutral-50) r g b / var(--color-atomic-opacity-16));
+  --color-line-alternative: rgb(from var(--color-atomic-neutral-50) r g b / var(--color-atomic-opacity-8));
+  --color-line-solid-normal: var(--color-atomic-neutral-80);
+  --color-line-solid-neutral: var(--color-atomic-neutral-90);
+  --color-line-solid-alternative: rgb(from var(--color-atomic-neutral-90) r g b / var(--color-atomic-opacity-52));
 
   /* =====================
    * Status
    * ===================== */
-  --color-status-positive:   var(--color-atomic-green-60);
-  --color-status-cautionary: var(--color-atomic-redOrange-60);
+  --color-status-positive:   var(--color-atomic-olive-60);
+  --color-status-cautionary: var(--color-atomic-brickOrange-60);
   --color-status-destructive:var(--color-atomic-brickRed-60);
 
   /* =====================
@@ -89,14 +92,14 @@
   /* =====================
    * Fill (Input, Chip 등 충전형)
    * ===================== */
-  --color-fill-normal:      var(--color-atomic-neutral-95);
-  --color-fill-strong:      var(--color-atomic-neutral-90);
-  --color-fill-alternative: var(--color-atomic-coolNeutral-95);
+  --color-fill-normal:      rgb(from var(--color-atomic-coolNeutral-50) r g b / var(--color-atomic-opacity-8));
+  --color-fill-strong:      rgb(from var(--color-atomic-coolNeutral-50) r g b / var(--color-atomic-opacity-16));
+  --color-fill-alternative: rgb(from var(--color-atomic-coolNeutral-50) r g b / var(--color-atomic-opacity-5));
 
   /* =====================
    * Material / Dimmer (Dimmed Overlay)
    * ===================== */
-  --color-material-dimmer: rgba(0, 0, 0, var(--color-atomic-opacity-35));
+  --color-material-dimmer: rgb(from var(--color-atomic-neutral-20) r g b / var(--color-atomic-opacity-52));
 
   /* =====================
    * Elevation / Shadow
