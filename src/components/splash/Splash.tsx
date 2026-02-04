@@ -1,7 +1,7 @@
 "use client"
 
-import { ImgContainer, MainContainer } from "@/styled/splash/Container";
-import { SubAlterText } from "@/styled/Text";
+import { ImgContainer, MainContainer } from "@/components/splash/SplashContainer";
+import { Body1Normal } from "@/components/common/Text";
 
 export default function Splash() {
   return (
@@ -11,7 +11,7 @@ export default function Splash() {
           src='/logo/dittologo.svg'
         />
       </ImgContainer>
-      <SubAlterText>퀴즈로 연결되는 새로운 만남의 시작</SubAlterText>
+      <Body1Normal>우연일까? 운명일까?</Body1Normal>
     </MainContainer>
   );
 }

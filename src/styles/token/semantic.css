@@ -1,0 +1,110 @@
+:root {
+  /* =====================
+   * Static [cite: 7]
+   * ===================== */
+  --color-semantic-static-white: var(--color-atomic-common-100); /* [cite: 8, 9] */
+  --color-semantic-static-black: var(--color-atomic-common-0); /* [cite: 10, 11] */
+
+  /* =====================
+   * Primary [cite: 12]
+   * ===================== */
+  --color-semantic-primary-normal:   var(--color-atomic-neutral-20); /* [cite: 13, 14] */
+  --color-semantic-primary-hover:    var(--color-atomic-neutral-60); /* [cite: 15, 16] */
+  --color-semantic-primary-selected: var(--color-atomic-neutral-40); /* [cite: 17, 18] */
+
+  /* =====================
+   * Label [cite: 19]
+   * ===================== */
+  --color-semantic-label-normal:      var(--color-atomic-neutral-20); /* [cite: 20, 21] */
+  --color-semantic-label-strong:      var(--color-atomic-common-0); /* [cite: 22, 23] */
+  --color-semantic-label-neutral:     rgb(from var(--color-atomic-neutral-30) r g b / var(--color-atomic-opacity-88)); /* [cite: 24, 25] */
+  --color-semantic-label-alternative: rgb(from var(--color-atomic-neutral-30) r g b / var(--color-atomic-opacity-61)); /* [cite: 26, 27, 28] */
+  --color-semantic-label-assistive:   rgb(from var(--color-atomic-neutral-30) r g b / var(--color-atomic-opacity-28)); /* [cite: 29, 30, 31] */
+  --color-semantic-label-disable:     rgb(from var(--color-atomic-neutral-30) r g b / var(--color-atomic-opacity-16)); /* [cite: 32, 33, 34] */
+
+  /* =====================
+   * Background [cite: 35]
+   * ===================== */
+  --color-semantic-background-normal-normal:        var(--color-atomic-neutral-95); /* [cite: 36, 37] */
+  --color-semantic-background-normal-alternative:   var(--color-atomic-neutral-90); /* [cite: 38, 39] */
+  --color-semantic-background-elevated-normal:      var(--color-atomic-neutral-95); /* [cite: 40, 41] */
+  --color-semantic-background-elevated-alternative: var(--color-atomic-neutral-99); /* [cite: 42, 43] */
+
+  /* =====================
+   * Interaction [cite: 44]
+   * ===================== */
+  --color-semantic-interaction-inactive: var(--color-atomic-neutral-60); /* [cite: 45, 46] */
+  --color-semantic-interaction-disable:  var(--color-atomic-neutral-90); /* [cite: 47, 48] */
+
+  /* =====================
+   * Line [cite: 49]
+   * ===================== */
+  --color-semantic-line-normal-normal:      rgb(from var(--color-atomic-neutral-50) r g b / var(--color-atomic-opacity-22)); /* [cite: 50, 82, 83] */
+  --color-semantic-line-normal-neutral:     rgb(from var(--color-atomic-neutral-50) r g b / var(--color-atomic-opacity-16)); /* [cite: 55, 84] */
+  --color-semantic-line-normal-alternative: rgb(from var(--color-atomic-neutral-50) r g b / var(--color-atomic-opacity-8));  /* [cite: 56, 85] */
+  --color-semantic-line-solid-normal:       var(--color-atomic-neutral-80); /* [cite: 57, 86] */
+  --color-semantic-line-solid-neutral:      var(--color-atomic-neutral-90); /* [cite: 58, 87] */
+  --color-semantic-line-solid-alternative:  rgb(from var(--color-atomic-neutral-90) r g b / var(--color-atomic-opacity-52)); /* [cite: 59, 88] */
+
+  /* =====================
+   * Status [cite: 51]
+   * ===================== */
+  --color-semantic-status-positive:   var(--color-atomic-olive-60);      /* [cite: 60, 89] */
+  --color-semantic-status-cautionary: var(--color-atomic-brickOrange-50); /* [cite: 61, 90] */
+  --color-semantic-status-negative:   var(--color-atomic-brickRed-50);    /* [cite: 62, 91] */
+
+  /* =====================
+   * Accent - Background [cite: 52]
+   * ===================== */
+  --color-semantic-accent-background-redOrange:  var(--color-atomic-redOrange-50);   /* [cite: 63, 92] */
+  --color-semantic-accent-background-lime:       var(--color-atomic-lime-50);        /* [cite: 63, 93] */
+  --color-semantic-accent-background-cyan:       var(--color-atomic-cyan-50);        /* [cite: 64, 94] */
+  --color-semantic-accent-background-lightBlue:  var(--color-atomic-lightBlue-50);   /* [cite: 65, 95] */
+  --color-semantic-accent-background-violet:     var(--color-atomic-violet-50);      /* [cite: 66, 96] */
+  --color-semantic-accent-background-purple:     var(--color-atomic-purple-50);      /* [cite: 67, 97] */
+  --color-semantic-accent-background-vintagePink:var(--color-atomic-vintagePink-50); /* [cite: 68, 98] */
+
+  /* =====================
+   * Accent - Foreground [cite: 52]
+   * ===================== */
+  --color-semantic-accent-foreground-red:         var(--color-atomic-brickRed-40);   /* [cite: 69, 99] */
+  --color-semantic-accent-foreground-redOrange:   var(--color-atomic-redOrange-48);  /* [cite: 70, 100] */
+  --color-semantic-accent-foreground-orange:      var(--color-atomic-brickOrange-39);/* [cite: 70, 101] */
+  --color-semantic-accent-foreground-lime:        var(--color-atomic-lime-37);       /* [cite: 70, 102] */
+  --color-semantic-accent-foreground-green:       var(--color-atomic-green-40);      /* [cite: 70, 103] */
+  --color-semantic-accent-foreground-cyan:        var(--color-atomic-cyan-40);       /* [cite: 70, 104] */
+  --color-semantic-accent-foreground-Navy:        var(--color-atomic-navy-40);       /* [cite: 71, 105] */
+  --color-semantic-accent-foreground-lightBlue:   var(--color-atomic-lightBlue-40);   /* [cite: 72, 106] */
+  --color-semantic-accent-foreground-blue:        var(--color-atomic-blue-45);       /* [cite: 73, 107] */
+  --color-semantic-accent-foreground-violet:      var(--color-atomic-violet-45);     /* [cite: 74, 108] */
+  --color-semantic-accent-foreground-purple:      var(--color-atomic-purple-40);     /* [cite: 75, 109] */
+  --color-semantic-accent-foreground-vintagePink: var(--color-atomic-vintagePink-46);/* [cite: 76, 110] */
+
+  /* =====================
+   * Inverse [cite: 53]
+   * ===================== */
+  --color-semantic-inverse-primary:    var(--color-atomic-olive-90);   /* [cite: 77, 111] */
+  --color-semantic-inverse-background: var(--color-atomic-neutral-30); /* [cite: 78, 112] */
+  --color-semantic-inverse-label:      var(--color-atomic-neutral-99); /* [cite: 79, 113] */
+
+  /* =====================
+   * Fill [cite: 54]
+   * ===================== */
+  --color-component-fill-normal:      rgb(from var(--color-atomic-coolNeutral-50) r g b / var(--color-atomic-opacity-8));  /* [cite: 80, 114, 115] */
+  --color-component-fill-strong:      rgb(from var(--color-atomic-coolNeutral-50) r g b / var(--color-atomic-opacity-16)); /* [cite: 81, 120, 121] */
+  --color-component-fill-alternative: rgb(from var(--color-atomic-coolNeutral-50) r g b / var(--color-atomic-opacity-5));  /* [cite: 116, 122, 123] */
+
+  /* =====================
+   * Material [cite: 117]
+   * ===================== */
+  --color-component-material-dimmer: rgb(from var(--color-atomic-neutral-20) r g b / var(--color-atomic-opacity-52)); /* [cite: 118, 124, 125] */
+
+  /* =====================
+   * Shadow [cite: 128]
+   * (Values are literal pixels/rgba as per document)
+   * ===================== */
+  --style-semantic-shadow-normal:    0px 1px 2px rgba(0, 0, 0, 0.12), 0px 0px 1px rgba(0, 0, 0, 0.08);   /* [cite: 127] */
+  --style-semantic-shadow-emphasize: 0px 2px 8px rgba(0, 0, 0, 0.12), 0px 1px 4px rgba(0, 0, 0, 0.08);   /* [cite: 127] */
+  --style-semantic-shadow-strong:    0px 6px 12px rgba(0, 0, 0, 0.12), 0px 4px 8px rgba(0, 0, 0, 0.08);  /* [cite: 127] */
+  --style-semantic-shadow-heavy:     0px 16px 20px rgba(0, 0, 0, 0.12), 0px 8px 16px rgba(0, 0, 0, 0.08); /* [cite: 127] */
+}

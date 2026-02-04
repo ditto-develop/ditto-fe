@@ -1,57 +1,65 @@
-// components/onboarding/OnboardingLayout.tsx
-import { ActionContainer, BodyContainer, HeadContainer, HeaderTop, PageContainer } from "@/styled/onboarding/Container";
-import { Label1Normal, Title3 } from "@/styled/Text";
-import Nav from "../Nav";
-import { ActionButton, ActionSheet } from "../Action";
+import { ActionContainer, BodyContainer, HeadContainer, HeaderTop, PageContainer } from "@/components/onboarding/OnboardingContainer";
+import { Label1Normal, Title3 } from "@/components/common/Text";
+import Nav from "../display/Nav";
+import { ActionButton, ActionSheet } from "../input/Action";
 
 interface OnboardingLayoutProps {
   step: number;
   totalSteps: number;
-  title: React.ReactNode;  
-  description: React.ReactNode; // 줄바꿈 등을 위해 Node로 받음
+  title: React.ReactNode;
+  navTitle?: string;
+  description: React.ReactNode;
   buttonText: string;
   isButtonDisabled?: boolean;
   subbuttonText?: string;
   variant?: "primary" | "secondary" | "tertiary" | "disabled" | undefined;
+
   onNext: () => void;
-  children: React.ReactNode; // 여기가 폼(Body)이 들어갈 자리
+  onPrev?: () => void;
+  onClose?: () => void;
+  onSubAction?: () => void; // ✅ 추가: 서브 버튼 함수 (검증 건너뛰기용)
+
+  children: React.ReactNode;
 }
 
 export default function OnboardingLayout({
   step,
   totalSteps,
   title,
+  navTitle,
   description,
   buttonText,
   isButtonDisabled,
   subbuttonText,
   variant,
   onNext,
+  onPrev,
+  onClose,
+  onSubAction, // ✅ 구조 분해 할당
   children,
 }: OnboardingLayoutProps) {
   return (
+    <>
     <PageContainer>
-      <Nav />
-      
-      {/* 1. 헤더 영역 (동적 데이터 바인딩) */}
+    <Nav prev={onPrev} close={onClose} label={navTitle} />
+
       <HeadContainer>
         <HeaderTop>
           <Title3 $weight="bold">{title}</Title3>
-          <Label1Normal $color="var(--color-status-positive)">
+          <Label1Normal $color="var(--color-semantic-status-positive)">
             {step}/{totalSteps}단계
           </Label1Normal>
         </HeaderTop>
         <div>{description}</div>
       </HeadContainer>
 
-      {/* 2. 바디 영역 (각 단계별 인풋 컴포넌트가 여기 들어옴) */}
       <BodyContainer>
         {children}
       </BodyContainer>
 
-      {/* 3. 액션 영역 (버튼) */}
       <ActionContainer>
         <ActionSheet>
+          {/* 메인 버튼: onNext 실행 */}
           <ActionButton 
             variant={variant ? variant : "disabled" }
             onClick={onNext} 
@@ -60,11 +68,13 @@ export default function OnboardingLayout({
             {buttonText}
           </ActionButton>
         </ActionSheet>
+        
         {subbuttonText && 
         <ActionSheet>
+          {/* ✅ 서브 버튼: onSubAction이 있으면 실행, 없으면 onNext 실행(기존 호환) */}
           <ActionButton 
             variant="tertiary"
-            onClick={onNext} 
+            onClick={onSubAction || onNext} 
           >
             {subbuttonText}
           </ActionButton>
@@ -73,5 +83,6 @@ export default function OnboardingLayout({
         
       </ActionContainer>
     </PageContainer>
+    </>
   );
 }

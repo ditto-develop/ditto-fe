@@ -8,9 +8,12 @@
     "start": "next start",
     "lint": "eslint",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "generate-client": "openapi --input ./ditto-api.json --output ./src/lib/api --client fetch"
   },
   "dependencies": {
+    "framer-motion": "^12.23.26",
+    "lucide-react": "^0.562.0",
     "next": "^16.0.7",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
@@ -31,6 +34,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.0.5",
     "eslint-plugin-storybook": "^10.1.4",
+    "openapi-typescript-codegen": "^0.30.0",
     "playwright": "^1.57.0",
     "storybook": "^10.1.4",
     "typescript": "^5",

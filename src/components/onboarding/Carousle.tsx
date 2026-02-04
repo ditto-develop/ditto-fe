@@ -146,7 +146,7 @@ const Slide = styled.div`
   align-items: center;
   padding: 40px 0;
 
-  background-color: var(--color-bg-normal-alt, #f3f1ec); /* 필요하면 토큰으로 */
+  background-color: var(--color-semantic-background-normal-normal, #f3f1ec); /* 필요하면 토큰으로 */
 
   img {
     max-width: 70%;

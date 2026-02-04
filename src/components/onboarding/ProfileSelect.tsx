@@ -1,8 +1,8 @@
-import { ActionContainer } from "@/styled/onboarding/Container";
-import { Title3 } from "@/styled/Text";
+import { ActionContainer } from "@/components/onboarding/OnboardingContainer";
+import { Title3 } from "@/components/common/Text";
 import React, { useState } from "react";
 import styled from "styled-components";
-import { ActionButton, ActionSheet } from "../Action";
+import { ActionButton, ActionSheet } from "../input/Action";
 
 const Wrapper = styled.div`
   position: fixed;
@@ -90,7 +90,7 @@ const AvatarCircle = styled.div`
   width: 160px;
   height: 160px;
   border-radius: 50%;
-  background: var(--color-bg-normal-alt);
+  background: var(--color-semantic-background-normal-alternative);
   border : 1px solid lightgray;
   display: flex;
   justify-content: center;
