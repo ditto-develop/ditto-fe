@@ -28,20 +28,25 @@ export default function MainSection() {
 
   useEffect(() => {
     const getKstDay = () => {
-      const now = new Date();
-      const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
-      const kstOffset = 9 * 60 * 60 * 1000;
-      const kstDate = new Date(utc + kstOffset);
-      const index = kstDate.getDay(); // 0: Sun, 1: Mon, ..., 6: Sat
-      setDayIndex(index);
+      // Original date calculation logic commented out for temporary display
+      // const now = new Date();
+      // const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
+      // const kstOffset = 9 * 60 * 60 * 1000;
+      // const kstDate = new Date(utc + kstOffset);
+      // const index = kstDate.getDay(); // 0: Sun, 1: Mon, ..., 6: Sat
+      
+      // Temporarily force display to Monday (day index 1) and QUIZ period
+      setDayIndex(1);
+      setPeriod("QUIZ");
 
-      if ([1, 2, 3].includes(index)) {
-        setPeriod("QUIZ");
-      } else if (index === 4) {
-        setPeriod("MATCHING");
-      } else { // Fri, Sat, Sun
-        setPeriod("CHATTING");
-      }
+      // Original conditional logic commented out
+      // if ([1, 2, 3].includes(index)) {
+      //   setPeriod("QUIZ");
+      // } else if (index === 4) {
+      //   setPeriod("MATCHING");
+      // } else { // Fri, Sat, Sun
+      //   setPeriod("CHATTING");
+      // }
     };
 
     getKstDay();

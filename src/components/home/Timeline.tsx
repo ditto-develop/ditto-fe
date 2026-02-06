@@ -121,6 +121,10 @@ interface TimeLineProps {
 
 export default function TimeLine({ date = new Date() }: TimeLineProps) {
   // 날짜에 따른 Step 계산 로직
+  // Temporarily force currentStep to 1 for "월~수" display
+  const currentStep = 1;
+
+  /*
   const currentStep = useMemo(() => {
     const utc = date.getTime() + (date.getTimezoneOffset() * 60 * 1000);
     const kstOffset = 9 * 60 * 60 * 1000;
@@ -140,6 +144,7 @@ export default function TimeLine({ date = new Date() }: TimeLineProps) {
     // 금(5), 토(6), 일(0) -> Step 3
     return 3;
   }, [date]);
+  */
 
   return (
     <Card

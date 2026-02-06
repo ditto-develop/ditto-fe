@@ -12,7 +12,7 @@ const ButtonContainer = styled.div`
   border-radius: 12px;
   border: 1px solid var(--Primary-Normal, #1a1815);
   cursor: pointer; 
-  background-color: #FEE500; 
+  background-color: transparent; 
   transition: opacity 0.2s;
 
   &:hover {
@@ -25,6 +25,7 @@ const ButtonInnerContainer = styled.div`
   justify-content: center;
   align-items: center;
   gap: 6px;
+
 `;
 
 declare global {

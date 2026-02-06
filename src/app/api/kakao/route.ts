@@ -9,18 +9,25 @@ export async function POST(request: Request) {
   }
 
  try {
+    // Log the values being used to help debug configuration issues
+    console.log("--- Sending to Kakao ---");
+    console.log("Using KAKAO_REST_API_KEY:", process.env.KAKAO_REST_API_KEY);
+    console.log("Using KAKAO_REDIRECT_URI:", process.env.KAKAO_REDIRECT_URI);
+    console.log("--------------------------");
+
     const tokenResponse = await fetch("https://kauth.kakao.com/oauth/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded;charset=utf-8" },
       body: new URLSearchParams({
         grant_type: "authorization_code",
-        client_id: process.env.NEXT_PUBLIC_KAKAO_JS_KEY!, // 서버 사이드 키 사용 (NEXT_PUBLIC 제거)
-        redirect_uri: process.env.NEXT_PUBLIC_REDIRECT_URI!, // 서버 환경 변수 사용 권장
+        client_id: process.env.KAKAO_REST_API_KEY!,
+        redirect_uri: process.env.KAKAO_REDIRECT_URI!,
         code: code,
       }),
     });
 
     const tokenData = await tokenResponse.json();
+    console.log("Kakao Token Data:", tokenData);
 
     if (!tokenData.access_token) {
       return NextResponse.json({ error: "Token fetch failed", details: tokenData }, { status: 400 });
@@ -35,6 +42,7 @@ export async function POST(request: Request) {
     });
 
     const userData = await userResponse.json();
+    console.log("Kakao User Data:", userData);
 
     // 3. 필요한 정보만 클라이언트로 전달
     return NextResponse.json({

@@ -4,7 +4,8 @@ import { useEffect, useState, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Body1Normal } from "@/components/common/Text";
 import styled from "styled-components";
-import Tutorial from "@/components/onboarding/Tutorial"; // 경로 확인 필요
+import Tutorial from "@/components/onboarding/Tutorial";
+import { ApiError, OpenAPI, UserService } from "@/lib/api";
 
 const LoadingContainer = styled.div`
   display: flex;
@@ -16,55 +17,87 @@ const LoadingContainer = styled.div`
 `;
 
 function KakaoLoginContent() {
-  const searchParams = useSearchParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const code = searchParams.get("code");
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [kakaoData, setKakaoData] = useState<any>(null);
+  const [initialData, setInitialData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   const isFetched = useRef(false);
 
   useEffect(() => {
-    if (!code) return; 
-    if (isFetched.current) return;
-    
-    isFetched.current = true; // 중복 호출 방지
+    if (!code || isFetched.current) return;
+    isFetched.current = true;
 
-    const fetchKakaoUser = async () => {
+    const handleLoginFlow = async () => {
+      console.log("Attempting login flow with code:", code);
       try {
-        const res = await fetch("/api/kakao", {
+        // 1. Get Kakao user info from our own API route
+        const kakaoResponse = await fetch("/api/kakao", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ code }),
         });
 
-        const data = await res.json();
-
-        if (res.ok && data.success) {
-          console.log("카카오 로그인 데이터 수신 성공:", data);
-          // 성공 시 kakaoData State 업데이트 -> 아래 return문에서 Tutorial 렌더링됨
-          setKakaoData(data);
-        } else {
-          console.error("카카오 로그인 실패:", data);
-          alert(`로그인 실패: ${data.error || "알 수 없는 오류"}`);
-          router.push("/"); // 실패 시 홈으로
+        const kakaoData = await kakaoResponse.json();
+        if (!kakaoResponse.ok || !kakaoData.kakaoId) {
+          throw new Error("카카오 사용자 정보를 가져오는데 실패했습니다.");
         }
-      } catch (err) {
-        console.error("Fetch 에러:", err);
-        alert("네트워크 오류가 발생했습니다.");
-        router.push("/");
+
+        const kakaoId = String(kakaoData.kakaoId);
+
+        // 2. Attempt social login
+        const loginResponse = await UserService.userControllerSocialLogin({
+          provider: "kakao",
+          providerUserId: kakaoId,
+        });
+        
+        console.log("Full social login response:", loginResponse);
+
+        // 3. Handle response based on the 'success' flag in the body
+        if (loginResponse.success && loginResponse.data?.accessToken) {
+          // SUCCESS: Existing user logged in
+          console.log("Login successful for existing user.");
+          const { accessToken, refreshToken } = loginResponse.data;
+          
+          localStorage.setItem("accessToken", accessToken);
+          if (refreshToken) {
+            localStorage.setItem("refreshToken", refreshToken);
+          }
+          
+          
+          router.push("/home"); // Redirect to home
+        } else {
+          // FAILURE: New user, or other login error -> Start signup
+          console.log("New user detected or login failed. Proceeding to sign-up.");
+          setInitialData(kakaoData);
+        }
+      } catch (err: any) {
+        // This will now only catch critical errors like network failure
+        console.error("Authentication process failed:", err);
+        setError(err.message || "알 수 없는 오류가 발생했습니다.");
       }
     };
 
-    fetchKakaoUser();
+    handleLoginFlow();
   }, [code, router]);
 
-  // ✅ 데이터가 로드되면 Tutorial을 렌더링 (initialData 전달)
-  // Tutorial 컴포넌트는 initialData를 받으면 Step 1부터 시작하도록 수정되었습니다.
-  if (kakaoData) {
-    return <Tutorial initialData={kakaoData} />;
+  // If there was an error, display it
+  if (error) {
+    return (
+      <LoadingContainer>
+        <Body1Normal>오류가 발생했습니다:</Body1Normal>
+        <Body1Normal>{error}</Body1Normal>
+      </LoadingContainer>
+    );
   }
 
+  // If we have initialData, it's a new user, so render the Tutorial
+  if (initialData) {
+    return <Tutorial initialData={initialData} />;
+  }
+
+  // Otherwise, show a loading indicator
   return (
     <LoadingContainer>
       <Body1Normal>카카오 로그인 처리 중입니다...</Body1Normal>
@@ -73,6 +106,7 @@ function KakaoLoginContent() {
 }
 
 export default function KakaoRedirectPage() {
+  // ... (rest of the component remains the same)
   return (
     <Suspense 
       fallback={

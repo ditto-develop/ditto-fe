@@ -139,7 +139,7 @@ export default function ThisWeekQuiz({ iscomplete }: ThisWeekQuizProps) {
               <img src="/home/quizstart.svg" />
               <BottomButton
                 onClick={() => {
-                  router.push("/quiz/12345");
+                  router.push("/quiz/current");
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
@@ -171,7 +171,7 @@ export default function ThisWeekQuiz({ iscomplete }: ThisWeekQuizProps) {
               </BottomButton>
               <BottomButton
                 onClick={() => {
-                  router.push("/quiz/12345");
+                  router.push("/quiz/current");
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>

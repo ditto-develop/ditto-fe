@@ -54,11 +54,15 @@ import {
 
 import OnboardingLayout from "./Onboarding_layout";
 
+
+
 import {
 
   Step0
 
 } from "./step/Step_0";
+
+
 
 import {
 
@@ -136,6 +140,20 @@ export default function Tutorial({ initialData }: TutorialProps) {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
+  // ✅ initialData가 변경될 때 formData를 업데이트
+  useEffect(() => {
+    if (initialData) {
+      setFormData((prev) => ({
+        ...prev,
+        email: initialData.email || prev.email,
+        pic: initialData.profileImage || prev.pic,
+        nickname: initialData.nickname || prev.nickname,
+        gender: initialData.gender === "male" ? "man" : initialData.gender === "female" ? "woman" : prev.gender,
+        kakaoId: initialData.kakaoId || prev.kakaoId,
+      }));
+    }
+  }, [initialData]);
+
   // ✅ 기존 회원 체크 로직 (Tutorial 마운트 시 실행)
   useEffect(() => {
     if (initialData) {
@@ -154,6 +172,11 @@ export default function Tutorial({ initialData }: TutorialProps) {
     if (loginResult.isRegistered) {
       router.push("/home");
     } else {
+      console.log('Kakao ID:', loginResult.kakaoId);
+      console.log('Nickname:', loginResult.nickname);
+      console.log('Profile Image:', loginResult.profileImage);
+      console.log('Email:', loginResult.email);
+      console.log('Gender:', loginResult.gender);
       setFormData((prev) => ({
         ...prev,
         kakaoId: loginResult.kakaoId,
@@ -214,16 +237,25 @@ export default function Tutorial({ initialData }: TutorialProps) {
         console.log("전송 데이터 확인:", createUserDto); 
 
         // [수정됨] 중복 호출 제거 (한 번만 호출)
-        await UserService.userControllerCreate(createUserDto);
+        const createResponse = await UserService.userControllerCreate(createUserDto);
+        console.log("Create User Response:", createResponse);
+
 
         // 회원가입 후 로그인 처리
         const loginResponse = await UserService.userControllerSocialLogin({
           provider: "kakao",
           providerUserId: String(formData.kakaoId),
         });
+        console.log("Social Login Response:", loginResponse);
 
         if (loginResponse.data?.accessToken) {
-          OpenAPI.TOKEN = loginResponse.data.accessToken;
+          // 토큰 저장
+          localStorage.setItem("accessToken", loginResponse.data.accessToken);
+          if (loginResponse.data.refreshToken) {
+            localStorage.setItem("refreshToken", loginResponse.data.refreshToken);
+          }
+
+          
           showToast("회원가입이 완료되었습니다!", "success");
           
           // 라우팅 경로 확인: /home 인지 /main 인지 통일 필요 (코드 상단엔 /home, 여긴 /main)
