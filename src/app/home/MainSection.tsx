@@ -21,7 +21,7 @@ export default function MainSection() {
 
   // NOTE: API 응답을 시뮬레이션하기 위한 임시 dummy data
   const [dummyApiData, setDummyApiData] = useState({
-    matchType: "many" as MatchingCardType,
+    matchType: "beforematch" as MatchingCardType,
     isQuizComplete: false,
     buttonState: "primary" as "primary" | "secondary" | "tertiary" | "disabled" | undefined,
   });
@@ -34,10 +34,10 @@ export default function MainSection() {
       // const kstOffset = 9 * 60 * 60 * 1000;
       // const kstDate = new Date(utc + kstOffset);
       // const index = kstDate.getDay(); // 0: Sun, 1: Mon, ..., 6: Sat
-      
-      // Temporarily force display to Monday (day index 1) and QUIZ period
-      setDayIndex(1);
-      setPeriod("QUIZ");
+
+      // Temporarily force display to Thursday (day index 4) and MATCHING period
+      setDayIndex(4);
+      setPeriod("MATCHING");
 
       // Original conditional logic commented out
       // if ([1, 2, 3].includes(index)) {
@@ -60,7 +60,7 @@ export default function MainSection() {
     switch (period) {
       case "QUIZ":
         return <ThisWeekQuiz iscomplete={dummyApiData.isQuizComplete} />;
-      
+
       case "MATCHING":
         return (
           <MatchingDay
@@ -80,7 +80,7 @@ export default function MainSection() {
             buttonState={dummyApiData.buttonState}
           />
         );
-        
+
       default:
         return null;
     }

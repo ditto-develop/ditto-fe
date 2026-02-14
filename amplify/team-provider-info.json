@@ -1,0 +1,23 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-dittofe-dev-c9927-authRole",
+      "UnauthRoleArn": "arn:aws:iam::053020126789:role/amplify-dittofe-dev-c9927-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::053020126789:role/amplify-dittofe-dev-c9927-authRole",
+      "Region": "ap-northeast-2",
+      "DeploymentBucketName": "amplify-dittofe-dev-c9927-deployment",
+      "UnauthRoleName": "amplify-dittofe-dev-c9927-unauthRole",
+      "StackName": "amplify-dittofe-dev-c9927",
+      "StackId": "arn:aws:cloudformation:ap-northeast-2:053020126789:stack/amplify-dittofe-dev-c9927/a64cd060-0958-11f1-8f10-0a7cfff4ec11",
+      "AmplifyAppId": "d2dhvptiq66hmj"
+    },
+    "categories": {
+      "hosting": {
+        "amplifyhosting": {
+          "appId": "d2dhvptiq66hmj",
+          "type": "cicd"
+        }
+      }
+    }
+  }
+}

@@ -1,15 +1,15 @@
-import type { Preview } from '@storybook/nextjs-vite'
-import "../src/app/styles/token/atomic.css"; // 경로는 프로젝트 구조에 맞게 수정
-import "../src/app/styles/token/semantic.css"; // ← 지금 올린 시멘틱 토큰 파일
+import type { Preview } from '@storybook/react'
+import "../src/styles/token/atomic.css";
+import "../src/styles/token/semantic.css";
 
 const preview: Preview = {
-  
+
   parameters: {
     actions: { argTypesRegex: "^on[A-Z].*" },
     controls: {
       matchers: {
-       color: /(background|color)$/i,
-       date: /Date$/i,
+        color: /(background|color)$/i,
+        date: /Date$/i,
       },
     },
 

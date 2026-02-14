@@ -11,7 +11,7 @@ import {
   Label1Normal,
   Label2,
 } from "@/components/common/Text";
-import Card from "@/components/display/Card";
+import Card, { AlertStatus } from "@/components/display/Card";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import {
   ProfileImg,
@@ -21,6 +21,7 @@ import { useTargetDayCountdown } from "@/lib/hooks/useKstCountdown";
 import { useState } from "react";
 import styled from "styled-components";
 import BottomSheet from "../display/BottomSheet";
+import MatchingResultModal from "./MatchingResultModal";
 
 //- Styled Components
 //================================================================================================
@@ -226,12 +227,22 @@ const MeLabel = styled.div`
 
 const SelectImgDiv = styled.div`
   display: flex;
-  padding: var(--Margin-Content-Content, 20px);
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-6, 24px);
   flex: 1 0 0;
   align-self: stretch;
+  height: 510px;
+  overflow-y: auto;
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Hide scrollbar for IE, Edge and Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 `;
 
 const ProfileContainer = styled.div`
@@ -248,6 +259,55 @@ const LabelContainer = styled.div`
   align-items: left;
   gap: 4px;
   flex: 1 0 0;
+`;
+
+// ✅ Local Styled Components for BottomSheet Profile
+const BSBadgeRowContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+`;
+
+const BSContentBadge = styled.div<{ $status: AlertStatus }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0px 6px;
+  gap: 4px; /* Space between icon and text if any */
+  border-radius: 6px;
+  background-color: ${({ $status }) => {
+    switch ($status) {
+      case 'positive':
+        return 'rgba(85, 122, 85, 0.08)'; // var(--color-semantic-status-positive)
+      case 'cautionary':
+        return 'rgba(235, 90, 60, 0.08)'; // var(--color-semantic-status-cautionary)
+      case 'navy':
+        return 'rgba(from var(--color-semantic-accent-foreground-Navy) r g b / 0.08)';
+      case 'destructive':
+      default:
+        return 'rgba(179, 53, 40, 0.08)'; // var(--color-semantic-status-negative)
+    }
+  }};
+  height: 24px;
+`;
+
+const ProfileCardWrapper = styled.div`
+  width: 100%;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background-color: var(--color-semantic-fill-normal, rgba(108, 101, 95, 0.08));
+  box-sizing: border-box;
+`;
+
+const ListItemContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* Gap between BadgeRow and ProfileCard */
+  width: 100%;
 `;
 
 //- Types
@@ -268,6 +328,7 @@ type MatchingButtonProps = {
   cardType: MatchingCardType;
   buttonState: ButtonStateType;
   isChatTime: boolean;
+  onClick?: () => void;
 };
 
 export interface Profile {
@@ -277,7 +338,9 @@ export interface Profile {
   location: string;
   bio: string;
   avatarUrl: string;
+
   isMe?: boolean;
+  matchCount?: number;
 }
 
 //- Dummy Data
@@ -290,14 +353,16 @@ const dummyProfiles: Profile[] = [
     location: "서울",
     bio: "느긋한 집순이",
     avatarUrl: "/onboarding/profileimg/avatar/f1.svg",
+    matchCount: 8,
   },
   {
     name: "safdaflnk",
     age: 23,
     gender: "남성",
     location: "서울",
-    bio: "느긋한 집순이",
+    bio: "디코 좋아하는 겜돌이",
     avatarUrl: "/onboarding/profileimg/avatar/f2.svg",
+    matchCount: 9,
   },
   {
     name: "러너쓰하이",
@@ -306,6 +371,7 @@ const dummyProfiles: Profile[] = [
     location: "서울",
     bio: "3대 1000의 남자",
     avatarUrl: "/onboarding/profileimg/avatar/f5.svg",
+    matchCount: 7,
   },
   {
     name: "개굴개굴렌",
@@ -315,8 +381,37 @@ const dummyProfiles: Profile[] = [
     bio: "테토남 이런거 싫어함",
     avatarUrl: "/onboarding/profileimg/avatar/m3.svg",
     isMe: true,
+    matchCount: 5,
   },
 ];
+
+const getMatchBadgeInfo = (count: number): { badge: string; color: AlertStatus; description: string } => {
+  if (count >= 11) {
+    return {
+      badge: "🌟 당신과 가장 비슷해요",
+      color: "destructive", // Semantic/Status/Negative
+      description: `12개중 ${count}개 일치`
+    };
+  } else if (count >= 8) {
+    return {
+      badge: "😊 대부분 비슷하게 생각해요",
+      color: "destructive", // Semantic/Status/Negative
+      description: `12개중 ${count}개 일치`
+    };
+  } else if (count >= 6) {
+    return {
+      badge: "🙂 비슷하지만 새로운 관점도 있어요",
+      color: "cautionary", // Semantic/Status/Cautionary
+      description: `12개중 ${count}개 일치`
+    };
+  } else {
+    return {
+      badge: "👀 다르게 생각하는 편이에요",
+      color: "navy", // Semantic/Accent/Foreground/Navy
+      description: `12개중 ${count}개 일치`
+    };
+  }
+};
 
 //- Helper Functions
 //================================================================================================
@@ -594,6 +689,7 @@ const MatchingButton = ({
   cardType,
   buttonState,
   isChatTime,
+  onClick,
 }: MatchingButtonProps) => {
   const getButtonProps = () => {
     if (cardType === "beforematch") {
@@ -623,7 +719,7 @@ const MatchingButton = ({
         <ActionSheet>
           <ActionButton
             variant="disabled"
-            onClick={() => {}}
+            onClick={() => { }}
             icon={<img src="/home/icons/locker.svg" />}
           >
             대화 시작하기
@@ -638,7 +734,7 @@ const MatchingButton = ({
       <ActionSheet>
         <ActionButton
           variant={buttonState}
-          onClick={() => {}}
+          onClick={onClick || (() => { })}
           icon={<img src={buttonProps.icon} />}
         >
           {buttonProps.text}
@@ -648,29 +744,50 @@ const MatchingButton = ({
   );
 };
 
-const BottomSheetProfile = ({ profile }: { profile: Profile }) => (
-  <ProfileContainer>
-    <ProfileWrapper>
-      <ProfileImg imageUrl={profile.avatarUrl} />
-    </ProfileWrapper>
-    <LabelContainer>
-      <div style={{ display: "flex", gap: "12px" }}>
-        <Headline2 style={{ paddingTop: "2px" }}>{profile.name}</Headline2>
-        {profile.isMe && (
-          <MeLabel>
-            <Caption1 $color="white">나</Caption1>
-          </MeLabel>
-        )}
-      </div>
-      <Label2 $color="var(--color-semantic-label-alternative)">
-        {profile.age}세 · {profile.gender} · {profile.location}
-      </Label2>
-      <Label2 $color="var(--color-semantic-label-alternative)">
-        {profile.bio}
-      </Label2>
-    </LabelContainer>
-  </ProfileContainer>
-);
+const BottomSheetProfile = ({ profile }: { profile: Profile }) => {
+  const badgeInfo = profile.matchCount ? getMatchBadgeInfo(profile.matchCount) : null;
+
+  return (
+    <ListItemContainer>
+      {badgeInfo && (
+        <BSBadgeRowContainer>
+          <BSContentBadge $status={badgeInfo.color}>
+            <Caption1 $color={
+              badgeInfo.color === 'positive' ? 'var(--color-semantic-status-positive)' :
+                badgeInfo.color === 'cautionary' ? 'var(--color-semantic-status-cautionary)' :
+                  badgeInfo.color === 'navy' ? 'var(--color-semantic-accent-foreground-Navy)' :
+                    'var(--color-semantic-status-negative)'
+            }>{badgeInfo.badge}</Caption1>
+          </BSContentBadge>
+          <Caption1 $color="var(--color-semantic-label-alternative)">{badgeInfo.description}</Caption1>
+        </BSBadgeRowContainer>
+      )}
+      <ProfileCardWrapper>
+        <ProfileWrapper>
+          <ProfileImg imageUrl={profile.avatarUrl} />
+        </ProfileWrapper>
+        <LabelContainer>
+          <div style={{ display: "flex", gap: "12px" }}>
+            <Headline2 style={{ paddingTop: "2px" }}>{profile.name}</Headline2>
+            {profile.isMe && (
+              <MeLabel>
+                <Caption1 $color="white">나</Caption1>
+              </MeLabel>
+            )}
+          </div>
+          <Label2 $color="var(--color-semantic-label-alternative)">
+            {profile.age}세 · {profile.gender} · {profile.location}
+          </Label2>
+          <Label2 $color="var(--color-semantic-label-alternative)">
+            {profile.bio}
+          </Label2>
+        </LabelContainer>
+        {/* Chevron Icon */}
+        <img src="/home/icons/chevron-right.svg" alt="detail" style={{ width: 24, height: 24, opacity: 0.3 }} />
+      </ProfileCardWrapper>
+    </ListItemContainer>
+  );
+};
 
 //- Main Component
 //================================================================================================
@@ -686,6 +803,7 @@ export default function MatchingDay({
   isChatTime: boolean;
 }) {
   const [profileSelect, setProfileSelect] = useState(false);
+  const [isMatchingResultOpen, setIsMatchingResultOpen] = useState(false);
 
   const openProfileSelector = () => setProfileSelect(true);
   const closeProfileSelector = () => setProfileSelect(false);
@@ -695,17 +813,31 @@ export default function MatchingDay({
 
   if (matchType === "beforematch") {
     return (
-      <Card
-        title="이번주 매칭"
-        viewCard={<BeforeMatchCard timeLeft={timeLeft} />}
-        buttonSection={
-          <MatchingButton
-            cardType={matchType}
-            buttonState={buttonState}
-            isChatTime={isChatTime}
-          />
-        }
-      />
+      <>
+        <Card
+          title="이번주 매칭"
+          alert={!isChatTime ? "결과 확인" : undefined}
+          alertType={!isChatTime ? "destructive" : undefined}
+          subTitle={
+            <>
+              나와 같이 생각하는 사람들을 만나볼까요?<br />소개 노트를 확인하고 대화를 신청해보세요.
+            </>
+          }
+          viewCard={<BeforeMatchCard timeLeft={timeLeft} />}
+          buttonSection={
+            <MatchingButton
+              cardType={matchType}
+              buttonState={buttonState}
+              isChatTime={isChatTime}
+              onClick={() => setIsMatchingResultOpen(true)}
+            />
+          }
+        />
+        <MatchingResultModal
+          isOpen={isMatchingResultOpen}
+          onClose={() => setIsMatchingResultOpen(false)}
+        />
+      </>
     );
   }
 
@@ -718,12 +850,22 @@ export default function MatchingDay({
     );
   }
 
+  // Placeholder for match count (in real app, this would come from props or API)
+  const matchCount = 11;
+
+
+
+  const badgeInfo = getMatchBadgeInfo(matchCount);
+
   return (
     <>
       <Card
         title={isChatTime ? "이번주 만남" : "이번주 매칭"}
         alert={!isChatTime ? "매칭 완료" : undefined}
         alertType={!isChatTime ? "positive" : undefined}
+        contentBadge={!isChatTime ? badgeInfo.badge : undefined}
+        contentBadgeColor={!isChatTime ? badgeInfo.color : undefined}
+        contentDescription={!isChatTime ? badgeInfo.description : undefined}
         subTitle={
           isChatTime ? (
             <>
@@ -765,7 +907,6 @@ export default function MatchingDay({
       {profileSelect && (
         <BottomSheet
           title="프로필 선택"
-          subTitle="자세히 보고 싶은 프로필을 선택해주세요."
           detail={
             <SelectImgDiv>
               {dummyProfiles.map((profile) => (

@@ -14,11 +14,11 @@ export default function Nav({ prev, close, label }: NavProps) {
       {/* prev 함수가 있을 때만 보이지만(visible), 
          없어도 공간은 차지하게(hidden) 해서 라벨 정중앙 유지 
       */}
-      <IconBox 
-        onClick={prev} 
+      <IconBox
+        onClick={prev}
         $isVisible={!!prev}
       >
-        <IconImg src="/nav/Arrow.svg" alt="back" />
+        <IconImg src="/nav/arrow.svg" alt="back" />
       </IconBox>
 
       {/* 중앙 라벨 */}
@@ -27,11 +27,11 @@ export default function Nav({ prev, close, label }: NavProps) {
       </Heading1Bold>
 
       {/* close 함수 유무에 따른 처리 */}
-      <IconBox 
-        onClick={close} 
+      <IconBox
+        onClick={close}
         $isVisible={!!close}
       >
-        <IconImg src="/nav/X.svg" alt="close" />
+        <IconImg src="/nav/x.svg" alt="close" />
       </IconBox>
     </NavContainer>
   );

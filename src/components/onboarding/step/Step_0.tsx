@@ -50,9 +50,9 @@ export function Step0({ onLoginComplete }: Step0Props) {
             <TopCarousleContainer>
               <SplashCarousel
                 images={[
-                  "/onboarding/lobbyimg/lobbyimg-1.svg",
-                  "/onboarding/lobbyimg/lobbyimg-2.svg",
-                  "/onboarding/lobbyimg/lobbyimg-3.svg",
+                  "/onboarding/lobbyimg/lobbyImg-1.svg",
+                  "/onboarding/lobbyimg/lobbyImg-2.svg",
+                  "/onboarding/lobbyimg/lobbyImg-3.svg",
                 ]}
                 interval={2000}
               />

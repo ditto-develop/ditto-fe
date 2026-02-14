@@ -2,10 +2,10 @@
 
 import styled from "styled-components";
 import { ReactNode } from "react";
-import { Heading2Bold, Label1Normal } from "../common/Text";
+import { Caption1, Heading2Bold, Label1Normal } from "../common/Text";
 
 // --- Types ---
-type AlertStatus = 'positive' | 'cautionary' | 'destructive';
+export type AlertStatus = 'positive' | 'cautionary' | 'destructive' | 'navy';
 
 // --- Styled Components (Layout & Basic Structure) ---
 
@@ -56,6 +56,42 @@ const AlertBadge = styled.div<{ $status: AlertStatus }>`
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
+  line-height: 100%; /* Center text vertically */
+`;
+
+// ✅ Content Badge Row Styles
+const BadgeRowContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: -16px; /* 24px(gap) - 16px = 8px */
+`;
+
+// ✅ AlertBadge 스타일 수정 (Props에 따라 색상 변경)
+// Reuse AlertStatus type for consistency
+const ContentBadge = styled.div<{ $status: AlertStatus }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0px 6px;
+  gap: 4px;
+  border-radius: 6px;
+  /* Background color mapping based on status with opacity */
+  background-color: ${({ $status }) => {
+    switch ($status) {
+      case 'positive':
+        return 'rgba(85, 122, 85, 0.08)'; // var(--color-semantic-status-positive) #557A55
+      case 'cautionary':
+        return 'rgba(235, 90, 60, 0.08)'; // var(--color-semantic-status-cautionary)
+      case 'navy':
+        return 'rgba(from var(--color-semantic-accent-foreground-Navy) r g b / 0.08)';
+      case 'destructive':
+      default:
+        return 'rgba(179, 53, 40, 0.08)'; // var(--color-semantic-status-negative)
+    }
+  }};
+  height: 24px;
 `;
 
 const ViewSectionWrapper = styled.div`
@@ -98,6 +134,9 @@ export const DecoImg = styled.img`
 interface CardProps {
   title: string;
   subTitle?: string | ReactNode;
+  contentBadge?: string; // ✅ New Prop
+  contentBadgeColor?: AlertStatus; // ✅ New Prop for Badge Color
+  contentDescription?: string; // ✅ New Prop
   alert?: string | ReactNode;
   alertType?: AlertStatus; // ✅ 알림 뱃지 색상 타입 추가 (기본값 처리는 컴포넌트에서)
   viewSection?: ReactNode;
@@ -110,6 +149,9 @@ interface CardProps {
 export default function Card({
   title,
   subTitle,
+  contentBadge,
+  contentBadgeColor = 'destructive', // Default to destructive (red)
+  contentDescription,
   alert,
   alertType = 'destructive', // ✅ 기본값 설정 (빨간색)
   viewSection,
@@ -119,18 +161,18 @@ export default function Card({
   return (
     <CardContainer>
       {/* 0. Deco Image */}
-      <DecoImg 
+      <DecoImg
         src='/display/deco.svg'
         alt="decoration"
       />
-      
+
       {/* 1. Header Area */}
       <HeaderSection>
         <TitleGroup>
           <Heading2Bold $weight="bold">{title}</Heading2Bold>
           {subTitle && <Label1Normal $weight="medium">{subTitle}</Label1Normal>}
         </TitleGroup>
-        
+
         {/* alert가 있을 때만 렌더링하며, alertType을 스타일로 전달 */}
         {alert && (
           <AlertBadge $status={alertType}>
@@ -139,21 +181,40 @@ export default function Card({
         )}
       </HeaderSection>
 
-      {/* 2. View Section */}
+      {/* 2. Content Badge Row (Optional) */}
+      {(contentBadge || contentDescription) && (
+        <BadgeRowContainer>
+          {contentBadge && (
+            <ContentBadge $status={contentBadgeColor}>
+              <Caption1 $color={
+                contentBadgeColor === 'positive' ? 'var(--color-semantic-status-positive)' :
+                  contentBadgeColor === 'cautionary' ? 'var(--color-semantic-status-cautionary)' :
+                    contentBadgeColor === 'navy' ? 'var(--color-semantic-accent-foreground-Navy)' :
+                      'var(--color-semantic-status-negative)' // destructive
+              }>{contentBadge}</Caption1>
+            </ContentBadge>
+          )}
+          {contentDescription && (
+            <Caption1 $color="var(--color-semantic-label-alternative)">{contentDescription}</Caption1>
+          )}
+        </BadgeRowContainer>
+      )}
+
+      {/* 3. View Section */}
       {viewSection && (
         <ViewSectionWrapper>
           {viewSection}
         </ViewSectionWrapper>
       )}
 
-      {/* 3. View Section */}
+      {/* 4. View Section */}
       {viewCard && (
         <ViewCardWrapper>
           {viewCard}
         </ViewCardWrapper>
       )}
 
-      {/* 3. Button Section */}
+      {/* 5. Button Section */}
       {buttonSection && (
         <ButtonSectionWrapper>
           {buttonSection}
