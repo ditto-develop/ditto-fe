@@ -2,17 +2,19 @@
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
-  const { code } = await request.json();
+  const { code, redirectUri } = await request.json();
 
   if (!code) {
     return NextResponse.json({ error: "No code provided" }, { status: 400 });
   }
 
- try {
+  try {
+    const finalRedirectUri = redirectUri || process.env.KAKAO_REDIRECT_URI!;
+
     // Log the values being used to help debug configuration issues
     console.log("--- Sending to Kakao ---");
     console.log("Using KAKAO_REST_API_KEY:", process.env.KAKAO_REST_API_KEY);
-    console.log("Using KAKAO_REDIRECT_URI:", process.env.KAKAO_REDIRECT_URI);
+    console.log("Using KAKAO_REDIRECT_URI:", finalRedirectUri);
     console.log("--------------------------");
 
     const tokenResponse = await fetch("https://kauth.kakao.com/oauth/token", {
@@ -21,7 +23,7 @@ export async function POST(request: Request) {
       body: new URLSearchParams({
         grant_type: "authorization_code",
         client_id: process.env.KAKAO_REST_API_KEY!,
-        redirect_uri: process.env.KAKAO_REDIRECT_URI!,
+        redirect_uri: finalRedirectUri,
         code: code,
       }),
     });

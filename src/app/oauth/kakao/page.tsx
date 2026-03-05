@@ -20,7 +20,7 @@ function KakaoLoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const code = searchParams.get("code");
-  
+
   const [initialData, setInitialData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const isFetched = useRef(false);
@@ -33,10 +33,11 @@ function KakaoLoginContent() {
       console.log("Attempting login flow with code:", code);
       try {
         // 1. Get Kakao user info from our own API route
+        const redirectUri = `${window.location.origin}/oauth/kakao`;
         const kakaoResponse = await fetch("/api/kakao", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code }),
+          body: JSON.stringify({ code, redirectUri }),
         });
 
         const kakaoData = await kakaoResponse.json();
@@ -51,7 +52,7 @@ function KakaoLoginContent() {
           provider: "kakao",
           providerUserId: kakaoId,
         });
-        
+
         console.log("Full social login response:", loginResponse);
 
         // 3. Handle response based on the 'success' flag in the body
@@ -59,13 +60,13 @@ function KakaoLoginContent() {
           // SUCCESS: Existing user logged in
           console.log("Login successful for existing user.");
           const { accessToken, refreshToken } = loginResponse.data;
-          
+
           localStorage.setItem("accessToken", accessToken);
           if (refreshToken) {
             localStorage.setItem("refreshToken", refreshToken);
           }
-          
-          
+
+
           router.push("/home"); // Redirect to home
         } else {
           // FAILURE: New user, or other login error -> Start signup
@@ -108,7 +109,7 @@ function KakaoLoginContent() {
 export default function KakaoRedirectPage() {
   // ... (rest of the component remains the same)
   return (
-    <Suspense 
+    <Suspense
       fallback={
         <LoadingContainer>
           <Body1Normal>페이지 로딩 중...</Body1Normal>
