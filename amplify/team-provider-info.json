@@ -10,6 +10,14 @@
       "StackName": "amplify-dittofe-dev-071fe",
       "StackId": "arn:aws:cloudformation:ap-northeast-2:053020126789:stack/amplify-dittofe-dev-071fe/fad8cac0-0963-11f1-bb5b-02b004dbf371",
       "AmplifyAppId": "d37s3bjxvyrk1b"
+    },
+    "categories": {
+      "hosting": {
+        "amplifyhosting": {
+          "appId": "d37s3bjxvyrk1b",
+          "type": "manual"
+        }
+      }
     }
   }
 }

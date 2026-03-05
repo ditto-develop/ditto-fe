@@ -47,17 +47,27 @@ export async function POST(request: Request) {
     console.log("Kakao User Data:", userData);
 
     // 3. 필요한 정보만 클라이언트로 전달
-    return NextResponse.json({
+    console.log("Preparing to send success response back to client...");
+    const responsePayload = {
       success: true,
       kakaoId: userData.id,
       nickname: userData.properties?.nickname,
       profileImage: userData.properties?.profile_image,
       email: userData.kakao_account?.email, // 이메일 동의 시
       gender: userData.kakao_account?.gender, // 성별 동의 시
-    });
+    };
+    console.log("Response payload:", JSON.stringify(responsePayload));
+    return NextResponse.json(responsePayload);
 
   } catch (error) {
-    console.error("Kakao Login Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("Kakao Login Error Caught Block:", error);
+    // @ts-ignore
+    console.error("Error Name:", error?.name);
+    // @ts-ignore
+    console.error("Error Message:", error?.message);
+    // @ts-ignore
+    console.error("Error Stack:", error?.stack);
+
+    return NextResponse.json({ error: "Internal Server Error", details: String(error) }, { status: 500 });
   }
 }
