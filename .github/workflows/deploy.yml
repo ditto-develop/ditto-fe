@@ -53,7 +53,9 @@ jobs:
             
             echo ">>> Docker compose restart web"
             cd /home/ubuntu/ditto
-            sudo docker compose up -d --force-recreate web
+            sudo docker compose stop web || true
+            sudo docker compose rm -f web || true
+            sudo docker compose up -d web
 
             echo ">>> Remove unused docker images"
             sudo docker image prune -f

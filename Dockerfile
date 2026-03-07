@@ -1,6 +1,5 @@
 # 1) deps 단계: node_modules 설치
-FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat
+FROM node:20-slim AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json* pnpm-lock.yaml* yarn.lock* .npmrc* ./
@@ -12,7 +11,7 @@ RUN \
   fi
 
 # 2) builder 단계: Next.js 앱 빌드
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -22,7 +21,7 @@ ENV NODE_ENV=production
 RUN npm run build
 
 # 3) runner 단계: Next.js 앱 실행
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -38,7 +37,7 @@ CMD ["node", "server.js"]
 # --------------------------------------------------------
 # 4) storybook-builder 단계: Storybook 정적 빌드
 # --------------------------------------------------------
-FROM node:20-alpine AS storybook-builder
+FROM node:20-slim AS storybook-builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
