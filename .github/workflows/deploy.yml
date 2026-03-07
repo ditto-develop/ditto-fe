@@ -28,11 +28,23 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT || 22 }}
           script: |
+            set -e
             echo ">>> Move to project directory"
-            cd /home/ubuntu/ditto-fe || { echo "Directory not found, cloning..."; git clone git@github.com-ditto-fe:Ditto-devHQ/ditto-fe.git /home/ubuntu/ditto-fe && cd /home/ubuntu/ditto-fe; }
+            if [ -d "/home/ubuntu/ditto-fe/.git" ]; then
+              cd /home/ubuntu/ditto-fe
+            else
+              echo "Git repository not found, cloning..."
+              rm -rf /home/ubuntu/ditto-fe
+              git clone git@github.com-ditto-fe:ditto-develop/ditto-fe.git /home/ubuntu/ditto-fe
+              cd /home/ubuntu/ditto-fe
+            fi
+
+            echo ">>> Inspecting directory structure"
+            pwd
+            ls -la
 
             echo ">>> Git fetch & reset to origin/main"
-            git remote set-url origin git@github.com-ditto-fe:Ditto-devHQ/ditto-fe.git
+            git remote set-url origin git@github.com-ditto-fe:ditto-develop/ditto-fe.git
             git fetch origin main
             git reset --hard origin/main
 
@@ -41,7 +53,7 @@ jobs:
             
             echo ">>> Docker compose restart web"
             cd /home/ubuntu/ditto
-            sudo docker-compose up -d web
+            sudo docker-compose up -d --no-deps web
 
             echo ">>> Remove unused docker images"
             sudo docker image prune -f
