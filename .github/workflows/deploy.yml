@@ -35,7 +35,7 @@ jobs:
             else
               echo "Git repository not found, cloning..."
               rm -rf /home/ubuntu/ditto-fe
-              git clone git@github.com-ditto-fe:ditto-develop/ditto-fe.git /home/ubuntu/ditto-fe
+              git clone https://github.com/ditto-develop/ditto-fe.git /home/ubuntu/ditto-fe
               cd /home/ubuntu/ditto-fe
             fi
 
@@ -44,7 +44,7 @@ jobs:
             ls -la
 
             echo ">>> Git fetch & reset to origin/main"
-            git remote set-url origin git@github.com-ditto-fe:ditto-develop/ditto-fe.git
+            git remote set-url origin https://github.com/ditto-develop/ditto-fe.git
             git fetch origin main
             git reset --hard origin/main
 
