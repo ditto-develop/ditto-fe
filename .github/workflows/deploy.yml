@@ -49,7 +49,7 @@ jobs:
             git reset --hard origin/main
 
             echo ">>> Build FE docker image"
-            sudo docker build -t ditto-fe:latest .
+            sudo docker build --target runner -t ditto-fe:latest .
             
             echo ">>> Docker compose restart web"
             cd /home/ubuntu/ditto
