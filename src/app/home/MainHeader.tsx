@@ -24,7 +24,7 @@ export default function MainHeader(){
             />
             
             <img 
-                src='/nav/alarm.svg'
+                src='/icons/navigation/alarm.svg'
                 style={{paddingTop: '4px'}}
             />
         </Header>

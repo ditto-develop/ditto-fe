@@ -10,7 +10,7 @@ import { Body2Normal } from '@/components/common/Text';
 interface BottomToastProps {
   id: string; // ✅ 식별자 추가
   message: React.ReactNode;
-  type?: 'default' | 'info' | 'success' | 'warning' | 'error';
+  type?: 'default' | 'info' | 'success' | 'warning' | 'error' | 'none';
   duration?: number;
   onClose: () => void;
   actionLabel?: React.ReactNode;
@@ -97,18 +97,20 @@ const BottomToast: React.FC<BottomToastProps> = ({
   const getToastIcon = (type: unknown) => {
     switch (type) {
       case 'success':
-        return <img src="/toast/success.svg" alt="success" />;
+        return <img src="/icons/status/success.svg" alt="success" />;
       case 'warning':
-        return <img src="/toast/warning.svg" alt="warning" />;
+        return <img src="/icons/status/warning.svg" alt="warning" />;
       case 'error':
-        return <img src="/toast/error.svg" alt="error" />;
+        return <img src="/icons/status/error.svg" alt="error" />;
       case 'info':
         return <Scan size={20} color="#d1d5db" />;
+      case 'none':
+        return null;
       default:
         // For 'default' type, show a close button if no other icon is specified
         return (
           <CloseButton onClick={onClose}>
-            <img src="/nav/x.svg" alt="close" width="16" height="16" />
+            <img src="/icons/navigation/close.svg" alt="close" width="16" height="16" />
           </CloseButton>
         );
     }
@@ -118,20 +120,21 @@ const BottomToast: React.FC<BottomToastProps> = ({
 
   // Timer logic
   useEffect(() => {
-    if (duration > 0) {
+    if (duration && duration > 0) {
       const timer = setTimeout(() => {
         onClose();
       }, duration);
       return () => clearTimeout(timer);
     }
-  }, [duration, onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [duration]);
 
   return (
     <ToastItemWrapper>
       <LeftSection>
         {iconNode}
         {typeof message === 'string' ? (
-          <Body2Normal $color="white">{message}</Body2Normal>
+          <Body2Normal $color="white" $weight="semibold" style={{ opacity: 0.88 }}>{message}</Body2Normal>
         ) : (
           message
         )}

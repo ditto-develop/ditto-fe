@@ -352,7 +352,7 @@ const dummyProfiles: Profile[] = [
     gender: "여성",
     location: "서울",
     bio: "느긋한 집순이",
-    avatarUrl: "/onboarding/profileimg/avatar/f1.svg",
+    avatarUrl: "/assets/avatar/f1.svg",
     matchCount: 8,
   },
   {
@@ -361,7 +361,7 @@ const dummyProfiles: Profile[] = [
     gender: "남성",
     location: "서울",
     bio: "디코 좋아하는 겜돌이",
-    avatarUrl: "/onboarding/profileimg/avatar/f2.svg",
+    avatarUrl: "/assets/avatar/f2.svg",
     matchCount: 9,
   },
   {
@@ -370,7 +370,7 @@ const dummyProfiles: Profile[] = [
     gender: "남성",
     location: "서울",
     bio: "3대 1000의 남자",
-    avatarUrl: "/onboarding/profileimg/avatar/f5.svg",
+    avatarUrl: "/assets/avatar/f5.svg",
     matchCount: 7,
   },
   {
@@ -379,7 +379,7 @@ const dummyProfiles: Profile[] = [
     gender: "여성",
     location: "서울",
     bio: "테토남 이런거 싫어함",
-    avatarUrl: "/onboarding/profileimg/avatar/m3.svg",
+    avatarUrl: "/assets/avatar/m3.svg",
     isMe: true,
     matchCount: 5,
   },
@@ -428,14 +428,14 @@ const BeforeMatchCard = ({ timeLeft }: { timeLeft: string }) => (
     <FCardContainer>
       <FCardDivContainer>
         <CardDivContainer>
-          <img src="/home/icons/time.svg" />
+          <img src="/icons/status/time.svg" />
           <Label2 $color="var(--color-semantic-label-alternative)">
             남은 시간
           </Label2>
           <Body1Bold $weight="bold">{timeLeft}</Body1Bold>
         </CardDivContainer>
       </FCardDivContainer>
-      <img src="/home/quizpeople.svg" />
+      <img src="/assets/illustration/quizpeople.svg" />
     </FCardContainer>
   </CardContainer>
 );
@@ -464,7 +464,7 @@ const OneOnOneMatchCard = ({ timeLeft }: { timeLeft: string }) => (
     <MatchingContainer>
       <MatchingTopContainer>
         <ProfileWrapper>
-          <ProfileImg imageUrl={"/onboarding/profileimg/avatar/f1.svg"} />
+          <ProfileImg imageUrl={"/assets/avatar/f1.svg"} />
         </ProfileWrapper>
         <MatchingToplabel>
           <Heading2Bold>사부작사부작</Heading2Bold>
@@ -478,7 +478,7 @@ const OneOnOneMatchCard = ({ timeLeft }: { timeLeft: string }) => (
       </MatchingTopContainer>
       <MatchingBottomContainer>
         <div style={{ display: "flex", gap: "8px" }}>
-          <img src="/home/icons/redclock.svg" />
+          <img src="/icons/status/clock-red.svg" />
           <Label2 style={{ paddingTop: "2px" }}>남은 시간</Label2>
         </div>
         <Body1Bold style={{ paddingTop: "2px" }}>{timeLeft}</Body1Bold>
@@ -510,15 +510,15 @@ const MatchingView = ({
               <TopImgContainer onClick={openProfileSelector}>
                 <ProfileImg
                   style={{ width: "40px", height: "40px" }}
-                  imageUrl={"/onboarding/profileimg/avatar/f1.svg"}
+                  imageUrl={"/assets/avatar/f1.svg"}
                 />
                 <ProfileImg
                   style={{ width: "40px", height: "40px" }}
-                  imageUrl={"/onboarding/profileimg/avatar/m3.svg"}
+                  imageUrl={"/assets/avatar/m3.svg"}
                 />
                 <ProfileImg
                   style={{ width: "40px", height: "40px" }}
-                  imageUrl={"/onboarding/profileimg/avatar/m2.svg"}
+                  imageUrl={"/assets/avatar/m2.svg"}
                 />
                 <Plusmember>
                   <Label1Normal $color="white" $weight="bold">
@@ -533,7 +533,7 @@ const MatchingView = ({
             </TopContainer>
             <MatchingBottomContainer>
               <div style={{ display: "flex", gap: "8px" }}>
-                <img src="/home/icons/redclock.svg" />
+                <img src="/icons/status/clock-red.svg" />
                 <Label2 style={{ paddingTop: "2px" }}>남은 시간</Label2>
               </div>
               <Body1Bold style={{ paddingTop: "2px" }}>{timeLeft}</Body1Bold>
@@ -560,7 +560,7 @@ const ChattingView = ({
       <CardContainer>
         <ChatMainContainer>
           <ProfileWrapper>
-            <ProfileImg imageUrl={"/onboarding/profileimg/avatar/f1.svg"} />
+            <ProfileImg imageUrl={"/assets/avatar/f1.svg"} />
             <NotificationBadge>
               <Caption2
                 style={{ paddingTop: "1px" }}
@@ -591,7 +591,7 @@ const ChattingView = ({
                     {timeMondayLeft}
                   </Body1Bold>
                   <img
-                    src="/home/icons/yellowclock.svg"
+                    src="/icons/status/clock-yellow.svg"
                     alt="clock"
                     style={{ width: "14px", height: "14px" }}
                   />
@@ -617,15 +617,15 @@ const ChattingView = ({
             <TopImgContainer onClick={openProfileSelector}>
               <ProfileImg
                 style={{ width: "40px", height: "40px" }}
-                imageUrl={"/onboarding/profileimg/avatar/f1.svg"}
+                imageUrl={"/assets/avatar/f1.svg"}
               />
               <ProfileImg
                 style={{ width: "40px", height: "40px" }}
-                imageUrl={"/onboarding/profileimg/avatar/m3.svg"}
+                imageUrl={"/assets/avatar/m3.svg"}
               />
               <ProfileImg
                 style={{ width: "40px", height: "40px" }}
-                imageUrl={"/onboarding/profileimg/avatar/m2.svg"}
+                imageUrl={"/assets/avatar/m2.svg"}
               />
               <Plusmember>
                 <Label1Normal $color="white" $weight="bold">
@@ -660,7 +660,7 @@ const ChattingView = ({
                     {timeMondayLeft}
                   </Body1Bold>
                   <img
-                    src="/home/icons/yellowclock.svg"
+                    src="/icons/status/clock-yellow.svg"
                     alt="clock"
                     style={{
                       width: "14px",
@@ -694,19 +694,19 @@ const MatchingButton = ({
   const getButtonProps = () => {
     if (cardType === "beforematch") {
       return {
-        icon: "/home/icons/send.svg",
+        icon: "/icons/action/send.svg",
         text: "대화 신청하기",
       };
     }
     if (isChatTime) {
       return {
-        icon: "/home/icons/message.svg",
+        icon: "/icons/action/message.svg",
         text: "대화 계속하기",
       };
     }
     // Match Time
     return {
-      icon: "/home/icons/locker.svg",
+      icon: "/icons/action/lock.svg",
       text: "대화 시작하기",
     };
   };
@@ -720,7 +720,7 @@ const MatchingButton = ({
           <ActionButton
             variant="disabled"
             onClick={() => { }}
-            icon={<img src="/home/icons/locker.svg" />}
+            icon={<img src="/icons/action/lock.svg" />}
           >
             대화 시작하기
           </ActionButton>
@@ -783,7 +783,7 @@ const BottomSheetProfile = ({ profile }: { profile: Profile }) => {
           </Label2>
         </LabelContainer>
         {/* Chevron Icon */}
-        <img src="/home/icons/chevron-right.svg" alt="detail" style={{ width: 24, height: 24, opacity: 0.3 }} />
+        <img src="/icons/navigation/chevron-right.svg" alt="detail" style={{ width: 24, height: 24, opacity: 0.3 }} />
       </ProfileCardWrapper>
     </ListItemContainer>
   );

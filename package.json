@@ -7,9 +7,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "verify": "npm run lint && npm run typecheck && npm run test",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "generate-client": "openapi --input ./ditto-api.json --output ./src/lib/api --client fetch"
+    "generate-client": "openapi --input ./ditto-api.json --output ./src/shared/lib/api/generated --client fetch",
+    "generate-client:legacy": "openapi --input ./ditto-api.json --output ./src/lib/api --client fetch"
   },
   "dependencies": {
     "framer-motion": "^12.23.26",

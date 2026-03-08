@@ -35,6 +35,7 @@ interface MatchProfile {
     badgeColor: AlertStatus;
     statusText?: string; // e.g. "상대가 대화를 신청했어요"
     statusColor?: string; // e.g. "var(--color-semantic-status-positive)"
+    statusIcon?: string; // e.g. "▸" or "✓"
 }
 
 // --- Mock Data (matching Figma) ---
@@ -48,9 +49,12 @@ const MOCK_PROFILES: MatchProfile[] = [
         bio: '느긋한 집순이',
         matchCount: 11,
         totalQuestions: 12,
-        avatarUrl: '/onboarding/profileimg/avatar/f1.svg', // Placeholder
+        avatarUrl: '/assets/avatar/f1.svg',
         badgeText: '🌟 당신과 가장 비슷해요',
-        badgeColor: 'destructive', // Red
+        badgeColor: 'destructive',
+        statusText: '상대가 대화를 신청했어요',
+        statusColor: 'var(--color-semantic-status-positive)',
+        statusIcon: '/icons/status/send-fill.svg',
     },
     {
         id: '2',
@@ -61,37 +65,36 @@ const MOCK_PROFILES: MatchProfile[] = [
         bio: '조용한 카페 탐방러',
         matchCount: 9,
         totalQuestions: 12,
-        avatarUrl: '/onboarding/profileimg/avatar/f2.svg', // Placeholder
+        avatarUrl: '/assets/avatar/f2.svg',
         badgeText: '😊 대부분 비슷하게 생각해요',
-        badgeColor: 'destructive', // Red (Figma shows red/negative for this one too)
-        statusText: '상대가 대화를 신청했어요',
-        statusColor: 'var(--color-semantic-status-positive)',
+        badgeColor: 'cautionary',
+        statusText: '내가 대화를 신청했어요',
+        statusColor: 'var(--color-semantic-label-neutral)',
+        statusIcon: '/icons/status/circle-check-fill.svg',
     },
     {
         id: '3',
+        name: 'Lemon Tea',
+        ageRange: '30~34세',
+        gender: '여성',
+        location: '서울',
+        bio: '느긋한 집순이',
+        matchCount: 7,
+        totalQuestions: 12,
+        avatarUrl: '/assets/avatar/f5.svg',
+        badgeText: '🙂 비슷하지만 새로운 관점도 있어요',
+        badgeColor: 'cautionary',
+    },
+    {
+        id: '4',
         name: '와그작',
         ageRange: '35~39세',
         gender: '남성',
         location: '서울',
         bio: '게임, UFC 좋아해요',
-        matchCount: 7,
-        totalQuestions: 12,
-        avatarUrl: '/onboarding/profileimg/avatar/m1.svg', // Placeholder
-        badgeText: '🙂 비슷하지만 새로운 관점도 있어요',
-        badgeColor: 'cautionary', // Orange
-        statusText: '내가 대화를 신청했어요',
-        statusColor: 'var(--color-semantic-label-neutral)',
-    },
-    {
-        id: '4',
-        name: '???', // Name not shown in snippet but implies 4th item
-        ageRange: '??',
-        gender: '??',
-        location: '??',
-        bio: '???',
         matchCount: 5,
         totalQuestions: 12,
-        avatarUrl: '/onboarding/profileimg/avatar/m2.svg',
+        avatarUrl: '/assets/avatar/m3.svg',
         badgeText: '👀 다르게 생각하는 편이에요',
         badgeColor: 'navy',
     }
@@ -111,7 +114,7 @@ export default function MatchingResultModal({ isOpen, onClose }: MatchingResultM
 
                     <TitleSection>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            {/* Icon placeholder or just text */}
+                            <img src="/icons/content/people.svg" alt="" width={16} height={16} />
                             <Caption2 $color="var(--color-semantic-accent-foreground-vintage-pink, #956B72)">1:1 매칭</Caption2>
                         </div>
                         <Heading2Bold style={{ fontSize: '24px', margin: '4px 0 8px 0' }}>이번 주 매칭 결과</Heading2Bold>
@@ -147,7 +150,7 @@ export default function MatchingResultModal({ isOpen, onClose }: MatchingResultM
                                 <TextInfo>
                                     <NameRow>
                                         <Headline2>{profile.name}</Headline2>
-                                        <img src="/home/icons/chevron-right.svg" alt="Detail" width={24} height={24} style={{ opacity: 0.3 }} />
+                                        <img src="/icons/navigation/chevron-right.svg" alt="Detail" width={24} height={24} style={{ opacity: 0.3 }} />
                                     </NameRow>
                                     <Label2 $color="var(--color-semantic-label-alternative)">
                                         {profile.ageRange} · {profile.gender} · {profile.location}
@@ -160,7 +163,9 @@ export default function MatchingResultModal({ isOpen, onClose }: MatchingResultM
                                 {/* Status Text (if any) */}
                                 {profile.statusText && (
                                     <StatusOverlay>
-                                        {/* Icon could go here */}
+                                        {profile.statusIcon && (
+                                            <StatusIconImg src={profile.statusIcon} alt="" width={12} height={12} />
+                                        )}
                                         <Caption1 style={{ color: profile.statusColor, fontWeight: 500 }}>
                                             {profile.statusText}
                                         </Caption1>
@@ -210,12 +215,13 @@ const TitleSection = styled.div`
 
 const ContentBody = styled.div`
   flex: 1;
-  padding: 32px 16px; // Top padding matches design "py-[32px]"
+  padding: 32px 16px;
   display: flex;
   flex-direction: column;
   gap: 24px;
   overflow-y: auto;
-  padding-bottom: 50px; // Extra space at bottom
+  padding-bottom: 50px;
+  background-color: var(--color-semantic-background-normal-normal, #E9E6E2);
 `;
 
 const ProfileCard = styled.div`
@@ -299,4 +305,13 @@ const StatusOverlay = styled.div`
   display: flex;
   align-items: center;
   gap: 2px;
+`;
+
+const StatusIcon = styled.span`
+  font-size: 12px;
+  color: var(--color-semantic-status-positive, #557A55);
+`;
+
+const StatusIconImg = styled.img`
+  flex-shrink: 0;
 `;

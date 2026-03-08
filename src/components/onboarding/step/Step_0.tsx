@@ -41,7 +41,7 @@ export function Step0({ onLoginComplete }: Step0Props) {
         <MainContainer>
           <TopConatiner>
             <TopTextContainer>
-              <TopImgContainer src="/logo/dittologo.svg" />
+              <TopImgContainer src="/assets/logo/ditto.svg" />
               <Headline1 $weight="semibold">
                 퀴즈로 연결되는 새로운 만남의 시작
               </Headline1>
@@ -50,9 +50,9 @@ export function Step0({ onLoginComplete }: Step0Props) {
             <TopCarousleContainer>
               <SplashCarousel
                 images={[
-                  "/onboarding/lobbyimg/lobbyImg-1.svg",
-                  "/onboarding/lobbyimg/lobbyImg-2.svg",
-                  "/onboarding/lobbyimg/lobbyImg-3.svg",
+                  "/assets/onboarding/lobby/lobbyImg-1.svg",
+                  "/assets/onboarding/lobby/lobbyImg-2.svg",
+                  "/assets/onboarding/lobby/lobbyImg-3.svg",
                 ]}
                 interval={2000}
               />
@@ -60,7 +60,7 @@ export function Step0({ onLoginComplete }: Step0Props) {
 
             <TopProgressContainer>
               <StepItem>
-                <StepperImgContainer src="/onboarding/stepper/1.svg" />
+                <StepperImgContainer src="/assets/onboarding/stepper/1.svg" />
                 <Body1Normal
                   $weight="medium"
                   $color="var(--Semantic-Label-Neutral, var(--Label-Neutral, rgba(47, 43, 39, 0.88)))"
@@ -70,7 +70,7 @@ export function Step0({ onLoginComplete }: Step0Props) {
               </StepItem>
 
               <StepItem>
-                <StepperImgContainer src="/onboarding/stepper/2.svg" />
+                <StepperImgContainer src="/assets/onboarding/stepper/2.svg" />
                 <Body1Normal
                   $weight="medium"
                   $color="var(--Semantic-Label-Neutral, var(--Label-Neutral, rgba(47, 43, 39, 0.88)))"
@@ -80,7 +80,7 @@ export function Step0({ onLoginComplete }: Step0Props) {
               </StepItem>
 
               <StepItem>
-                <StepperImgContainer src="/onboarding/stepper/3.svg" />
+                <StepperImgContainer src="/assets/onboarding/stepper/3.svg" />
                 <Body1Normal
                   $weight="medium"
                   $color="var(--Semantic-Label-Neutral, var(--Label-Neutral, rgba(47, 43, 39, 0.88)))"
@@ -92,7 +92,7 @@ export function Step0({ onLoginComplete }: Step0Props) {
           </TopConatiner>
 
           <ButtonContainer>
-            <KakaoLogin />
+            <KakaoLogin onLoginComplete={onLoginComplete} />
             <Caption1
               $color="var(--Semantic-Label-Alternative, var(--Label-Alternative, rgba(47, 43, 39, 0.61)))"
             >

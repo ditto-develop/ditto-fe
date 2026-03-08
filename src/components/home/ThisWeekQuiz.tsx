@@ -87,21 +87,21 @@ export default function ThisWeekQuiz({ iscomplete }: ThisWeekQuizProps) {
           <FCardContainer>
             <FCardDivContainer>
               <CardDivContainer>
-                <img src="/home/icons/time.svg" />
+                <img src="/icons/status/time.svg" />
                 <Label2 $color="var(--color-semantic-label-alternative)">
                   남은 시간
                 </Label2>
                 <Body1Bold $weight="bold">{timeLeft}</Body1Bold>
               </CardDivContainer>
               <CardDivContainer>
-                <img src="/home/icons/people.svg" />
+                <img src="/icons/content/people.svg" />
                 <Label2 $color="var(--color-semantic-label-alternative)">
                   참여한 사람
                 </Label2>
                 <Body1Bold $weight="bold">321명</Body1Bold>
               </CardDivContainer>
             </FCardDivContainer>
-            <img src="/home/quizpeople.svg" />
+            <img src="/assets/illustration/quizpeople.svg" />
           </FCardContainer>
         }
         buttonSection={
@@ -109,7 +109,7 @@ export default function ThisWeekQuiz({ iscomplete }: ThisWeekQuizProps) {
             <ActionSheet>
               <ActionButton
                 variant="secondary"
-                icon={<img src="/home/icons/notepen.svg" />}
+                icon={<img src="/icons/action/note-pen.svg" />}
               >
                 소개 노트 작성하기
               </ActionButton>
@@ -136,14 +136,14 @@ export default function ThisWeekQuiz({ iscomplete }: ThisWeekQuizProps) {
                 alignItems: "center",
               }}
             >
-              <img src="/home/quizstart.svg" />
+              <img src="/assets/illustration/quizstart.svg" />
               <BottomButton
                 onClick={() => {
                   router.push("/quiz/current");
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <img src="/home/icons/redpeople.svg" />
+                  <img src="/icons/content/people-red.svg" />
                   <Label2
                     style={{ paddingTop: "3px" }}
                     $color="var(--color-semantic-accent-foreground-vintagePink)"
@@ -161,7 +161,7 @@ export default function ThisWeekQuiz({ iscomplete }: ThisWeekQuizProps) {
                   }}
                 >
                   <Heading2Bold>성격, 가치관</Heading2Bold>
-                  <img src="/nav/arrow.svg" style={{ rotate: "180deg" }} />
+                  <img src="/icons/navigation/arrow-left.svg" style={{ rotate: "180deg" }} />
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                   <Label2 $color="var(--color-semantic-label-alternative)">
@@ -175,7 +175,7 @@ export default function ThisWeekQuiz({ iscomplete }: ThisWeekQuizProps) {
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <img src="/home/icons/greenpeople.svg" />
+                  <img src="/icons/content/people-green.svg" />
                   <Label2
                     style={{ paddingTop: "3px" }}
                     $color="var(--color-atomic-olive-60)"
@@ -193,7 +193,7 @@ export default function ThisWeekQuiz({ iscomplete }: ThisWeekQuizProps) {
                   }}
                 >
                   <Heading2Bold>취미, 취향</Heading2Bold>
-                  <img src="/nav/arrow.svg" style={{ rotate: "180deg" }} />
+                  <img src="/icons/navigation/arrow-left.svg" style={{ rotate: "180deg" }} />
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                   <Label2 $color="var(--color-semantic-label-alternative)">
@@ -218,14 +218,14 @@ export default function ThisWeekQuiz({ iscomplete }: ThisWeekQuizProps) {
         viewCard={
           <CardContainer>
             <CardDivContainer>
-              <img src="/home/icons/time.svg" />
+              <img src="/icons/status/time.svg" />
               <Label2 $color="var(--color-semantic-label-alternative)">
                 남은 시간
               </Label2>
               <Body1Bold $weight="bold">{timeLeft}</Body1Bold>
             </CardDivContainer>
             <CardDivContainer>
-              <img src="/home/icons/people.svg" />
+              <img src="/icons/content/people.svg" />
               <Label2 $color="var(--color-semantic-label-alternative)">
                 참여한 사람
               </Label2>
@@ -240,7 +240,7 @@ export default function ThisWeekQuiz({ iscomplete }: ThisWeekQuizProps) {
                 onClick={() => {
                   setIsQuizStart(true);
                 }}
-                icon={<img src="/home/icons/plus.svg" />}
+                icon={<img src="/icons/action/plus.svg" />}
               >
                 시작하기
               </ActionButton>

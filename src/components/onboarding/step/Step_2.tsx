@@ -202,7 +202,7 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
   return (
     <ProfileContainer>
       <ProfileWrapper>
-        <ProfileImg imageUrl={"/onboarding/profileimg/avatar/" + profile + ".svg"} />
+        <ProfileImg imageUrl={"/assets/avatar/" + profile + ".svg"} />
         <ProfileEdit onClick={() => setProfileModal(true)} />
       </ProfileWrapper>
 

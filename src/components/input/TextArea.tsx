@@ -116,7 +116,7 @@ export const TextAreaWithActions = forwardRef<
                 <button className="save" onClick={handleSave}>
                   저장
                 </button>
-                {error && <SavedEmoji src="/textfield/error.svg" alt="error" />}
+                {error && <SavedEmoji src="/icons/status/textfield-error.svg" alt="error" />}
               </ActionGroup>
             </FooterRow>
           ) : (
@@ -125,7 +125,7 @@ export const TextAreaWithActions = forwardRef<
                 <p>
                   {savedValue.length}/{maxLength} (최소 {minLength}자 이상)
                 </p>
-                <SavedEmoji src="/textfield/success.svg" alt="saved" />
+                <SavedEmoji src="/icons/status/textfield-success.svg" alt="saved" />
               </FooterRow>
             )
           )}

@@ -148,25 +148,25 @@ interface CaricatureSelectProps {
 }
 
 const maleAvatars = [
-  { id: "m1", src: "/onboarding/profileimg/avatar/m1.svg" },
-  { id: "m2", src: "/onboarding/profileimg/avatar/m2.svg" },
-  { id: "m3", src: "/onboarding/profileimg/avatar/m3.svg" },
-  { id: "m4", src: "/onboarding/profileimg/avatar/m4.svg" },
-  { id: "m5", src: "/onboarding/profileimg/avatar/m5.svg" },
-  { id: "m6", src: "/onboarding/profileimg/avatar/m6.svg" },
-  { id: "m7", src: "/onboarding/profileimg/avatar/m7.svg" },
-  { id: "m8", src: "/onboarding/profileimg/avatar/m8.svg" },
+  { id: "m1", src: "/assets/avatar/m1.svg" },
+  { id: "m2", src: "/assets/avatar/m2.svg" },
+  { id: "m3", src: "/assets/avatar/m3.svg" },
+  { id: "m4", src: "/assets/avatar/m4.svg" },
+  { id: "m5", src: "/assets/avatar/m5.svg" },
+  { id: "m6", src: "/assets/avatar/m6.svg" },
+  { id: "m7", src: "/assets/avatar/m7.svg" },
+  { id: "m8", src: "/assets/avatar/m8.svg" },
 ];
 
 const femaleAvatars = [
-  { id: "f1", src: "/onboarding/profileimg/avatar/f1.svg" },
-  { id: "f2", src: "/onboarding/profileimg/avatar/f2.svg" },
-  { id: "f3", src: "/onboarding/profileimg/avatar/f3.svg" },
-  { id: "f4", src: "/onboarding/profileimg/avatar/f4.svg" },
-  { id: "f5", src: "/onboarding/profileimg/avatar/f5.svg" },
-  { id: "f6", src: "/onboarding/profileimg/avatar/f6.svg" },
-  { id: "f7", src: "/onboarding/profileimg/avatar/f7.svg" },
-  { id: "f8", src: "/onboarding/profileimg/avatar/f8.svg" },
+  { id: "f1", src: "/assets/avatar/f1.svg" },
+  { id: "f2", src: "/assets/avatar/f2.svg" },
+  { id: "f3", src: "/assets/avatar/f3.svg" },
+  { id: "f4", src: "/assets/avatar/f4.svg" },
+  { id: "f5", src: "/assets/avatar/f5.svg" },
+  { id: "f6", src: "/assets/avatar/f6.svg" },
+  { id: "f7", src: "/assets/avatar/f7.svg" },
+  { id: "f8", src: "/assets/avatar/f8.svg" },
 ];
 
 const ProfileSelect: React.FC<CaricatureSelectProps> = ({

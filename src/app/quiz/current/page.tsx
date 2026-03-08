@@ -351,13 +351,13 @@ function FinishView(){
             />
             <TopContainer>
                 <LabelContainer>
-                    <img src="/quiz/icons/redpeople.svg" />
+                    <img src="/icons/content/quiz-people-red.svg" />
                     <Label2 style={{paddingTop: "4px", paddingLeft: "4px"}} $color="var(--color-semantic-accent-foreground-vintagePink)">1:1 매칭</Label2>
                 </LabelContainer>
                 <LabelContainer>
                   <Title3>퀴즈 참여 완료</Title3>
                   <CircleIconWrapper>
-                    <img src="/quiz/icons/v.svg" />
+                    <img src="/icons/status/check.svg" />
                   </CircleIconWrapper>
                 </LabelContainer>
                 <div>

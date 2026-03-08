@@ -18,7 +18,7 @@ export default function Nav({ prev, close, label }: NavProps) {
         onClick={prev}
         $isVisible={!!prev}
       >
-        <IconImg src="/nav/arrow.svg" alt="back" />
+        <IconImg src="/icons/navigation/arrow-left.svg" alt="back" />
       </IconBox>
 
       {/* 중앙 라벨 */}
@@ -31,7 +31,7 @@ export default function Nav({ prev, close, label }: NavProps) {
         onClick={close}
         $isVisible={!!close}
       >
-        <IconImg src="/nav/x.svg" alt="close" />
+        <IconImg src="/icons/navigation/close.svg" alt="close" />
       </IconBox>
     </NavContainer>
   );
