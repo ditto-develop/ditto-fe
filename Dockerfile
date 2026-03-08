@@ -18,6 +18,13 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NODE_ENV=production
+
+# 프로덕션 환경변수 (빌드 시점에 NEXT_PUBLIC_* 주입)
+ARG NEXT_PUBLIC_KAKAO_JS_KEY=d7318af9dabdf95b028890983acc7fed
+ARG NEXT_PUBLIC_REDIRECT_URI=https://ditto.pics/oauth/kakao
+ENV NEXT_PUBLIC_KAKAO_JS_KEY=$NEXT_PUBLIC_KAKAO_JS_KEY
+ENV NEXT_PUBLIC_REDIRECT_URI=$NEXT_PUBLIC_REDIRECT_URI
+
 RUN npm run build
 
 # 3) runner 단계: Next.js 앱 실행
