@@ -16,6 +16,7 @@ const Header = styled.div`
 
 
 export default function MainHeader(){
+  console.log('[src/app/home/MainHeader.tsx] MainHeader'); // __component_log__
     return(
         <Header>
             <img 

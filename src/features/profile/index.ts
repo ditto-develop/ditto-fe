@@ -4,3 +4,4 @@ export type {
     QuizAnswer,
     IntroNoteState,
 } from "./model/types";
+export type { PublicProfileDto } from "./api/profileApi";

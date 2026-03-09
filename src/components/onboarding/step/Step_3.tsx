@@ -120,26 +120,18 @@ export const Step3Intro = forwardRef < Step3Ref, Step3Props > (
   // ✅ 부모에서 호출할 검증 함수
   useImperativeHandle(ref, () => ({
     handleSubmit: () => {
-      // 10개 질문이 모두 채워져 있는지 확인
-      const isAllFilled = 
-        data.introduce.length === 10 &&
-        data.introduce.every(v => v.trim() !== "");
-      if(!isAllFilled){
-          showToast("빈칸을 완성해주세요.", "error");
+      const ok = completedCount >= 3;
+      if (!ok) {
+        showToast("최소 3개 이상 작성해주세요.", "error");
       }
-      
-      return isAllFilled;
+      return ok;
     }
   }));
 
-  // ✅ 버튼 활성화 조건 (시각적 처리)
+  // ✅ 버튼 활성화 조건 (3개 이상 작성 시 활성화)
   useEffect(() => {
-    const ok =
-      data.introduce.length === 10 &&
-      data.introduce.every(v => v.trim() !== "");
-
-    setControlButton(ok ? "primary" : "disabled");
-  }, [data.introduce, setControlButton]);
+    setControlButton(completedCount >= 3 ? "primary" : "disabled");
+  }, [completedCount, setControlButton]);
 
 
   return (

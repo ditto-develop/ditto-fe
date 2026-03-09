@@ -802,6 +802,7 @@ export default function MatchingDay({
   day: number;
   isChatTime: boolean;
 }) {
+  console.log('[src/components/home/MatchingDay.tsx] MatchingDay'); // __component_log__
   const [profileSelect, setProfileSelect] = useState(false);
   const [isMatchingResultOpen, setIsMatchingResultOpen] = useState(false);
 

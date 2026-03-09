@@ -20,15 +20,13 @@ export type OpenAPIConfig = {
 };
 
 export const OpenAPI: OpenAPIConfig = {
-    BASE: process.env.NEXT_PUBLIC_API_BASE || 'https://ditto.pics',
+    BASE: 'http://localhost:10000',
     VERSION: '0.0.1',
     WITH_CREDENTIALS: false,
     CREDENTIALS: 'include',
     TOKEN: async () => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('accessToken') || '';
-        }
-        return '';
+        if (typeof window === 'undefined') return '';
+        return localStorage.getItem('accessToken') ?? '';
     },
     USERNAME: undefined,
     PASSWORD: undefined,

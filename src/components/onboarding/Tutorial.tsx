@@ -103,6 +103,7 @@ interface TutorialProps {
 }
 
 export default function Tutorial({ initialData }: TutorialProps) {
+  console.log('[src/components/onboarding/Tutorial.tsx] Tutorial'); // __component_log__
   const { showToast, removeToast } = useToast();
   const router = useRouter();
 

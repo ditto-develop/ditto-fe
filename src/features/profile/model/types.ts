@@ -25,4 +25,4 @@ export interface QuizAnswer {
 }
 
 /** 소개노트 뷰 상태 */
-export type IntroNoteState = "before_request" | "after_acceptance";
+export type IntroNoteState = "before_request" | "after_acceptance" | "completed";

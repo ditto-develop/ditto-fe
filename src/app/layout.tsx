@@ -14,6 +14,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  console.log('[src/app/layout.tsx] RootLayout'); // __component_log__
   
   return (
     <html lang="ko">

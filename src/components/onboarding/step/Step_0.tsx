@@ -31,6 +31,7 @@ interface Step0Props {
 }
 
 export function Step0({ onLoginComplete }: Step0Props) {
+  console.log('[src/components/onboarding/step/Step_0.tsx] Step0'); // __component_log__
   // All logic related to handleKakaoFlow, useEffect, and state has been removed
   // as it is now handled by /app/oauth/kakao/page.tsx.
   // This component is now only responsible for displaying the initial UI.

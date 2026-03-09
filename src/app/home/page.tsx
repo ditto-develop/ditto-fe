@@ -21,6 +21,7 @@ const MainContainer = styled.div`
 `;
 
 export default function Main() {
+  console.log('[src/app/home/page.tsx] Main'); // __component_log__
   return (
     <MainContainer>
       <MainHeader />

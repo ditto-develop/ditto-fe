@@ -23,6 +23,7 @@ const sizeMap: Record<AvatarSize, number> = {
  * 원형 프로필 이미지. 매칭 카드(80px), 소개노트(100px) 등에서 사용.
  */
 export default function Avatar({ src, alt = "프로필", size = "lg", className }: AvatarProps) {
+  console.log('[src/shared/ui/Avatar/Avatar.tsx] Avatar'); // __component_log__
     const px = sizeMap[size];
     return (
         <AvatarContainer $size={px} className={className}>

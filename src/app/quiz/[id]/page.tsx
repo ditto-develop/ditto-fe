@@ -5,170 +5,81 @@ import styled, { css, keyframes } from "styled-components";
 import { Label1Normal, Label2, Title2, Title3 } from "@/components/common/Text";
 import Nav from "@/components/display/Nav";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import QuizModal from "@/components/quiz/QuizModal";
-
-// --- Types ---
-interface QuizData {
-  id: string;
-  question: string;
-  choices: { id: string; content: string; order: number }[];
-}
+import { QuizProgressService, QuizProgressDto } from "@/lib/api";
+import type { QuizWithAnswerDto } from "@/lib/api";
 
 export default function Quiz() {
+  console.log('[src/app/quiz/[id]/page.tsx] Quiz'); // __component_log__
   const router = useRouter();
-  
-  const dummydata = {
-    "success": true,
-    "data": {
-      "year": 2025,
-      "month": 12,
-      "week": 1,
-      "quizSets": [
-        {
-          "id": "cuid-set-001",
-          "quizzes": [
-            {
-              "id": "quiz-01",
-              "question": "평생 한 종류의 고기만 먹어야 한다면?",
-              "choices": [
-                { "id": "q1-c1", "content": "돼지고기", "order": 1 },
-                { "id": "q1-c2", "content": "소고기", "order": 2 }
-              ]
-            },
-            {
-              "id": "quiz-02",
-              "question": "더 선호하는 계절은?",
-              "choices": [
-                { "id": "q2-c1", "content": "여름", "order": 1 },
-                { "id": "q2-c2", "content": "겨울", "order": 2 }
-              ]
-            },
-            {
-              "id": "quiz-03",
-              "question": "탕수육 먹는 스타일은?",
-              "choices": [
-                { "id": "q3-c1", "content": "부먹 (부어 먹기)", "order": 1 },
-                { "id": "q3-c2", "content": "찍먹 (찍어 먹기)", "order": 2 }
-              ]
-            },
-            {
-              "id": "quiz-04",
-              "question": "휴일에 더 좋아하는 활동은?",
-              "choices": [
-                { "id": "q4-c1", "content": "집에서 넷플릭스", "order": 1 },
-                { "id": "q4-c2", "content": "밖에서 맛집 탐방", "order": 2 }
-              ]
-            },
-            {
-              "id": "quiz-05",
-              "question": "더 못 참는 상황은?",
-              "choices": [
-                { "id": "q5-c1", "content": "더운 날 에어컨 고장", "order": 1 },
-                { "id": "q5-c2", "content": "추운 날 보일러 고장", "order": 2 }
-              ]
-            },
-            {
-              "id": "quiz-06",
-              "question": "평생 한 가지 음식만 먹는다면?",
-              "choices": [
-                { "id": "q6-c1", "content": "피자", "order": 1 },
-                { "id": "q6-c2", "content": "치킨", "order": 2 }
-              ]
-            },
-            {
-              "id": "quiz-07",
-              "question": "다시 태어난다면?",
-              "choices": [
-                { "id": "q7-c1", "content": "재벌 2세", "order": 1 },
-                { "id": "q7-c2", "content": "천재적인 재능 보유", "order": 2 }
-              ]
-            },
-            {
-              "id": "quiz-08",
-              "question": "여행 스타일은?",
-              "choices": [
-                { "id": "q8-c1", "content": "계획적인 힐링 여행", "order": 1 },
-                { "id": "q8-c2", "content": "즉흥적인 배낭 여행", "order": 2 }
-              ]
-            },
-            {
-              "id": "quiz-09",
-              "question": "카톡 확인 스타일은?",
-              "choices": [
-                { "id": "q9-c1", "content": "알림 뜨면 바로 확인", "order": 1 },
-                { "id": "q9-c2", "content": "쌓아뒀다 한 번에 확인", "order": 2 }
-              ]
-            },
-            {
-              "id": "quiz-10",
-              "question": "영화 볼 때 선호하는 장르는?",
-              "choices": [
-                { "id": "q10-c1", "content": "로맨틱 코미디", "order": 1 },
-                { "id": "q10-c2", "content": "액션 스릴러", "order": 2 }
-              ]
-            },
-            {
-              "id": "quiz-11",
-              "question": "아침 기상 스타일은?",
-              "choices": [
-                { "id": "q11-c1", "content": "알람 한 번에 기상", "order": 1 },
-                { "id": "q11-c2", "content": "5분 간격 스누즈 필수", "order": 2 }
-              ]
-            },
-            {
-              "id": "quiz-12",
-              "question": "붕어빵 먹는 순서는?",
-              "choices": [
-                { "id": "q12-c1", "content": "머리부터", "order": 1 },
-                { "id": "q12-c2", "content": "꼬리부터", "order": 2 }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "error": null
-  };
+  const params = useParams();
+  const quizSetId = String(params.id);
 
   // --- State ---
-  const quizzes = dummydata.data.quizSets[0].quizzes;
+  const [quizzes, setQuizzes] = useState<QuizWithAnswerDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [isfinsish, setIsFinish] = useState(false);
   const [isModal, setIsModal] = useState(false);
-  
-  // 애니메이션 제어용 State
-  const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null); // 선택한 버튼 ID
-  const [isFadingOut, setIsFadingOut] = useState(false); // 전체 컨텐츠 퇴장 트리거
+  const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
+  const [isFadingOut, setIsFadingOut] = useState(false);
+
+  useEffect(() => {
+    async function fetchQuizzes() {
+      try {
+        const res = await QuizProgressService.quizProgressControllerGetQuizSetWithProgress(quizSetId);
+        if (res.success && res.data) {
+          setQuizzes(res.data.quizzes);
+          // 이전에 답변한 문제가 있으면 해당 step부터 시작
+          const lastAnswered = res.data.quizzes.findIndex((q) => !q.userAnswer);
+          setCurrentStep(lastAnswered === -1 ? res.data.quizzes.length - 1 : lastAnswered);
+          if (lastAnswered === -1) setIsFinish(true);
+        } else {
+          setError("퀴즈를 불러오지 못했어요.");
+        }
+      } catch {
+        setError("퀴즈를 불러오지 못했어요.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchQuizzes();
+  }, [quizSetId]);
 
   const currentQuiz = quizzes[currentStep];
   const isLastQuiz = currentStep === quizzes.length - 1;
 
   // --- Handlers ---
   const handleChoice = (choiceId: string) => {
-    if (selectedChoiceId) return; // 이미 선택했으면 중복 클릭 방지
+    if (selectedChoiceId || !currentQuiz) return;
 
-    // 1. 선택 상태 활성화 (-> 선택 안 된 버튼 Fade Out 애니메이션 시작)
     setSelectedChoiceId(choiceId);
 
-    // 2. 버튼 애니메이션 시간(400ms) 대기 후, 전체 컨테이너 Fade Out 시작
+    // 답변 서버에 제출 (비동기, 실패해도 UI는 진행)
+    QuizProgressService.quizProgressControllerSubmitAnswer({
+      quizId: currentQuiz.id,
+      choiceId,
+    }).catch(() => {/* 답변 제출 실패는 무시하고 UI 진행 */});
+
     setTimeout(() => {
-        setIsFadingOut(true);
-
-        // 3. 전체 컨테이너 Fade Out(300ms) 완료 후 데이터 변경 및 초기화
-        setTimeout(() => {
-            if (!isLastQuiz) {
-                setCurrentStep((prev) => prev + 1);
-                setSelectedChoiceId(null);
-                setIsFadingOut(false);
-            } else {
-                setIsFinish(true);
-                // 결과 페이지 로직
-            }
-        }, 300); // Container Fade Out Duration
-
-    }, 400); // Button Disappear Duration
+      setIsFadingOut(true);
+      setTimeout(() => {
+        if (!isLastQuiz) {
+          setCurrentStep((prev) => prev + 1);
+          setSelectedChoiceId(null);
+          setIsFadingOut(false);
+        } else {
+          setIsFinish(true);
+        }
+      }, 300);
+    }, 400);
   };
+
+  if (loading) return <div style={{ padding: 32 }}>퀴즈를 불러오는 중...</div>;
+  if (error) return <div style={{ padding: 32 }}>{error}</div>;
+  if (!currentQuiz) return null;
 
   return (
     <>
@@ -431,6 +342,7 @@ const getRandomImage = () => {
 };
 
 function FinishView(){
+  console.log('[src/app/quiz/[id]/page.tsx] FinishView'); // __component_log__
   const router = useRouter();
   const [imgSrc] = useState(getRandomImage); 
 

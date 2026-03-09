@@ -7,27 +7,30 @@ import { ContentBadge } from "@/shared/ui/ContentBadge";
 import { Avatar } from "@/shared/ui/Avatar";
 import { SurfaceCard } from "@/shared/ui/SurfaceCard";
 import { getMatchBadgeInfo, type MatchProfile } from "@/features/matching";
+import { useMatchCandidates, type MatchItem } from "@/features/matching/hooks/useMatchCandidates";
+import type { IntroNoteState } from "@/features/profile";
+
+export interface ProfileClickInfo {
+    userId: string;
+    quizSetId: string;
+    matchRequestId?: string;
+    state: IntroNoteState;
+}
 
 /**
  * MatchProfileCard — Figma: 매칭 카드 1장
  * Avatar(80px) + 닉네임/나이/성별/지역/한줄소개 + 대화 상태
  */
-function MatchProfileCard({
-    profile,
-    onClick,
-}: {
-    profile: MatchProfile;
-    hasRequested?: boolean;
-    hasReceivedRequest?: boolean;
-    onClick?: () => void;
-}) {
+function MatchProfileCard({ profile }: { profile: MatchProfile }) {
+  console.log('[src/features/matching/containers/MatchingResultContainer.tsx] MatchProfileCard'); // __component_log__
     return (
-        <CardRow onClick={onClick}>
+        <CardRow>
             <Avatar src={profile.avatarUrl} size="lg" />
             <CardInfo>
                 <CardNickname>{profile.nickname}</CardNickname>
                 <CardMeta>
-                    {profile.age}세 · {profile.gender} · {profile.location}
+                    {profile.age}세 · {profile.gender}
+                    {profile.location ? ` · ${profile.location}` : ""}
                 </CardMeta>
                 <CardBio>{profile.bio}</CardBio>
             </CardInfo>
@@ -38,24 +41,19 @@ function MatchProfileCard({
 
 /**
  * MatchingResultContainer — Figma: 3.1 매칭 결과 1:1
- * 매칭된 프로필 리스트를 Figma 레이아웃에 맞춰 렌더링
+ * 실제 API 연결 + 피그마 UI
  */
 export default function MatchingResultContainer({
-    matches,
     onBack,
     onProfileClick,
 }: {
-    matches: Array<{
-        profile: MatchProfile;
-        matchRate: number;
-        hasRequested: boolean;
-        hasReceivedRequest: boolean;
-    }>;
     onBack: () => void;
-    onProfileClick: (profileId: string) => void;
+    onProfileClick: (info: ProfileClickInfo) => void;
 }) {
-    // 매치율 순으로 그룹핑
-    const grouped = groupByMatchRate(matches);
+  console.log('[src/features/matching/containers/MatchingResultContainer.tsx] MatchingResultContainer'); // __component_log__
+    const { quizSetId, candidates, loading, error } = useMatchCandidates();
+
+    const grouped = groupByMatchRate(candidates);
 
     return (
         <PageContainer>
@@ -74,6 +72,12 @@ export default function MatchingResultContainer({
             </Header>
 
             <Body>
+                {loading && <StateText>매칭 결과를 불러오는 중...</StateText>}
+                {error && <StateText>매칭 결과를 불러오지 못했어요.</StateText>}
+                {!loading && !error && grouped.length === 0 && (
+                    <StateText>이번 주 매칭 결과가 없어요.</StateText>
+                )}
+
                 {grouped.map((group) => (
                     <MatchGroup key={group.badge.label}>
                         <BadgeRow>
@@ -86,17 +90,22 @@ export default function MatchingResultContainer({
                         {group.matches.map((match) => (
                             <SurfaceCard
                                 key={match.profile.id}
-                                onClick={() => onProfileClick(match.profile.id)}
+                                onClick={() =>
+                                    onProfileClick({
+                                        userId: match.profile.id,
+                                        quizSetId,
+                                        matchRequestId: match.matchRequestId,
+                                        state: match.hasReceivedRequest
+                                            ? "after_acceptance"
+                                            : "before_request",
+                                    })
+                                }
                             >
-                                <MatchProfileCard
-                                    profile={match.profile}
-                                    hasRequested={match.hasRequested}
-                                    hasReceivedRequest={match.hasReceivedRequest}
-                                />
+                                <MatchProfileCard profile={match.profile} />
                                 {match.hasReceivedRequest && (
                                     <StatusRow>
                                         <StatusIcon>▸</StatusIcon>
-                                        <StatusText>상대가 대화를 신청했어요</StatusText>
+                                        <StatusText $green>상대가 대화를 신청했어요</StatusText>
                                     </StatusRow>
                                 )}
                                 {match.hasRequested && (
@@ -115,12 +124,6 @@ export default function MatchingResultContainer({
 }
 
 // --- Helpers ---
-type MatchItem = {
-    profile: MatchProfile;
-    matchRate: number;
-    hasRequested: boolean;
-    hasReceivedRequest: boolean;
-};
 
 function groupByMatchRate(matches: MatchItem[]) {
     const sorted = [...matches].sort((a, b) => b.matchRate - a.matchRate);
@@ -256,7 +259,17 @@ const StatusCheck = styled.span`
   color: var(--color-semantic-label-alternative);
 `;
 
-const StatusText = styled.span`
+const StatusText = styled.span<{ $green?: boolean }>`
   font-size: 12px;
+  color: ${({ $green }) =>
+      $green
+          ? "var(--color-semantic-status-positive)"
+          : "var(--color-semantic-label-alternative)"};
+`;
+
+const StateText = styled.p`
+  font-size: 14px;
   color: var(--color-semantic-label-alternative);
+  text-align: center;
+  padding: 32px 0;
 `;

@@ -158,6 +158,7 @@ export default function Card({
   viewCard,
   buttonSection,
 }: CardProps) {
+  console.log('[src/components/display/Card.tsx] Card'); // __component_log__
   return (
     <CardContainer>
       {/* 0. Deco Image */}

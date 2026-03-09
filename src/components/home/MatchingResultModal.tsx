@@ -101,6 +101,7 @@ const MOCK_PROFILES: MatchProfile[] = [
 ];
 
 export default function MatchingResultModal({ isOpen, onClose }: MatchingResultModalProps) {
+  console.log('[src/components/home/MatchingResultModal.tsx] MatchingResultModal'); // __component_log__
     const [selectedProfile, setSelectedProfile] = React.useState<MatchProfile | null>(null);
 
     return (

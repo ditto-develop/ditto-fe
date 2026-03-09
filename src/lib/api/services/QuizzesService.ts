@@ -22,6 +22,12 @@ export class QuizzesService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/quizzes',
+            errors: {
+                400: `잘못된 요청입니다.`,
+                401: `인증이 필요합니다.`,
+                403: `접근 권한이 없습니다.`,
+                500: `서버 내부 오류가 발생했습니다.`,
+            },
         });
     }
     /**

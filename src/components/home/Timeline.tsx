@@ -4,6 +4,8 @@ import { Body1Normal } from "@/components/common/Text";
 import Card from "@/components/display/Card";
 import { useMemo } from "react";
 import styled from "styled-components";
+import Lottie from "lottie-react";
+import rippleAnimation from "../../../public/assets/ripple.json";
 
 interface TimelineProps {
   currentStep: number; // 1, 2, 3 중 현재 단계
@@ -52,15 +54,15 @@ const IconWrapper = styled.div`
   position: relative;
 `;
 
-// 활성화된 단계 뒤에 생기는 후광(Halo)
-const Halo = styled.div`
+// 로티 애니메이션 래퍼 (NumberCircle 중앙 정렬)
+const RippleWrapper = styled.div`
   position: absolute;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background-color: rgba(26, 24, 21, 0.1); /* 연한 회색 */
-  top: 0;
-  left: 0;
+  width: 60px;
+  height: 60px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
 `;
 
 // 숫자 원
@@ -86,6 +88,7 @@ const NumberCircle = styled.div`
 // --- Component ---
 
 export function Timeline({ currentStep }: TimelineProps) {
+  console.log('[src/components/home/Timeline.tsx] Timeline'); // __component_log__
   const steps = [
     { id: 1, label: "월~수 : 퀴즈 기간" },
     { id: 2, label: "목 : 매칭 기간" },
@@ -103,8 +106,12 @@ export function Timeline({ currentStep }: TimelineProps) {
         return (
           <StepRow key={step.id} $isActive={isActive}>
             <IconWrapper>
-              {/* 활성화된 상태일 때만 후광 표시 */}
-              {isActive && <Halo />}
+              {/* 활성화된 상태일 때만 리플 애니메이션 표시 */}
+              {isActive && (
+                <RippleWrapper>
+                  <Lottie animationData={rippleAnimation} loop autoplay />
+                </RippleWrapper>
+              )}
               <NumberCircle>{step.id}</NumberCircle>
             </IconWrapper>
             <Body1Normal>{step.label}</Body1Normal>
@@ -120,6 +127,7 @@ interface TimeLineProps {
 }
 
 export default function TimeLine({ date = new Date() }: TimeLineProps) {
+  console.log('[src/components/home/Timeline.tsx] TimeLine'); // __component_log__
   const currentStep = useMemo(() => {
     const utc = date.getTime() + (date.getTimezoneOffset() * 60 * 1000);
     const kstOffset = 9 * 60 * 60 * 1000;

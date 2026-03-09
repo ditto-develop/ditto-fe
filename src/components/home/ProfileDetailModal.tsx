@@ -34,6 +34,7 @@ export default function ProfileDetailModal({
   onClose,
   profile,
 }: ProfileDetailModalProps) {
+  console.log('[src/components/home/ProfileDetailModal.tsx] ProfileDetailModal'); // __component_log__
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<React.ReactNode | null>(null);
   const [isRequested, setIsRequested] = useState(false);

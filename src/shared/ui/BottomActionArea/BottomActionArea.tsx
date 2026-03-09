@@ -14,6 +14,7 @@ interface BottomActionAreaProps {
  * children으로 Button을 전달하여 유연하게 사용.
  */
 export default function BottomActionArea({ children, className }: BottomActionAreaProps) {
+  console.log('[src/shared/ui/BottomActionArea/BottomActionArea.tsx] BottomActionArea'); // __component_log__
     return (
         <Container className={className}>
             <Inner>{children}</Inner>

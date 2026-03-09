@@ -1,12 +1,12 @@
 "use client";
 
 import Splash from "@/components/splash/Splash";
-import { OpenAPI } from "@/lib/api";
 import { usePathname, useRouter } from "next/navigation";
 import Script from "next/script";
 import { useEffect, useState } from "react";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
+  console.log('[src/app/ClientLayout.tsx] ClientLayout'); // __component_log__
   const [showSplash, setShowSplash] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
@@ -16,7 +16,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     if (accessToken) {
       // If token exists, user is logged in.
       console.log("Access token found, bypassing splash screen.");
-      
       setShowSplash(false); // Immediately hide splash screen
 
       // Redirect to home if user is on a page they shouldn't see when logged in

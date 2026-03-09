@@ -1,109 +1,157 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { TopNavigation } from "@/shared/ui/TopNavigation";
 import { Avatar } from "@/shared/ui/Avatar";
 import { SectionHeader } from "@/shared/ui/SectionHeader";
 import { ContentBadge } from "@/shared/ui/ContentBadge";
 import { BottomActionArea } from "@/shared/ui/BottomActionArea";
-import type { ProfileInfo, QuizAnswer, IntroNoteState } from "@/features/profile";
+import type { IntroNoteState } from "@/features/profile";
+import { useUserProfile } from "@/features/profile/hooks/useUserProfile";
+import {
+    sendMatchRequest,
+    acceptMatchRequest,
+    rejectMatchRequest,
+} from "@/features/matching/api/matchingApi";
 
 /**
  * IntroNoteContainer — Figma: 3.2 소개노트
- * 대화 신청 전 / 대화 수락 공유 페이지 셸.
- * state에 따라 하단 CTA만 다름.
+ * 실제 API 연결 + 상태별 버튼 (before_request / after_acceptance / completed)
  */
 export default function IntroNoteContainer({
-    profile,
-    quizAnswers,
-    state,
+    userId,
+    quizSetId,
+    matchRequestId,
+    initialState,
     onBack,
-    onRequest,
-    onAccept,
-    onReject,
 }: {
-    profile: ProfileInfo;
-    quizAnswers: QuizAnswer[];
-    state: IntroNoteState;
+    userId: string;
+    quizSetId?: string;
+    matchRequestId?: string;
+    initialState: IntroNoteState;
     onBack: () => void;
-    onRequest?: () => void;
-    onAccept?: () => void;
-    onReject?: () => void;
 }) {
+  console.log('[src/features/profile/containers/IntroNoteContainer.tsx] IntroNoteContainer'); // __component_log__
+    const router = useRouter();
+    const { profile, loading, error } = useUserProfile(userId);
+    const [state, setState] = useState<IntroNoteState>(initialState);
+    const [acting, setActing] = useState(false);
+
+    // userId가 바뀔 때(다른 프로필로 이동) 상태 초기화
+    useEffect(() => {
+        setState(initialState);
+    }, [userId]);
+
+    async function handleRequest() {
+        if (!quizSetId || acting) return;
+        setActing(true);
+        try {
+            await sendMatchRequest(userId, quizSetId);
+            setState("completed");
+        } finally {
+            setActing(false);
+        }
+    }
+
+    async function handleAccept() {
+        if (!matchRequestId || acting) return;
+        setActing(true);
+        try {
+            await acceptMatchRequest(matchRequestId);
+            router.push("/home");
+        } finally {
+            setActing(false);
+        }
+    }
+
+    async function handleReject() {
+        if (!matchRequestId || acting) return;
+        setActing(true);
+        try {
+            await rejectMatchRequest(matchRequestId);
+            router.push("/home");
+        } finally {
+            setActing(false);
+        }
+    }
+
     return (
         <PageContainer>
             <TopNavigation onBack={onBack} />
 
-            {/* Profile Hero Section */}
-            <ProfileSection>
-                <Avatar src={profile.avatarUrl} size="xl" />
+            {loading && <StateText>프로필을 불러오는 중...</StateText>}
+            {error && <StateText>프로필을 불러오지 못했어요.</StateText>}
 
-                <ProfileName>
-                    {profile.nickname}
-                    {profile.rating && (
-                        <RatingBadge>
-                            <RatingStar>★</RatingStar>
-                            {profile.rating}
-                        </RatingBadge>
-                    )}
-                </ProfileName>
+            {profile && (
+                <>
+                    {/* Profile Hero Section */}
+                    <ProfileSection>
+                        <Avatar src={profile.avatarUrl} size="xl" />
 
-                <ProfileMeta>
-                    {profile.age}세 · {profile.gender} · {profile.location}
-                    {profile.occupation && ` · ${profile.occupation}`}
-                </ProfileMeta>
+                        <ProfileName>
+                            {profile.nickname}
+                            {profile.rating && (
+                                <RatingBadge>
+                                    <RatingStar>★</RatingStar>
+                                    {profile.rating}
+                                </RatingBadge>
+                            )}
+                        </ProfileName>
 
-                {profile.interests.length > 0 && (
-                    <InterestRow>
-                        {profile.interests.map((interest) => (
-                            <ContentBadge key={interest} variant="neutral">
-                                {interest}
-                            </ContentBadge>
-                        ))}
-                    </InterestRow>
-                )}
-            </ProfileSection>
+                        <ProfileMeta>
+                            {profile.age}세 · {profile.gender}
+                            {profile.location ? ` · ${profile.location}` : ""}
+                            {profile.occupation ? ` · ${profile.occupation}` : ""}
+                        </ProfileMeta>
 
-            {/* Quiz Answers Card */}
-            <QASection>
-                <DottedDeco />
-                <QAContainer>
-                    {quizAnswers.map((qa, idx) => (
-                        <QAItem key={qa.questionNumber}>
-                            <QAQuestion>
-                                Q{qa.questionNumber}. {qa.question}
-                            </QAQuestion>
-                            <QAAnswer>{qa.answer}</QAAnswer>
-                            {idx < quizAnswers.length - 1 && <QADivider />}
-                        </QAItem>
-                    ))}
+                        {profile.interests.length > 0 && (
+                            <InterestRow>
+                                {profile.interests.map((interest) => (
+                                    <ContentBadge key={interest} variant="neutral">
+                                        {interest}
+                                    </ContentBadge>
+                                ))}
+                            </InterestRow>
+                        )}
+                    </ProfileSection>
 
-                    <MoreIndicator>
-                        <Dot />
-                        <Dot />
-                        <Dot />
-                    </MoreIndicator>
-
-                    <MoreText>
-                        대화가 시작되면 더 많은 질문과 답변을 볼 수 있어요
-                    </MoreText>
-                </QAContainer>
-            </QASection>
+                    {/* Quiz Answers Card */}
+                    <QASection>
+                        <DottedDeco />
+                        <QAContainer>
+                            <MoreIndicator>
+                                <Dot />
+                                <Dot />
+                                <Dot />
+                            </MoreIndicator>
+                            <MoreText>
+                                대화가 시작되면 더 많은 질문과 답변을 볼 수 있어요
+                            </MoreText>
+                        </QAContainer>
+                    </QASection>
+                </>
+            )}
 
             {/* Bottom Action Area — state-dependent */}
             <ActionSpacer />
             <BottomActionArea>
-                {state === "before_request" ? (
-                    <PrimaryButton onClick={onRequest}>
+                {state === "completed" ? (
+                    <CompletedArea>
+                        <CompletedText>✓ 대화 신청 완료</CompletedText>
+                    </CompletedArea>
+                ) : state === "before_request" ? (
+                    <PrimaryButton onClick={handleRequest} disabled={acting}>
                         <ButtonIcon>▶</ButtonIcon>
                         대화 신청하기
                     </PrimaryButton>
                 ) : (
                     <>
-                        <SecondaryButton onClick={onReject}>
+                        <SecondaryButton onClick={handleReject} disabled={acting}>
                             거절하기
                         </SecondaryButton>
-                        <PrimaryButton onClick={onAccept}>
+                        <PrimaryButton onClick={handleAccept} disabled={acting}>
                             대화 수락하기
                         </PrimaryButton>
                     </>
@@ -119,6 +167,13 @@ const PageContainer = styled.div`
   min-height: 100vh;
   background-color: var(--color-semantic-background-normal-alternative, #E9E6E2);
   padding-bottom: 100px;
+`;
+
+const StateText = styled.p`
+  font-size: 14px;
+  color: var(--color-semantic-label-alternative);
+  text-align: center;
+  padding: 32px 0;
 `;
 
 const ProfileSection = styled.div`
@@ -169,7 +224,6 @@ const QASection = styled.div`
   background-color: var(--color-semantic-background-normal-normal, #F2F0ED);
   border-radius: 8px;
   padding: 0 16px 16px;
-  position: relative;
 `;
 
 const DottedDeco = styled.div`
@@ -183,32 +237,7 @@ const QAContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 24px;
-`;
-
-const QAItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const QAQuestion = styled.span`
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--color-semantic-label-alternative);
-`;
-
-const QAAnswer = styled.span`
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-semantic-label-strong);
-  padding-left: 16px;
-`;
-
-const QADivider = styled.hr`
-  margin: 0;
-  margin-top: 20px;
-  border: none;
-  border-top: 1px solid var(--color-semantic-line-normal-neutral);
+  align-items: center;
 `;
 
 const MoreIndicator = styled.div`
@@ -236,6 +265,22 @@ const ActionSpacer = styled.div`
   height: 16px;
 `;
 
+const CompletedArea = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border-radius: 12px;
+  background-color: var(--color-semantic-background-normal-normal, #F2F0ED);
+`;
+
+const CompletedText = styled.span`
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-semantic-label-alternative);
+`;
+
 const PrimaryButton = styled.button`
   flex: 1;
   display: flex;
@@ -251,7 +296,11 @@ const PrimaryButton = styled.button`
   font-weight: 600;
   cursor: pointer;
 
-  &:active {
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  &:active:not(:disabled) {
     opacity: 0.9;
   }
 `;
@@ -274,7 +323,11 @@ const SecondaryButton = styled.button`
   font-weight: 600;
   cursor: pointer;
 
-  &:active {
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  &:active:not(:disabled) {
     opacity: 0.9;
   }
 `;

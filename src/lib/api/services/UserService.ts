@@ -6,6 +6,7 @@ import type { CreateAdminUserDto } from '../models/CreateAdminUserDto';
 import type { CreateUserDto } from '../models/CreateUserDto';
 import type { LoginDto } from '../models/LoginDto';
 import type { LoginResponseDto } from '../models/LoginResponseDto';
+import type { Object } from '../models/Object';
 import type { SocialLoginDto } from '../models/SocialLoginDto';
 import type { UpdateUserDto } from '../models/UpdateUserDto';
 import type { UserDto } from '../models/UserDto';
@@ -168,28 +169,6 @@ export class UserService {
             path: {
                 'id': id,
             },
-            errors: {
-                400: `잘못된 요청입니다.`,
-                401: `인증이 필요합니다.`,
-                403: `접근 권한이 없습니다.`,
-                500: `서버 내부 오류가 발생했습니다.`,
-            },
-        });
-    }
-    /**
-     * 본인 정보 조회
-     * 현재 로그인한 사용자의 정보를 조회합니다.
-     * @returns any 본인 정보 조회 성공
-     * @throws ApiError
-     */
-    public static userControllerGetMyProfile(): CancelablePromise<{
-        success?: boolean;
-        data?: UserDto;
-        error?: string;
-    }> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/api/users/me/profile',
             errors: {
                 400: `잘못된 요청입니다.`,
                 401: `인증이 필요합니다.`,
@@ -372,6 +351,34 @@ export class UserService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/users/auth/logout',
+            errors: {
+                400: `잘못된 요청입니다.`,
+                401: `인증이 필요합니다.`,
+                403: `접근 권한이 없습니다.`,
+                500: `서버 내부 오류가 발생했습니다.`,
+            },
+        });
+    }
+    /**
+     * 닉네임 사용 가능 여부 확인
+     * 닉네임이 사용 가능한지 확인합니다.
+     * @param nickname 확인할 닉네임
+     * @returns any 닉네임 사용 가능 여부 확인 성공
+     * @throws ApiError
+     */
+    public static userControllerCheckNicknameAvailability(
+        nickname: string,
+    ): CancelablePromise<{
+        success?: boolean;
+        data?: Object;
+        error?: string;
+    }> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/users/nickname/{nickname}/availability',
+            path: {
+                'nickname': nickname,
+            },
             errors: {
                 400: `잘못된 요청입니다.`,
                 401: `인증이 필요합니다.`,

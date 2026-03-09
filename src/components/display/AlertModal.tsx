@@ -28,6 +28,7 @@ export default function AlertModal({
     cancelParams,
     onClose,
 }: AlertModalProps) {
+  console.log('[src/components/display/AlertModal.tsx] AlertModal'); // __component_log__
     if (!isOpen) return null;
 
     return (

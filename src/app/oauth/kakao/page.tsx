@@ -17,6 +17,7 @@ const LoadingContainer = styled.div`
 `;
 
 function KakaoLoginContent() {
+  console.log('[src/app/oauth/kakao/page.tsx] KakaoLoginContent'); // __component_log__
   const router = useRouter();
   const searchParams = useSearchParams();
   const code = searchParams.get("code");
@@ -107,6 +108,7 @@ function KakaoLoginContent() {
 }
 
 export default function KakaoRedirectPage() {
+  console.log('[src/app/oauth/kakao/page.tsx] KakaoRedirectPage'); // __component_log__
   // ... (rest of the component remains the same)
   return (
     <Suspense

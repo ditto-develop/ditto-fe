@@ -7,12 +7,13 @@ import Nav from "@/components/display/Nav";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import { useRouter } from "next/navigation";
 import QuizModal from "@/components/quiz/QuizModal";
-import { QuizSetsService, CurrentWeekQuizSetsResponseDto, QuizDto } from "@/lib/api";
+import { QuizSetsService, QuizProgressService, CurrentWeekQuizSetsResponseDto, QuizDto } from "@/lib/api";
 
 // --- Types ---
 // QuizData is now inferred from QuizDto
 
 export default function Quiz() {
+  console.log('[src/app/quiz/current/page.tsx] Quiz'); // __component_log__
   const router = useRouter();
 
   // --- State for API data, loading, and error ---
@@ -55,9 +56,15 @@ export default function Quiz() {
 
   // --- Handlers ---
   const handleChoice = (choiceId: string) => {
-    if (selectedChoiceId) return;
+    if (selectedChoiceId || !currentQuiz) return;
 
     setSelectedChoiceId(choiceId);
+
+    // 서버에 답변 제출 (비동기, 실패해도 UI 진행)
+    QuizProgressService.quizProgressControllerSubmitAnswer({
+      quizId: currentQuiz.id!,
+      choiceId,
+    }).catch(() => {});
 
     setTimeout(() => {
       setIsFadingOut(true);
@@ -341,6 +348,7 @@ const getRandomImage = () => {
 };
 
 function FinishView(){
+  console.log('[src/app/quiz/current/page.tsx] FinishView'); // __component_log__
   const router = useRouter();
   const [imgSrc] = useState(getRandomImage); 
 

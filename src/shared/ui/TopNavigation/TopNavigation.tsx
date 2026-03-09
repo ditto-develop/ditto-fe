@@ -14,6 +14,7 @@ interface TopNavigationProps {
  * back(←) 또는 close(×) 아이콘, 중앙 라벨을 선택적으로 사용.
  */
 export default function TopNavigation({ onBack, onClose, label }: TopNavigationProps) {
+  console.log('[src/shared/ui/TopNavigation/TopNavigation.tsx] TopNavigation'); // __component_log__
     return (
         <NavContainer>
             <IconBox onClick={onBack} $isVisible={!!onBack}>

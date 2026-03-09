@@ -17,6 +17,7 @@ export default function QuizModal({
   onRestart,
   onContinue,
 }: QuizResumeModalProps) {
+  console.log('[src/components/quiz/QuizModal.tsx] QuizModal'); // __component_log__
   // shouldRender: 컴포넌트가 DOM에 존재하는지 여부 (Mount/Unmount 제어)
   const [shouldRender, setShouldRender] = useState(isOpen);
   // isAnimating: 투명도 및 위치 애니메이션 제어 (CSS Transition 제어)

@@ -60,9 +60,11 @@ const BottomButton = styled.div`
 
 interface ThisWeekQuizProps {
   iscomplete: boolean;
+  isIntroComplete: boolean;
 }
 
-export default function ThisWeekQuiz({ iscomplete }: ThisWeekQuizProps) {
+export default function ThisWeekQuiz({ iscomplete, isIntroComplete }: ThisWeekQuizProps) {
+  console.log('[src/components/home/ThisWeekQuiz.tsx] ThisWeekQuiz'); // __component_log__
   const router = useRouter();
   const today = new Date().getDay(); // (KST 변환 로직 필요 시 적용)
   const target = today === 4 ? 5 : 4;
@@ -105,16 +107,19 @@ export default function ThisWeekQuiz({ iscomplete }: ThisWeekQuizProps) {
           </FCardContainer>
         }
         buttonSection={
-          <ActionContainer>
-            <ActionSheet>
-              <ActionButton
-                variant="secondary"
-                icon={<img src="/icons/action/note-pen.svg" />}
-              >
-                소개 노트 작성하기
-              </ActionButton>
-            </ActionSheet>
-          </ActionContainer>
+          !isIntroComplete ? (
+            <ActionContainer>
+              <ActionSheet>
+                <ActionButton
+                  variant="secondary"
+                  icon={<img src="/icons/action/note-pen.svg" />}
+                  onClick={() => router.push("/onboarding/intro")}
+                >
+                  소개 노트 작성하기
+                </ActionButton>
+              </ActionSheet>
+            </ActionContainer>
+          ) : undefined
         }
       />
     );

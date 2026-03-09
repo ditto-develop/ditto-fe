@@ -51,5 +51,18 @@ export type QuizSetDto = {
      * 활성화 여부
      */
     isActive: boolean;
+    /**
+     * 매칭 타입
+     */
+    matchingType: QuizSetDto.matchingType;
 };
+export namespace QuizSetDto {
+    /**
+     * 매칭 타입
+     */
+    export enum matchingType {
+        ONE_TO_ONE = 'ONE_TO_ONE',
+        GROUP = 'GROUP',
+    }
+}
 

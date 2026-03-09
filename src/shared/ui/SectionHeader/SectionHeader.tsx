@@ -14,6 +14,7 @@ interface SectionHeaderProps {
  * 섹션 제목 + 선택적 부제목. height: 32px (Figma 기준).
  */
 export default function SectionHeader({ title, subtitle, className }: SectionHeaderProps) {
+  console.log('[src/shared/ui/SectionHeader/SectionHeader.tsx] SectionHeader'); // __component_log__
     return (
         <Container className={className}>
             <Title>{title}</Title>

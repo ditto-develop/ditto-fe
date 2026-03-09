@@ -17,6 +17,7 @@ export default function FullScreenModal({
     onClose,
     children,
 }: FullScreenModalProps) {
+  console.log('[src/components/display/FullScreenModal.tsx] FullScreenModal'); // __component_log__
     const [shouldRender, setShouldRender] = useState(isOpen);
     const [isAnimating, setIsAnimating] = useState(false);
 

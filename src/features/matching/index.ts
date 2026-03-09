@@ -7,3 +7,9 @@ export type {
     MatchBadgeInfo,
 } from "./model/types";
 export { getMatchBadgeInfo } from "./model/types";
+export type { MatchItem } from "./hooks/useMatchCandidates";
+export type {
+    MatchCandidateDto,
+    MatchRequestDto,
+    MatchRequestStatus,
+} from "./api/matchingApi";
