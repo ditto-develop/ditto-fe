@@ -23,6 +23,10 @@ export type QuizProgressDto = {
      * 푼 퀴즈 수
      */
     answeredQuizzes: number;
+    /**
+     * 이번 주 퀴즈 완료 참여자 수
+     */
+    participantCount: number;
 };
 export namespace QuizProgressDto {
     /**

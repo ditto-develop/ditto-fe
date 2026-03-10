@@ -61,9 +61,10 @@ const BottomButton = styled.div`
 interface ThisWeekQuizProps {
   iscomplete: boolean;
   isIntroComplete: boolean;
+  participantCount: number;
 }
 
-export default function ThisWeekQuiz({ iscomplete, isIntroComplete }: ThisWeekQuizProps) {
+export default function ThisWeekQuiz({ iscomplete, isIntroComplete, participantCount }: ThisWeekQuizProps) {
   console.log('[src/components/home/ThisWeekQuiz.tsx] ThisWeekQuiz'); // __component_log__
   const router = useRouter();
   const today = new Date().getDay(); // (KST 변환 로직 필요 시 적용)
@@ -100,7 +101,7 @@ export default function ThisWeekQuiz({ iscomplete, isIntroComplete }: ThisWeekQu
                 <Label2 $color="var(--color-semantic-label-alternative)">
                   참여한 사람
                 </Label2>
-                <Body1Bold $weight="bold">321명</Body1Bold>
+                <Body1Bold $weight="bold">{participantCount}명</Body1Bold>
               </CardDivContainer>
             </FCardDivContainer>
             <img src="/assets/illustration/quizpeople.svg" loading="lazy" />
@@ -234,7 +235,7 @@ export default function ThisWeekQuiz({ iscomplete, isIntroComplete }: ThisWeekQu
               <Label2 $color="var(--color-semantic-label-alternative)">
                 참여한 사람
               </Label2>
-              <Body1Bold $weight="bold">{`API 호출해야함`}명</Body1Bold>
+              <Body1Bold $weight="bold">{participantCount}명</Body1Bold>
             </CardDivContainer>
           </CardContainer>
         }

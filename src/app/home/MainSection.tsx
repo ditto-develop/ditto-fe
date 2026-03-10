@@ -40,6 +40,7 @@ export default function MainSection() {
   const [dayIndex] = useState<number>(getKstDayIndex());
   const [isQuizComplete, setIsQuizComplete] = useState(false);
   const [isIntroComplete, setIsIntroComplete] = useState(false);
+  const [participantCount, setParticipantCount] = useState(0);
   const [matchType, setMatchType] = useState<MatchingCardType>("beforematch");
   const [loading, setLoading] = useState(true);
   const { setHomeReady } = useHomeReady();
@@ -71,6 +72,7 @@ export default function MainSection() {
             setIsQuizComplete(
               progressRes.data.status === QuizProgressDto.status.COMPLETED
             );
+            setParticipantCount(progressRes.data.participantCount ?? 0);
           }
         } else {
           // MATCHING or CHATTING: 매칭 결과로 matchType 결정
@@ -101,7 +103,7 @@ export default function MainSection() {
   const ControlSection = () => {
     switch (period) {
       case "QUIZ":
-        return <ThisWeekQuiz iscomplete={isQuizComplete} isIntroComplete={isIntroComplete} />;
+        return <ThisWeekQuiz iscomplete={isQuizComplete} isIntroComplete={isIntroComplete} participantCount={participantCount} />;
       case "MATCHING":
         return (
           <MatchingDay
