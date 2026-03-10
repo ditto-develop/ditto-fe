@@ -14,26 +14,24 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   useEffect(() => {
     const accessToken = localStorage.getItem("accessToken");
     if (accessToken) {
-      // If token exists, user is logged in.
-      console.log("Access token found, bypassing splash screen.");
-      setShowSplash(false); // Immediately hide splash screen
-
-      // Redirect to home if user is on a page they shouldn't see when logged in
-      if (pathname === "/" || pathname.startsWith('/oauth')) {
-        router.push("/home");
-      }
+      // 로그인 상태: 스플래시를 다음 틱에 즉시 숨김 (setState를 콜백 안으로 이동해 lint 규칙 준수)
+      const timer = setTimeout(() => {
+        setShowSplash(false);
+        if (pathname === "/" || pathname.startsWith('/oauth')) {
+          router.push("/home");
+        }
+      }, 0);
+      return () => clearTimeout(timer);
     } else {
-      // No token, user is not logged in. Show splash screen.
+      // 비로그인: 3초 후 스플래시 숨김
       const timer = setTimeout(() => setShowSplash(false), 3000);
       return () => clearTimeout(timer);
     }
   }, [pathname, router]);
 
   const kakaoInit = () => {
-    // window.Kakao가 있고 아직 초기화되지 않았을 때만 실행
     if (window.Kakao && !window.Kakao.isInitialized()) {
-      // ✅ [수정] REST API 키가 아니라 JavaScript 키를 사용해야 합니다.
-      window.Kakao.init(process.env.NEXT_PUBLIC_KAKAO_JS_KEY); 
+      window.Kakao.init(process.env.NEXT_PUBLIC_KAKAO_JS_KEY);
       console.log("Kakao SDK Initialized");
     }
   };

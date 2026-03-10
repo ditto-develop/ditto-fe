@@ -9,6 +9,44 @@ import { CancelablePromise } from './CancelablePromise';
 import type { OnCancel } from './CancelablePromise';
 import type { OpenAPIConfig } from './OpenAPI';
 
+// Token refresh deduplication: ensures only one refresh call happens at a time
+let isRefreshing = false;
+let refreshPromise: Promise<string | null> | null = null;
+
+const tryRefreshAccessToken = async (baseUrl: string): Promise<string | null> => {
+    if (isRefreshing && refreshPromise) {
+        return refreshPromise;
+    }
+
+    isRefreshing = true;
+    refreshPromise = (async () => {
+        try {
+            const response = await fetch(`${baseUrl}/api/users/auth/refresh`, {
+                method: 'POST',
+                credentials: 'include',
+            });
+
+            if (!response.ok) return null;
+
+            const data = await response.json();
+            const newAccessToken = data?.data?.accessToken;
+
+            if (newAccessToken && typeof window !== 'undefined') {
+                localStorage.setItem('accessToken', newAccessToken);
+                return newAccessToken;
+            }
+            return null;
+        } catch {
+            return null;
+        } finally {
+            isRefreshing = false;
+            refreshPromise = null;
+        }
+    })();
+
+    return refreshPromise;
+};
+
 export const isDefined = <T>(value: T | null | undefined): value is Exclude<T, null | undefined> => {
     return value !== undefined && value !== null;
 };
@@ -299,7 +337,25 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): C
             const headers = await getHeaders(config, options);
 
             if (!onCancel.isCancelled) {
-                const response = await sendRequest(config, options, url, body, formData, headers, onCancel);
+                let response = await sendRequest(config, options, url, body, formData, headers, onCancel);
+
+                // On 401, attempt token refresh and retry once
+                if (response.status === 401) {
+                    const newAccessToken = await tryRefreshAccessToken(config.BASE);
+
+                    if (newAccessToken) {
+                        // Rebuild headers with the new access token
+                        const retryHeaders = await getHeaders(config, options);
+                        response = await sendRequest(config, options, url, body, formData, retryHeaders, onCancel);
+                    } else {
+                        // Refresh failed — clear stored tokens and redirect to login
+                        if (typeof window !== 'undefined') {
+                            localStorage.removeItem('accessToken');
+                            window.location.href = '/login';
+                        }
+                    }
+                }
+
                 const responseBody = await getResponseBody(response);
                 const responseHeader = getResponseHeader(response, options.responseHeader);
 
