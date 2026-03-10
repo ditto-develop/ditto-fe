@@ -1,20 +1,7 @@
-import styled from "styled-components";
+export function MainContainer({ children }: { children: React.ReactNode }) {
+  return <div className="splash-main">{children}</div>;
+}
 
-
-export const MainContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: var(--space-4, 16px);
-    flex: 1 0 0;
-    align-self: stretch;
-    min-height: 100vh;
-`;
-
-export const ImgContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-`
+export function ImgContainer({ children }: { children: React.ReactNode }) {
+  return <div className="splash-img-container">{children}</div>;
+}

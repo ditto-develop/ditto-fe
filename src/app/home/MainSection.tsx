@@ -45,20 +45,20 @@ export default function MainSection() {
   useEffect(() => {
     async function load() {
       try {
-        const stateRes = await SystemService.systemControllerGetSystemState();
+        // systemState와 introNotes를 병렬로 요청
+        const [stateRes, introRes] = await Promise.all([
+          SystemService.systemControllerGetSystemState(),
+          IntroNotesService.introNotesControllerGetMyIntroNotes().catch(() => null),
+        ]);
+
         if (!stateRes.success || !stateRes.data) return;
 
         const fetchedPeriod = mapPeriod(stateRes.data.period);
         setPeriod(fetchedPeriod);
 
-        // 소개 노트 완료 여부 (기간 무관하게 항상 확인)
-        IntroNotesService.introNotesControllerGetMyIntroNotes()
-          .then((res) => {
-            if (res.success && res.data) {
-              setIsIntroComplete(res.data.completedCount === 10);
-            }
-          })
-          .catch(() => {});
+        if (introRes?.success && introRes.data) {
+          setIsIntroComplete(introRes.data.completedCount === 10);
+        }
 
         if (fetchedPeriod === "QUIZ") {
           const progressRes = await QuizProgressService.quizProgressControllerGetProgress();

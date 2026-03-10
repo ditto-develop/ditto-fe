@@ -435,7 +435,7 @@ const BeforeMatchCard = ({ timeLeft }: { timeLeft: string }) => (
           <Body1Bold $weight="bold">{timeLeft}</Body1Bold>
         </CardDivContainer>
       </FCardDivContainer>
-      <img src="/assets/illustration/quizpeople.svg" />
+      <img src="/assets/illustration/quizpeople.svg" loading="lazy" />
     </FCardContainer>
   </CardContainer>
 );
@@ -446,7 +446,7 @@ const FailMatchCard = ({ imgSrc }: { imgSrc: string }) => (
       <Headline1 $weight="bold" $align="center">
         진행 중인 대화가 없어요
       </Headline1>
-      <RandomImg src={imgSrc} />
+      <RandomImg src={imgSrc} loading="lazy" />
       <div style={{ textAlign: "center" }}>
         <Body2Reading $color="var(--color-semantic-label-alternative)">
           지금은 대화 기간이에요!

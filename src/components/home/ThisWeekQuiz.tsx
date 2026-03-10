@@ -103,7 +103,7 @@ export default function ThisWeekQuiz({ iscomplete, isIntroComplete }: ThisWeekQu
                 <Body1Bold $weight="bold">321명</Body1Bold>
               </CardDivContainer>
             </FCardDivContainer>
-            <img src="/assets/illustration/quizpeople.svg" />
+            <img src="/assets/illustration/quizpeople.svg" loading="lazy" />
           </FCardContainer>
         }
         buttonSection={
@@ -141,7 +141,7 @@ export default function ThisWeekQuiz({ iscomplete, isIntroComplete }: ThisWeekQu
                 alignItems: "center",
               }}
             >
-              <img src="/assets/illustration/quizstart.svg" />
+              <img src="/assets/illustration/quizstart.svg" loading="lazy" />
               <BottomButton
                 onClick={() => {
                   router.push("/quiz/current");
