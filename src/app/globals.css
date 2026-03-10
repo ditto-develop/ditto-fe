@@ -2,14 +2,20 @@
 @import "../styles/token/atomic.css";
 @import "../styles/token/semantic.css";
 
-/* Splash screen - styled-components 없이 즉시 스타일 적용 */
+/* Splash screen - fixed overlay so children can mount and prefetch behind it */
 .splash-main {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   gap: 16px;
-  min-height: 100vh;
+  background: var(--color-semantic-background-normal-normal);
 }
 .splash-img-container {
   display: flex;

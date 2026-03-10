@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { SystemService, SystemStateDto, QuizProgressService, QuizProgressDto, IntroNotesService } from "@/lib/api";
 import { getMatchCandidates } from "@/features/matching/api/matchingApi";
+import { useHomeReady } from "@/context/HomeReadyContext";
 
 const MainSectionContainer = styled.div`
   padding: 16px 0px;
@@ -41,8 +42,12 @@ export default function MainSection() {
   const [isIntroComplete, setIsIntroComplete] = useState(false);
   const [matchType, setMatchType] = useState<MatchingCardType>("beforematch");
   const [loading, setLoading] = useState(true);
+  const { setHomeReady } = useHomeReady();
 
   useEffect(() => {
+    // 마운트 시 리셋: 홈으로 다시 진입할 때 Splash가 다시 뜨도록
+    setHomeReady(false);
+
     async function load() {
       try {
         // systemState와 introNotes를 병렬로 요청
@@ -83,10 +88,11 @@ export default function MainSection() {
         // 네트워크 오류 등 — 로딩만 해제
       } finally {
         setLoading(false);
+        setHomeReady(true);
       }
     }
     load();
-  }, []);
+  }, [setHomeReady]);
 
   if (loading || period === null) {
     return <MainSectionContainer><TimeLine /></MainSectionContainer>;

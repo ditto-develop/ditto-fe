@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import { HomeReadyProvider } from "@/context/HomeReadyContext";
 import { ToastProvider } from "@/context/ToastContext";
 import ClientLayout from "./ClientLayout";
 import Script from "next/script";
@@ -30,11 +31,13 @@ export default function RootLayout({
         <link rel="preload" as="image" href="/logo/dittologo.svg" />
       </head>
       <body>
-        <ClientLayout>
+        <HomeReadyProvider>
+          <ClientLayout>
             <ToastProvider>
               {children}
             </ToastProvider>
-        </ClientLayout>
+          </ClientLayout>
+        </HomeReadyProvider>
       </body>
     </html>
   );
