@@ -11,7 +11,7 @@ import {
   Label1Normal,
   Label2,
 } from "@/components/common/Text";
-import Card, { AlertStatus } from "@/components/display/Card";
+import Card, { AlertStatus, CardContainer } from "@/components/display/Card";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import {
   ProfileImg,
@@ -26,7 +26,7 @@ import MatchingResultModal from "./MatchingResultModal";
 //- Styled Components
 //================================================================================================
 //* General
-export const CardContainer = styled.div`
+export const ViewCardContainer = styled.div`
   display: flex;
   padding: 16px;
   align-items: flex-start;
@@ -424,7 +424,7 @@ export const getRandomImage = () => {
 //================================================================================================
 
 const BeforeMatchCard = ({ timeLeft }: { timeLeft: string }) => (
-  <CardContainer>
+  <ViewCardContainer>
     <FCardContainer>
       <FCardDivContainer>
         <CardDivContainer>
@@ -437,19 +437,19 @@ const BeforeMatchCard = ({ timeLeft }: { timeLeft: string }) => (
       </FCardDivContainer>
       <img src="/assets/illustration/quizpeople.svg" loading="lazy" />
     </FCardContainer>
-  </CardContainer>
+  </ViewCardContainer>
 );
 
-const FailMatchCard = ({ imgSrc }: { imgSrc: string }) => (
+const FailMatchCard = ({ isChatTime }: { isChatTime: boolean }) => (
   <CardContainer>
     <FailMatch>
       <Headline1 $weight="bold" $align="center">
-        진행 중인 대화가 없어요
+        {isChatTime ? "진행 중인 대화가 없어요." : "진행 중인 매칭이 없어요."}
       </Headline1>
-      <RandomImg src={imgSrc} loading="lazy" />
+      <RandomImg src="/assets/illustration/empty-state.png" loading="lazy" />
       <div style={{ textAlign: "center" }}>
         <Body2Reading $color="var(--color-semantic-label-alternative)">
-          지금은 대화 기간이에요!
+          {isChatTime ? "지금은 대화 기간이에요!" : "지금은 매칭 기간이에요!"}
         </Body2Reading>
         <Body2Reading $color="var(--color-semantic-label-alternative)">
           다음주에 다시 인연을 만들어 보세요.
@@ -460,7 +460,7 @@ const FailMatchCard = ({ imgSrc }: { imgSrc: string }) => (
 );
 
 const OneOnOneMatchCard = ({ timeLeft }: { timeLeft: string }) => (
-  <CardContainer>
+  <ViewCardContainer>
     <MatchingContainer>
       <MatchingTopContainer>
         <ProfileWrapper>
@@ -484,7 +484,7 @@ const OneOnOneMatchCard = ({ timeLeft }: { timeLeft: string }) => (
         <Body1Bold style={{ paddingTop: "2px" }}>{timeLeft}</Body1Bold>
       </MatchingBottomContainer>
     </MatchingContainer>
-  </CardContainer>
+  </ViewCardContainer>
 );
 
 const MatchingView = ({
@@ -504,7 +504,7 @@ const MatchingView = ({
       return <OneOnOneMatchCard timeLeft={timeLeft} />;
     case "many":
       return (
-        <CardContainer>
+        <ViewCardContainer>
           <GroupContainer>
             <TopContainer>
               <TopImgContainer onClick={openProfileSelector}>
@@ -539,7 +539,7 @@ const MatchingView = ({
               <Body1Bold style={{ paddingTop: "2px" }}>{timeLeft}</Body1Bold>
             </MatchingBottomContainer>
           </GroupContainer>
-        </CardContainer>
+        </ViewCardContainer>
       );
     default:
       return null;
@@ -557,7 +557,7 @@ const ChattingView = ({
 
   if (cardType === "one") {
     return (
-      <CardContainer>
+      <ViewCardContainer>
         <ChatMainContainer>
           <ProfileWrapper>
             <ProfileImg imageUrl={"/assets/avatar/f1.svg"} />
@@ -605,13 +605,13 @@ const ChattingView = ({
             </ChatContainer>
           </ChatRightContainer>
         </ChatMainContainer>
-      </CardContainer>
+      </ViewCardContainer>
     );
   }
 
   if (cardType === "many") {
     return (
-      <CardContainer>
+      <ViewCardContainer>
         <ChatMainContainer>
           <ProfileWrapper>
             <TopImgContainer onClick={openProfileSelector}>
@@ -678,7 +678,7 @@ const ChattingView = ({
             </ChatContainer>
           </ChatRightContainer>
         </ChatMainContainer>
-      </CardContainer>
+      </ViewCardContainer>
     );
   }
 
@@ -713,7 +713,7 @@ const MatchingButton = ({
 
   const buttonProps = getButtonProps();
 
-  if (cardType === "many" && !isChatTime) {
+  if ((cardType === "one" || cardType === "many") && !isChatTime) {
     return (
       <ActionContainer>
         <ActionSheet>
@@ -810,7 +810,6 @@ export default function MatchingDay({
   const closeProfileSelector = () => setProfileSelect(false);
 
   const timeLeft = useTargetDayCountdown(day === 4 ? 5 : 4);
-  const [imgSrc] = useState(getRandomImage);
 
   if (matchType === "beforematch") {
     return (
@@ -843,12 +842,7 @@ export default function MatchingDay({
   }
 
   if (matchType === "failmatch") {
-    return (
-      <Card
-        title="이번주 매칭"
-        viewCard={<FailMatchCard imgSrc={imgSrc} />}
-      />
-    );
+    return <FailMatchCard isChatTime={isChatTime} />;
   }
 
   // Placeholder for match count (in real app, this would come from props or API)

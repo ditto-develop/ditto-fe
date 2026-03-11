@@ -95,7 +95,7 @@ export default function ThisWeekQuiz({ iscomplete, isIntroComplete, participantC
               <CardDivContainer>
                 <img src="/icons/status/time.svg" />
                 <Label2 $color="var(--color-semantic-label-alternative)">
-                  남은 시간
+                  결과 공개까지
                 </Label2>
                 <Body1Bold $weight="bold">{timeLeft}</Body1Bold>
               </CardDivContainer>
