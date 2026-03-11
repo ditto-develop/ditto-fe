@@ -1,7 +1,7 @@
 // Select.tsx
 import { Label1Normal } from "@/components/common/Text";
 import React, { useMemo, useState } from "react";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 
 /* =========================
  *  Types
@@ -138,7 +138,27 @@ const NativeInput = styled.input<{ $error?: boolean }>`
 
 /* ---- Bottom Sheet ---- */
 
-const SheetOverlay = styled.div`
+const slideUp = keyframes`
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+`;
+
+const slideDown = keyframes`
+  from { transform: translateY(0); }
+  to   { transform: translateY(100%); }
+`;
+
+const overlayFadeIn = keyframes`
+  from { opacity: 0; }
+  to   { opacity: 1; }
+`;
+
+const overlayFadeOut = keyframes`
+  from { opacity: 1; }
+  to   { opacity: 0; }
+`;
+
+const SheetOverlay = styled.div<{ $closing: boolean }>`
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
@@ -147,14 +167,18 @@ const SheetOverlay = styled.div`
   display: flex;
   justify-content: center;
   align-items: flex-end;
+
+  animation: ${({ $closing }) => $closing ? overlayFadeOut : overlayFadeIn} 0.28s ease forwards;
 `;
 
-const Sheet = styled.div`
+const Sheet = styled.div<{ $closing: boolean }>`
   width: 100%;
   max-width: 480px;
   border-radius: 16px 16px 0 0;
   background: var(--Background-Elevated-Normal, #E9E6E2);
   padding-bottom: env(safe-area-inset-bottom);
+
+  animation: ${({ $closing }) => $closing ? slideDown : slideUp} 0.28s cubic-bezier(0.32, 0.72, 0, 1) forwards;
 `;
 
 const SheetHandle = styled.div`
@@ -235,6 +259,15 @@ export function Select<T extends Primitive = string>(
   } = props;
 
   const [open, setOpen] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setOpen(false);
+      setIsClosing(false);
+    }, 280);
+  };
 
   const isDateOrTime = fieldType === "date" || fieldType === "time";
   const useBottomSheet = !isDateOrTime;
@@ -251,8 +284,8 @@ export function Select<T extends Primitive = string>(
   }, [value, options]);
 
   const handleSelect = (item: SelectOption<T>) => {
-      onChange(item.value);
-      setOpen(false);
+    onChange(item.value);
+    handleClose();
   };
 
   const displayText =
@@ -311,13 +344,13 @@ export function Select<T extends Primitive = string>(
       {error && errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
 
       {useBottomSheet && open && (
-        <SheetOverlay onClick={() => setOpen(false)}>
-          <Sheet onClick={(e) => e.stopPropagation()}>
+        <SheetOverlay $closing={isClosing} onClick={handleClose}>
+          <Sheet $closing={isClosing} onClick={(e) => e.stopPropagation()}>
             <SheetHandle />
             <SheetHeader>
               <div style={{ width: 24 }} /> {/* 왼쪽 spacer */}
               <SheetTitle>{bottomSheetTitle ?? label}</SheetTitle>
-              <SheetCloseButton onClick={() => setOpen(false)}>
+              <SheetCloseButton onClick={handleClose}>
                 ×
               </SheetCloseButton>
             </SheetHeader>

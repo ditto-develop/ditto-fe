@@ -12,6 +12,8 @@ import {
 
   CreateUserDto,
 
+  IntroNotesService,
+
   OpenAPI,
 
   UserService
@@ -256,11 +258,17 @@ export default function Tutorial({ initialData }: TutorialProps) {
             localStorage.setItem("refreshToken", loginResponse.data.refreshToken);
           }
 
-          
+          // 소개 노트 저장 (작성된 내용이 있을 경우)
+          const introValues = step3Ref.current?.getCurrentValues() ?? formData.introduce;
+          if (introValues.some((v) => v.trim().length > 0)) {
+            await IntroNotesService.introNotesControllerUpdateMyIntroNotes({
+              answers: introValues,
+            }).catch(() => {});
+          }
+
           showToast("회원가입이 완료되었습니다!", "success");
-          
-          // 라우팅 경로 확인: /home 인지 /main 인지 통일 필요 (코드 상단엔 /home, 여긴 /main)
-          router.push("/home"); 
+
+          router.push("/home");
         } else {
           throw new Error("Access token not received.");
         }
@@ -300,9 +308,9 @@ export default function Tutorial({ initialData }: TutorialProps) {
     if (step === 4) {
       showToast(
         <div>
-           <Body2Normal $color="white">매칭 신청을 위해 프로필이 필요해요.</Body2Normal>
-           <Body2Normal $color="white">나중에 꼭 완료해주세요!</Body2Normal>
-        </div>, 
+           <Body2Normal $color="white" style={{ fontSize: "14px" }}>매칭 신청을 위해 프로필이 필요해요.</Body2Normal>
+           <Body2Normal $color="white" style={{ fontSize: "14px" }}>나중에 꼭 완료해주세요!</Body2Normal>
+        </div>,
         "default", 
         {
           id: "confirm-msg",

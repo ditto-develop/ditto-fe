@@ -325,7 +325,19 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
             { label: "서울", value: "seoul" },
             { label: "경기", value: "gyeonggi" },
             { label: "인천", value: "incheon" },
-            /* ... 나머지 지역 옵션들 ... */
+            { label: "부산", value: "busan" },
+            { label: "대구", value: "daegu" },
+            { label: "대전", value: "daejeon" },
+            { label: "광주", value: "gwangju" },
+            { label: "울산", value: "ulsan" },
+            { label: "세종", value: "sejong" },
+            { label: "강원", value: "gangwon" },
+            { label: "충북", value: "chungbuk" },
+            { label: "충남", value: "chungnam" },
+            { label: "전북", value: "jeonbuk" },
+            { label: "전남", value: "jeonnam" },
+            { label: "경북", value: "gyeongbuk" },
+            { label: "경남", value: "gyeongnam" },
             { label: "제주", value: "jeju" },
           ]}
         />
@@ -340,8 +352,21 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
           onChange={(v) => onChange("job", v)}
           options={[
             { label: "IT/기술", value: "it-tech" },
+            { label: "경영/사무", value: "management" },
+            { label: "마케팅/광고", value: "marketing" },
+            { label: "디자인", value: "design" },
+            { label: "교육", value: "education" },
+            { label: "의료/보건", value: "medical" },
+            { label: "금융", value: "finance" },
+            { label: "법률", value: "legal" },
+            { label: "제조/생산", value: "manufacturing" },
+            { label: "유통/판매", value: "distribution" },
+            { label: "서비스", value: "service" },
+            { label: "건설", value: "construction" },
+            { label: "예술/미디어", value: "arts-media" },
+            { label: "연구", value: "research" },
+            { label: "공공/행정", value: "public-admin" },
             { label: "학생", value: "student" },
-            /* ... 나머지 직업 옵션들 ... */
             { label: "기타", value: "etc" },
           ]}
         />

@@ -26,6 +26,7 @@ import {
 // ✅ 부모에게 노출할 Ref 타입 정의
 export interface Step3Ref {
   handleSubmit: () => boolean;
+  getCurrentValues: () => string[];
 }
 
 interface Step3Props {
@@ -125,7 +126,14 @@ export const Step3Intro = forwardRef < Step3Ref, Step3Props > (
         showToast("최소 3개 이상 작성해주세요.", "error");
       }
       return ok;
-    }
+    },
+    // 저장 여부와 관계없이 현재 입력된 모든 값 반환 (부분 저장용)
+    getCurrentValues: () => {
+      return questions.map((_, index) => {
+        const typed = textAreaRefs.current[index]?.getValue() ?? "";
+        return typed.trim().length > 0 ? typed : (data.introduce[index] ?? "");
+      });
+    },
   }));
 
   // ✅ 버튼 활성화 조건 (3개 이상 작성 시 활성화)

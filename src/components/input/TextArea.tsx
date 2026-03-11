@@ -19,6 +19,7 @@ interface TextAreaWithActionsProps {
 
 export interface TextAreaWithActionsRef {
   save: () => boolean;
+  getValue: () => string;
 }
 
 export const TextAreaWithActions = forwardRef<
@@ -65,6 +66,7 @@ export const TextAreaWithActions = forwardRef<
 
     useImperativeHandle(ref, () => ({
       save: handleSave,
+      getValue: () => value,
     }));
 
     const handleCancel = () => {

@@ -56,9 +56,10 @@ export default function IntroNotePage() {
     }
   };
 
-  // "다음에 할래요" — 지금까지 저장된 답변만 DB에 저장 후 이동
+  // "다음에 할래요" — 현재 입력 중인 내용 포함하여 저장 후 이동
   const handleSkip = async () => {
-    await saveAnswers();
+    const answers = step3Ref.current?.getCurrentValues() ?? formData.introduce;
+    await IntroNotesService.introNotesControllerUpdateMyIntroNotes({ answers }).catch(() => {});
     router.push("/home");
   };
 
