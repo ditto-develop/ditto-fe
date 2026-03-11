@@ -127,30 +127,37 @@ const CarouselRoot = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex: 1 1 0;
+  min-height: 0;
 `;
 
 const SlideViewport = styled.div`
   width: 100%;
   overflow: hidden;
+  flex: 1 1 0;
+  min-height: 0;
 `;
 
 const Slides = styled.div`
   display: flex;
   width: 100%;
+  height: 100%;
   transition: transform 0.4s ease;
 `;
 
 const Slide = styled.div`
   min-width: 100%;
+  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 40px 0;
+  padding: 16px 0;
 
   background-color: var(--color-semantic-background-normal-normal, #f3f1ec); /* 필요하면 토큰으로 */
 
   img {
     max-width: 70%;
+    max-height: 100%;
     height: auto;
     object-fit: contain;
   }

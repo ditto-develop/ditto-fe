@@ -6,7 +6,8 @@ export const MainContainer = styled.div`
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    flex: 1 0 0;
+    flex: 1 1 0;
+    min-height: 0;
     align-self: stretch;
 `;
 
@@ -16,7 +17,8 @@ export const TopConatiner = styled.div`
     justify-content: center;
     align-items: center;
     gap: var(--space-8, 32px);
-    flex: 1 0 0;
+    flex: 1 1 0;
+    min-height: 0;
     align-self: stretch;
 `;
 
@@ -49,6 +51,10 @@ export const TopCarousleContainer = styled.div`
     flex-direction: column;
     align-items: center;
     gap: var(--space-1, 4px);
+    flex: 1 1 0;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
 `;
 
 export const TopProgressContainer = styled.div`

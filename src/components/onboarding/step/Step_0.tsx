@@ -23,6 +23,10 @@ import { KakaoLogin } from "@/components/input/KakaoLogin";
 
 // --- Styled Components ---
 const TmpContainer = styled.div`
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   padding-top: 40px;
 `;
 
