@@ -101,7 +101,8 @@ export const StepItem = styled.div`
 export const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
-  height: 99dvh;
+  height: 100dvh;
+  overflow: hidden;
 `;
 
 export const BodyContainer = styled.div`
@@ -110,7 +111,8 @@ export const BodyContainer = styled.div`
     flex-direction: column;
     align-items: center;
     gap: 16px;
-    flex: 1 0 0;
+    flex: 1 1 0;
+    min-height: 0;
     align-self: stretch;
     overflow-y: auto;
 `;
@@ -220,8 +222,7 @@ export const DividedInner = styled.div`
 /** */
 export const IntroContainer = styled.div`
   display: flex;
-  width: 393px;
-  padding: var(--space-8, 32px) var(--space-4, 16px);
+  width: 100%;
   flex-direction: column;
   align-items: center;
   gap: var(--space-8, 32px);
