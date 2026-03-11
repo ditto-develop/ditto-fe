@@ -31,6 +31,9 @@ const CardDivContainer = styled.div`
 const ActionContainer = styled.div`
   width: 60%;
 `;
+const FullWidthButtonWrapper = styled.div`
+  width: 100%;
+`;
 const FCardContainer = styled.div`
   display: flex;
   padding: 16px;
@@ -109,17 +112,16 @@ export default function ThisWeekQuiz({ iscomplete, isIntroComplete, participantC
         }
         buttonSection={
           !isIntroComplete ? (
-            <ActionContainer>
-              <ActionSheet>
-                <ActionButton
-                  variant="secondary"
-                  icon={<img src="/icons/action/note-pen.svg" />}
-                  onClick={() => router.push("/onboarding/intro")}
-                >
-                  소개 노트 작성하기
-                </ActionButton>
-              </ActionSheet>
-            </ActionContainer>
+            <FullWidthButtonWrapper>
+              <ActionButton
+                variant="secondary"
+                icon={<img src="/icons/action/note-pen.svg" alt="" />}
+                onClick={() => router.push("/onboarding/intro")}
+                style={{ whiteSpace: "nowrap", fontWeight: 600 }}
+              >
+                소개 노트 작성하기
+              </ActionButton>
+            </FullWidthButtonWrapper>
           ) : undefined
         }
       />
