@@ -11,7 +11,7 @@ import { getMatchCandidates } from "@/features/matching/api/matchingApi";
 import { useHomeReady } from "@/context/HomeReadyContext";
 
 const MainSectionContainer = styled.div`
-  padding: 16px 0px;
+  padding: 16px 0px 80px;
   display: grid;
   gap: 24px;
 `;
