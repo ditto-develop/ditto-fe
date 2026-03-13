@@ -7,6 +7,7 @@ import { ContentBadge } from "@/shared/ui/ContentBadge";
 import { Avatar } from "@/shared/ui/Avatar";
 import { SurfaceCard } from "@/shared/ui/SurfaceCard";
 import { getMatchBadgeInfo, type MatchProfile } from "@/features/matching";
+import { formatAgeRange } from "@/shared/lib/formatAge";
 import { useMatchCandidates } from "@/features/matching/hooks/useMatchCandidates";
 import type { IntroNoteState } from "@/features/profile";
 
@@ -29,7 +30,7 @@ function MatchProfileCard({ profile }: { profile: MatchProfile }) {
             <CardInfo>
                 <CardNickname>{profile.nickname}</CardNickname>
                 <CardMeta>
-                    {profile.age}세 · {profile.gender}
+                    {formatAgeRange(profile.age)} · {profile.gender}
                     {profile.location ? ` · ${profile.location}` : ""}
                 </CardMeta>
                 <CardBio>{profile.bio}</CardBio>

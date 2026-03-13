@@ -13,6 +13,7 @@ import {
 } from "@/components/common/Text";
 import Card, { AlertStatus, CardContainer } from "@/components/display/Card";
 import { MatchCandidateDto } from "@/features/matching/api/matchingApi";
+import { formatAgeRange } from "@/shared/lib/formatAge";
 import type { ChatRoomItemDto } from "@/lib/api/models/ChatRoomItemDto";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import {
@@ -555,7 +556,7 @@ const ChattingView = ({
                 </TimerBox>
               </div>
               <Label2 $color="var(--color-semantic-label-alternative)">
-                {c ? `${c.age}세 · ${formatGender(c.gender)}${c.location ? ` · ${c.location}` : ""}` : ""}
+                {c ? `${formatAgeRange(c.age)} · ${formatGender(c.gender)}${c.location ? ` · ${c.location}` : ""}` : ""}
               </Label2>
               {c?.introduction && (
                 <Label2 $color="var(--color-semantic-label-alternative)">
@@ -704,7 +705,7 @@ const BottomSheetProfile = ({ profile }: { profile: Profile }) => {
             )}
           </div>
           <Label2 $color="var(--color-semantic-label-alternative)">
-            {profile.age}세 · {profile.gender} · {profile.location}
+            {formatAgeRange(profile.age)} · {profile.gender} · {profile.location}
           </Label2>
           <Label2 $color="var(--color-semantic-label-alternative)">
             {profile.bio}
@@ -720,7 +721,7 @@ const BottomSheetProfile = ({ profile }: { profile: Profile }) => {
 const AcceptedMatchCard = ({ candidate }: { candidate: MatchCandidateDto }) => {
   const timeLeft = useTargetDayCountdown(5); // 금요일(대화 시작일)까지
   const avatarUrl = candidate.profileImageUrl || getAvatarUrl(candidate.gender);
-  const meta = `${candidate.age}세 · ${formatGender(candidate.gender)}${candidate.location ? ` · ${candidate.location}` : ""}`;
+  const meta = `${formatAgeRange(candidate.age)} · ${formatGender(candidate.gender)}${candidate.location ? ` · ${candidate.location}` : ""}`;
 
   return (
     <ViewCardContainer style={{ flexDirection: "column", gap: "8px" }}>

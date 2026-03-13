@@ -8,6 +8,7 @@ import { Avatar } from "@/shared/ui/Avatar";
 import { ContentBadge } from "@/shared/ui/ContentBadge";
 import { BottomActionArea } from "@/shared/ui/BottomActionArea";
 import AlertModal from "@/components/display/AlertModal";
+import { formatAgeRange } from "@/shared/lib/formatAge";
 import type { IntroNoteState } from "@/features/profile";
 import { useUserProfile } from "@/features/profile/hooks/useUserProfile";
 import {
@@ -135,7 +136,7 @@ export default function IntroNoteContainer({
                         </ProfileName>
 
                         <ProfileMeta>
-                            {profile.age}세 · {profile.gender}
+                            {formatAgeRange(profile.age)} · {profile.gender}
                             {profile.location ? ` · ${profile.location}` : ""}
                             {profile.occupation ? ` · ${profile.occupation}` : ""}
                         </ProfileMeta>
