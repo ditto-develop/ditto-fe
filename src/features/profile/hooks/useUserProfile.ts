@@ -4,12 +4,18 @@ import { useState, useEffect } from "react";
 import { getUserProfile, type PublicProfileDto } from "@/features/profile/api/profileApi";
 import type { ProfileInfo } from "@/features/profile/model/types";
 
+function toGenderKo(gender: string): string {
+    if (gender === "MALE") return "남성";
+    if (gender === "FEMALE") return "여성";
+    return gender;
+}
+
 function toProfileInfo(dto: PublicProfileDto): ProfileInfo {
     return {
         id: dto.userId,
         nickname: dto.nickname,
         age: dto.age,
-        gender: dto.gender,
+        gender: toGenderKo(dto.gender),
         location: dto.location || "",
         occupation: dto.occupation,
         bio: dto.introduction || "",

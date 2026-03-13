@@ -9,17 +9,47 @@ function getToken(): string {
     return typeof window !== "undefined" ? localStorage.getItem("accessToken") || "" : "";
 }
 
+async function tryRefreshToken(): Promise<string | null> {
+    try {
+        const res = await fetch(`${getApiBase()}/api/users/auth/refresh`, {
+            method: "POST",
+            credentials: "include",
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        const newToken = data?.data?.accessToken;
+        if (newToken && typeof window !== "undefined") {
+            localStorage.setItem("accessToken", newToken);
+            return newToken;
+        }
+        return null;
+    } catch {
+        return null;
+    }
+}
+
 // BE는 { success, data?, error? } 래핑 구조로 응답
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-    const token = getToken();
-    const res = await fetch(`${getApiBase()}/api${path}`, {
-        ...options,
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            ...(options.headers as Record<string, string>),
-        },
-    });
+    const makeRequest = (token: string) =>
+        fetch(`${getApiBase()}/api${path}`, {
+            ...options,
+            headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                ...(options.headers as Record<string, string>),
+            },
+        });
+
+    let res = await makeRequest(getToken());
+
+    // 401이면 토큰 갱신 후 1회 재시도
+    if (res.status === 401) {
+        const newToken = await tryRefreshToken();
+        if (newToken) {
+            res = await makeRequest(newToken);
+        }
+    }
+
     if (!res.ok) {
         throw new Error(`API ${res.status}: ${path}`);
     }
@@ -46,6 +76,7 @@ export interface MatchCandidateDto {
     age: number;
     introduction: string | null;
     location?: string;
+    profileImageUrl?: string | null;
     matchRate: number;           // 0~100 percentage (= quizMatchRate)
     scoreBreakdown: ScoreBreakdownDto;
 }
@@ -62,12 +93,15 @@ export interface MatchRequestDto {
 
 export interface GetMatchCandidatesResponse {
     quizSetId: string;
+    matchingType: 'ONE_TO_ONE' | 'GROUP';
     candidates: MatchCandidateDto[];
 }
 
 export interface GetMatchingStatusResponse {
     sentRequests: MatchRequestDto[];
     receivedRequests: MatchRequestDto[];
+    hasAcceptedMatch: boolean;
+    acceptedMatchUserId?: string;
 }
 
 // --- API functions ---

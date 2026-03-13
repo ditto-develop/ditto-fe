@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { TopNavigation } from "@/shared/ui/TopNavigation";
 import { Avatar } from "@/shared/ui/Avatar";
-import { SectionHeader } from "@/shared/ui/SectionHeader";
 import { ContentBadge } from "@/shared/ui/ContentBadge";
 import { BottomActionArea } from "@/shared/ui/BottomActionArea";
+import AlertModal from "@/components/display/AlertModal";
 import type { IntroNoteState } from "@/features/profile";
 import { useUserProfile } from "@/features/profile/hooks/useUserProfile";
 import {
@@ -15,10 +15,13 @@ import {
     acceptMatchRequest,
     rejectMatchRequest,
 } from "@/features/matching/api/matchingApi";
+import { ProfileDetailService, type AnswerComparisonItemDto } from "@/lib/api";
+import { getUserIntroNotes, type IntroNoteAnswer } from "@/features/profile/api/profileApi";
+import { useToast } from "@/context/ToastContext";
 
 /**
  * IntroNoteContainer — Figma: 3.2 소개노트
- * 실제 API 연결 + 상태별 버튼 (before_request / after_acceptance / completed)
+ * 실제 API 연결 + 상태별 버튼 (before_request / after_acceptance / completed / chat_started)
  */
 export default function IntroNoteContainer({
     userId,
@@ -35,39 +38,70 @@ export default function IntroNoteContainer({
 }) {
   console.log('[src/features/profile/containers/IntroNoteContainer.tsx] IntroNoteContainer'); // __component_log__
     const router = useRouter();
+    const { showToast } = useToast();
     const { profile, loading, error } = useUserProfile(userId);
     const [state, setState] = useState<IntroNoteState>(initialState);
     const [acting, setActing] = useState(false);
+    const [showModal, setShowModal] = useState<"request" | "accept" | "reject" | null>(null);
+    const [comparisons, setComparisons] = useState<AnswerComparisonItemDto[]>([]);
+    const [introNotes, setIntroNotes] = useState<IntroNoteAnswer[]>([]);
 
     // userId가 바뀔 때(다른 프로필로 이동) 상태 초기화
     useEffect(() => {
         setState(initialState);
     }, [userId]);
 
-    async function handleRequest() {
+    // chat_started: 전체 Q&A 비교 데이터 로드
+    useEffect(() => {
+        if (state !== "chat_started") return;
+        ProfileDetailService.ratingControllerGetUserAnswers(userId)
+            .then((res) => {
+                if (res.success && res.data?.comparisons) {
+                    setComparisons(res.data.comparisons);
+                }
+            })
+            .catch(() => {/* 무시 */});
+    }, [state, userId]);
+
+    // before_request / after_acceptance / completed: 소개노트 답변 미리보기 로드
+    useEffect(() => {
+        if (state === "chat_started") return;
+        getUserIntroNotes(userId)
+            .then(setIntroNotes)
+            .catch(() => {/* 무시 */});
+    }, [userId, state]);
+
+    // --- 대화 신청 ---
+    async function confirmRequest() {
         if (!quizSetId || acting) return;
+        setShowModal(null);
         setActing(true);
         try {
             await sendMatchRequest(userId, quizSetId);
             setState("completed");
+            showToast("대화 신청을 완료했어요.", "success");
         } finally {
             setActing(false);
         }
     }
 
-    async function handleAccept() {
+    // --- 대화 수락 ---
+    async function confirmAccept() {
         if (!matchRequestId || acting) return;
+        setShowModal(null);
         setActing(true);
         try {
             await acceptMatchRequest(matchRequestId);
-            router.push("/home");
+            router.push("/home?accepted=true");
         } finally {
             setActing(false);
         }
     }
 
-    async function handleReject() {
+    // --- 대화 거절 ---
+    async function confirmReject() {
         if (!matchRequestId || acting) return;
+        setShowModal(null);
         setActing(true);
         try {
             await rejectMatchRequest(matchRequestId);
@@ -121,42 +155,124 @@ export default function IntroNoteContainer({
                     <QASection>
                         <DottedDeco />
                         <QAContainer>
-                            <MoreIndicator>
-                                <Dot />
-                                <Dot />
-                                <Dot />
-                            </MoreIndicator>
-                            <MoreText>
-                                대화가 시작되면 더 많은 질문과 답변을 볼 수 있어요
-                            </MoreText>
+                            {state === "chat_started" && comparisons.length > 0 ? (
+                                comparisons.map((item, i) => (
+                                    <QAItem key={item.quizId ?? i}>
+                                        <QAQuestion>{item.question}</QAQuestion>
+                                        <QAAnswerRow>
+                                            <QAAnswerChip $isMatch={item.isMatch} $isMe>
+                                                나 · {item.myChoice}
+                                            </QAAnswerChip>
+                                            <QAAnswerChip $isMatch={item.isMatch}>
+                                                상대 · {item.theirChoice}
+                                            </QAAnswerChip>
+                                        </QAAnswerRow>
+                                    </QAItem>
+                                ))
+                            ) : (
+                                <>
+                                    {introNotes.slice(0, 3).map((item, i) => (
+                                        <IntroQAItem key={i}>
+                                            <IntroQAQuestion>{item.question}</IntroQAQuestion>
+                                            <IntroQAAnswer>{item.answer}</IntroQAAnswer>
+                                            {i < Math.min(introNotes.length, 3) - 1 && <IntroQADivider />}
+                                        </IntroQAItem>
+                                    ))}
+                                    <MoreIndicator>
+                                        <Dot />
+                                        <Dot />
+                                        <Dot />
+                                    </MoreIndicator>
+                                    <MoreText>
+                                        대화가 시작되면 더 많은 질문과 답변을 볼 수 있어요
+                                    </MoreText>
+                                </>
+                            )}
                         </QAContainer>
                     </QASection>
                 </>
             )}
 
             {/* Bottom Action Area — state-dependent */}
-            <ActionSpacer />
-            <BottomActionArea>
-                {state === "completed" ? (
-                    <CompletedArea>
-                        <CompletedText>✓ 대화 신청 완료</CompletedText>
-                    </CompletedArea>
-                ) : state === "before_request" ? (
-                    <PrimaryButton onClick={handleRequest} disabled={acting}>
-                        <ButtonIcon>▶</ButtonIcon>
-                        대화 신청하기
-                    </PrimaryButton>
-                ) : (
-                    <>
-                        <SecondaryButton onClick={handleReject} disabled={acting}>
-                            거절하기
-                        </SecondaryButton>
-                        <PrimaryButton onClick={handleAccept} disabled={acting}>
-                            대화 수락하기
-                        </PrimaryButton>
-                    </>
-                )}
-            </BottomActionArea>
+            {state !== "chat_started" && (
+                <>
+                    <ActionSpacer />
+                    <BottomActionArea>
+                        {state === "completed" ? (
+                            <PrimaryButton disabled>
+                                대화 신청 완료
+                            </PrimaryButton>
+                        ) : state === "before_request" ? (
+                            <PrimaryButton onClick={() => setShowModal("request")} disabled={acting}>
+                                <ButtonIcon>
+                                    <img src="/icons/action/send.svg" alt="" style={{ width: 16, height: 16, filter: "invert(1)" }} />
+                                </ButtonIcon>
+                                대화 신청하기
+                            </PrimaryButton>
+                        ) : (
+                            /* after_acceptance: 수신자 화면 */
+                            <>
+                                <SecondaryButton onClick={() => setShowModal("reject")} disabled={acting}>
+                                    거절하기
+                                </SecondaryButton>
+                                <PrimaryButton onClick={() => setShowModal("accept")} disabled={acting}>
+                                    대화 수락하기
+                                </PrimaryButton>
+                            </>
+                        )}
+                    </BottomActionArea>
+                </>
+            )}
+
+            {/* ── Alert Modals ── */}
+
+            {/* 대화 신청 확인 */}
+            <AlertModal
+                isOpen={showModal === "request"}
+                title="대화를 신청할까요?"
+                message="한 번 신청하면 취소할 수 없어요."
+                confirmParams={{
+                    text: "네, 신청할게요",
+                    onClick: confirmRequest,
+                }}
+                cancelParams={{
+                    text: "취소",
+                    onClick: () => setShowModal(null),
+                }}
+                onClose={() => setShowModal(null)}
+            />
+
+            {/* 대화 수락 확인 */}
+            <AlertModal
+                isOpen={showModal === "accept"}
+                title="대화 신청을 수락할까요?"
+                message={`한 번 신청하면 취소할 수 없어요. `}
+                confirmParams={{
+                    text: "네, 신청할게요",
+                    onClick: confirmAccept,
+                }}
+                cancelParams={{
+                    text: "취소",
+                    onClick: () => setShowModal(null),
+                }}
+                onClose={() => setShowModal(null)}
+            />
+
+            {/* 대화 거절 확인 */}
+            <AlertModal
+                isOpen={showModal === "reject"}
+                title="대화 신청을 거절할까요?"
+                message="매칭 결과 페이지에서 상대가 삭제되고, 되돌릴 수 없어요."
+                confirmParams={{
+                    text: "네, 거절할게요",
+                    onClick: confirmReject,
+                }}
+                cancelParams={{
+                    text: "아니오",
+                    onClick: () => setShowModal(null),
+                }}
+                onClose={() => setShowModal(null)}
+            />
         </PageContainer>
     );
 }
@@ -187,16 +303,16 @@ const ProfileSection = styled.div`
 const ProfileName = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 22px;
+  gap: 12px;
+  font-size: 24px;
   font-weight: 700;
-  color: var(--color-semantic-label-strong);
+  color: var(--color-semantic-label-normal, #1A1815);
 `;
 
 const RatingBadge = styled.span`
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   font-size: 14px;
   font-weight: 600;
   color: var(--color-semantic-status-positive, #557A55);
@@ -207,9 +323,11 @@ const RatingStar = styled.span`
 `;
 
 const ProfileMeta = styled.span`
-  font-size: 15px;
+  font-size: 16px;
+  font-weight: 500;
   color: var(--color-semantic-label-alternative);
   text-align: center;
+  line-height: 1.5;
 `;
 
 const InterestRow = styled.div`
@@ -261,24 +379,79 @@ const MoreText = styled.span`
   text-align: center;
 `;
 
-const ActionSpacer = styled.div`
-  height: 16px;
-`;
-
-const CompletedArea = styled.div`
-  flex: 1;
+// Intro note preview (before_request / after_acceptance / completed)
+const IntroQAItem = styled.div`
+  width: 100%;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  border-radius: 12px;
-  background-color: var(--color-semantic-background-normal-normal, #F2F0ED);
+  flex-direction: column;
+  gap: 6px;
 `;
 
-const CompletedText = styled.span`
-  font-size: 16px;
+const IntroQAQuestion = styled.p`
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-semantic-label-alternative);
+  margin: 0;
+`;
+
+const IntroQAAnswer = styled.p`
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--color-semantic-label-normal);
+  margin: 0;
+  line-height: 1.5;
+`;
+
+const IntroQADivider = styled.div`
+  height: 1px;
+  background-color: var(--color-semantic-line-normal-neutral);
+  margin-top: 8px;
+`;
+
+// Q&A full view (chat_started)
+const QAItem = styled.div`
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const QAQuestion = styled.p`
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-semantic-label-normal);
+  margin: 0;
+`;
+
+const QAAnswerRow = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const QAAnswerChip = styled.span<{ $isMatch: boolean; $isMe?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  background-color: ${({ $isMatch, $isMe }) =>
+    $isMatch
+      ? "rgba(85, 122, 85, 0.12)"
+      : $isMe
+      ? "rgba(108, 101, 95, 0.08)"
+      : "rgba(179, 53, 40, 0.08)"};
+  color: ${({ $isMatch, $isMe }) =>
+    $isMatch
+      ? "var(--color-semantic-status-positive, #557A55)"
+      : $isMe
+      ? "var(--color-semantic-label-normal)"
+      : "var(--color-semantic-status-negative, #B33528)"};
+`;
+
+const ActionSpacer = styled.div`
+  height: 16px;
 `;
 
 const PrimaryButton = styled.button`
@@ -307,6 +480,8 @@ const PrimaryButton = styled.button`
 
 const ButtonIcon = styled.span`
   font-size: 14px;
+  display: flex;
+  align-items: center;
 `;
 
 const SecondaryButton = styled.button`

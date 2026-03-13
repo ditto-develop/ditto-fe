@@ -16,7 +16,9 @@ function ProfileContent() {
     const matchRequestId = searchParams.get("matchRequestId") ?? undefined;
     const rawState = searchParams.get("state");
     const initialState: IntroNoteState =
-        rawState === "after_acceptance" || rawState === "completed"
+        rawState === "after_acceptance" ||
+        rawState === "completed" ||
+        rawState === "chat_started"
             ? rawState
             : "before_request";
 

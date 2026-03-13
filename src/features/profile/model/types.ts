@@ -25,4 +25,8 @@ export interface QuizAnswer {
 }
 
 /** 소개노트 뷰 상태 */
-export type IntroNoteState = "before_request" | "after_acceptance" | "completed";
+export type IntroNoteState =
+    | "before_request"   // 대화 신청 전 (신청자 화면)
+    | "after_acceptance" // 대화 수락 대기 중 (수신자 화면)
+    | "completed"        // 대화 신청 완료 (신청자, 상대방 수락 대기)
+    | "chat_started";    // 매칭 성사 후 전체 Q&A 공개

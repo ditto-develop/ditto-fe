@@ -139,6 +139,7 @@ interface CardProps {
   contentDescription?: string; // ✅ New Prop
   alert?: string | ReactNode;
   alertType?: AlertStatus; // ✅ 알림 뱃지 색상 타입 추가 (기본값 처리는 컴포넌트에서)
+  onAlertClick?: () => void;
   viewSection?: ReactNode;
   viewCard?: ReactNode;
   buttonSection?: ReactNode;
@@ -154,6 +155,7 @@ export default function Card({
   contentDescription,
   alert,
   alertType = 'destructive', // ✅ 기본값 설정 (빨간색)
+  onAlertClick,
   viewSection,
   viewCard,
   buttonSection,
@@ -176,7 +178,7 @@ export default function Card({
 
         {/* alert가 있을 때만 렌더링하며, alertType을 스타일로 전달 */}
         {alert && (
-          <AlertBadge $status={alertType}>
+          <AlertBadge $status={alertType} onClick={onAlertClick} style={onAlertClick ? { cursor: "pointer" } : undefined}>
             {alert}
           </AlertBadge>
         )}

@@ -17,15 +17,21 @@ export interface MatchItem {
     matchRequestId?: string;
 }
 
+function toGenderKo(gender: string): string {
+    if (gender === "MALE") return "남자";
+    if (gender === "FEMALE") return "여자";
+    return gender;
+}
+
 function toMatchProfile(c: MatchCandidateDto): MatchProfile {
     return {
         id: c.userId,
         nickname: c.nickname,
         age: c.age,
-        gender: c.gender,
+        gender: toGenderKo(c.gender),
         location: c.location || "",
         bio: c.introduction || "",
-        avatarUrl: "",
+        avatarUrl: c.profileImageUrl || "",
     };
 }
 
@@ -51,6 +57,8 @@ function mergeWithStatus(
 export function useMatchCandidates() {
     const [quizSetId, setQuizSetId] = useState<string>("");
     const [candidates, setCandidates] = useState<MatchItem[]>([]);
+    const [hasAcceptedMatch, setHasAcceptedMatch] = useState(false);
+    const [acceptedMatchUserId, setAcceptedMatchUserId] = useState<string | undefined>(undefined);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
@@ -58,8 +66,10 @@ export function useMatchCandidates() {
         async function load() {
             try {
                 const { quizSetId: qid, candidates: raw } = await getMatchCandidates();
-                const { sentRequests, receivedRequests } = await getMatchingStatus(qid);
+                const { sentRequests, receivedRequests, hasAcceptedMatch: accepted, acceptedMatchUserId: acceptedId } = await getMatchingStatus(qid);
                 setQuizSetId(qid);
+                setHasAcceptedMatch(accepted);
+                setAcceptedMatchUserId(acceptedId);
                 setCandidates(mergeWithStatus(raw, sentRequests, receivedRequests));
             } catch (e) {
                 setError(e as Error);
@@ -70,5 +80,5 @@ export function useMatchCandidates() {
         load();
     }, []);
 
-    return { quizSetId, candidates, loading, error };
+    return { quizSetId, candidates, hasAcceptedMatch, acceptedMatchUserId, loading, error };
 }

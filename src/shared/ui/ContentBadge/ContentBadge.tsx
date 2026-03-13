@@ -51,21 +51,21 @@ const Badge = styled.div<{ $variant: BadgeVariant }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 6px;
+  padding: 0 8px;
   gap: 4px;
-  border-radius: 6px;
-  height: 24px;
+  border-radius: 8px;
+  height: 28px;
   background-color: ${({ $variant }) => bgColorMap[$variant]};
 `;
 
 const BadgeIcon = styled.span`
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1;
 `;
 
 const BadgeText = styled.span<{ $variant: BadgeVariant }>`
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  line-height: 1;
+  line-height: 1.385;
   color: ${({ $variant }) => fgColorMap[$variant]};
 `;

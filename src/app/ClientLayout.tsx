@@ -19,17 +19,26 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     ? !!localStorage.getItem('accessToken')
     : null;
 
+  // 로그인이 필요 없는 공개 경로
+  const isPublicPath = pathname === "/" || pathname.startsWith('/oauth');
+
   useEffect(() => {
     if (!isLoggedIn) {
-      // 비로그인: 3초 후 스플래시 숨김 (callback 안이라 setstate-in-effect 해당 없음)
-      const timer = setTimeout(() => setSplashDone(true), 3000);
-      return () => clearTimeout(timer);
+      if (isPublicPath) {
+        // 비로그인 + 공개 경로: 3초 후 스플래시 숨김
+        const timer = setTimeout(() => setSplashDone(true), 3000);
+        return () => clearTimeout(timer);
+      } else {
+        // 비로그인 + 보호 경로: 로그인 페이지로 리다이렉트
+        router.push("/");
+      }
+      return;
     }
     // 로그인 상태: 루트·오어스 경로 → 홈으로 리다이렉트
-    if (pathname === "/" || pathname.startsWith('/oauth')) {
+    if (isPublicPath) {
       router.push("/home");
     }
-  }, [isLoggedIn, pathname, router]);
+  }, [isLoggedIn, isPublicPath, router]);
 
   // showSplash를 state 없이 순수 파생값으로 계산
   const showSplash = (() => {

@@ -7,7 +7,7 @@ import { ContentBadge } from "@/shared/ui/ContentBadge";
 import { Avatar } from "@/shared/ui/Avatar";
 import { SurfaceCard } from "@/shared/ui/SurfaceCard";
 import { getMatchBadgeInfo, type MatchProfile } from "@/features/matching";
-import { useMatchCandidates, type MatchItem } from "@/features/matching/hooks/useMatchCandidates";
+import { useMatchCandidates } from "@/features/matching/hooks/useMatchCandidates";
 import type { IntroNoteState } from "@/features/profile";
 
 export interface ProfileClickInfo {
@@ -51,9 +51,9 @@ export default function MatchingResultContainer({
     onProfileClick: (info: ProfileClickInfo) => void;
 }) {
   console.log('[src/features/matching/containers/MatchingResultContainer.tsx] MatchingResultContainer'); // __component_log__
-    const { quizSetId, candidates, loading, error } = useMatchCandidates();
+    const { quizSetId, candidates, hasAcceptedMatch, acceptedMatchUserId, loading, error } = useMatchCandidates();
 
-    const grouped = groupByMatchRate(candidates);
+    const sorted = [...candidates].sort((a, b) => b.matchRate - a.matchRate);
 
     return (
         <PageContainer>
@@ -74,28 +74,29 @@ export default function MatchingResultContainer({
             <Body>
                 {loading && <StateText>매칭 결과를 불러오는 중...</StateText>}
                 {error && <StateText>매칭 결과를 불러오지 못했어요.</StateText>}
-                {!loading && !error && grouped.length === 0 && (
+                {!loading && !error && sorted.length === 0 && (
                     <StateText>이번 주 매칭 결과가 없어요.</StateText>
                 )}
 
-                {grouped.map((group) => (
-                    <MatchGroup key={group.badge.label}>
-                        <BadgeRow>
-                            <ContentBadge variant={group.badge.variant} icon="">
-                                {group.badge.label}
-                            </ContentBadge>
-                            <MatchCount>{group.badge.matchDescription}</MatchCount>
-                        </BadgeRow>
-
-                        {group.matches.map((match) => (
+                {sorted.map((match) => {
+                    const badge = getMatchBadgeInfo(match.matchRate);
+                    return (
+                        <MatchGroup key={match.profile.id}>
+                            <BadgeRow>
+                                <ContentBadge variant={badge.variant} icon="">
+                                    {badge.label}
+                                </ContentBadge>
+                                <MatchCount>{badge.matchDescription}</MatchCount>
+                            </BadgeRow>
                             <SurfaceCard
-                                key={match.profile.id}
                                 onClick={() =>
                                     onProfileClick({
                                         userId: match.profile.id,
                                         quizSetId,
                                         matchRequestId: match.matchRequestId,
-                                        state: match.hasReceivedRequest
+                                        state: hasAcceptedMatch && match.profile.id === acceptedMatchUserId
+                                            ? "chat_started"
+                                            : match.hasReceivedRequest
                                             ? "after_acceptance"
                                             : "before_request",
                                     })
@@ -115,31 +116,12 @@ export default function MatchingResultContainer({
                                     </StatusRow>
                                 )}
                             </SurfaceCard>
-                        ))}
-                    </MatchGroup>
-                ))}
+                        </MatchGroup>
+                    );
+                })}
             </Body>
         </PageContainer>
     );
-}
-
-// --- Helpers ---
-
-function groupByMatchRate(matches: MatchItem[]) {
-    const sorted = [...matches].sort((a, b) => b.matchRate - a.matchRate);
-    const groups: Array<{ badge: ReturnType<typeof getMatchBadgeInfo>; matches: MatchItem[] }> = [];
-
-    for (const match of sorted) {
-        const badge = getMatchBadgeInfo(match.matchRate);
-        const existingGroup = groups.find((g) => g.badge.label === badge.label);
-        if (existingGroup) {
-            existingGroup.matches.push(match);
-        } else {
-            groups.push({ badge, matches: [match] });
-        }
-    }
-
-    return groups;
 }
 
 // --- Styled Components ---

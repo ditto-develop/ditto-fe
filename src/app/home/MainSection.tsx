@@ -6,9 +6,12 @@ import TimeLine from "@/components/home/Timeline";
 import { MatchingCardType } from "@/components/home/MatchingDay";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { SystemService, SystemStateDto, QuizProgressService, QuizProgressDto, IntroNotesService } from "@/lib/api";
-import { getMatchCandidates } from "@/features/matching/api/matchingApi";
+import { SystemService, SystemStateDto, QuizProgressService, QuizProgressDto, IntroNotesService, ChatService } from "@/lib/api";
+import { getMatchCandidates, getMatchingStatus, MatchCandidateDto } from "@/features/matching/api/matchingApi";
+import type { ChatRoomItemDto } from "@/lib/api/models/ChatRoomItemDto";
 import { useHomeReady } from "@/context/HomeReadyContext";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useToast } from "@/context/ToastContext";
 
 const MainSectionContainer = styled.div`
   padding: 16px 0px 80px;
@@ -42,8 +45,23 @@ export default function MainSection() {
   const [isIntroComplete, setIsIntroComplete] = useState(false);
   const [participantCount, setParticipantCount] = useState(0);
   const [matchType, setMatchType] = useState<MatchingCardType>("beforematch");
+  const [candidates, setCandidates] = useState<MatchCandidateDto[]>([]);
+  const [hasAcceptedMatch, setHasAcceptedMatch] = useState(false);
+  const [acceptedCandidate, setAcceptedCandidate] = useState<MatchCandidateDto | undefined>(undefined);
+  const [chatRoom, setChatRoom] = useState<ChatRoomItemDto | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const { setHomeReady } = useHomeReady();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { showToast } = useToast();
+
+  // 대화 수락 후 홈으로 돌아왔을 때 스낵바 표시
+  useEffect(() => {
+    if (searchParams.get("accepted") !== "true") return;
+    showToast("상대방이 대화를 수락했어요! 대화는 금요일에 시작돼요.", "success");
+    router.replace("/home");
+  }, [searchParams, showToast, router]);
+
 
   useEffect(() => {
     // 마운트 시 리셋: 홈으로 다시 진입할 때 Splash가 다시 뜨도록
@@ -77,12 +95,24 @@ export default function MainSection() {
         } else {
           // MATCHING or CHATTING: 매칭 결과로 matchType 결정
           try {
-            const { candidates } = await getMatchCandidates();
-            if (candidates.length === 0) setMatchType("failmatch");
-            else if (candidates.length === 1) setMatchType("one");
-            else setMatchType("many");
+            const { quizSetId, candidates: fetchedCandidates, matchingType } = await getMatchCandidates();
+            const { hasAcceptedMatch: accepted, acceptedMatchUserId } = await getMatchingStatus(quizSetId);
+            setCandidates(fetchedCandidates);
+            setHasAcceptedMatch(accepted);
+            if (accepted && acceptedMatchUserId) {
+              const found = fetchedCandidates.find(c => c.userId === acceptedMatchUserId);
+              setAcceptedCandidate(found);
+            }
+            if (fetchedCandidates.length === 0) setMatchType("failmatch");
+            else if (matchingType === 'GROUP') setMatchType("many");
+            else setMatchType("one");
+            if (fetchedPeriod === "CHATTING") {
+              const chatRes = await ChatService.chatControllerGetChatRooms();
+              if (chatRes.success && chatRes.data && chatRes.data.length > 0) {
+                setChatRoom(chatRes.data[0]);
+              }
+            }
           } catch {
-            // 퀴즈 미참여 등으로 매칭 결과 없음
             setMatchType("beforematch");
           }
         }
@@ -111,6 +141,9 @@ export default function MainSection() {
             day={dayIndex}
             matchType={matchType}
             buttonState="primary"
+            candidates={candidates}
+            hasAcceptedMatch={hasAcceptedMatch}
+            acceptedCandidate={acceptedCandidate}
           />
         );
       case "CHATTING":
@@ -120,6 +153,10 @@ export default function MainSection() {
             day={dayIndex}
             matchType={matchType}
             buttonState="primary"
+            candidates={candidates}
+            hasAcceptedMatch={hasAcceptedMatch}
+            acceptedCandidate={acceptedCandidate}
+            chatRoom={chatRoom}
           />
         );
       default:

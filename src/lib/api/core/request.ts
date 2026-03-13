@@ -351,7 +351,7 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): C
                         // Refresh failed — clear stored tokens and redirect to login
                         if (typeof window !== 'undefined') {
                             localStorage.removeItem('accessToken');
-                            window.location.href = '/login';
+                            window.location.href = '/';
                         }
                     }
                 }
