@@ -4,6 +4,7 @@ import styled from "styled-components";
 import MainHeader from "./MainHeader";
 import MainSection from "./MainSection";
 import MainBottomNav from "./MainBottomNav";
+import { Suspense } from "react";
 
 const MainContainer = styled.div`
   width: 100%;
@@ -20,7 +21,9 @@ export default function Main() {
   return (
     <MainContainer>
       <MainHeader />
-      <MainSection />
+      <Suspense>
+        <MainSection />
+      </Suspense>
       <MainBottomNav />
     </MainContainer>
   );
