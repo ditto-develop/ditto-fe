@@ -102,6 +102,7 @@ export interface GetMatchingStatusResponse {
     receivedRequests: MatchRequestDto[];
     hasAcceptedMatch: boolean;
     acceptedMatchUserId?: string;
+    groupDeclined: boolean;
 }
 
 // --- API functions ---
@@ -127,4 +128,19 @@ export function rejectMatchRequest(matchRequestId: string): Promise<MatchRequest
 
 export function getMatchingStatus(quizSetId: string): Promise<GetMatchingStatusResponse> {
     return apiFetch(`/matching/status/${quizSetId}`);
+}
+
+export interface GroupJoinResult {
+    roomId: string;
+    quizSetId: string;
+    participantCount: number;
+    isActive: boolean;
+}
+
+export function joinGroupMatch(): Promise<GroupJoinResult> {
+    return apiFetch("/matches/group/join", { method: "POST" });
+}
+
+export function declineGroupMatch(): Promise<void> {
+    return apiFetch("/matches/group/decline", { method: "POST" });
 }

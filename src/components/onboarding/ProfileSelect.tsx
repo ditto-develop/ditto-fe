@@ -79,19 +79,28 @@ const AvatarGrid = styled.div`
 `;
 
 const AvatarItem = styled.button`
-  position: relative;
   border: none;
   padding: 0;
   background: none;
   cursor: pointer;
 `;
 
-const AvatarCircle = styled.div`
+const AvatarWrapper = styled.div`
+  position: relative;
+  width: 160px;
+  height: 160px;
+  margin: 0 auto;
+`;
+
+const AvatarCircle = styled.div<{ $selected?: boolean }>`
   width: 160px;
   height: 160px;
   border-radius: 50%;
   background: var(--color-semantic-background-normal-alternative);
-  border : 1px solid lightgray;
+  border: ${({ $selected }) =>
+    $selected
+      ? "4px solid var(--color-semantic-line-solid-normal)"
+      : "1px solid var(--color-semantic-line-normal-alternative)"};
   display: flex;
   justify-content: center;
   align-items: center;
@@ -108,10 +117,10 @@ const CheckBadge = styled.div`
   position: absolute;
   right: 10px;
   top: 10px;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  background: #111;
+  background: var(--color-semantic-primary-normal);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -120,6 +129,7 @@ const CheckBadge = styled.div`
 const CheckIcon = styled.img`
   width: 14px;
   height: 14px;
+  filter: brightness(0) invert(1);
 `;
 
 const BottomButton = styled.button`
@@ -214,14 +224,16 @@ const ProfileSelect: React.FC<CaricatureSelectProps> = ({
           const selected = profile === avatar.id;
           return (
             <AvatarItem key={avatar.id} onClick={() => handleSelectAvatar(avatar.id)}>
-              <AvatarCircle>
-                <img src={avatar.src} alt={avatar.id} />
-              </AvatarCircle>
-              {selected && (
-                <CheckBadge>
-                  <CheckIcon src='/onboarding/profileimg/check.svg' />
-                </CheckBadge>
-              )}
+              <AvatarWrapper>
+                <AvatarCircle $selected={selected}>
+                  <img src={avatar.src} alt={avatar.id} />
+                </AvatarCircle>
+                {selected && (
+                  <CheckBadge>
+                    <CheckIcon src='/onboarding/profileimg/check.svg' />
+                  </CheckBadge>
+                )}
+              </AvatarWrapper>
             </AvatarItem>
           );
         })}

@@ -25,6 +25,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import BottomSheet from "../display/BottomSheet";
+import GroupMatchingResultModal from "./GroupMatchingResultModal";
 
 //- Styled Components
 //================================================================================================
@@ -759,6 +760,7 @@ export default function MatchingDay({
   hasAcceptedMatch = false,
   acceptedCandidate,
   chatRoom,
+  quizSetId = "",
 }: {
   matchType: MatchingCardType;
   buttonState: ButtonStateType;
@@ -768,10 +770,13 @@ export default function MatchingDay({
   hasAcceptedMatch?: boolean;
   acceptedCandidate?: MatchCandidateDto;
   chatRoom?: ChatRoomItemDto;
+  quizSetId?: string;
 }) {
   console.log('[src/components/home/MatchingDay.tsx] MatchingDay'); // __component_log__
   const router = useRouter();
   const [profileSelect, setProfileSelect] = useState(false);
+  const [groupModalOpen, setGroupModalOpen] = useState(false);
+  const [groupDeclined, setGroupDeclined] = useState(false);
 
   const openProfileSelector = () => setProfileSelect(true);
   const closeProfileSelector = () => setProfileSelect(false);
@@ -837,7 +842,7 @@ export default function MatchingDay({
     );
   }
 
-  if (matchType === "failmatch") {
+  if (matchType === "failmatch" || groupDeclined) {
     return <FailMatchCard isChatTime={isChatTime} />;
   }
 
@@ -886,7 +891,11 @@ export default function MatchingDay({
             buttonState={buttonState}
             isChatTime={isChatTime}
             hasChat={!!chatRoom?.lastMessage}
-            onClick={!isChatTime ? () => router.push("/matching") : undefined}
+            onClick={!isChatTime
+              ? matchType === "many"
+                ? () => setGroupModalOpen(true)
+                : () => router.push("/matching")
+              : undefined}
           />
         }
       />
@@ -915,6 +924,14 @@ export default function MatchingDay({
           closer={closeProfileSelector}
         />
       )}
+
+      <GroupMatchingResultModal
+        isOpen={groupModalOpen}
+        onClose={() => setGroupModalOpen(false)}
+        onDecline={() => setGroupDeclined(true)}
+        candidates={candidates}
+        quizSetId={quizSetId}
+      />
     </>
   );
 }

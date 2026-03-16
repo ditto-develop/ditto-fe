@@ -46,6 +46,7 @@ export default function MainSection() {
   const [participantCount, setParticipantCount] = useState(0);
   const [matchType, setMatchType] = useState<MatchingCardType>("beforematch");
   const [candidates, setCandidates] = useState<MatchCandidateDto[]>([]);
+  const [quizSetId, setQuizSetId] = useState<string>("");
   const [hasAcceptedMatch, setHasAcceptedMatch] = useState(false);
   const [acceptedCandidate, setAcceptedCandidate] = useState<MatchCandidateDto | undefined>(undefined);
   const [chatRoom, setChatRoom] = useState<ChatRoomItemDto | undefined>(undefined);
@@ -95,15 +96,17 @@ export default function MainSection() {
         } else {
           // MATCHING or CHATTING: 매칭 결과로 matchType 결정
           try {
-            const { quizSetId, candidates: fetchedCandidates, matchingType } = await getMatchCandidates();
-            const { hasAcceptedMatch: accepted, acceptedMatchUserId } = await getMatchingStatus(quizSetId);
+            const { quizSetId: fetchedQuizSetId, candidates: fetchedCandidates, matchingType } = await getMatchCandidates();
+            const quizSetId = fetchedQuizSetId;
+            setQuizSetId(fetchedQuizSetId);
+            const { hasAcceptedMatch: accepted, acceptedMatchUserId, groupDeclined } = await getMatchingStatus(quizSetId);
             setCandidates(fetchedCandidates);
             setHasAcceptedMatch(accepted);
             if (accepted && acceptedMatchUserId) {
               const found = fetchedCandidates.find(c => c.userId === acceptedMatchUserId);
               setAcceptedCandidate(found);
             }
-            if (fetchedCandidates.length === 0) setMatchType("failmatch");
+            if (fetchedCandidates.length === 0 || groupDeclined) setMatchType("failmatch");
             else if (matchingType === 'GROUP') setMatchType("many");
             else setMatchType("one");
             if (fetchedPeriod === "CHATTING") {
@@ -144,6 +147,7 @@ export default function MainSection() {
             candidates={candidates}
             hasAcceptedMatch={hasAcceptedMatch}
             acceptedCandidate={acceptedCandidate}
+            quizSetId={quizSetId}
           />
         );
       case "CHATTING":

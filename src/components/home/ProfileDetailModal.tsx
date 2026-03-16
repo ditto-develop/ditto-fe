@@ -21,6 +21,7 @@ interface ProfileDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   profile: any;
+  hideCta?: boolean;
 }
 
 const CheckIcon = () => (
@@ -33,6 +34,7 @@ export default function ProfileDetailModal({
   isOpen,
   onClose,
   profile,
+  hideCta = false,
 }: ProfileDetailModalProps) {
   console.log('[src/components/home/ProfileDetailModal.tsx] ProfileDetailModal'); // __component_log__
   const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -136,29 +138,31 @@ export default function ProfileDetailModal({
         </ContentBody>
 
         {/* Bottom Action Area */}
-        <BottomActionContainer>
-          <ActionSheet>
-            {isRequested ? (
-              <ActionButton
-                variant="disabled"
-                disabled={true}
-                onClick={() => { }}
-                icon={<CheckIcon />}
-                style={{ backgroundColor: 'var(--color-semantic-interaction-disable, #DDD8D3)' }}
-              >
-                대화 신청 완료
-              </ActionButton>
-            ) : (
-              <ActionButton
-                variant="primary"
-                onClick={handleRequestChat}
-                icon={<img src="/icons/action/send.svg" alt="" />}
-              >
-                대화 신청하기
-              </ActionButton>
-            )}
-          </ActionSheet>
-        </BottomActionContainer>
+        {!hideCta && (
+          <BottomActionContainer>
+            <ActionSheet>
+              {isRequested ? (
+                <ActionButton
+                  variant="disabled"
+                  disabled={true}
+                  onClick={() => { }}
+                  icon={<CheckIcon />}
+                  style={{ backgroundColor: 'var(--color-semantic-interaction-disable, #DDD8D3)' }}
+                >
+                  대화 신청 완료
+                </ActionButton>
+              ) : (
+                <ActionButton
+                  variant="primary"
+                  onClick={handleRequestChat}
+                  icon={<img src="/icons/action/send.svg" alt="" />}
+                >
+                  대화 신청하기
+                </ActionButton>
+              )}
+            </ActionSheet>
+          </BottomActionContainer>
+        )}
 
         {/* Toast Overlay */}
         {toastMessage && (
