@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:10000') + '/api';
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE || '') + '/api';
 
 export default function AdminLoginPage() {
   const router = useRouter();

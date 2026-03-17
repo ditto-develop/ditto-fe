@@ -1,7 +1,4 @@
-const API_BASE =
-  (typeof window !== 'undefined'
-    ? (process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:10000')
-    : 'http://localhost:10000') + '/api';
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE || '') + '/api';
 
 function getToken(): string {
   if (typeof window === 'undefined') return '';
