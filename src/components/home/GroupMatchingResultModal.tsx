@@ -135,7 +135,7 @@ export default function GroupMatchingResultModal({
       } else {
         showToast(
           "그룹에 참여했어요! 대화는 금요일에 시작 돼요",
-          "none",
+          "default",
           { duration: 3000 }
         );
       }
