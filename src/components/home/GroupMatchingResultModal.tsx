@@ -126,7 +126,7 @@ export default function GroupMatchingResultModal({
 
       if (result.isActive) {
         const toastId = `group-join-active-${Date.now()}`;
-        showToast("그룹에 참여했어요! 대화는 금요일에 시작 돼요", "none", {
+        showToast("그룹에 참여했어요! 대화는 금요일에 시작 돼요", "default", {
           id: toastId,
           actionLabel: "확인",
           onAction: () => removeToast(toastId),
