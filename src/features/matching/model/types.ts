@@ -48,13 +48,13 @@ export function getMatchBadgeInfo(matchCount: number): MatchBadgeInfo {
     if (matchCount >= 11) {
         return {
             label: "🌟 당신과 가장 비슷해요",
-            variant: "positive",
+            variant: "destructive",
             matchDescription: `12개중 ${matchCount}개 일치`,
         };
     } else if (matchCount >= 8) {
         return {
             label: "😊 대부분 비슷하게 생각해요",
-            variant: "positive",
+            variant: "destructive",
             matchDescription: `12개중 ${matchCount}개 일치`,
         };
     } else if (matchCount >= 6) {

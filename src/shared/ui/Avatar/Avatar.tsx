@@ -45,6 +45,8 @@ const AvatarContainer = styled.div<{ $size: number }>`
   overflow: hidden;
   flex-shrink: 0;
   background-color: var(--color-semantic-background-normal-normal, #F2F0ED);
+  border: 1px solid var(--color-semantic-line-normal-alternative);
+  box-sizing: border-box;
 `;
 
 const AvatarImage = styled.img<{ $size: number }>`

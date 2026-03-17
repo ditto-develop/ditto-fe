@@ -4,9 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { TopNavigation } from "@/shared/ui/TopNavigation";
-import { Avatar } from "@/shared/ui/Avatar";
-import { ContentBadge } from "@/shared/ui/ContentBadge";
-import { BottomActionArea } from "@/shared/ui/BottomActionArea";
 import AlertModal from "@/components/display/AlertModal";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import type { IntroNoteState } from "@/features/profile";
@@ -19,6 +16,7 @@ import {
 import { ProfileDetailService, type AnswerComparisonItemDto } from "@/lib/api";
 import { getUserIntroNotes, type IntroNoteAnswer } from "@/features/profile/api/profileApi";
 import { useToast } from "@/context/ToastContext";
+import ProfileIntroView, { QnACard } from "@/features/profile/ui/ProfileIntroView";
 
 /**
  * IntroNoteContainer — Figma: 3.2 소개노트
@@ -120,44 +118,33 @@ export default function IntroNoteContainer({
             {error && <StateText>프로필을 불러오지 못했어요.</StateText>}
 
             {profile && (
-                <>
-                    {/* Profile Hero Section */}
-                    <ProfileSection>
-                        <Avatar src={profile.avatarUrl} size="xl" />
+                state === "chat_started" ? (
+                    <>
+                        {/* Profile Hero + Q&A comparison (chat_started only) */}
+                        <ChatProfileSection>
+                            <AvatarWrapper>
+                                <AvatarImg src={profile.avatarUrl} alt={profile.nickname} />
+                            </AvatarWrapper>
+                            <NameRow>
+                                <ProfileName>{profile.nickname}</ProfileName>
+                                {profile.rating && (
+                                    <RatingBadge>
+                                        <RatingStar>★</RatingStar>
+                                        <RatingText>{profile.rating}</RatingText>
+                                    </RatingBadge>
+                                )}
+                            </NameRow>
+                            <ProfileMeta>
+                                {formatAgeRange(profile.age)} · {profile.gender}
+                                {profile.location ? ` · ${profile.location}` : ""}
+                                {profile.occupation ? ` · ${profile.occupation}` : ""}
+                            </ProfileMeta>
+                        </ChatProfileSection>
 
-                        <ProfileName>
-                            {profile.nickname}
-                            {profile.rating && (
-                                <RatingBadge>
-                                    <RatingStar>★</RatingStar>
-                                    {profile.rating}
-                                </RatingBadge>
-                            )}
-                        </ProfileName>
-
-                        <ProfileMeta>
-                            {formatAgeRange(profile.age)} · {profile.gender}
-                            {profile.location ? ` · ${profile.location}` : ""}
-                            {profile.occupation ? ` · ${profile.occupation}` : ""}
-                        </ProfileMeta>
-
-                        {profile.interests.length > 0 && (
-                            <InterestRow>
-                                {profile.interests.map((interest) => (
-                                    <ContentBadge key={interest} variant="neutral">
-                                        {interest}
-                                    </ContentBadge>
-                                ))}
-                            </InterestRow>
-                        )}
-                    </ProfileSection>
-
-                    {/* Quiz Answers Card */}
-                    <QASection>
-                        <DottedDeco />
-                        <QAContainer>
-                            {state === "chat_started" && comparisons.length > 0 ? (
-                                comparisons.map((item, i) => (
+                        <QnACard>
+                            <TicketDeco src="/assets/decoration/deco.svg" alt="" />
+                            <ChatQnABody>
+                                {comparisons.map((item, i) => (
                                     <QAItem key={item.quizId ?? i}>
                                         <QAQuestion>{item.question}</QAQuestion>
                                         <QAAnswerRow>
@@ -169,44 +156,43 @@ export default function IntroNoteContainer({
                                             </QAAnswerChip>
                                         </QAAnswerRow>
                                     </QAItem>
-                                ))
-                            ) : (
-                                <>
-                                    {introNotes.slice(0, 3).map((item, i) => (
-                                        <IntroQAItem key={i}>
-                                            <IntroQAQuestion>{item.question}</IntroQAQuestion>
-                                            <IntroQAAnswer>{item.answer}</IntroQAAnswer>
-                                            {i < Math.min(introNotes.length, 3) - 1 && <IntroQADivider />}
-                                        </IntroQAItem>
-                                    ))}
-                                    <MoreIndicator>
-                                        <Dot />
-                                        <Dot />
-                                        <Dot />
-                                    </MoreIndicator>
-                                    <MoreText>
-                                        대화가 시작되면 더 많은 질문과 답변을 볼 수 있어요
-                                    </MoreText>
-                                </>
-                            )}
-                        </QAContainer>
-                    </QASection>
-                </>
+                                ))}
+                            </ChatQnABody>
+                        </QnACard>
+                    </>
+                ) : (
+                    <ProfileIntroView
+                        avatarUrl={profile.avatarUrl}
+                        name={profile.nickname}
+                        rating={profile.rating}
+                        metaText={[
+                            formatAgeRange(profile.age),
+                            profile.gender,
+                            profile.location,
+                            profile.occupation,
+                        ].filter(Boolean).join(" · ")}
+                        interests={profile.interests}
+                        introNotes={introNotes}
+                    />
+                )
             )}
 
             {/* Bottom Action Area — state-dependent */}
             {state !== "chat_started" && (
-                <>
-                    <ActionSpacer />
-                    <BottomActionArea>
+                <BottomSection>
+                    <GradientFade />
+                    <ButtonArea>
                         {state === "completed" ? (
-                            <PrimaryButton disabled>
+                            <CompletedButton disabled>
+                                <ButtonIcon>
+                                    <img src="/icons/status/circle-check-fill.svg" alt="" style={{ width: 20, height: 20, opacity: 0.32 }} />
+                                </ButtonIcon>
                                 대화 신청 완료
-                            </PrimaryButton>
+                            </CompletedButton>
                         ) : state === "before_request" ? (
                             <PrimaryButton onClick={() => setShowModal("request")} disabled={acting}>
                                 <ButtonIcon>
-                                    <img src="/icons/action/send.svg" alt="" style={{ width: 16, height: 16, filter: "invert(1)" }} />
+                                    <img src="/icons/action/send.svg" alt="" style={{ width: 16, height: 16 }} />
                                 </ButtonIcon>
                                 대화 신청하기
                             </PrimaryButton>
@@ -221,8 +207,8 @@ export default function IntroNoteContainer({
                                 </PrimaryButton>
                             </>
                         )}
-                    </BottomActionArea>
-                </>
+                    </ButtonArea>
+                </BottomSection>
             )}
 
             {/* ── Alert Modals ── */}
@@ -281,9 +267,11 @@ export default function IntroNoteContainer({
 // --- Styled Components ---
 const PageContainer = styled.div`
   width: 100%;
-  min-height: 100vh;
-  background-color: var(--color-semantic-background-normal-alternative, #E9E6E2);
-  padding-bottom: 100px;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-semantic-background-normal-normal, #F2F0ED);
 `;
 
 const StateText = styled.p`
@@ -293,33 +281,57 @@ const StateText = styled.p`
   padding: 32px 0;
 `;
 
-const ProfileSection = styled.div`
+// chat_started: profile hero (interests excluded)
+const ChatProfileSection = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px;
-  gap: 8px;
+  padding: 16px 16px 0;
+  width: 100%;
 `;
 
-const ProfileName = styled.div`
+const AvatarWrapper = styled.div`
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: var(--color-semantic-background-normal-normal, #F2F0ED);
+  border: 1px solid rgba(108, 101, 95, 0.08);
+`;
+
+const AvatarImg = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+const NameRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  margin-top: 16px;
+`;
+
+const ProfileName = styled.span`
   font-size: 24px;
   font-weight: 700;
   color: var(--color-semantic-label-normal, #1A1815);
 `;
 
-const RatingBadge = styled.span`
+const RatingBadge = styled.div`
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-semantic-status-positive, #557A55);
 `;
 
 const RatingStar = styled.span`
+  font-size: 14px;
+  color: var(--color-semantic-status-positive, #557A55);
+`;
+
+const RatingText = styled.span`
+  font-size: 14px;
+  font-weight: 600;
   color: var(--color-semantic-status-positive, #557A55);
 `;
 
@@ -329,84 +341,29 @@ const ProfileMeta = styled.span`
   color: var(--color-semantic-label-alternative);
   text-align: center;
   line-height: 1.5;
+  margin-top: 4px;
 `;
 
-const InterestRow = styled.div`
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
+const TicketDeco = styled.img`
+  width: 80%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  transform: translateY(-50%);
+  margin-bottom: -14px;
 `;
 
-const QASection = styled.div`
-  margin: 0 16px;
-  background-color: var(--color-semantic-background-normal-normal, #F2F0ED);
-  border-radius: 8px;
-  padding: 0 16px 16px;
-`;
-
-const DottedDeco = styled.div`
-  height: 14px;
-  border-bottom: 2px dashed var(--color-semantic-line-normal-neutral);
-  margin: 0 8px;
-`;
-
-const QAContainer = styled.div`
-  padding-top: 16px;
+// chat_started: Q&A comparison body (no bottom button padding needed)
+const ChatQnABody = styled.div`
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 32px 16px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  align-items: center;
-`;
-
-const MoreIndicator = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 0;
-`;
-
-const Dot = styled.div`
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--color-semantic-label-assistive);
-`;
-
-const MoreText = styled.span`
-  font-size: 14px;
-  color: var(--color-semantic-label-alternative);
-  text-align: center;
-`;
-
-// Intro note preview (before_request / after_acceptance / completed)
-const IntroQAItem = styled.div`
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-`;
-
-const IntroQAQuestion = styled.p`
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-semantic-label-alternative);
-  margin: 0;
-`;
-
-const IntroQAAnswer = styled.p`
-  font-size: 16px;
-  font-weight: 400;
-  color: var(--color-semantic-label-normal);
-  margin: 0;
-  line-height: 1.5;
-`;
-
-const IntroQADivider = styled.div`
-  height: 1px;
-  background-color: var(--color-semantic-line-normal-neutral);
-  margin-top: 8px;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
 `;
 
 // Q&A full view (chat_started)
@@ -451,8 +408,27 @@ const QAAnswerChip = styled.span<{ $isMatch: boolean; $isMe?: boolean }>`
       : "var(--color-semantic-status-negative, #B33528)"};
 `;
 
-const ActionSpacer = styled.div`
-  height: 16px;
+const BottomSection = styled.div`
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  pointer-events: none;
+`;
+
+const GradientFade = styled.div`
+  height: 40px;
+  background: linear-gradient(to bottom, transparent, var(--color-semantic-background-normal-normal, #F2F0ED));
+`;
+
+const ButtonArea = styled.div`
+  background-color: var(--color-semantic-background-normal-normal, #F2F0ED);
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
 `;
 
 const PrimaryButton = styled.button`
@@ -477,6 +453,22 @@ const PrimaryButton = styled.button`
   &:active:not(:disabled) {
     opacity: 0.9;
   }
+`;
+
+const CompletedButton = styled.button`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 28px;
+  border: none;
+  border-radius: 12px;
+  background-color: var(--color-semantic-background-normal-alternative, #DDD8D3);
+  color: var(--color-semantic-label-assistive, rgba(47, 43, 39, 0.28));
+  font-size: 16px;
+  font-weight: 600;
+  cursor: not-allowed;
 `;
 
 const ButtonIcon = styled.span`

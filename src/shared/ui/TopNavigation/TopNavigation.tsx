@@ -6,6 +6,7 @@ interface TopNavigationProps {
     onBack?: () => void;
     onClose?: () => void;
     label?: string;
+    className?: string;
 }
 
 /**
@@ -13,10 +14,10 @@ interface TopNavigationProps {
  * 모바일 앱 상단 네비게이션 바.
  * back(←) 또는 close(×) 아이콘, 중앙 라벨을 선택적으로 사용.
  */
-export default function TopNavigation({ onBack, onClose, label }: TopNavigationProps) {
+export default function TopNavigation({ onBack, onClose, label, className }: TopNavigationProps) {
   console.log('[src/shared/ui/TopNavigation/TopNavigation.tsx] TopNavigation'); // __component_log__
     return (
-        <NavContainer>
+        <NavContainer className={className}>
             <IconBox onClick={onBack} $isVisible={!!onBack}>
                 <IconImg src="/icons/navigation/arrow-left.svg" alt="back" />
             </IconBox>
@@ -41,7 +42,7 @@ const NavContainer = styled.div`
   height: 56px;
   padding: 0 16px;
   box-sizing: border-box;
-  background-color: var(--color-semantic-background-normal-alternative, #E9E6E2);
+  background-color: var(--color-semantic-background-normal-normal);
 `;
 
 const IconBox = styled.div<{ $isVisible: boolean }>`

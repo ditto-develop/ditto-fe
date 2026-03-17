@@ -28,14 +28,16 @@ function MatchProfileCard({ profile }: { profile: MatchProfile }) {
         <CardRow>
             <Avatar src={profile.avatarUrl} size="lg" />
             <CardInfo>
-                <CardNickname>{profile.nickname}</CardNickname>
+                <CardHeader>
+                    <CardNickname>{profile.nickname}</CardNickname>
+                    <ChevronIcon />
+                </CardHeader>
                 <CardMeta>
                     {formatAgeRange(profile.age)} · {profile.gender}
                     {profile.location ? ` · ${profile.location}` : ""}
                 </CardMeta>
                 <CardBio>{profile.bio}</CardBio>
             </CardInfo>
-            <ChevronIcon src="/icons/navigation/chevron-right.svg" alt="detail" />
         </CardRow>
     );
 }
@@ -62,7 +64,7 @@ export default function MatchingResultContainer({
 
             <Header>
                 <MatchLabel>
-                    <MatchIcon src="/icons/content/people.svg" alt="" />
+                    <MatchIcon />
                     <MatchLabelText>1:1 매칭</MatchLabelText>
                 </MatchLabel>
                 <SectionHeader title="이번 주 매칭 결과" />
@@ -89,7 +91,7 @@ export default function MatchingResultContainer({
                                 </ContentBadge>
                                 <MatchCount>{badge.matchDescription}</MatchCount>
                             </BadgeRow>
-                            <SurfaceCard
+                            <MatchSurfaceCard
                                 onClick={() =>
                                     onProfileClick({
                                         userId: match.profile.id,
@@ -116,7 +118,7 @@ export default function MatchingResultContainer({
                                         <StatusText>내가 대화를 신청했어요</StatusText>
                                     </StatusRow>
                                 )}
-                            </SurfaceCard>
+                            </MatchSurfaceCard>
                         </MatchGroup>
                     );
                 })}
@@ -129,7 +131,7 @@ export default function MatchingResultContainer({
 const PageContainer = styled.div`
   width: 100%;
   min-height: 100vh;
-  background-color: var(--color-semantic-background-normal-alternative, #E9E6E2);
+  background-color: var(--color-semantic-background-normal-normal);
 `;
 
 const Header = styled.div`
@@ -145,14 +147,21 @@ const MatchLabel = styled.div`
   gap: 4px;
 `;
 
-const MatchIcon = styled.img`
+const MatchIcon = styled.span`
+  display: block;
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
+  background-color: var(--color-semantic-accent-foreground-vintagePink);
+  -webkit-mask: url(/icons/content/people.svg) no-repeat center;
+  mask: url(/icons/content/people.svg) no-repeat center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
 `;
 
 const MatchLabelText = styled.span`
   font-size: 14px;
-  color: var(--color-semantic-label-alternative);
+  color: var(--color-semantic-accent-foreground-vintagePink);
 `;
 
 const HeaderDescription = styled.p`
@@ -188,9 +197,13 @@ const MatchCount = styled.span`
   color: var(--color-semantic-label-alternative);
 `;
 
+const MatchSurfaceCard = styled(SurfaceCard)`
+  background-color: var(--color-semantic-background-normal-alternative);
+`;
+
 const CardRow = styled.div`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
   width: 100%;
 `;
@@ -200,28 +213,42 @@ const CardInfo = styled.div`
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
+`;
+
+const CardHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 `;
 
 const CardNickname = styled.span`
   font-size: 17px;
   font-weight: 700;
-  color: var(--color-semantic-label-strong);
+  color: var(--color-semantic-label-normal);
 `;
 
 const CardMeta = styled.span`
-  font-size: 14px;
+  font-size: 13px;
   color: var(--color-semantic-label-alternative);
 `;
 
 const CardBio = styled.span`
-  font-size: 14px;
+  font-size: 13px;
   color: var(--color-semantic-label-alternative);
 `;
 
-const ChevronIcon = styled.img`
+const ChevronIcon = styled.span`
+  display: block;
+  flex-shrink: 0;
   width: 24px;
   height: 24px;
-  opacity: 0.3;
+  background-color: var(--color-semantic-label-assistive);
+  -webkit-mask: url(/icons/navigation/chevron-right.svg) no-repeat center;
+  mask: url(/icons/navigation/chevron-right.svg) no-repeat center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
 `;
 
 const StatusRow = styled.div`

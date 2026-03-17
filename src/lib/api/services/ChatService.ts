@@ -10,6 +10,19 @@ import type { SendMessageDto } from '../models/SendMessageDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
+
+export type ChatPartnerDto = {
+    userId: string;
+    nickname: string;
+    profileImageUrl: string | null;
+    matchScore: number | null;
+};
+
+export type ChatRoomDetailDto = {
+    roomId: string;
+    expiresAt: string | null;
+    partner: ChatPartnerDto;
+};
 export class ChatService {
     /**
      * 채팅방 목록 조회
@@ -135,6 +148,55 @@ export class ChatService {
      * @returns any 읽음 처리 성공
      * @throws ApiError
      */
+    /**
+     * 채팅방 상세 조회
+     * @param roomId 채팅방 ID
+     */
+    public static chatControllerGetChatRoomDetail(
+        roomId: string,
+    ): CancelablePromise<{
+        success?: boolean;
+        data?: ChatRoomDetailDto;
+        error?: string;
+    }> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/chat/rooms/{roomId}',
+            path: { 'roomId': roomId },
+            errors: {
+                400: `잘못된 요청입니다.`,
+                401: `인증이 필요합니다.`,
+                403: `접근 권한이 없습니다.`,
+                500: `서버 내부 오류가 발생했습니다.`,
+            },
+        });
+    }
+    /**
+     * 채팅방 나가기
+     * @param roomId 채팅방 ID
+     * @param requestBody
+     */
+    public static chatControllerLeaveChatRoom(
+        roomId: string,
+        requestBody: { reason?: string },
+    ): CancelablePromise<{
+        success?: boolean;
+        error?: string;
+    }> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/chat/rooms/{roomId}/leave',
+            path: { 'roomId': roomId },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `잘못된 요청입니다.`,
+                401: `인증이 필요합니다.`,
+                403: `접근 권한이 없습니다.`,
+                500: `서버 내부 오류가 발생했습니다.`,
+            },
+        });
+    }
     public static chatControllerMarkAsRead(
         roomId: string,
     ): CancelablePromise<{

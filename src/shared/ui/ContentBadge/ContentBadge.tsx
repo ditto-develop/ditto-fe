@@ -14,17 +14,17 @@ interface ContentBadgeProps {
 
 const bgColorMap: Record<BadgeVariant, string> = {
     positive: "rgba(85, 122, 85, 0.08)",
-    cautionary: "rgba(235, 90, 60, 0.08)",
+    cautionary: "rgba(192, 110, 28, 0.08)",
     destructive: "rgba(179, 53, 40, 0.08)",
-    navy: "rgba(58, 73, 120, 0.08)",
+    navy: "rgba(55, 96, 126, 0.08)",
     neutral: "rgba(108, 101, 95, 0.08)",
 };
 
 const fgColorMap: Record<BadgeVariant, string> = {
     positive: "var(--color-semantic-status-positive, #557A55)",
-    cautionary: "var(--color-semantic-status-cautionary, #EB5A3C)",
+    cautionary: "var(--color-semantic-status-cautionary, #C06E1C)",
     destructive: "var(--color-semantic-status-negative, #B33528)",
-    navy: "var(--color-semantic-accent-foreground-Navy, #3A4978)",
+    navy: "var(--color-semantic-accent-foreground-Navy, #37607E)",
     neutral: "var(--color-semantic-label-alternative)",
 };
 

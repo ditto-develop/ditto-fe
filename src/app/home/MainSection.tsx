@@ -51,6 +51,7 @@ export default function MainSection() {
   const [acceptedCandidate, setAcceptedCandidate] = useState<MatchCandidateDto | undefined>(undefined);
   const [groupJoined, setGroupJoined] = useState(false);
   const [chatRoom, setChatRoom] = useState<ChatRoomItemDto | undefined>(undefined);
+  const [acceptedMatchRequestId, setAcceptedMatchRequestId] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const { setHomeReady } = useHomeReady();
   const searchParams = useSearchParams();
@@ -100,13 +101,16 @@ export default function MainSection() {
             const { quizSetId: fetchedQuizSetId, candidates: fetchedCandidates, matchingType } = await getMatchCandidates();
             const quizSetId = fetchedQuizSetId;
             setQuizSetId(fetchedQuizSetId);
-            const { hasAcceptedMatch: accepted, acceptedMatchUserId, groupDeclined, groupJoined: joined } = await getMatchingStatus(quizSetId);
+            const { hasAcceptedMatch: accepted, acceptedMatchUserId, groupDeclined, groupJoined: joined, sentRequests, receivedRequests } = await getMatchingStatus(quizSetId);
             setCandidates(fetchedCandidates);
             setHasAcceptedMatch(accepted);
             setGroupJoined(joined);
             if (accepted && acceptedMatchUserId) {
               const found = fetchedCandidates.find(c => c.userId === acceptedMatchUserId);
               setAcceptedCandidate(found);
+              // 수락된 매칭 요청 ID 찾기 (채팅방 생성에 필요)
+              const acceptedReq = [...sentRequests, ...receivedRequests].find(r => r.status === "ACCEPTED");
+              if (acceptedReq) setAcceptedMatchRequestId(acceptedReq.id);
             }
             if (fetchedCandidates.length === 0 || groupDeclined) setMatchType("failmatch");
             else if (matchingType === 'GROUP') {
@@ -162,7 +166,23 @@ export default function MainSection() {
             quizSetId={quizSetId}
           />
         );
-      case "CHATTING":
+      case "CHATTING": {
+        const handleStartChat = async () => {
+          try {
+            if (chatRoom) {
+              router.push(`/chat/one-on-one/${chatRoom.roomId}`);
+              return;
+            }
+            if (!acceptedMatchRequestId) return;
+            const res = await ChatService.chatControllerCreateChatRoom({ matchRequestId: acceptedMatchRequestId });
+            if (res.success && res.data) {
+              setChatRoom(res.data);
+              router.push(`/chat/one-on-one/${res.data.roomId}`);
+            }
+          } catch {
+            showToast("채팅방을 열 수 없어요. 잠시 후 다시 시도해주세요.", "error");
+          }
+        };
         return (
           <MatchingDay
             isChatTime={true}
@@ -173,8 +193,10 @@ export default function MainSection() {
             hasAcceptedMatch={hasAcceptedMatch}
             acceptedCandidate={acceptedCandidate}
             chatRoom={chatRoom}
+            onStartChat={handleStartChat}
           />
         );
+      }
       default:
         return null;
     }

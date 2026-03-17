@@ -188,7 +188,7 @@ const CollageSlot = styled.div<{ $size: number; $left: number; $top: number }>`
   top: ${p => p.$top}px;
   border-radius: 50%;
   overflow: hidden;
-  border: 1.5px solid white;
+  border: 1.5px solid var(--color-semantic-background-normal-normal);
   background-color: var(--color-semantic-background-normal-alternative, #DDD8D3);
 `;
 
@@ -280,14 +280,6 @@ const SelectImgDiv = styled.div`
   scrollbar-width: none;  /* Firefox */
 `;
 
-const ProfileContainer = styled.div`
-  width: 100%;
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-4, 16px);
-  align-self: stretch;
-`;
-
 const LabelContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -354,10 +346,6 @@ export type ButtonStateType =
   | "tertiary"
   | "disabled"
   | undefined;
-
-export type MatchingCardProps = {
-  cardType: MatchingCardType;
-};
 
 type MatchingButtonProps = {
   cardType: MatchingCardType;
@@ -430,20 +418,18 @@ function formatGender(gender: string): string {
 //================================================================================================
 
 const BeforeMatchCard = ({ timeLeft }: { timeLeft: string }) => (
-  <ViewCardContainer>
-    <FCardContainer>
-      <FCardDivContainer>
-        <CardDivContainer>
-          <img src="/icons/status/time.svg" />
-          <Label2 $color="var(--color-semantic-label-alternative)">
-            남은 시간
-          </Label2>
-          <Body1Bold $weight="bold">{timeLeft}</Body1Bold>
-        </CardDivContainer>
-      </FCardDivContainer>
-      <img src="/assets/illustration/quizpeople.svg" loading="lazy" />
-    </FCardContainer>
-  </ViewCardContainer>
+  <FCardContainer>
+    <FCardDivContainer>
+      <CardDivContainer>
+        <img src="/icons/status/time.svg" />
+        <Label2 $color="var(--color-semantic-label-alternative)">
+          남은 시간
+        </Label2>
+        <Body1Bold $weight="bold">{timeLeft}</Body1Bold>
+      </CardDivContainer>
+    </FCardDivContainer>
+    <img src="/assets/illustration/quizpeople.svg" loading="lazy" />
+  </FCardContainer>
 );
 
 const FailMatchCard = ({ isChatTime }: { isChatTime: boolean }) => (
@@ -503,20 +489,6 @@ const MatchingCandidateCard = ({ timeLeft, candidates }: { timeLeft: string; can
       </FCardContainer>
     </ViewCardContainer>
   );
-};
-
-const MatchingView = ({
-  day,
-  candidates,
-}: {
-  cardType: MatchingCardType;
-  openProfileSelector: () => void;
-  day: number;
-  candidates: MatchCandidateDto[];
-}) => {
-  const target = day === 4 ? 5 : 4;
-  const timeLeft = useTargetDayCountdown(target);
-  return <MatchingCandidateCard timeLeft={timeLeft} candidates={candidates} />;
 };
 
 const ChattingView = ({
@@ -820,6 +792,7 @@ export default function MatchingDay({
   onGroupJoined,
   chatRoom,
   quizSetId = "",
+  onStartChat,
 }: {
   matchType: MatchingCardType;
   buttonState: ButtonStateType;
@@ -832,6 +805,7 @@ export default function MatchingDay({
   onGroupJoined?: () => void;
   chatRoom?: ChatRoomItemDto;
   quizSetId?: string;
+  onStartChat?: () => void;
 }) {
   console.log('[src/components/home/MatchingDay.tsx] MatchingDay'); // __component_log__
   const router = useRouter();
@@ -1027,7 +1001,7 @@ export default function MatchingDay({
             </>
           ) : (
             <>
-              나와 가장 비슷한 답을 한 사람들을 찾았어요.
+              나와 같이 생각하는 사람들을 만나볼까요?
               <br />
               소개 노트를 확인하고 대화를 신청해보세요.
             </>
@@ -1042,12 +1016,7 @@ export default function MatchingDay({
               chatRoom={chatRoom}
             />
           ) : (
-            <MatchingView
-              cardType={matchType}
-              openProfileSelector={openProfileSelector}
-              day={day}
-              candidates={candidates}
-            />
+            <MatchingCandidateCard timeLeft={timeLeft} candidates={candidates} />
           )
         }
         buttonSection={
@@ -1060,7 +1029,7 @@ export default function MatchingDay({
               ? matchType === "many"
                 ? () => setGroupModalOpen(true)
                 : () => router.push("/matching")
-              : undefined}
+              : onStartChat}
           />
         }
       />
