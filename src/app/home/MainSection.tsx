@@ -49,6 +49,7 @@ export default function MainSection() {
   const [quizSetId, setQuizSetId] = useState<string>("");
   const [hasAcceptedMatch, setHasAcceptedMatch] = useState(false);
   const [acceptedCandidate, setAcceptedCandidate] = useState<MatchCandidateDto | undefined>(undefined);
+  const [groupJoined, setGroupJoined] = useState(false);
   const [chatRoom, setChatRoom] = useState<ChatRoomItemDto | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const { setHomeReady } = useHomeReady();
@@ -99,16 +100,24 @@ export default function MainSection() {
             const { quizSetId: fetchedQuizSetId, candidates: fetchedCandidates, matchingType } = await getMatchCandidates();
             const quizSetId = fetchedQuizSetId;
             setQuizSetId(fetchedQuizSetId);
-            const { hasAcceptedMatch: accepted, acceptedMatchUserId, groupDeclined } = await getMatchingStatus(quizSetId);
+            const { hasAcceptedMatch: accepted, acceptedMatchUserId, groupDeclined, groupJoined: joined } = await getMatchingStatus(quizSetId);
             setCandidates(fetchedCandidates);
             setHasAcceptedMatch(accepted);
+            setGroupJoined(joined);
             if (accepted && acceptedMatchUserId) {
               const found = fetchedCandidates.find(c => c.userId === acceptedMatchUserId);
               setAcceptedCandidate(found);
             }
             if (fetchedCandidates.length === 0 || groupDeclined) setMatchType("failmatch");
-            else if (matchingType === 'GROUP') setMatchType("many");
-            else setMatchType("one");
+            else if (matchingType === 'GROUP') {
+              // 대화 기간에는 그룹에 참여한 경우만 표시
+              if (fetchedPeriod === "CHATTING" && !joined) setMatchType("failmatch");
+              else setMatchType("many");
+            } else {
+              // 대화 기간에는 매칭이 확정된 경우만 표시
+              if (fetchedPeriod === "CHATTING" && !accepted) setMatchType("failmatch");
+              else setMatchType("one");
+            }
             if (fetchedPeriod === "CHATTING") {
               const chatRes = await ChatService.chatControllerGetChatRooms();
               if (chatRes.success && chatRes.data && chatRes.data.length > 0) {
@@ -116,7 +125,8 @@ export default function MainSection() {
               }
             }
           } catch {
-            setMatchType("beforematch");
+            // 퀴즈를 풀지 않았거나 매칭 후보가 없는 경우 → failmatch
+            setMatchType("failmatch");
           }
         }
       } catch {
@@ -147,6 +157,8 @@ export default function MainSection() {
             candidates={candidates}
             hasAcceptedMatch={hasAcceptedMatch}
             acceptedCandidate={acceptedCandidate}
+            groupJoined={groupJoined}
+            onGroupJoined={() => setGroupJoined(true)}
             quizSetId={quizSetId}
           />
         );

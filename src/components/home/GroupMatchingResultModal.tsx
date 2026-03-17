@@ -20,6 +20,7 @@ import { MatchCandidateDto, joinGroupMatch, declineGroupMatch } from "@/features
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import { ProfileImg, ProfileWrapper } from "../onboarding/OnboardingContainer";
 import { ActionButton } from "../input/Action";
+import { useToast } from "@/context/ToastContext";
 
 // ---- Helpers ----
 
@@ -80,6 +81,7 @@ interface GroupMatchingResultModalProps {
   isOpen: boolean;
   onClose: () => void;
   onDecline?: () => void;
+  onJoinSuccess?: () => void;
   candidates: MatchCandidateDto[];
   quizSetId: string;
   groupName?: string;
@@ -91,16 +93,19 @@ export default function GroupMatchingResultModal({
   isOpen,
   onClose,
   onDecline,
+  onJoinSuccess,
   candidates,
   groupName = "같은 취미, 취향 그룹",
 }: GroupMatchingResultModalProps) {
   console.log('[src/components/home/GroupMatchingResultModal.tsx] GroupMatchingResultModal'); // __component_log__
+  const { showToast, removeToast } = useToast();
   const [joining, setJoining] = useState(false);
   const [joinResult, setJoinResult] = useState<{ participantCount: number; isActive: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [profileSelect, setProfileSelect] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<ReturnType<typeof toProfileDetail> | null>(null);
   const [rejectAlertOpen, setRejectAlertOpen] = useState(false);
+  const [joinConfirmOpen, setJoinConfirmOpen] = useState(false);
 
   const avgMatched = candidates.length > 0
     ? Math.round(candidates.reduce((s, c) => s + (c.scoreBreakdown?.matchedQuestions ?? 0), 0) / candidates.length)
@@ -118,6 +123,24 @@ export default function GroupMatchingResultModal({
     try {
       const result = await joinGroupMatch();
       setJoinResult({ participantCount: result.participantCount, isActive: result.isActive });
+
+      if (result.isActive) {
+        const toastId = `group-join-active-${Date.now()}`;
+        showToast("그룹에 참여했어요! 대화는 금요일에 시작 돼요", "none", {
+          id: toastId,
+          actionLabel: "확인",
+          onAction: () => removeToast(toastId),
+          duration: 3000,
+        });
+      } else {
+        showToast(
+          "그룹에 참여했어요! 대화는 금요일에 시작 돼요",
+          "none",
+          { duration: 3000 }
+        );
+      }
+      onClose();
+      onJoinSuccess?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "참여 중 오류가 발생했습니다.");
     } finally {
@@ -169,7 +192,7 @@ export default function GroupMatchingResultModal({
               </BadgeRow>
 
               {/* Figma 1310:35601 — 그룹 카드 (tappable) */}
-              <GroupCard onClick={() => setProfileSelect(true)}>
+              <GroupCard onClick={!joinResult ? () => setProfileSelect(true) : undefined} $joined={!!joinResult}>
                 <AvatarGrid>
                   {shown.map((c, i) => (
                     <AvatarSlot key={c.userId}>
@@ -193,28 +216,34 @@ export default function GroupMatchingResultModal({
                   <Label2 $color="var(--color-semantic-label-alternative)">
                     {candidates[0].nickname}님 외 {candidates.length - 1}명
                   </Label2>
+                  {joinResult && !joinResult.isActive && (
+                    <JoinedRow>
+                      <img
+                        src="/icons/status/circle-check-fill.svg"
+                        alt=""
+                        width={14}
+                        height={14}
+                      />
+                      <Caption1 $color="var(--color-semantic-label-neutral, rgba(47,43,39,0.88))">
+                        그룹 참여를 신청했어요
+                      </Caption1>
+                    </JoinedRow>
+                  )}
                 </GroupInfo>
 
-                <img
-                  src="/icons/navigation/chevron-right.svg"
-                  alt=""
-                  width={24}
-                  height={24}
-                  style={{ opacity: 0.3, flexShrink: 0 }}
-                />
+                {!joinResult && (
+                  <img
+                    src="/icons/navigation/chevron-right.svg"
+                    alt=""
+                    width={24}
+                    height={24}
+                    style={{ opacity: 0.3, flexShrink: 0 }}
+                  />
+                )}
               </GroupCard>
             </CardWrapper>
           )}
 
-          {joinResult && (
-            <FeedbackBox>
-              <Body2Normal $color="var(--color-semantic-status-positive)">
-                {joinResult.isActive
-                  ? "그룹 채팅이 시작되었어요! 대화 탭에서 확인하세요."
-                  : `현재 ${joinResult.participantCount}명 참여 중이에요. 3명 이상이 되면 대화가 시작돼요.`}
-              </Body2Normal>
-            </FeedbackBox>
-          )}
           {error && (
             <FeedbackBox $isError>
               <Body2Normal $color="var(--color-semantic-status-negative)">{error}</Body2Normal>
@@ -222,13 +251,21 @@ export default function GroupMatchingResultModal({
           )}
         </ContentBody>
 
-        {candidates.length > 0 && !joinResult && (
+        {candidates.length > 0 && (
           <BottomActions>
             <div style={{ display: "flex", gap: "12px" }}>
-              <ActionButton variant="secondary" onClick={() => setRejectAlertOpen(true)} style={{ flex: 1 }}>
+              <ActionButton
+                variant={joinResult ? "disabled" : "secondary"}
+                onClick={!joinResult ? () => setRejectAlertOpen(true) : undefined}
+                style={{ flex: 1 }}
+              >
                 거절하기
               </ActionButton>
-              <ActionButton variant="primary" onClick={handleJoin} style={{ flex: 1 }}>
+              <ActionButton
+                variant={joinResult ? "disabled" : "primary"}
+                onClick={!joinResult && !joining ? () => setJoinConfirmOpen(true) : undefined}
+                style={{ flex: 1 }}
+              >
                 {joining ? "참여 중..." : "참여하기"}
               </ActionButton>
             </div>
@@ -317,6 +354,24 @@ export default function GroupMatchingResultModal({
         }}
         onClose={() => setRejectAlertOpen(false)}
       />
+
+      <AlertModal
+        isOpen={joinConfirmOpen}
+        title="이 그룹에 참여할까요?"
+        message="한 번 참여하기를 선택하면 취소할 수 없어요."
+        confirmParams={{
+          text: "네, 참여할게요",
+          onClick: () => {
+            setJoinConfirmOpen(false);
+            handleJoin();
+          },
+        }}
+        cancelParams={{
+          text: "아니요",
+          onClick: () => setJoinConfirmOpen(false),
+        }}
+        onClose={() => setJoinConfirmOpen(false)}
+      />
     </>
   );
 }
@@ -374,14 +429,21 @@ const Badge = styled.div<{ $bgColor: string }>`
 `;
 
 /* Figma 1310:35601 */
-const GroupCard = styled.div`
+const GroupCard = styled.div<{ $joined?: boolean }>`
   background-color: var(--color-semantic-fill-normal, rgba(108, 101, 95, 0.08));
   border-radius: 12px;
   padding: 16px;
   display: flex;
   align-items: center;
   gap: 16px;
-  cursor: pointer;
+  cursor: ${({ $joined }) => ($joined ? "default" : "pointer")};
+`;
+
+const JoinedRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 4px;
 `;
 
 /* Figma 1310:35608 — 80×80, 2×2 grid, no gap */

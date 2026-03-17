@@ -5,7 +5,7 @@ import styled, { css, keyframes } from "styled-components";
 import { Label1Normal, Label2, Title2, Title3 } from "@/components/common/Text";
 import Nav from "@/components/display/Nav";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import QuizModal from "@/components/quiz/QuizModal";
 import { QuizSetsService, QuizProgressService, CurrentWeekQuizSetsResponseDto, QuizDto } from "@/lib/api";
 
@@ -15,6 +15,8 @@ import { QuizSetsService, QuizProgressService, CurrentWeekQuizSetsResponseDto, Q
 export default function Quiz() {
   console.log('[src/app/quiz/current/page.tsx] Quiz'); // __component_log__
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const matchingType = searchParams.get("type"); // 'ONE_TO_ONE' | 'GROUP' | null
 
   // --- State for API data, loading, and error ---
   const [quizData, setQuizData] = useState<CurrentWeekQuizSetsResponseDto | null>(null);
@@ -50,7 +52,11 @@ export default function Quiz() {
   }, []);
 
   // --- Derived State ---
-  const quizzes: QuizDto[] = quizData?.quizSets?.[0]?.quizzes || [];
+  // matchingType query param으로 올바른 퀴즈셋 선택, 없으면 첫 번째
+  const selectedQuizSet = matchingType
+    ? (quizData?.quizSets?.find((qs) => qs.matchingType === matchingType) ?? quizData?.quizSets?.[0])
+    : quizData?.quizSets?.[0];
+  const quizzes: QuizDto[] = selectedQuizSet?.quizzes || [];
   const currentQuiz = quizzes[currentStep];
   const isLastQuiz = currentStep === quizzes.length - 1;
 

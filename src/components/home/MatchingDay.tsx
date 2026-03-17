@@ -11,7 +11,7 @@ import {
   Label1Normal,
   Label2,
 } from "@/components/common/Text";
-import Card, { AlertStatus, CardContainer } from "@/components/display/Card";
+import Card, { AlertStatus, CardContainer, DecoImg } from "@/components/display/Card";
 import { MatchCandidateDto } from "@/features/matching/api/matchingApi";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import type { ChatRoomItemDto } from "@/lib/api/models/ChatRoomItemDto";
@@ -21,11 +21,13 @@ import {
   ProfileWrapper,
 } from "@/components/onboarding/OnboardingContainer";
 import { useTargetDayCountdown } from "@/lib/hooks/useKstCountdown";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/context/ToastContext";
 import styled from "styled-components";
 import BottomSheet from "../display/BottomSheet";
 import GroupMatchingResultModal from "./GroupMatchingResultModal";
+import ProfileDetailModal from "./ProfileDetailModal";
 
 //- Styled Components
 //================================================================================================
@@ -188,6 +190,15 @@ const CollageSlot = styled.div<{ $size: number; $left: number; $top: number }>`
   overflow: hidden;
   border: 1.5px solid white;
   background-color: var(--color-semantic-background-normal-alternative, #DDD8D3);
+`;
+
+
+export const GroupJoinedInner = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  cursor: pointer;
 `;
 
 export const GroupContainer = styled.div`
@@ -437,6 +448,7 @@ const BeforeMatchCard = ({ timeLeft }: { timeLeft: string }) => (
 
 const FailMatchCard = ({ isChatTime }: { isChatTime: boolean }) => (
   <CardContainer>
+    <DecoImg src='/display/deco.svg' alt="decoration" />
     <FailMatch>
       <Headline1 $weight="bold" $align="center">
         {isChatTime ? "진행 중인 대화가 없어요." : "진행 중인 매칭이 없어요."}
@@ -719,13 +731,58 @@ const BottomSheetProfile = ({ profile }: { profile: Profile }) => {
   );
 };
 
-const AcceptedMatchCard = ({ candidate }: { candidate: MatchCandidateDto }) => {
+const GroupJoinedCard = ({ candidates, onCardClick }: { candidates: MatchCandidateDto[]; onCardClick: () => void }) => {
+  const timeLeft = useTargetDayCountdown(5); // 금요일(대화 시작일)까지
+  const shown = candidates.slice(0, 3);
+  const extra = candidates.length - 3;
+  const firstName = candidates[0]?.nickname ?? "";
+  const othersCount = candidates.length - 1;
+
+  return (
+    <ViewCardContainer style={{ flexDirection: "column", gap: "8px" }}>
+      <GroupJoinedInner onClick={onCardClick}>
+        <ProfileWrapper>
+          <TopImgContainer>
+            {shown.map((c, i) => (
+              <ProfileImg
+                key={c.userId}
+                style={{ width: "40px", height: "40px" }}
+                imageUrl={getAvatarUrl(c.gender, i)}
+              />
+            ))}
+            {extra > 0 && (
+              <Plusmember>
+                <Label1Normal $color="white" $weight="bold">+{extra}</Label1Normal>
+              </Plusmember>
+            )}
+          </TopImgContainer>
+        </ProfileWrapper>
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1 }}>
+          <Headline2>같은 취미, 취향 그룹</Headline2>
+          <Label2 $color="var(--color-semantic-label-alternative)">
+            {firstName}님 외 {othersCount}명
+          </Label2>
+        </div>
+        <img src="/icons/navigation/chevron-right.svg" alt="" width={24} height={24} style={{ opacity: 0.3, flexShrink: 0 }} />
+      </GroupJoinedInner>
+      <MatchingBottomContainer>
+        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          <img src="/icons/status/time.svg" alt="" style={{ width: "16px", height: "16px" }} />
+          <Caption2 $color="var(--color-semantic-label-alternative)">남은 시간</Caption2>
+        </div>
+        <Body1Bold $weight="bold">{timeLeft}</Body1Bold>
+      </MatchingBottomContainer>
+    </ViewCardContainer>
+  );
+};
+
+const AcceptedMatchCard = ({ candidate, onClick }: { candidate: MatchCandidateDto; onClick?: () => void }) => {
   const timeLeft = useTargetDayCountdown(5); // 금요일(대화 시작일)까지
   const avatarUrl = candidate.profileImageUrl || getAvatarUrl(candidate.gender);
   const meta = `${formatAgeRange(candidate.age)} · ${formatGender(candidate.gender)}${candidate.location ? ` · ${candidate.location}` : ""}`;
 
   return (
-    <ViewCardContainer style={{ flexDirection: "column", gap: "8px" }}>
+    <ViewCardContainer style={{ flexDirection: "column", gap: "8px", cursor: onClick ? "pointer" : "default" }} onClick={onClick}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: "16px", width: "100%" }}>
         <ProfileWrapper>
           <ProfileImg imageUrl={avatarUrl} />
@@ -759,6 +816,8 @@ export default function MatchingDay({
   candidates = [],
   hasAcceptedMatch = false,
   acceptedCandidate,
+  groupJoined = false,
+  onGroupJoined,
   chatRoom,
   quizSetId = "",
 }: {
@@ -769,6 +828,8 @@ export default function MatchingDay({
   candidates?: MatchCandidateDto[];
   hasAcceptedMatch?: boolean;
   acceptedCandidate?: MatchCandidateDto;
+  groupJoined?: boolean;
+  onGroupJoined?: () => void;
   chatRoom?: ChatRoomItemDto;
   quizSetId?: string;
 }) {
@@ -777,43 +838,147 @@ export default function MatchingDay({
   const [profileSelect, setProfileSelect] = useState(false);
   const [groupModalOpen, setGroupModalOpen] = useState(false);
   const [groupDeclined, setGroupDeclined] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<any>(null);
+
+  const { showToast } = useToast();
+  const notifKey = quizSetId ? `ditto_match_accepted_notif_${quizSetId}` : null;
+
+  // 매칭 수락 알림: quizSetId 확정 후 localStorage 확인
+  useEffect(() => {
+    if (!notifKey) return;
+    if (!hasAcceptedMatch || !acceptedCandidate || isChatTime) return;
+    const seen = localStorage.getItem(notifKey);
+    if (!seen) {
+      showToast("상대방이 대화를 수락했어요! 대화는 금요일에 시작돼요.", "success");
+      localStorage.setItem(notifKey, "1");
+    }
+  }, [notifKey, hasAcceptedMatch, acceptedCandidate, isChatTime, showToast]);
 
   const openProfileSelector = () => setProfileSelect(true);
   const closeProfileSelector = () => setProfileSelect(false);
 
   const timeLeft = useTargetDayCountdown(day === 4 ? 5 : 4);
 
+  // 그룹 참여 완료 상태: "매칭 완료" 카드
+  if (groupJoined && !isChatTime && matchType === "many") {
+    return (
+      <>
+        <Card
+          title="이번주 매칭"
+          alert="매칭 완료"
+          alertType="positive"
+          subTitle={
+            <>
+              만남이 이루어졌어요!<br />소개 노트를 보며 대화를 시작해 보세요.
+            </>
+          }
+          viewCard={<GroupJoinedCard candidates={candidates} onCardClick={() => setProfileSelect(true)} />}
+          buttonSection={
+            <ActionContainer>
+              <ActionSheet>
+                <ActionButton
+                  variant="disabled"
+                  onClick={() => {}}
+                  icon={<img src="/icons/action/lock.svg" alt="" />}
+                >
+                  대화 시작하기
+                </ActionButton>
+              </ActionSheet>
+            </ActionContainer>
+          }
+        />
+
+        {profileSelect && (
+          <BottomSheet
+            title="프로필 선택"
+            detail={
+              <SelectImgDiv>
+                {candidates.map((c, i) => {
+                  const badge = getMatchBadgeInfo(c.scoreBreakdown?.matchedQuestions ?? 0);
+                  const detail = {
+                    name: c.nickname,
+                    age: c.age,
+                    gender: formatGender(c.gender),
+                    location: c.location ?? "",
+                    bio: c.introduction ?? "",
+                    avatarUrl: getAvatarUrl(c.gender, i),
+                    matchCount: c.scoreBreakdown?.matchedQuestions,
+                  };
+                  return (
+                    <ListItemContainer
+                      key={c.userId}
+                      onClick={() => { setProfileSelect(false); setSelectedProfile(detail); }}
+                      style={{ cursor: "pointer" }}
+                    >
+                      <BottomSheetProfile profile={detail} />
+                    </ListItemContainer>
+                  );
+                })}
+              </SelectImgDiv>
+            }
+            closer={() => setProfileSelect(false)}
+          />
+        )}
+
+        <ProfileDetailModal
+          isOpen={!!selectedProfile}
+          onClose={() => setSelectedProfile(null)}
+          profile={selectedProfile}
+          hideCta
+        />
+      </>
+    );
+  }
+
   // 매칭 확정 상태: "매칭 완료" 카드 (MATCHING 기간에만 — CHATTING 기간엔 대화 화면으로)
   if (hasAcceptedMatch && acceptedCandidate && !isChatTime) {
     const acceptedBadge = getMatchBadgeInfo(acceptedCandidate.scoreBreakdown?.matchedQuestions ?? 0);
     return (
-      <Card
-        title="이번주 매칭"
-        alert="매칭 완료"
-        alertType="positive"
-        contentBadge={acceptedBadge.badge}
-        contentBadgeColor={acceptedBadge.color}
-        contentDescription={acceptedBadge.description}
-        subTitle={
-          <>
-            만남이 이루어졌어요!<br />소개 노트를 보며 대화를 시작해 보세요.
-          </>
-        }
-        viewCard={<AcceptedMatchCard candidate={acceptedCandidate} />}
-        buttonSection={
-          <ActionContainer>
-            <ActionSheet>
-              <ActionButton
-                variant="disabled"
-                onClick={() => {}}
-                icon={<img src="/icons/action/lock.svg" alt="" />}
-              >
-                대화 시작하기
-              </ActionButton>
-            </ActionSheet>
-          </ActionContainer>
-        }
-      />
+      <>
+        <Card
+          title="이번주 매칭"
+          alert="매칭 완료"
+          alertType="positive"
+          contentBadge={acceptedBadge.badge}
+          contentBadgeColor={acceptedBadge.color}
+          contentDescription={acceptedBadge.description}
+          subTitle={
+            <>
+              만남이 이루어졌어요!<br />소개 노트를 보며 대화를 시작해 보세요.
+            </>
+          }
+          viewCard={<AcceptedMatchCard candidate={acceptedCandidate} onClick={() => {
+            const profile = {
+              name: acceptedCandidate.nickname,
+              avatarUrl: acceptedCandidate.profileImageUrl || getAvatarUrl(acceptedCandidate.gender),
+              ageRange: formatAgeRange(acceptedCandidate.age),
+              gender: formatGender(acceptedCandidate.gender),
+              location: acceptedCandidate.location ?? "",
+              bio: acceptedCandidate.introduction ?? "",
+            };
+            setSelectedProfile(profile);
+          }} />}
+          buttonSection={
+            <ActionContainer>
+              <ActionSheet>
+                <ActionButton
+                  variant="disabled"
+                  onClick={() => {}}
+                  icon={<img src="/icons/action/lock.svg" alt="" />}
+                >
+                  대화 시작하기
+                </ActionButton>
+              </ActionSheet>
+            </ActionContainer>
+          }
+        />
+        <ProfileDetailModal
+          isOpen={!!selectedProfile}
+          onClose={() => setSelectedProfile(null)}
+          profile={selectedProfile}
+          hideCta
+        />
+      </>
     );
   }
 
@@ -929,6 +1094,7 @@ export default function MatchingDay({
         isOpen={groupModalOpen}
         onClose={() => setGroupModalOpen(false)}
         onDecline={() => setGroupDeclined(true)}
+        onJoinSuccess={onGroupJoined}
         candidates={candidates}
         quizSetId={quizSetId}
       />

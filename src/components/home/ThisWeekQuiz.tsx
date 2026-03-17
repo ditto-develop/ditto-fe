@@ -147,7 +147,7 @@ export default function ThisWeekQuiz({ iscomplete, isIntroComplete, participantC
               <img src="/assets/illustration/quizstart.svg" loading="lazy" />
               <BottomButton
                 onClick={() => {
-                  router.push("/quiz/current");
+                  router.push("/quiz/current?type=ONE_TO_ONE");
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
@@ -179,7 +179,7 @@ export default function ThisWeekQuiz({ iscomplete, isIntroComplete, participantC
               </BottomButton>
               <BottomButton
                 onClick={() => {
-                  router.push("/quiz/current");
+                  router.push("/quiz/current?type=GROUP");
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>

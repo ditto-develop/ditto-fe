@@ -21,8 +21,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   // 로그인이 필요 없는 공개 경로
   const isPublicPath = pathname === "/" || pathname.startsWith('/oauth');
+  // 관리자 경로: ClientLayout 리다이렉트/스플래시 완전 제외
+  const isAdminPath = pathname.startsWith('/admin');
 
   useEffect(() => {
+    if (isAdminPath) return;
     if (!isLoggedIn) {
       if (isPublicPath) {
         // 비로그인 + 공개 경로: 3초 후 스플래시 숨김
@@ -38,10 +41,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     if (isPublicPath) {
       router.push("/home");
     }
-  }, [isLoggedIn, isPublicPath, router]);
+  }, [isLoggedIn, isPublicPath, isAdminPath, router]);
 
   // showSplash를 state 없이 순수 파생값으로 계산
   const showSplash = (() => {
+    if (isAdminPath) return false;                  // 관리자 경로: 스플래시 없음
     if (isLoggedIn === null) return true;           // SSR / hydration 전
     if (!isLoggedIn) return !splashDone;            // 비로그인: 3초 타이머
     if (pathname === '/home') return !isHomeReady;  // 로그인 + 홈: 콘텐츠 준비까지

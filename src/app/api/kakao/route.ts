@@ -30,6 +30,7 @@ export async function POST(request: Request) {
 
     const tokenData = await tokenResponse.json();
     console.log("Kakao Token Data:", tokenData);
+    console.log("Kakao Token JSON:", JSON.stringify(tokenData));
 
     if (!tokenData.access_token) {
       return NextResponse.json({ error: "Token fetch failed", details: tokenData }, { status: 400 });
@@ -65,6 +66,8 @@ export async function POST(request: Request) {
     console.error("Error Name:", error?.name);
     // @ts-ignore
     console.error("Error Message:", error?.message);
+    // @ts-ignore
+    console.error("Error Cause:", error?.cause);
     // @ts-ignore
     console.error("Error Stack:", error?.stack);
 
