@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import styled, { css, keyframes } from "styled-components";
 import { Label1Normal, Label2, Title2, Title3 } from "@/components/common/Text";
 import Nav from "@/components/display/Nav";
@@ -13,6 +13,14 @@ import { QuizSetsService, QuizProgressService, CurrentWeekQuizSetsResponseDto, Q
 // QuizData is now inferred from QuizDto
 
 export default function Quiz() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <QuizContent />
+    </Suspense>
+  );
+}
+
+function QuizContent() {
   console.log('[src/app/quiz/current/page.tsx] Quiz'); // __component_log__
   const router = useRouter();
   const searchParams = useSearchParams();
