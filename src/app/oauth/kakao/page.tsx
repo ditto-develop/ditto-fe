@@ -35,7 +35,7 @@ function KakaoLoginContent() {
       try {
         // 1. Get Kakao user info from our own API route
         const redirectUri = `${window.location.origin}/oauth/kakao`;
-        const kakaoResponse = await fetch("/api/kakao", {
+        const kakaoResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/auth/kakao/callback`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ code, redirectUri }),
