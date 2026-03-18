@@ -158,25 +158,25 @@ interface CaricatureSelectProps {
 }
 
 const maleAvatars = [
-  { id: "m1", src: "/assets/avatar/m1.svg" },
-  { id: "m2", src: "/assets/avatar/m2.svg" },
-  { id: "m3", src: "/assets/avatar/m3.svg" },
-  { id: "m4", src: "/assets/avatar/m4.svg" },
-  { id: "m5", src: "/assets/avatar/m5.svg" },
-  { id: "m6", src: "/assets/avatar/m6.svg" },
-  { id: "m7", src: "/assets/avatar/m7.svg" },
-  { id: "m8", src: "/assets/avatar/m8.svg" },
+  { id: "m1", src: "/assets/avatar/m1.png" },
+  { id: "m2", src: "/assets/avatar/m2.png" },
+  { id: "m3", src: "/assets/avatar/m3.png" },
+  { id: "m4", src: "/assets/avatar/m4.png" },
+  { id: "m5", src: "/assets/avatar/m5.png" },
+  { id: "m6", src: "/assets/avatar/m6.png" },
+  { id: "m7", src: "/assets/avatar/m7.png" },
+  { id: "m8", src: "/assets/avatar/m8.png" },
 ];
 
 const femaleAvatars = [
-  { id: "f1", src: "/assets/avatar/f1.svg" },
-  { id: "f2", src: "/assets/avatar/f2.svg" },
-  { id: "f3", src: "/assets/avatar/f3.svg" },
-  { id: "f4", src: "/assets/avatar/f4.svg" },
-  { id: "f5", src: "/assets/avatar/f5.svg" },
-  { id: "f6", src: "/assets/avatar/f6.svg" },
-  { id: "f7", src: "/assets/avatar/f7.svg" },
-  { id: "f8", src: "/assets/avatar/f8.svg" },
+  { id: "f1", src: "/assets/avatar/f1.png" },
+  { id: "f2", src: "/assets/avatar/f2.png" },
+  { id: "f3", src: "/assets/avatar/f3.png" },
+  { id: "f4", src: "/assets/avatar/f4.png" },
+  { id: "f5", src: "/assets/avatar/f5.png" },
+  { id: "f6", src: "/assets/avatar/f6.png" },
+  { id: "f7", src: "/assets/avatar/f7.png" },
+  { id: "f8", src: "/assets/avatar/f8.png" },
 ];
 
 const ProfileSelect: React.FC<CaricatureSelectProps> = ({

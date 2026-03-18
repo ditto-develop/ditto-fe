@@ -25,8 +25,8 @@ import { useToast } from "@/context/ToastContext";
 // ---- Helpers ----
 
 function getAvatarUrl(gender: string, index: number = 0): string {
-  if (gender === "FEMALE") return `/assets/avatar/f${(index % 3) + 1}.svg`;
-  return `/assets/avatar/m${(index % 3) + 1}.svg`;
+  if (gender === "FEMALE") return `/assets/avatar/f${(index % 3) + 1}.png`;
+  return `/assets/avatar/m${(index % 3) + 1}.png`;
 }
 
 function formatGender(gender: string): string {

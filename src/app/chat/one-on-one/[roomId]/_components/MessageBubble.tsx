@@ -54,7 +54,7 @@ export default function MessageBubble({
       <AvatarSlot>
         {showAvatar && (
           <Avatar
-            src={partnerAvatarUrl ?? "/assets/avatar/f1.svg"}
+            src={partnerAvatarUrl ?? "/assets/avatar/f1.png"}
             alt="avatar"
           />
         )}

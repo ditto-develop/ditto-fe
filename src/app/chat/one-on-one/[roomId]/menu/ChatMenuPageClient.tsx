@@ -39,7 +39,7 @@ export default function ChatMenuPageClient() {
 
       <ProfileSection>
         <Avatar
-          src={partner.profileImageUrl ?? "/assets/avatar/f1.svg"}
+          src={partner.profileImageUrl ?? "/assets/avatar/f1.png"}
           alt={partner.nickname}
         />
         <Title3 style={{ marginTop: 12 }}>{partner.nickname}</Title3>

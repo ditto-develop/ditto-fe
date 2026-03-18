@@ -262,7 +262,7 @@ export default function Tutorial({ initialData }: TutorialProps) {
 
           // 프로필 저장 (프로필 이미지, 지역, 직업, 관심사)
           await ProfileService.profileControllerUpdateMyProfile({
-            profileImageUrl: formData.pic ? `/assets/avatar/${formData.pic}.svg` : undefined,
+            profileImageUrl: formData.pic ? `/assets/avatar/${formData.pic}.png` : undefined,
             location: formData.place ?? undefined,
             occupation: formData.job ?? undefined,
             interests: formData.interest.length > 0 ? formData.interest : undefined,
