@@ -8,6 +8,7 @@ import {
     type MatchRequestDto,
 } from "@/features/matching/api/matchingApi";
 import type { MatchProfile } from "@/features/matching/model/types";
+import { toLocationLabel } from "@/shared/lib/profileLabels";
 
 export interface MatchItem {
     profile: MatchProfile;
@@ -29,7 +30,7 @@ function toMatchProfile(c: MatchCandidateDto): MatchProfile {
         nickname: c.nickname,
         age: c.age,
         gender: toGenderKo(c.gender),
-        location: c.location || "",
+        location: c.location ? toLocationLabel(c.location) : "",
         bio: c.introduction || "",
         avatarUrl: c.profileImageUrl || "",
     };

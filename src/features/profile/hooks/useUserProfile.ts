@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { getUserProfile, type PublicProfileDto } from "@/features/profile/api/profileApi";
 import type { ProfileInfo } from "@/features/profile/model/types";
+import { toLocationLabel, toOccupationLabel, toInterestLabel } from "@/shared/lib/profileLabels";
 
 function toGenderKo(gender: string): string {
     if (gender === "MALE") return "남성";
@@ -16,12 +17,12 @@ function toProfileInfo(dto: PublicProfileDto): ProfileInfo {
         nickname: dto.nickname,
         age: dto.age,
         gender: toGenderKo(dto.gender),
-        location: dto.location || "",
-        occupation: dto.occupation,
+        location: dto.location ? toLocationLabel(dto.location) : "",
+        occupation: dto.occupation ? toOccupationLabel(dto.occupation) : undefined,
         bio: dto.introduction || "",
         avatarUrl: dto.profileImageUrl || "",
         rating: dto.rating,
-        interests: dto.interests ?? [],
+        interests: (dto.interests ?? []).map(toInterestLabel),
     };
 }
 

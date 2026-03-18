@@ -14,6 +14,7 @@ import {
 import Card, { AlertStatus, CardContainer, DecoImg } from "@/components/display/Card";
 import { MatchCandidateDto } from "@/features/matching/api/matchingApi";
 import { formatAgeRange } from "@/shared/lib/formatAge";
+import { toLocationLabel } from "@/shared/lib/profileLabels";
 import type { ChatRoomItemDto } from "@/lib/api/models/ChatRoomItemDto";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import {
@@ -543,7 +544,7 @@ const ChattingView = ({
                 </TimerBox>
               </div>
               <Label2 $color="var(--color-semantic-label-alternative)">
-                {c ? `${formatAgeRange(c.age)} · ${formatGender(c.gender)}${c.location ? ` · ${c.location}` : ""}` : ""}
+                {c ? `${formatAgeRange(c.age)} · ${formatGender(c.gender)}${c.location ? ` · ${toLocationLabel(c.location)}` : ""}` : ""}
               </Label2>
               {c?.introduction && (
                 <Label2 $color="var(--color-semantic-label-alternative)">
@@ -753,7 +754,7 @@ const GroupJoinedCard = ({ candidates, onCardClick }: { candidates: MatchCandida
 const AcceptedMatchCard = ({ candidate, onClick }: { candidate: MatchCandidateDto; onClick?: () => void }) => {
   const timeLeft = useTargetDayCountdown(5); // 금요일(대화 시작일)까지
   const avatarUrl = candidate.profileImageUrl || getAvatarUrl(candidate.gender);
-  const meta = `${formatAgeRange(candidate.age)} · ${formatGender(candidate.gender)}${candidate.location ? ` · ${candidate.location}` : ""}`;
+  const meta = `${formatAgeRange(candidate.age)} · ${formatGender(candidate.gender)}${candidate.location ? ` · ${toLocationLabel(candidate.location)}` : ""}`;
 
   return (
     <ViewCardContainer style={{ flexDirection: "column", gap: "8px", cursor: onClick ? "pointer" : "default" }} onClick={onClick}>
@@ -875,7 +876,7 @@ export default function MatchingDay({
                     name: c.nickname,
                     age: c.age,
                     gender: formatGender(c.gender),
-                    location: c.location ?? "",
+                    location: c.location ? toLocationLabel(c.location) : "",
                     bio: c.introduction ?? "",
                     avatarUrl: getAvatarUrl(c.gender, i),
                     matchCount: c.scoreBreakdown?.matchedQuestions,
@@ -929,7 +930,7 @@ export default function MatchingDay({
               avatarUrl: acceptedCandidate.profileImageUrl || getAvatarUrl(acceptedCandidate.gender),
               ageRange: formatAgeRange(acceptedCandidate.age),
               gender: formatGender(acceptedCandidate.gender),
-              location: acceptedCandidate.location ?? "",
+              location: acceptedCandidate.location ? toLocationLabel(acceptedCandidate.location) : "",
               bio: acceptedCandidate.introduction ?? "",
             };
             setSelectedProfile(profile);
@@ -1049,7 +1050,7 @@ export default function MatchingDay({
                     name: c.nickname,
                     age: c.age,
                     gender: formatGender(c.gender),
-                    location: c.location ?? "",
+                    location: c.location ? toLocationLabel(c.location) : "",
                     bio: c.introduction ?? "",
                     avatarUrl: getAvatarUrl(c.gender, i),
                     matchCount: c.scoreBreakdown?.matchedQuestions,
