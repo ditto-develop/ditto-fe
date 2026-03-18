@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import FullScreenModal from '../display/FullScreenModal';
 import Nav from '../display/Nav';
@@ -14,6 +14,7 @@ interface ProfileDetailModalProps {
   onClose: () => void;
   profile: any;
   hideCta?: boolean;
+  isAlreadyRequested?: boolean;
 }
 
 const CheckIcon = () => (
@@ -27,11 +28,16 @@ export default function ProfileDetailModal({
   onClose,
   profile,
   hideCta = false,
+  isAlreadyRequested = false,
 }: ProfileDetailModalProps) {
   console.log('[src/components/home/ProfileDetailModal.tsx] ProfileDetailModal'); // __component_log__
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<React.ReactNode | null>(null);
-  const [isRequested, setIsRequested] = useState(false);
+  const [isRequested, setIsRequested] = useState(isAlreadyRequested);
+
+  useEffect(() => {
+    setIsRequested(isAlreadyRequested);
+  }, [isAlreadyRequested, profile]);
 
   if (!profile) return null;
 

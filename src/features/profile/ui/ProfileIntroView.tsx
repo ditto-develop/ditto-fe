@@ -77,6 +77,8 @@ const ProfileSection = styled.div`
   align-items: center;
   padding: 16px 16px 0;
   width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 `;
 
 const AvatarWrapper = styled.div`
@@ -131,6 +133,8 @@ const ProfileMeta = styled.span`
   text-align: center;
   line-height: 1.5;
   margin-top: 4px;
+  width: 100%;
+  max-width: 100%;
 `;
 
 const InterestRow = styled.div`
@@ -139,6 +143,7 @@ const InterestRow = styled.div`
   margin-top: 12px;
   justify-content: center;
   flex-wrap: wrap;
+  width: 100%;
 `;
 
 const InterestBadge = styled.div`

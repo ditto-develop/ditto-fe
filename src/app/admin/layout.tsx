@@ -21,7 +21,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (isLoginPage) return;
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('adminAccessToken');
     if (!token) {
       router.push('/admin/login');
     }

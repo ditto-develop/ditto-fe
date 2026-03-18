@@ -183,6 +183,7 @@ export default function MatchingResultModal({ isOpen, onClose }: MatchingResultM
                 isOpen={!!selectedProfile}
                 onClose={() => setSelectedProfile(null)}
                 profile={selectedProfile}
+                isAlreadyRequested={selectedProfile?.statusText === '내가 대화를 신청했어요'}
             />
         </>
     );

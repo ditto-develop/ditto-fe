@@ -495,18 +495,20 @@ const ChattingView = ({
   cardType,
   openProfileSelector,
   candidates,
+  acceptedCandidate,
   chatRoom,
 }: {
   cardType: MatchingCardType;
   openProfileSelector: () => void;
   candidates: MatchCandidateDto[];
+  acceptedCandidate?: MatchCandidateDto;
   chatRoom?: ChatRoomItemDto;
 }) => {
   const timeMondayLeft = useTargetDayCountdown(1);
   const hasChat = !!chatRoom?.lastMessage;
 
   if (cardType === "one") {
-    const c = candidates[0];
+    const c = acceptedCandidate ?? candidates[0];
     return (
       <ViewCardContainer>
         <ChatMainContainer>
@@ -1013,6 +1015,7 @@ export default function MatchingDay({
               cardType={matchType}
               openProfileSelector={openProfileSelector}
               candidates={candidates}
+              acceptedCandidate={acceptedCandidate}
               chatRoom={chatRoom}
             />
           ) : (

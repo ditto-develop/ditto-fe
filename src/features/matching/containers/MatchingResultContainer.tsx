@@ -101,6 +101,8 @@ export default function MatchingResultContainer({
                                             ? "chat_started"
                                             : match.hasReceivedRequest
                                             ? "after_acceptance"
+                                            : match.hasRequested
+                                            ? "completed"
                                             : "before_request",
                                     })
                                 }

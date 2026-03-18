@@ -32,7 +32,7 @@ export default function AdminLoginPage() {
       }
 
       const { accessToken } = json.data;
-      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('adminAccessToken', accessToken);
       router.replace('/admin/db');
     } catch (e) {
       setError((e as Error).message);

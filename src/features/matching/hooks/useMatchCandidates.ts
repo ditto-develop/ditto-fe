@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
     getMatchCandidates,
     getMatchingStatus,
@@ -54,6 +54,8 @@ function mergeWithStatus(
     });
 }
 
+const POLLING_INTERVAL = 5000;
+
 export function useMatchCandidates() {
     const [quizSetId, setQuizSetId] = useState<string>("");
     const [candidates, setCandidates] = useState<MatchItem[]>([]);
@@ -61,12 +63,14 @@ export function useMatchCandidates() {
     const [acceptedMatchUserId, setAcceptedMatchUserId] = useState<string | undefined>(undefined);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
+    const rawCandidatesRef = useRef<MatchCandidateDto[]>([]);
 
     useEffect(() => {
         async function load() {
             try {
                 const { quizSetId: qid, candidates: raw } = await getMatchCandidates();
                 const { sentRequests, receivedRequests, hasAcceptedMatch: accepted, acceptedMatchUserId: acceptedId } = await getMatchingStatus(qid);
+                rawCandidatesRef.current = raw;
                 setQuizSetId(qid);
                 setHasAcceptedMatch(accepted);
                 setAcceptedMatchUserId(acceptedId);
@@ -79,6 +83,24 @@ export function useMatchCandidates() {
         }
         load();
     }, []);
+
+    useEffect(() => {
+        if (!quizSetId) return;
+
+        const poll = async () => {
+            try {
+                const { sentRequests, receivedRequests, hasAcceptedMatch: accepted, acceptedMatchUserId: acceptedId } = await getMatchingStatus(quizSetId);
+                setHasAcceptedMatch(accepted);
+                setAcceptedMatchUserId(acceptedId);
+                setCandidates(mergeWithStatus(rawCandidatesRef.current, sentRequests, receivedRequests));
+            } catch {
+                // 폴링 실패는 무시
+            }
+        };
+
+        const id = setInterval(poll, POLLING_INTERVAL);
+        return () => clearInterval(id);
+    }, [quizSetId]);
 
     return { quizSetId, candidates, hasAcceptedMatch, acceptedMatchUserId, loading, error };
 }

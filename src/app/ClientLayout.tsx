@@ -20,7 +20,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     : null;
 
   // 로그인이 필요 없는 공개 경로
-  const isPublicPath = pathname === "/" || pathname.startsWith('/oauth');
+  const isPublicPath = pathname === "/" || pathname.startsWith('/oauth') || pathname === '/localogin';
   // 관리자 경로: ClientLayout 리다이렉트/스플래시 완전 제외
   const isAdminPath = pathname.startsWith('/admin');
 
@@ -37,8 +37,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       }
       return;
     }
-    // 로그인 상태: 루트·오어스 경로 → 홈으로 리다이렉트
-    if (isPublicPath) {
+    // 로그인 상태: 루트·오어스 경로 → 홈으로 리다이렉트 (/localogin 제외)
+    if (isPublicPath && pathname !== '/localogin') {
       router.push("/home");
     }
   }, [isLoggedIn, isPublicPath, isAdminPath, router]);

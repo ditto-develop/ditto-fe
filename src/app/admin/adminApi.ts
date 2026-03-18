@@ -2,7 +2,7 @@ const API_BASE = (process.env.NEXT_PUBLIC_API_BASE || '') + '/api';
 
 function getToken(): string {
   if (typeof window === 'undefined') return '';
-  return localStorage.getItem('accessToken') ?? '';
+  return localStorage.getItem('adminAccessToken') ?? '';
 }
 
 export async function adminFetch<T>(
@@ -23,5 +23,9 @@ export async function adminFetch<T>(
     throw new Error(`[${res.status}] ${text}`);
   }
 
+  const contentType = res.headers.get('content-type');
+  if (res.status === 204 || !contentType?.includes('application/json')) {
+    return undefined as T;
+  }
   return res.json() as Promise<T>;
 }
