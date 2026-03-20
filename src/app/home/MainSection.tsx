@@ -50,6 +50,7 @@ export default function MainSection() {
   const [hasAcceptedMatch, setHasAcceptedMatch] = useState(false);
   const [acceptedCandidate, setAcceptedCandidate] = useState<MatchCandidateDto | undefined>(undefined);
   const [groupJoined, setGroupJoined] = useState(false);
+  const [groupJoinPending, setGroupJoinPending] = useState(false);
   const [chatRoom, setChatRoom] = useState<ChatRoomItemDto | undefined>(undefined);
   const [acceptedMatchRequestId, setAcceptedMatchRequestId] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
@@ -101,10 +102,11 @@ export default function MainSection() {
             const { quizSetId: fetchedQuizSetId, candidates: fetchedCandidates, matchingType } = await getMatchCandidates();
             const quizSetId = fetchedQuizSetId;
             setQuizSetId(fetchedQuizSetId);
-            const { hasAcceptedMatch: accepted, acceptedMatchUserId, groupDeclined, groupJoined: joined, sentRequests, receivedRequests } = await getMatchingStatus(quizSetId);
+            const { hasAcceptedMatch: accepted, acceptedMatchUserId, groupDeclined, groupJoined: joined, groupJoinPending: joinPending, sentRequests, receivedRequests } = await getMatchingStatus(quizSetId);
             setCandidates(fetchedCandidates);
             setHasAcceptedMatch(accepted);
             setGroupJoined(joined);
+            setGroupJoinPending(joinPending);
             if (accepted && acceptedMatchUserId) {
               const found = fetchedCandidates.find(c => c.userId === acceptedMatchUserId);
               setAcceptedCandidate(found);
@@ -163,6 +165,8 @@ export default function MainSection() {
             acceptedCandidate={acceptedCandidate}
             groupJoined={groupJoined}
             onGroupJoined={() => setGroupJoined(true)}
+            groupJoinPending={groupJoinPending}
+            onGroupJoinPending={() => setGroupJoinPending(true)}
             quizSetId={quizSetId}
           />
         );

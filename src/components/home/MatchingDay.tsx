@@ -793,6 +793,8 @@ export default function MatchingDay({
   acceptedCandidate,
   groupJoined = false,
   onGroupJoined,
+  groupJoinPending = false,
+  onGroupJoinPending,
   chatRoom,
   quizSetId = "",
   onStartChat,
@@ -806,6 +808,8 @@ export default function MatchingDay({
   acceptedCandidate?: MatchCandidateDto;
   groupJoined?: boolean;
   onGroupJoined?: () => void;
+  groupJoinPending?: boolean;
+  onGroupJoinPending?: () => void;
   chatRoom?: ChatRoomItemDto;
   quizSetId?: string;
   onStartChat?: () => void;
@@ -1068,6 +1072,8 @@ export default function MatchingDay({
         onClose={() => setGroupModalOpen(false)}
         onDecline={() => setGroupDeclined(true)}
         onJoinSuccess={onGroupJoined}
+        onJoinPending={onGroupJoinPending}
+        joinPending={groupJoinPending}
         candidates={candidates}
         quizSetId={quizSetId}
       />

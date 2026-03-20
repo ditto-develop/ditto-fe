@@ -5,6 +5,7 @@ import styled from "styled-components";
 import FullScreenModal from "../display/FullScreenModal";
 import Nav from "../display/Nav";
 import BottomSheet from "../display/BottomSheet";
+import BottomToast from "../display/Toast";
 import ProfileDetailModal from "./ProfileDetailModal";
 import AlertModal from "../display/AlertModal";
 import {
@@ -82,6 +83,8 @@ interface GroupMatchingResultModalProps {
   onClose: () => void;
   onDecline?: () => void;
   onJoinSuccess?: () => void;
+  onJoinPending?: () => void;
+  joinPending?: boolean;
   candidates: MatchCandidateDto[];
   quizSetId: string;
   groupName?: string;
@@ -94,13 +97,17 @@ export default function GroupMatchingResultModal({
   onClose,
   onDecline,
   onJoinSuccess,
+  onJoinPending,
+  joinPending = false,
   candidates,
   groupName = "같은 취미, 취향 그룹",
 }: GroupMatchingResultModalProps) {
   console.log('[src/components/home/GroupMatchingResultModal.tsx] GroupMatchingResultModal'); // __component_log__
   const { showToast, removeToast } = useToast();
   const [joining, setJoining] = useState(false);
-  const [joinResult, setJoinResult] = useState<{ participantCount: number; isActive: boolean } | null>(null);
+  const [joinResult, setJoinResult] = useState<{ participantCount: number; isActive: boolean } | null>(
+    joinPending ? { participantCount: 0, isActive: false } : null
+  );
   const [error, setError] = useState<string | null>(null);
   const [profileSelect, setProfileSelect] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<ReturnType<typeof toProfileDetail> | null>(null);
@@ -125,6 +132,7 @@ export default function GroupMatchingResultModal({
       setJoinResult({ participantCount: result.participantCount, isActive: result.isActive });
 
       if (result.isActive) {
+        // 3명 이상 참여 → 즉시 활성화: 모달 닫고 홈 카드 교체
         const toastId = `group-join-active-${Date.now()}`;
         showToast("그룹에 참여했어요! 대화는 금요일에 시작 돼요", "default", {
           id: toastId,
@@ -132,15 +140,12 @@ export default function GroupMatchingResultModal({
           onAction: () => removeToast(toastId),
           duration: 3000,
         });
+        onClose();
+        onJoinSuccess?.();
       } else {
-        showToast(
-          "그룹에 참여했어요! 대화는 금요일에 시작 돼요",
-          "default",
-          { duration: 3000 }
-        );
+        // 3명 미만 → 모달 유지, 버튼 비활성화, 대기 상태로 전환
+        onJoinPending?.();
       }
-      onClose();
-      onJoinSuccess?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "참여 중 오류가 발생했습니다.");
     } finally {
@@ -250,6 +255,18 @@ export default function GroupMatchingResultModal({
             </FeedbackBox>
           )}
         </ContentBody>
+
+        {joinResult && !joinResult.isActive && (
+          <ToastOverlay>
+            <BottomToast
+              id="group-join-pending"
+              message="그룹 참여를 신청했어요. 3명 이상이 참여하면 금요일에 대화가 시작돼요."
+              type="none"
+              duration={0}
+              onClose={() => {}}
+            />
+          </ToastOverlay>
+        )}
 
         {candidates.length > 0 && (
           <BottomActions>
@@ -490,6 +507,15 @@ const FeedbackBox = styled.div<{ $isError?: boolean }>`
   border-radius: 12px;
   background-color: ${({ $isError }) =>
     $isError ? "rgba(179, 53, 40, 0.08)" : "rgba(85, 122, 85, 0.08)"};
+`;
+
+
+const ToastOverlay = styled.div`
+  position: fixed;
+  bottom: 100px;
+  left: 16px;
+  right: 16px;
+  z-index: 11;
 `;
 
 const BottomActions = styled.div`

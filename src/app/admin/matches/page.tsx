@@ -3,6 +3,35 @@
 import { useEffect, useState } from 'react';
 import { adminFetch } from '../adminApi';
 
+interface ActiveQuizSet {
+  id: string;
+  title: string;
+  matchingType: string;
+  isActive: boolean;
+  startDate: string;
+  endDate: string;
+}
+
+interface UserItem {
+  id: string;
+  name: string;
+  nickname: string;
+  email: string | null;
+  phoneNumber: string;
+  gender: string;
+  age: number;
+}
+
+interface DummyMatchResult {
+  id: string;
+  fromUserNickname: string;
+  toUserNickname: string;
+  quizSetId: string;
+  status: string;
+  score: number;
+  alreadyExists: boolean;
+}
+
 interface MatchRequest {
   id: string;
   quizSetId: string;
@@ -52,6 +81,7 @@ interface GroupParticipant {
   matchingType: string;
   completedAt: string | null;
   groupDeclined: boolean;
+  groupJoined: boolean;
 }
 
 interface GroupProgressResponse {
@@ -69,6 +99,84 @@ export default function MatchesPage() {
   const [quizSetId, setQuizSetId] = useState('');
   const [pendingQuizSetId, setPendingQuizSetId] = useState('');
   const [resetting, setResetting] = useState(false);
+
+  // 더미 대화 신청 폼
+  const [showDummyForm, setShowDummyForm] = useState(false);
+  const [allUsers, setAllUsers] = useState<UserItem[]>([]);
+  const [activeQuizSets, setActiveQuizSets] = useState<ActiveQuizSet[]>([]);
+  const [dummyForm, setDummyForm] = useState({ fromUserId: '', toUserId: '', quizSetId: '' });
+  const [dummySearchFrom, setDummySearchFrom] = useState('');
+  const [dummySearchTo, setDummySearchTo] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [dummyResult, setDummyResult] = useState<DummyMatchResult | null>(null);
+  const [dummyError, setDummyError] = useState('');
+
+  const loadDummyFormData = () => {
+    if (allUsers.length === 0) {
+      adminFetch<{ success: boolean; data: UserItem[] }>('/users')
+        .then((res) => setAllUsers(res.data))
+        .catch(() => {});
+    }
+    if (activeQuizSets.length === 0) {
+      adminFetch<{ success: boolean; data: ActiveQuizSet[] }>('/admin/quiz-sets/active')
+        .then((res) => setActiveQuizSets(res.data))
+        .catch(() => {});
+    }
+  };
+
+  const handleToggleDummyForm = () => {
+    if (!showDummyForm) loadDummyFormData();
+    setShowDummyForm((v) => !v);
+    setDummyResult(null);
+    setDummyError('');
+  };
+
+  const handleDummySubmit = async () => {
+    if (!dummyForm.fromUserId || !dummyForm.toUserId || !dummyForm.quizSetId) {
+      setDummyError('보내는 사람, 받는 사람, 퀴즈셋을 모두 선택해주세요.');
+      return;
+    }
+    setSubmitting(true);
+    setDummyResult(null);
+    setDummyError('');
+    try {
+      const res = await adminFetch<{ success: boolean; data: DummyMatchResult; error?: string }>(
+        '/admin/match-requests/dummy-request',
+        {
+          method: 'POST',
+          body: JSON.stringify(dummyForm),
+        },
+      );
+      if (res.success && res.data) {
+        setDummyResult(res.data);
+        fetchMatches(page, status, quizSetId, 'ONE_TO_ONE');
+      } else {
+        setDummyError(res.error ?? '오류가 발생했습니다.');
+      }
+    } catch (e) {
+      setDummyError((e as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const isDummy = (email: string | null) => !!email && email.endsWith('@ditto.dev');
+
+  const filteredFromUsers = allUsers.filter(
+    (u) =>
+      isDummy(u.email) &&
+      (dummySearchFrom === '' ||
+        u.nickname.includes(dummySearchFrom) ||
+        u.name.includes(dummySearchFrom)),
+  );
+
+  const filteredToUsers = allUsers.filter(
+    (u) =>
+      !isDummy(u.email) &&
+      (dummySearchTo === '' ||
+        u.nickname.includes(dummySearchTo) ||
+        u.name.includes(dummySearchTo)),
+  );
 
   const fetchMatches = (p: number, s: string, qid: string, matchingType: MatchingTab) => {
     setError('');
@@ -142,23 +250,157 @@ export default function MatchesPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>매칭 관리</h1>
-        <button
-          onClick={handleQuizReset}
-          disabled={resetting}
-          style={{
-            padding: '8px 20px',
-            background: resetting ? '#f3f4f6' : '#fee2e2',
-            color: resetting ? '#9ca3af' : '#dc2626',
-            border: 'none',
-            borderRadius: 8,
-            cursor: resetting ? 'not-allowed' : 'pointer',
-            fontWeight: 600,
-            fontSize: 14,
-          }}
-        >
-          {resetting ? '초기화 중...' : '전체 퀴즈 초기화'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={handleToggleDummyForm}
+            style={{
+              padding: '8px 20px',
+              background: showDummyForm ? '#7c6bff' : '#ede9ff',
+              color: showDummyForm ? '#fff' : '#7c6bff',
+              border: 'none',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: 14,
+            }}
+          >
+            더미 대화신청 만들기
+          </button>
+          <button
+            onClick={handleQuizReset}
+            disabled={resetting}
+            style={{
+              padding: '8px 20px',
+              background: resetting ? '#f3f4f6' : '#fee2e2',
+              color: resetting ? '#9ca3af' : '#dc2626',
+              border: 'none',
+              borderRadius: 8,
+              cursor: resetting ? 'not-allowed' : 'pointer',
+              fontWeight: 600,
+              fontSize: 14,
+            }}
+          >
+            {resetting ? '초기화 중...' : '전체 퀴즈 초기화'}
+          </button>
+        </div>
       </div>
+
+      {/* 더미 대화신청 폼 */}
+      {showDummyForm && (
+        <div style={{
+          background: '#faf9ff',
+          border: '1.5px solid #c4b5fd',
+          borderRadius: 12,
+          padding: 24,
+          marginBottom: 24,
+        }}>
+          <h2 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#5b21b6' }}>
+            더미 유저 → 실제 유저 대화 신청
+          </h2>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 16 }}>
+            {/* 보내는 사람 (더미) */}
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>
+                보내는 사람 (더미 유저)
+              </label>
+              <input
+                placeholder="닉네임/이름 검색"
+                value={dummySearchFrom}
+                onChange={(e) => setDummySearchFrom(e.target.value)}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, marginBottom: 6, boxSizing: 'border-box' }}
+              />
+              <select
+                value={dummyForm.fromUserId}
+                onChange={(e) => setDummyForm((f) => ({ ...f, fromUserId: e.target.value }))}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, boxSizing: 'border-box' }}
+              >
+                <option value="">선택...</option>
+                {filteredFromUsers.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.nickname} ({u.name}, {u.gender === 'MALE' ? '남' : '여'} {u.age}세)
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 받는 사람 (실제) */}
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>
+                받는 사람 (실제 유저)
+              </label>
+              <input
+                placeholder="닉네임/이름 검색"
+                value={dummySearchTo}
+                onChange={(e) => setDummySearchTo(e.target.value)}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, marginBottom: 6, boxSizing: 'border-box' }}
+              />
+              <select
+                value={dummyForm.toUserId}
+                onChange={(e) => setDummyForm((f) => ({ ...f, toUserId: e.target.value }))}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, boxSizing: 'border-box' }}
+              >
+                <option value="">선택...</option>
+                {filteredToUsers.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.nickname} ({u.name})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 퀴즈셋 */}
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>
+                퀴즈셋
+              </label>
+              <div style={{ height: 36, marginBottom: 6 }} />
+              <select
+                value={dummyForm.quizSetId}
+                onChange={(e) => setDummyForm((f) => ({ ...f, quizSetId: e.target.value }))}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, boxSizing: 'border-box' }}
+              >
+                <option value="">선택...</option>
+                {activeQuizSets.map((qs) => (
+                  <option key={qs.id} value={qs.id}>
+                    {qs.title} ({qs.matchingType === 'ONE_TO_ONE' ? '1:1' : '그룹'})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              onClick={handleDummySubmit}
+              disabled={submitting}
+              style={{
+                padding: '10px 24px',
+                background: submitting ? '#a78bfa' : '#7c6bff',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                cursor: submitting ? 'not-allowed' : 'pointer',
+                fontWeight: 700,
+                fontSize: 14,
+              }}
+            >
+              {submitting ? '처리 중...' : '대화 신청 생성'}
+            </button>
+
+            {dummyError && (
+              <span style={{ color: '#dc2626', fontSize: 13 }}>{dummyError}</span>
+            )}
+            {dummyResult && (
+              <span style={{ color: dummyResult.alreadyExists ? '#d97706' : '#059669', fontSize: 13, fontWeight: 600 }}>
+                {dummyResult.alreadyExists
+                  ? `이미 존재하는 요청 (${dummyResult.fromUserNickname} → ${dummyResult.toUserNickname})`
+                  : `생성 완료! ${dummyResult.fromUserNickname} → ${dummyResult.toUserNickname} (${dummyResult.score}점)`}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
@@ -212,7 +454,8 @@ export default function MatchesPage() {
       {tab === 'GROUP' && (
         <div style={{ marginBottom: 16, color: '#6b7280', fontSize: 14 }}>
           그룹 퀴즈 완료자 <strong>{groupItems.length}</strong>명
-          {' · '}수락 <strong>{groupItems.filter(i => !i.groupDeclined).length}</strong>명
+          {' · '}수락 <strong>{groupItems.filter(i => i.groupJoined).length}</strong>명
+          {' · '}대기 <strong>{groupItems.filter(i => !i.groupDeclined && !i.groupJoined).length}</strong>명
           {' · '}거절 <strong>{groupItems.filter(i => i.groupDeclined).length}</strong>명
         </div>
       )}
@@ -294,10 +537,10 @@ export default function MatchesPage() {
                   <td style={{ padding: '10px 16px' }}>
                     <span style={{
                       padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 700,
-                      background: p.groupDeclined ? '#fee2e2' : '#d1fae5',
-                      color: p.groupDeclined ? '#dc2626' : '#059669',
+                      background: p.groupDeclined ? '#fee2e2' : p.groupJoined ? '#d1fae5' : '#fef3c7',
+                      color: p.groupDeclined ? '#dc2626' : p.groupJoined ? '#059669' : '#d97706',
                     }}>
-                      {p.groupDeclined ? '거절' : '수락'}
+                      {p.groupDeclined ? '거절' : p.groupJoined ? '수락' : '대기'}
                     </span>
                   </td>
                 </tr>

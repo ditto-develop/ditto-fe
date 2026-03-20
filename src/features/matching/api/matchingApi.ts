@@ -104,6 +104,7 @@ export interface GetMatchingStatusResponse {
     acceptedMatchUserId?: string;
     groupDeclined: boolean;
     groupJoined: boolean;
+    groupJoinPending: boolean;
 }
 
 // --- API functions ---
