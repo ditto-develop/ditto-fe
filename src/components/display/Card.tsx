@@ -1,8 +1,8 @@
 "use client";
 
 import styled from "styled-components";
-import { ReactNode } from "react";
-import { Caption1, Heading2Bold, Label1Normal } from "../common/Text";
+import type { ReactNode } from "react";
+import { Caption1, Heading2Bold, Label1Normal } from "@/components/common/Text";
 
 // --- Types ---
 export type AlertStatus = 'positive' | 'cautionary' | 'destructive' | 'navy';
@@ -53,7 +53,7 @@ const AlertBadge = styled.div<{ $status: AlertStatus }>`
   color: white;
   padding: 6px 12px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--typography-caption-1-font-size);
   font-weight: 600;
   white-space: nowrap;
   line-height: 100%; /* Center text vertically */
@@ -81,11 +81,11 @@ const ContentBadge = styled.div<{ $status: AlertStatus }>`
   background-color: ${({ $status }) => {
     switch ($status) {
       case 'positive':
-        return 'rgba(85, 122, 85, 0.08)'; // var(--color-semantic-status-positive) #557A55
+        return 'rgba(85, 122, 85, 0.08)'; // var(--color-semantic-status-positive) var(--color-semantic-status-positive)
       case 'cautionary':
         return 'rgba(235, 90, 60, 0.08)'; // var(--color-semantic-status-cautionary)
       case 'navy':
-        return 'rgba(from var(--color-semantic-accent-foreground-Navy) r g b / 0.08)';
+        return 'rgb(from var(--color-semantic-accent-foreground-Navy) r g b / 0.08)';
       case 'destructive':
       default:
         return 'rgba(179, 53, 40, 0.08)'; // var(--color-semantic-status-negative)
@@ -110,7 +110,7 @@ const ViewCardWrapper = styled.div`
   display: flex;
   align-items: center;
   box-sizing: border-box;
-  background-color: var(--color-semantic-fill-normal, rgba(108, 101, 95, 0.08));
+  background-color: var(--color-semantic-fill-normal);
 `;
 
 const ButtonSectionWrapper = styled.div`
@@ -147,7 +147,7 @@ interface CardProps {
 
 // --- Component ---
 
-export default function Card({
+export function Card({
   title,
   subTitle,
   contentBadge,

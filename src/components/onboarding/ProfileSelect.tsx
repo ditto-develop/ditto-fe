@@ -2,7 +2,7 @@ import { ActionContainer } from "@/components/onboarding/OnboardingContainer";
 import { Title3 } from "@/components/common/Text";
 import React, { useState } from "react";
 import styled from "styled-components";
-import { ActionButton, ActionSheet } from "../input/Action";
+import { ActionButton, ActionSheet } from "@/components/input/Action";
 
 const Wrapper = styled.div`
   position: fixed;
@@ -23,7 +23,7 @@ const Wrapper = styled.div`
   box-sizing: border-box;   /* padding을 width/height 안으로 포함 */
 
   margin: 0 auto;
-  background: var(--Background-Normal-Normal, #E9E6E2);
+  background: var(--color-semantic-background-normal-normal);
   overflow-y: auto;         /* 내용 많으면 스크롤 */
 `;
 
@@ -39,7 +39,7 @@ const CloseButton = styled.button`
     width: 100%;
   border: none;
   background: none;
-  font-size: 24px;
+  font-size: var(--typography-title-3-font-size);
   cursor: pointer;
   text-align: right;
 `;
@@ -61,8 +61,8 @@ justify-content: center;
 align-items: center;
 flex: 1 0 0;
 align-self: stretch;
-  background: ${({ $active }) => ($active ? "#E9E6E2" : "transparent")};
-  color: ${({ $active}) => (!$active ? "var(--Semantic-Label-Alternative, var(--Label-Alternative, rgba(47, 43, 39, 0.61)))" : "var(--Semantic-Label-Normal, var(--Label-Normal, #1A1815));")};
+  background: ${({ $active }) => ($active ? "var(--color-semantic-background-normal-normal)" : "transparent")};
+  color: ${({ $active}) => (!$active ? "var(--color-semantic-label-alternative)" : "var(--color-semantic-label-normal);")};
 
   font-weight: ${({ $active }) => ($active ? 600 : 400)};
 box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.08);
@@ -138,9 +138,9 @@ const BottomButton = styled.button`
   height: 44px;
   border-radius: 999px;
   border: none;
-  background: #111;
-  color: #fff;
-  font-size: 16px;
+  background: var(--color-semantic-primary-normal);
+  color: var(--color-semantic-static-white);
+  font-size: var(--typography-body-1-normal-font-size);
   font-weight: 600;
   cursor: pointer;
 
@@ -230,7 +230,7 @@ const ProfileSelect: React.FC<CaricatureSelectProps> = ({
                 </AvatarCircle>
                 {selected && (
                   <CheckBadge>
-                    <CheckIcon src='/onboarding/profileimg/check.svg' />
+                    <CheckIcon src="/icons/status/profile-check.svg" alt="" />
                   </CheckBadge>
                 )}
               </AvatarWrapper>
@@ -264,4 +264,4 @@ const Bottom = styled.div`
     left: 0;
 `
 
-export default ProfileSelect;
+export { ProfileSelect };

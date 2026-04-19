@@ -10,7 +10,7 @@ interface TimerState {
 
 function formatTimeLeft(ms: number): TimerState {
   if (ms <= 0) {
-    return { label: "만료됨", isUrgent: true, isExpired: true };
+    return { label: "", isUrgent: false, isExpired: true };
   }
 
   const totalSeconds = Math.floor(ms / 1000);

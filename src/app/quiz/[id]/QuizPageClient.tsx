@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
 import { Label1Normal, Label2, Title2, Title3 } from "@/components/common/Text";
-import Nav from "@/components/display/Nav";
+import { Nav } from "@/components/display/Nav";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import { useRouter, useParams } from "next/navigation";
-import QuizModal from "@/components/quiz/QuizModal";
+import { QuizModal } from "@/components/quiz/QuizModal";
 import { QuizProgressService, QuizProgressDto } from "@/lib/api";
 import type { QuizWithAnswerDto } from "@/lib/api";
 
-export default function Quiz() {
+export function QuizPageClient() {
   console.log('[src/app/quiz/[id]/page.tsx] Quiz'); // __component_log__
   const router = useRouter();
   const params = useParams();
@@ -271,7 +271,7 @@ const Container = styled.div`
 const Track = styled.div`
   width: 100%;
   height: 4px;
-  background-color: var(--color-semantic-fill-normal, rgba(108, 101, 95, 0.08));
+  background-color: var(--color-semantic-fill-normal);
   border-radius: 2px;
   overflow: hidden;
 `;
@@ -279,7 +279,7 @@ const Track = styled.div`
 const Fill = styled.div<{ $percentage: number }>`
   width: ${({ $percentage }) => $percentage}%;
   height: 100%;
-  background-color: var(--color-semantic-primary-normal, #1A1815); /* Fallback color added */
+  background-color: var(--color-semantic-primary-normal); /* Fallback color added */
   border-radius: 2px;
   transition: width 0.3s ease-out;
 `;
@@ -353,13 +353,13 @@ function FinishView(){
             />
             <TopContainer>
                 <LabelContainer>
-                    <img src="/icons/content/quiz-people-red.svg" />
+                    <img src="/icons/content/people-red.svg" alt="" />
                     <Label2 style={{paddingTop: "4px", paddingLeft: "4px"}} $color="var(--color-semantic-accent-foreground-vintagePink)">1:1 매칭</Label2>
                 </LabelContainer>
                 <LabelContainer>
                   <Title3>퀴즈 참여 완료</Title3>
                   <CircleIconWrapper>
-                    <img src="/icons/status/check.svg" />
+                    <img src="/icons/status/check.svg" alt="" />
                   </CircleIconWrapper>
                 </LabelContainer>
                 <div>

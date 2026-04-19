@@ -15,7 +15,7 @@ const SemanticColorBox: React.FC<SemanticColor> = ({ name, value }) => {
         gap: 12,
         padding: 8,
         borderRadius: 8,
-        border: "1px solid #e5e5e5",
+        border: "1px solid var(--color-semantic-line-normal-neutral)",
       }}
     >
       <div
@@ -24,13 +24,13 @@ const SemanticColorBox: React.FC<SemanticColor> = ({ name, value }) => {
           height: 40,
           borderRadius: 6,
           backgroundColor: value,
-          border: "1px solid #ddd",
+          border: "1px solid var(--color-semantic-line-normal-neutral)",
           flexShrink: 0,
         }}
       />
       <div style={{ display: "flex", flexDirection: "column" }}>
         <strong style={{ fontSize: 13 }}>{name}</strong>
-        <span style={{ fontSize: 12, color: "#666" }}>{value}</span>
+        <span style={{ fontSize: 12, color: "var(--color-semantic-label-alternative)" }}>{value}</span>
       </div>
     </div>
   );
@@ -60,6 +60,7 @@ const SemanticColorPalette: React.FC = () => {
     }
 
     list.sort((a, b) => a.name.localeCompare(b.name));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setColors(list);
   }, []);
 
@@ -68,7 +69,7 @@ const SemanticColorPalette: React.FC = () => {
       <h1 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>
         Semantic Colors
       </h1>
-      <p style={{ fontSize: 12, color: "#777", marginBottom: 16 }}>
+      <p style={{ fontSize: 12, color: "var(--color-semantic-label-alternative)", marginBottom: 16 }}>
         :root 에 정의된 시멘틱 컬러 토큰들을 자동으로 읽어서 보여줍니다.
       </p>
       <div
@@ -86,9 +87,11 @@ const SemanticColorPalette: React.FC = () => {
   );
 };
 
-export default {
+const meta = {
   title: "Design Tokens/Semantic Colors",
   component: SemanticColorPalette,
 };
+
+export default meta;
 
 export const AllSemanticColors = () => <SemanticColorPalette />;

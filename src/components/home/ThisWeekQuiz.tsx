@@ -1,12 +1,12 @@
 "use client";
 
-import BottomSheet from "@/components/display/BottomSheet";
+import { BottomSheet } from "@/components/display/BottomSheet";
 import {
   Body1Bold,
   Heading2Bold,
   Label2,
 } from "@/components/common/Text";
-import Card from "@/components/display/Card";
+import { Card } from "@/components/display/Card";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import { useTargetDayCountdown } from "@/lib/hooks/useKstCountdown";
 import { useRouter } from "next/navigation";
@@ -33,6 +33,10 @@ const ActionContainer = styled.div`
 `;
 const FullWidthButtonWrapper = styled.div`
   width: 100%;
+`;
+const IntroNoteButton = styled(ActionButton)`
+  white-space: nowrap;
+  font-weight: 600;
 `;
 const FCardContainer = styled.div`
   display: flex;
@@ -61,13 +65,42 @@ const BottomButton = styled.div`
   background: var(--color-fill-normal, rgba(108, 101, 95, 0.08));
 `;
 
+const QuizTypeList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+`;
+
+const QuizTypeLabelRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const QuizTypeTitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  align-content: center;
+  align-self: stretch;
+`;
+
+const QuizTypeCaption = styled(Label2)`
+  padding-top: 3px;
+`;
+
+const ArrowRightIcon = styled.img`
+  rotate: 180deg;
+`;
+
 interface ThisWeekQuizProps {
   iscomplete: boolean;
   isIntroComplete: boolean;
   participantCount: number;
 }
 
-export default function ThisWeekQuiz({ iscomplete, isIntroComplete, participantCount }: ThisWeekQuizProps) {
+export function ThisWeekQuiz({ iscomplete, isIntroComplete, participantCount }: ThisWeekQuizProps) {
   console.log('[src/components/home/ThisWeekQuiz.tsx] ThisWeekQuiz'); // __component_log__
   const router = useRouter();
   const today = new Date().getDay(); // (KST 변환 로직 필요 시 적용)
@@ -113,14 +146,13 @@ export default function ThisWeekQuiz({ iscomplete, isIntroComplete, participantC
         buttonSection={
           !isIntroComplete ? (
             <FullWidthButtonWrapper>
-              <ActionButton
+              <IntroNoteButton
                 variant="secondary"
                 icon={<img src="/icons/action/note-pen.svg" alt="" />}
                 onClick={() => router.push("/onboarding/intro")}
-                style={{ whiteSpace: "nowrap", fontWeight: 600 }}
               >
                 소개 노트 작성하기
-              </ActionButton>
+              </IntroNoteButton>
             </FullWidthButtonWrapper>
           ) : undefined
         }
@@ -136,80 +168,55 @@ export default function ThisWeekQuiz({ iscomplete, isIntroComplete, participantC
           subTitle="매주 한 종류의 퀴즈만 풀 수 있어요!"
           closer={() => setIsQuizStart(false)}
           detail={
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-                alignItems: "center",
-              }}
-            >
+            <QuizTypeList>
               <img src="/assets/illustration/quizstart.svg" loading="lazy" />
               <BottomButton
                 onClick={() => {
                   router.push("/quiz/current?type=ONE_TO_ONE");
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <QuizTypeLabelRow>
                   <img src="/icons/content/people-red.svg" />
-                  <Label2
-                    style={{ paddingTop: "3px" }}
+                  <QuizTypeCaption
                     $color="var(--color-semantic-accent-foreground-vintagePink)"
                   >
                     1:1 매칭
-                  </Label2>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    alignContent: "center",
-                    alignSelf: "stretch",
-                  }}
-                >
+                  </QuizTypeCaption>
+                </QuizTypeLabelRow>
+                <QuizTypeTitleRow>
                   <Heading2Bold>성격, 가치관</Heading2Bold>
-                  <img src="/icons/navigation/arrow-left.svg" style={{ rotate: "180deg" }} />
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <ArrowRightIcon src="/icons/navigation/arrow-left.svg" />
+                </QuizTypeTitleRow>
+                <QuizTypeLabelRow>
                   <Label2 $color="var(--color-semantic-label-alternative)">
                     나와 잘 맞는 사람을 찾아봐요.
                   </Label2>
-                </div>
+                </QuizTypeLabelRow>
               </BottomButton>
               <BottomButton
                 onClick={() => {
                   router.push("/quiz/current?type=GROUP");
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <QuizTypeLabelRow>
                   <img src="/icons/content/people-green.svg" />
-                  <Label2
-                    style={{ paddingTop: "3px" }}
+                  <QuizTypeCaption
                     $color="var(--color-atomic-olive-60)"
                   >
                     그룹 매칭
-                  </Label2>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    alignContent: "center",
-                    alignSelf: "stretch",
-                  }}
-                >
+                  </QuizTypeCaption>
+                </QuizTypeLabelRow>
+                <QuizTypeTitleRow>
                   <Heading2Bold>취미, 취향</Heading2Bold>
-                  <img src="/icons/navigation/arrow-left.svg" style={{ rotate: "180deg" }} />
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <ArrowRightIcon src="/icons/navigation/arrow-left.svg" />
+                </QuizTypeTitleRow>
+                <QuizTypeLabelRow>
                   <Label2 $color="var(--color-semantic-label-alternative)">
                     비슷한 취향의 사람들과 연결돼요.
                   </Label2>
-                </div>
+                </QuizTypeLabelRow>
               </BottomButton>
-            </div>
+            </QuizTypeList>
           }
         />
       )}

@@ -1,4 +1,4 @@
-import QuizPageClient from "./QuizPageClient";
+import { QuizPageClient } from "./QuizPageClient";
 
 export function generateStaticParams() {
   return [{ id: "placeholder" }];

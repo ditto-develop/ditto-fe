@@ -1,4 +1,4 @@
-import ChatRoomPageClient from "./_components/ChatRoomPageClient";
+import { ChatRoomPageClient } from "./_components/ChatRoomPageClient";
 
 export function generateStaticParams() {
   return [{ roomId: "placeholder" }];

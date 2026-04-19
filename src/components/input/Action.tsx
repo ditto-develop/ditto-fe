@@ -1,6 +1,7 @@
 "use client";
 
-import React, { ReactNode } from "react";
+import type { ReactNode } from "react";
+import React from "react";
 import styled, { css } from "styled-components";
 
 // --- Types ---
@@ -32,7 +33,7 @@ const Container = styled.div<{ $sticky?: boolean; $divider?: boolean; $safeArea?
   box-sizing: border-box;
   z-index: 100;
 
-  ${(p) => p.$divider && `border-top: 1px solid #f2f4f6;`}
+  ${(p) => p.$divider && `border-top: 1px solid var(--color-semantic-fill-alternative);`}
   ${(p) =>
     p.$sticky &&
     `
@@ -49,8 +50,8 @@ const Container = styled.div<{ $sticky?: boolean; $divider?: boolean; $safeArea?
 `;
 
 const Caption = styled.div`
-  font-size: 13px;
-  color: #6b7684;
+  font-size: var(--typography-label-2-font-size);
+  color: var(--color-semantic-label-alternative);
   text-align: center;
 `;
 
@@ -88,7 +89,7 @@ const ButtonGroup = styled.div<{ $layout: "row" | "column" }>`
 const StyledButton = styled.button<ActionButtonProps>`
   min-height: 52px;
   border-radius: 12px;
-  font-size: 16px;
+  font-size: var(--typography-body-1-normal-font-size);
   font-weight: 700;
   cursor: pointer;
 
@@ -104,7 +105,7 @@ const StyledButton = styled.button<ActionButtonProps>`
     switch (props.variant) {
       case "primary":
         return css`
-          background: var(--Primary-Normal, #1A1815);
+          background: var(--color-semantic-primary-normal);
           color: white;
           border: none;
         `;
@@ -112,7 +113,7 @@ const StyledButton = styled.button<ActionButtonProps>`
         return css`
           background: transparent;
           border: 1px solid var(--Line-Normal-Neutral, rgba(108, 101, 95, 0.16));
-          color: var(--Semantic-Label-Normal, #1A1815);
+          color: var(--Semantic-Label-Normal, var(--color-semantic-label-normal));
         `;
       case "tertiary":
         return css`
@@ -120,12 +121,12 @@ const StyledButton = styled.button<ActionButtonProps>`
           border: none;
           padding: 8px 0;
           min-height: auto;
-          font-size: 14px;
+          font-size: var(--typography-label-1-normal-font-size);
           color: var(--color-semantic-label-alternative);
         `;
       case "disabled":
         return css`
-            background: var(--Interaction-Disable, #DDD8D3);
+            background: var(--color-semantic-interaction-disable);
             color: var(--Semantic-Label-Assistive, var(--Label-Assistive, rgba(47, 43, 39, 0.28)));
             border: none;
             cursor: not-allowed;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { adminFetch } from '../adminApi';
+import { adminFetch } from "@/app/admin/adminApi";
 
 interface Quiz {
   id: string;
@@ -44,9 +44,9 @@ interface SystemStateResponse {
 }
 
 const PERIOD_LABELS: Record<string, { label: string; color: string }> = {
-  QUIZ_PERIOD:     { label: '퀴즈 기간 (월-수)', color: '#3b82f6' },
-  MATCHING_PERIOD: { label: '매칭 기간 (목)',    color: '#f59e0b' },
-  CHATTING_PERIOD: { label: '채팅 기간 (금-일)', color: '#10b981' },
+  QUIZ_PERIOD:     { label: '퀴즈 기간 (월-수)', color: 'var(--color-semantic-accent-foreground-blue)' },
+  MATCHING_PERIOD: { label: '매칭 기간 (목)',    color: 'var(--color-semantic-status-cautionary)' },
+  CHATTING_PERIOD: { label: '채팅 기간 (금-일)', color: 'var(--color-semantic-status-positive)' },
 };
 
 export default function QuizzesPage() {
@@ -98,12 +98,12 @@ export default function QuizzesPage() {
             alignItems: 'center',
             gap: 12,
             padding: '10px 16px',
-            background: `${periodInfo?.color ?? '#6b7280'}15`,
+            background: `rgb(from ${periodInfo?.color ?? 'var(--color-semantic-label-alternative)'} r g b / 0.08)`,
             borderRadius: 10,
             marginBottom: 24,
           }}
         >
-          <span style={{ fontSize: 14, color: '#374151' }}>
+          <span style={{ fontSize: 14, color: 'var(--color-semantic-label-normal)' }}>
             {systemState.year}년 {systemState.month}월 {systemState.week}주차
           </span>
           <span
@@ -112,8 +112,8 @@ export default function QuizzesPage() {
               borderRadius: 12,
               fontSize: 13,
               fontWeight: 700,
-              background: `${periodInfo?.color ?? '#6b7280'}20`,
-              color: periodInfo?.color ?? '#6b7280',
+              background: `rgb(from ${periodInfo?.color ?? 'var(--color-semantic-label-alternative)'} r g b / 0.13)`,
+              color: periodInfo?.color ?? 'var(--color-semantic-label-alternative)',
             }}
           >
             {periodInfo?.label ?? systemState.period}
@@ -122,23 +122,23 @@ export default function QuizzesPage() {
       )}
 
       {error && (
-        <div style={{ background: '#fee2e2', color: '#dc2626', padding: 16, borderRadius: 8, marginBottom: 16 }}>
+        <div style={{ background: 'var(--color-semantic-fill-alternative)', color: 'var(--color-semantic-status-negative)', padding: 16, borderRadius: 8, marginBottom: 16 }}>
           {error}
         </div>
       )}
 
-      {!quizSets.length && !error && <p style={{ color: '#888' }}>이번주 퀴즈셋이 없습니다.</p>}
+      {!quizSets.length && !error && <p style={{ color: 'var(--color-semantic-label-assistive)' }}>이번주 퀴즈셋이 없습니다.</p>}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
         {quizSets.map((qs) => (
           <div
             key={qs.id}
             style={{
-              background: '#fff',
+              background: 'var(--color-semantic-static-white)',
               borderRadius: 12,
               padding: 20,
               boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-              border: qs.isActive ? '2px solid #10b981' : '2px solid transparent',
+              border: qs.isActive ? '2px solid var(--color-semantic-status-positive)' : '2px solid transparent',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
@@ -147,8 +147,8 @@ export default function QuizzesPage() {
                   style={{
                     fontSize: 11,
                     fontWeight: 600,
-                    color: '#7c6bff',
-                    background: '#7c6bff15',
+                    color: 'var(--color-semantic-accent-background-violet)',
+                    background: 'rgb(from var(--color-semantic-accent-background-violet) r g b / 0.08)',
                     padding: '2px 8px',
                     borderRadius: 8,
                   }}
@@ -156,7 +156,7 @@ export default function QuizzesPage() {
                   {qs.category}
                 </span>
                 <h3 style={{ margin: '8px 0 4px', fontSize: 16, fontWeight: 600 }}>{qs.title}</h3>
-                {qs.description && <p style={{ margin: 0, fontSize: 13, color: '#6b7280' }}>{qs.description}</p>}
+                {qs.description && <p style={{ margin: 0, fontSize: 13, color: 'var(--color-semantic-label-alternative)' }}>{qs.description}</p>}
               </div>
               <span
                 style={{
@@ -164,8 +164,8 @@ export default function QuizzesPage() {
                   borderRadius: 12,
                   fontSize: 11,
                   fontWeight: 700,
-                  background: qs.isActive ? '#d1fae5' : '#f3f4f6',
-                  color: qs.isActive ? '#059669' : '#9ca3af',
+                  background: qs.isActive ? 'var(--color-semantic-fill-alternative)' : 'var(--color-semantic-fill-alternative)',
+                  color: qs.isActive ? 'var(--color-semantic-status-positive)' : 'var(--color-semantic-label-assistive)',
                   flexShrink: 0,
                   marginLeft: 8,
                 }}
@@ -174,7 +174,7 @@ export default function QuizzesPage() {
               </span>
             </div>
 
-            <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 12 }}>
+            <div style={{ fontSize: 12, color: 'var(--color-semantic-label-assistive)', marginBottom: 12 }}>
               퀴즈 {qs.quizzes.length}개 · {new Date(qs.startDate).toLocaleDateString('ko-KR')} ~{' '}
               {new Date(qs.endDate).toLocaleDateString('ko-KR')}
             </div>
@@ -185,8 +185,8 @@ export default function QuizzesPage() {
               style={{
                 width: '100%',
                 padding: '8px',
-                background: qs.isActive ? '#fee2e2' : '#d1fae5',
-                color: qs.isActive ? '#dc2626' : '#059669',
+                background: qs.isActive ? 'var(--color-semantic-fill-alternative)' : 'var(--color-semantic-fill-alternative)',
+                color: qs.isActive ? 'var(--color-semantic-status-negative)' : 'var(--color-semantic-status-positive)',
                 border: 'none',
                 borderRadius: 8,
                 cursor: 'pointer',

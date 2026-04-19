@@ -32,20 +32,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#f5f5f5', fontFamily: 'sans-serif' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--color-semantic-background-elevated-alternative)', fontFamily: 'sans-serif' }}>
       {/* Sidebar */}
       <aside
         style={{
           width: 200,
-          background: '#1a1a2e',
-          color: '#fff',
+          background: 'var(--color-semantic-inverse-background)',
+          color: 'var(--color-semantic-static-white)',
           display: 'flex',
           flexDirection: 'column',
           padding: '24px 0',
           flexShrink: 0,
         }}
       >
-        <div style={{ padding: '0 20px 24px', fontSize: 18, fontWeight: 700, borderBottom: '1px solid #2d2d4e' }}>
+        <div style={{ padding: '0 20px 24px', fontSize: 18, fontWeight: 700, borderBottom: '1px solid var(--color-semantic-line-normal-strong)' }}>
           ⚙️ 관리자
         </div>
         <nav style={{ marginTop: 16 }}>
@@ -58,11 +58,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 style={{
                   display: 'block',
                   padding: '12px 20px',
-                  color: active ? '#7c6bff' : '#ccc',
+                  color: active ? 'var(--color-semantic-accent-foreground-violet)' : 'var(--color-semantic-inverse-label)',
                   textDecoration: 'none',
                   fontWeight: active ? 600 : 400,
                   background: active ? 'rgba(124,107,255,0.1)' : 'transparent',
-                  borderLeft: active ? '3px solid #7c6bff' : '3px solid transparent',
+                  borderLeft: active ? '3px solid var(--color-semantic-accent-foreground-violet)' : '3px solid transparent',
                   transition: 'all 0.15s',
                 }}
               >

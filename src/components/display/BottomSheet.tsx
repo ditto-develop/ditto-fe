@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { Heading2Bold, Label1Normal } from '../common/Text';
+import { Heading2Bold, Label1Normal } from "@/components/common/Text";
 
 interface BottomSheetProps {
   title: string;
@@ -35,8 +35,8 @@ const BottomSheet = ({ title, subTitle, detail, closer }: BottomSheetProps) => {
           </TextGroup>
           <CloseButton onClick={closer}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18" stroke="#1A1A1A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M6 6L18 18" stroke="#1A1A1A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M18 6L6 18" stroke="var(--color-semantic-label-strong)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M6 6L18 18" stroke="var(--color-semantic-label-strong)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </CloseButton>
         </Header>
@@ -50,7 +50,7 @@ const BottomSheet = ({ title, subTitle, detail, closer }: BottomSheetProps) => {
   );
 };
 
-export default BottomSheet;
+export { BottomSheet };
 
 // --- Animations ---
 
@@ -110,7 +110,7 @@ const SheetContainer = styled.div`
 const HandleBar = styled.div`
   width: 40px;
   height: 4px;
-  background-color: #E0E0E0;
+  background-color: var(--color-semantic-line-solid-neutral);
   border-radius: 2px;
   position: absolute;
   top: 10px;
@@ -132,17 +132,17 @@ const TextGroup = styled.div`
 `;
 
 const Title = styled.h2`
-  font-size: 20px;
+  font-size: var(--typography-heading-2-font-size);
   font-weight: 700;
-  color: var(--color-semantic-label-strong, #1A1A1A);
+  color: var(--color-semantic-label-strong);
   margin: 0;
   line-height: 1.4;
 `;
 
 const SubTitle = styled.p`
-  font-size: 14px;
+  font-size: var(--typography-label-1-normal-font-size);
   font-weight: 400;
-  color: var(--color-semantic-label-neutral, #666666);
+  color: var(--color-semantic-label-neutral);
   margin: 0;
 `;
 

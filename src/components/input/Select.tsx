@@ -56,7 +56,7 @@ const SelectWrapper = styled.div`
 const FieldLabel = styled.label`
   display: block;
   margin-bottom: 6px;
-  font-size: 14px;
+  font-size: var(--typography-label-1-normal-font-size);
   font-weight: 500;
   color: var(--color-semantic-label-normal);
 `;
@@ -99,7 +99,7 @@ const SelectValue = styled.span<{ $placeholder?: boolean }>`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 14px;
+  font-size: var(--typography-label-1-normal-font-size);
 
   color: ${({ $placeholder }) =>
     $placeholder
@@ -109,7 +109,7 @@ const SelectValue = styled.span<{ $placeholder?: boolean }>`
 
 const ErrorMessage = styled.div`
   margin-top: 4px;
-  font-size: 12px;
+  font-size: var(--typography-caption-1-font-size);
   color: var(--color-semantic-status-negative);
 `;
 
@@ -126,7 +126,7 @@ const NativeInput = styled.input<{ $error?: boolean }>`
       $error ? "var(--color-semantic-status-negative)" : "var(--color-line-neutral)"};
   background: var(--color-semantic-background-normal-normal);
   color: var(--color-label-default);
-  font-size: 14px;
+  font-size: var(--typography-label-1-normal-font-size);
 
   &:disabled {
     background: var(--color-atomic-coolNeutral-50);
@@ -175,7 +175,7 @@ const Sheet = styled.div<{ $closing: boolean }>`
   width: 100%;
   max-width: 480px;
   border-radius: 16px 16px 0 0;
-  background: var(--Background-Elevated-Normal, #E9E6E2);
+  background: var(--Background-Elevated-Normal, var(--color-semantic-background-normal-normal));
   padding-bottom: env(safe-area-inset-bottom);
 
   animation: ${({ $closing }) => $closing ? slideDown : slideUp} 0.28s cubic-bezier(0.32, 0.72, 0, 1) forwards;
@@ -206,14 +206,14 @@ const SheetTitle = styled.span`
   flex: 1;
   text-align: center;
   padding-right: 10px;
-  font-size: 16px;
+  font-size: var(--typography-body-1-normal-font-size);
   font-weight: 600;
 `;
 
 const SheetCloseButton = styled.button`
   border: none;
   background: transparent;
-  font-size: 20px;
+  font-size: var(--typography-heading-2-font-size);
   line-height: 1;
   cursor: pointer;
 `;
@@ -228,7 +228,7 @@ const SheetOption = styled.li<{ $selected?: boolean }>`
   padding: 14px 20px;
   cursor: pointer;
 
-  font-size: 16px;
+  font-size: var(--typography-body-1-normal-font-size);
   line-height: 1.4;
 
   &:hover {
@@ -337,7 +337,8 @@ export function Select<T extends Primitive = string>(
           {displayText}
         </SelectValue>
         <img 
-          src='/textfield/arrow.svg'
+          src="/icons/navigation/textfield-arrow.svg"
+          alt=""
         />
       </SelectTrigger>
 

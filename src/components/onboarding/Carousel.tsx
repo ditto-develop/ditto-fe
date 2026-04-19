@@ -10,7 +10,7 @@ type CarouselProps = {
 };
 
 export function SplashCarousel({ images, interval = 2000 }: CarouselProps) {
-  console.log('[src/components/onboarding/Carousle.tsx] SplashCarousel'); // __component_log__
+  console.log('[src/components/onboarding/Carousel.tsx] SplashCarousel'); // __component_log__
   const [index, setIndex] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -153,7 +153,7 @@ const Slide = styled.div`
   align-items: center;
   padding: 16px 0;
 
-  background-color: var(--color-semantic-background-normal-normal, #f3f1ec); /* 필요하면 토큰으로 */
+  background-color: var(--color-semantic-background-normal-normal); /* 필요하면 토큰으로 */
 
   img {
     max-width: 70%;
@@ -178,6 +178,6 @@ const Dot = styled.button<{ $active: boolean }>`
   padding: 0;
   cursor: pointer;
   background-color: ${({ $active }) =>
-    $active ? '#222' : 'rgba(0,0,0,0.25)'};
+    $active ? 'var(--color-semantic-label-normal)' : 'rgba(0,0,0,0.25)'};
   opacity: ${({ $active }) => ($active ? 1 : 0.5)};
 `;

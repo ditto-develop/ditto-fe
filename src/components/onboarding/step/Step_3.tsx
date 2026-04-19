@@ -1,7 +1,7 @@
 import {
   useToast
 } from "@/context/ToastContext";
-import { ControlButtonVariant, FormData, OnChange } from "@/types/type";
+import type { ControlButtonVariant, FormData, OnChange } from "@/types/type";
 import React, {
   forwardRef,
   useEffect,
@@ -14,9 +14,10 @@ import {
   Caption1,
   Label1Normal
 } from "@/components/common/Text";
+import type {
+  TextAreaWithActionsRef} from "@/components/input/TextArea";
 import {
-  TextAreaWithActions,
-  TextAreaWithActionsRef,
+  TextAreaWithActions
 } from "@/components/input/TextArea";
 import {
   IntroContainer,
@@ -189,7 +190,7 @@ export const QuestionProgressCard: React.FC<QuestionProgressCardProps> = ({
 }) => {
     const clampedCurrent = Math.min(Math.max(current, 0), total);
     const percent = total > 0 ? (clampedCurrent / total) * 100 : 0;
-  
+
     return (
       <CardWrapper>
         <HeaderRow>
@@ -197,11 +198,11 @@ export const QuestionProgressCard: React.FC<QuestionProgressCardProps> = ({
             {clampedCurrent}/{total} 질문 완료
           </Label1Normal>
         </HeaderRow>
-  
+
         <ProgressTrack>
           <ProgressFill style={{ width: `${percent}%` }} />
         </ProgressTrack>
-  
+
         <HelperText>
           <Caption1>{helperText}</Caption1>
         </HelperText>
@@ -210,7 +211,7 @@ export const QuestionProgressCard: React.FC<QuestionProgressCardProps> = ({
 };
 
 const CardWrapper = styled.div`
-  background-color: var(--Background-Normal-Alternative, #DDD8D3);
+  background-color: var(--color-semantic-background-normal-alternative);
   border-radius: 12px;
   display: flex;
   width: 361px;
@@ -223,15 +224,15 @@ const HeaderRow = styled.div` margin: 0; `;
 const ProgressTrack = styled.div`
   width: 100%;
   height: 2px;
-  background-color: #d3cec7; 
+  background-color: var(--color-semantic-background-normal-alternative);
   border-radius: 999px;
   overflow: hidden;
 `;
 const ProgressFill = styled.div`
   height: 100%;
-  background-color: #26211c; 
+  background-color: var(--color-semantic-inverse-background);
   transition: width 0.2s ease;
 `;
 const HelperText = styled.div`
-  p { margin: 0; font-size: 12px; color: #7a736b; }
+  p { margin: 0; font-size: var(--typography-caption-1-font-size); color: var(--color-semantic-label-alternative); }
 `;

@@ -16,19 +16,19 @@ const sizeStyles = {
     large: css`
     height: 48px;
     padding: 0 20px;
-    font-size: 16px;
+    font-size: var(--typography-body-1-normal-font-size);
     border-radius: 12px;
   `,
     medium: css`
     height: 40px;
     padding: 0 16px;
-    font-size: 14px;
+    font-size: var(--typography-label-1-normal-font-size);
     border-radius: 10px;
   `,
     small: css`
     height: 32px;
     padding: 0 12px;
-    font-size: 13px;
+    font-size: var(--typography-label-2-font-size);
     border-radius: 8px;
   `,
 };

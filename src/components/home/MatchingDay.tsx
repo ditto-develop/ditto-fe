@@ -11,8 +11,9 @@ import {
   Label1Normal,
   Label2,
 } from "@/components/common/Text";
-import Card, { AlertStatus, CardContainer, DecoImg } from "@/components/display/Card";
-import { MatchCandidateDto } from "@/features/matching/api/matchingApi";
+import type { AlertStatus } from "@/components/display/Card";
+import { Card, CardContainer, DecoImg } from "@/components/display/Card";
+import type { MatchCandidateDto } from "@/features/matching/api/matchingApi";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import { toLocationLabel } from "@/shared/lib/profileLabels";
 import type { ChatRoomItemDto } from "@/lib/api/models/ChatRoomItemDto";
@@ -26,9 +27,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/context/ToastContext";
 import styled from "styled-components";
-import BottomSheet from "../display/BottomSheet";
-import GroupMatchingResultModal from "./GroupMatchingResultModal";
-import ProfileDetailModal from "./ProfileDetailModal";
+import { AnimatePresence, motion } from "framer-motion";
+import { BottomSheet } from "@/components/display/BottomSheet";
+import { GroupMatchingResultModal } from "@/components/home/GroupMatchingResultModal";
+import { ProfileDetailModal, type ProfileDetailProfile } from "@/components/home/ProfileDetailModal";
 
 //- Styled Components
 //================================================================================================
@@ -40,6 +42,21 @@ export const ViewCardContainer = styled.div`
   gap: 8px;
   align-self: stretch;
   flex: 1 1;
+`;
+
+const CenteredTextBlock = styled.div`
+  text-align: center;
+`;
+
+const ColumnViewCardContainer = styled(ViewCardContainer)`
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const AcceptedViewCardContainer = styled(ViewCardContainer)<{ $clickable: boolean }>`
+  flex-direction: column;
+  gap: 8px;
+  cursor: ${({ $clickable }) => ($clickable ? "pointer" : "default")};
 `;
 
 export const CardDivContainer = styled.div`
@@ -138,6 +155,31 @@ export const ChatRightContainer = styled.div`
   gap: 10px;
 `;
 
+const RelativeProfileSlot = styled.div`
+  position: relative;
+  flex-shrink: 0;
+`;
+
+const ChatInfoColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+`;
+
+const ChatHeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const ChatGroupHeaderRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+`;
+
 export const ChatContainer = styled.div`
   display: flex;
   padding: 8px;
@@ -145,8 +187,33 @@ export const ChatContainer = styled.div`
   align-items: center;
   gap: 10px;
   align-self: stretch;
+  min-height: 38px;
+  overflow: hidden;
   border-radius: 0 12px 12px 12px;
   background: var(--color-component-fill-strong);
+`;
+
+const ChatPreviewViewport = styled.div`
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  min-height: 22px;
+  max-height: 36px;
+  overflow: hidden;
+`;
+
+const ChatPreviewText = styled(motion.div)`
+  width: 100%;
+`;
+
+const ChatPreviewLabel = styled(Label2)`
+  display: -webkit-box;
+  max-height: 36px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  word-break: break-word;
 `;
 
 export const NotificationBadge = styled.div`
@@ -167,10 +234,24 @@ export const TimerBox = styled.div`
   display: flex;
   align-items: center;
   gap: 4px;
-  border: 1.5px solid #c47938; /* 오렌지 브라운 톤 */
+  border: 1.5px solid var(--color-semantic-accent-foreground-orange); /* 오렌지 브라운 톤 */
   border-radius: 8px; /* 둥근 사각형 */
   width: 79px;
   height: 24px;
+`;
+
+const TimerText = styled(Body1Bold)`
+  font-size: var(--typography-caption-1-font-size);
+  padding-left: 9px;
+`;
+
+const TimerIcon = styled.img`
+  width: 14px;
+  height: 14px;
+`;
+
+const TimerIconWithPadding = styled(TimerIcon)`
+  padding-right: 2px;
 `;
 
 // 피그마 1203:10081 — 아바타 콜라주 컨테이너 (150×150, 절대좌표 배치)
@@ -190,7 +271,12 @@ const CollageSlot = styled.div<{ $size: number; $left: number; $top: number }>`
   border-radius: 50%;
   overflow: hidden;
   border: 1.5px solid var(--color-semantic-background-normal-normal);
-  background-color: var(--color-semantic-background-normal-alternative, #DDD8D3);
+  background-color: var(--color-semantic-background-normal-alternative);
+`;
+
+const FullSizeProfileImg = styled(ProfileImg)`
+  width: 100%;
+  height: 100%;
 `;
 
 
@@ -233,6 +319,11 @@ export const TopImgContainer = styled.div`
   grid-template-columns: repeat(2, minmax(0, 1fr));
 `;
 
+const SmallProfileImg = styled(ProfileImg)`
+  width: 40px;
+  height: 40px;
+`;
+
 export const Plusmember = styled.div`
   display: flex;
   width: 40px;
@@ -246,7 +337,7 @@ export const Plusmember = styled.div`
   grid-column: 2 / span 1;
   border-radius: var(--Radius-radi-8, 20px);
   opacity: var(--Opacity-35, 0.35);
-  background: var(--Primary-Normal, #1a1815);
+  background: var(--color-semantic-primary-normal);
   backdrop-filter: blur(10px);
 `;
 
@@ -289,6 +380,47 @@ const LabelContainer = styled.div`
   flex: 1 0 0;
 `;
 
+const ProfileNameRow = styled.div`
+  display: flex;
+  gap: 12px;
+`;
+
+const ProfileName = styled(Headline2)`
+  padding-top: 2px;
+`;
+
+const ChevronIcon = styled.img`
+  width: 24px;
+  height: 24px;
+  opacity: 0.3;
+  flex-shrink: 0;
+`;
+
+const GroupTextColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+`;
+
+const TimeLabelRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const TimeIcon = styled.img`
+  width: 16px;
+  height: 16px;
+`;
+
+const AcceptedProfileRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+`;
+
 // ✅ Local Styled Components for BottomSheet Profile
 const BSBadgeRowContainer = styled.div`
   display: flex;
@@ -311,7 +443,7 @@ const BSContentBadge = styled.div<{ $status: AlertStatus }>`
       case 'cautionary':
         return 'rgba(235, 90, 60, 0.08)'; // var(--color-semantic-status-cautionary)
       case 'navy':
-        return 'rgba(from var(--color-semantic-accent-foreground-Navy) r g b / 0.08)';
+        return 'rgb(from var(--color-semantic-accent-foreground-Navy) r g b / 0.08)';
       case 'destructive':
       default:
         return 'rgba(179, 53, 40, 0.08)'; // var(--color-semantic-status-negative)
@@ -327,7 +459,7 @@ const ProfileCardWrapper = styled.div`
   display: flex;
   align-items: center;
   gap: 16px;
-  background-color: var(--color-semantic-fill-normal, rgba(108, 101, 95, 0.08));
+  background-color: var(--color-semantic-fill-normal);
   box-sizing: border-box;
 `;
 
@@ -336,6 +468,10 @@ const ListItemContainer = styled.div`
   flex-direction: column;
   gap: 8px; /* Gap between BadgeRow and ProfileCard */
   width: 100%;
+`;
+
+const SelectableListItemContainer = styled(ListItemContainer)`
+  cursor: pointer;
 `;
 
 //- Types
@@ -441,14 +577,14 @@ const FailMatchCard = ({ isChatTime }: { isChatTime: boolean }) => (
         {isChatTime ? "진행 중인 대화가 없어요." : "진행 중인 매칭이 없어요."}
       </Headline1>
       <RandomImg src="/assets/illustration/empty-state.png" loading="lazy" />
-      <div style={{ textAlign: "center" }}>
+      <CenteredTextBlock>
         <Body2Reading $color="var(--color-semantic-label-alternative)">
           {isChatTime ? "지금은 대화 기간이에요!" : "지금은 매칭 기간이에요!"}
         </Body2Reading>
         <Body2Reading $color="var(--color-semantic-label-alternative)">
           다음주에 다시 인연을 만들어 보세요.
         </Body2Reading>
-      </div>
+      </CenteredTextBlock>
     </FailMatch>
   </CardContainer>
 );
@@ -472,19 +608,19 @@ const MatchingCandidateCard = ({ timeLeft, candidates }: { timeLeft: string; can
         <AvatarCollage>
           {/* 피그마 좌표: bottom-right 72px */}
           <CollageSlot $size={72} $left={73} $top={69}>
-            <ProfileImg imageUrl={getAvatarUrl(slotGender(0), 0)} style={{ width: "100%", height: "100%" }} />
+            <FullSizeProfileImg imageUrl={getAvatarUrl(slotGender(0), 0)} />
           </CollageSlot>
           {/* top-right 48px */}
           <CollageSlot $size={48} $left={84} $top={10}>
-            <ProfileImg imageUrl={getAvatarUrl(slotGender(1), 1)} style={{ width: "100%", height: "100%" }} />
+            <FullSizeProfileImg imageUrl={getAvatarUrl(slotGender(1), 1)} />
           </CollageSlot>
           {/* top-left 60px */}
           <CollageSlot $size={60} $left={6} $top={7}>
-            <ProfileImg imageUrl={getAvatarUrl(slotGender(2), 2)} style={{ width: "100%", height: "100%" }} />
+            <FullSizeProfileImg imageUrl={getAvatarUrl(slotGender(2), 2)} />
           </CollageSlot>
           {/* bottom-left 46px */}
           <CollageSlot $size={46} $left={11} $top={85}>
-            <ProfileImg imageUrl={getAvatarUrl(slotGender(3), 3)} style={{ width: "100%", height: "100%" }} />
+            <FullSizeProfileImg imageUrl={getAvatarUrl(slotGender(3), 3)} />
           </CollageSlot>
         </AvatarCollage>
       </FCardContainer>
@@ -506,14 +642,15 @@ const ChattingView = ({
   chatRoom?: ChatRoomItemDto;
 }) => {
   const timeMondayLeft = useTargetDayCountdown(1);
-  const hasChat = !!chatRoom?.lastMessage;
+  const hasChat = !!chatRoom?.lastMessageContent;
+  const chatPreviewText = hasChat ? chatRoom!.lastMessageContent! : "대화를 시작해보세요";
 
   if (cardType === "one") {
     const c = acceptedCandidate ?? candidates[0];
     return (
       <ViewCardContainer>
         <ChatMainContainer>
-          <div style={{ position: "relative", flexShrink: 0 }}>
+          <RelativeProfileSlot>
             <ProfileWrapper>
               <ProfileImg imageUrl={getAvatarUrl(c?.gender ?? 'MALE')} />
             </ProfileWrapper>
@@ -524,25 +661,23 @@ const ChattingView = ({
                 </Caption2>
               </NotificationBadge>
             )}
-          </div>
+          </RelativeProfileSlot>
           <ChatRightContainer>
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "100%" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <ChatInfoColumn>
+              <ChatHeaderRow>
                 <Heading2Bold>{c?.nickname ?? ""}</Heading2Bold>
                 <TimerBox>
-                  <Body1Bold
-                    style={{ fontSize: "12px", paddingLeft: "9px" }}
+                  <TimerText
                     $color="var(--color-semantic-status-cautionary)"
                   >
                     {timeMondayLeft}
-                  </Body1Bold>
-                  <img
+                  </TimerText>
+                  <TimerIcon
                     src="/icons/status/clock-yellow.svg"
                     alt="clock"
-                    style={{ width: "14px", height: "14px" }}
                   />
                 </TimerBox>
-              </div>
+              </ChatHeaderRow>
               <Label2 $color="var(--color-semantic-label-alternative)">
                 {c ? `${formatAgeRange(c.age)} · ${formatGender(c.gender)}${c.location ? ` · ${toLocationLabel(c.location)}` : ""}` : ""}
               </Label2>
@@ -551,11 +686,9 @@ const ChattingView = ({
                   {c.introduction}
                 </Label2>
               )}
-            </div>
+            </ChatInfoColumn>
             <ChatContainer>
-              <Label2 $color="var(--color-semantic-label-alternative)">
-                {hasChat ? chatRoom!.lastMessage!.content : "대화를 시작해보세요"}
-              </Label2>
+              <AnimatedChatPreview text={chatPreviewText} />
             </ChatContainer>
           </ChatRightContainer>
         </ChatMainContainer>
@@ -574,9 +707,8 @@ const ChattingView = ({
           <ProfileWrapper>
             <TopImgContainer onClick={openProfileSelector}>
               {shown.map((c, i) => (
-                <ProfileImg
+                <SmallProfileImg
                   key={c.userId}
-                  style={{ width: "40px", height: "40px" }}
                   imageUrl={getAvatarUrl(c.gender, i)}
                 />
               ))}
@@ -590,31 +722,27 @@ const ChattingView = ({
             </TopImgContainer>
           </ProfileWrapper>
           <ChatRightContainer>
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", width: "100%" }}>
+            <ChatGroupHeaderRow>
               <div>
                 <Heading2Bold>같은 취미, 취향 그룹</Heading2Bold>
                 <Label2 $color="var(--color-semantic-label-alternative)">
                   {firstName}님 외 {othersCount}명
                 </Label2>
               </div>
-              <TimerBox>
-                <Body1Bold
-                  style={{ fontSize: "12px", paddingLeft: "9px" }}
+                <TimerBox>
+                <TimerText
                   $color="var(--color-semantic-status-cautionary)"
                 >
                   {timeMondayLeft}
-                </Body1Bold>
-                <img
+                </TimerText>
+                <TimerIconWithPadding
                   src="/icons/status/clock-yellow.svg"
                   alt="clock"
-                  style={{ width: "14px", height: "14px", paddingRight: "2px" }}
                 />
               </TimerBox>
-            </div>
+            </ChatGroupHeaderRow>
             <ChatContainer>
-              <Label2 $color="var(--color-semantic-label-alternative)">
-                {hasChat ? chatRoom!.lastMessage!.content : "대화를 시작해보세요"}
-              </Label2>
+              <AnimatedChatPreview text={chatPreviewText} />
             </ChatContainer>
           </ChatRightContainer>
         </ChatMainContainer>
@@ -624,6 +752,24 @@ const ChattingView = ({
 
   return null;
 };
+
+const AnimatedChatPreview = ({ text }: { text: string }) => (
+  <ChatPreviewViewport>
+    <AnimatePresence initial={false} mode="popLayout">
+      <ChatPreviewText
+        key={text}
+        initial={{ y: 18, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: -18, opacity: 0 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
+      >
+        <ChatPreviewLabel $color="var(--color-semantic-label-alternative)">
+          {text}
+        </ChatPreviewLabel>
+      </ChatPreviewText>
+    </AnimatePresence>
+  </ChatPreviewViewport>
+);
 
 const MatchingButton = ({
   cardType,
@@ -684,14 +830,14 @@ const BottomSheetProfile = ({ profile }: { profile: Profile }) => {
           <ProfileImg imageUrl={profile.avatarUrl} />
         </ProfileWrapper>
         <LabelContainer>
-          <div style={{ display: "flex", gap: "12px" }}>
-            <Headline2 style={{ paddingTop: "2px" }}>{profile.name}</Headline2>
+          <ProfileNameRow>
+            <ProfileName>{profile.name}</ProfileName>
             {profile.isMe && (
               <MeLabel>
                 <Caption1 $color="white">나</Caption1>
               </MeLabel>
             )}
-          </div>
+          </ProfileNameRow>
           <Label2 $color="var(--color-semantic-label-alternative)">
             {formatAgeRange(profile.age)} · {profile.gender} · {profile.location}
           </Label2>
@@ -700,7 +846,7 @@ const BottomSheetProfile = ({ profile }: { profile: Profile }) => {
           </Label2>
         </LabelContainer>
         {/* Chevron Icon */}
-        <img src="/icons/navigation/chevron-right.svg" alt="detail" style={{ width: 24, height: 24, opacity: 0.3 }} />
+        <ChevronIcon src="/icons/navigation/chevron-right.svg" alt="detail" />
       </ProfileCardWrapper>
     </ListItemContainer>
   );
@@ -714,14 +860,13 @@ const GroupJoinedCard = ({ candidates, onCardClick }: { candidates: MatchCandida
   const othersCount = candidates.length - 1;
 
   return (
-    <ViewCardContainer style={{ flexDirection: "column", gap: "8px" }}>
+    <ColumnViewCardContainer>
       <GroupJoinedInner onClick={onCardClick}>
         <ProfileWrapper>
           <TopImgContainer>
             {shown.map((c, i) => (
-              <ProfileImg
+              <SmallProfileImg
                 key={c.userId}
-                style={{ width: "40px", height: "40px" }}
                 imageUrl={getAvatarUrl(c.gender, i)}
               />
             ))}
@@ -732,22 +877,22 @@ const GroupJoinedCard = ({ candidates, onCardClick }: { candidates: MatchCandida
             )}
           </TopImgContainer>
         </ProfileWrapper>
-        <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1 }}>
+        <GroupTextColumn>
           <Headline2>같은 취미, 취향 그룹</Headline2>
           <Label2 $color="var(--color-semantic-label-alternative)">
             {firstName}님 외 {othersCount}명
           </Label2>
-        </div>
-        <img src="/icons/navigation/chevron-right.svg" alt="" width={24} height={24} style={{ opacity: 0.3, flexShrink: 0 }} />
+        </GroupTextColumn>
+        <ChevronIcon src="/icons/navigation/chevron-right.svg" alt="" />
       </GroupJoinedInner>
       <MatchingBottomContainer>
-        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-          <img src="/icons/status/time.svg" alt="" style={{ width: "16px", height: "16px" }} />
+        <TimeLabelRow>
+          <TimeIcon src="/icons/status/time.svg" alt="" />
           <Caption2 $color="var(--color-semantic-label-alternative)">남은 시간</Caption2>
-        </div>
+        </TimeLabelRow>
         <Body1Bold $weight="bold">{timeLeft}</Body1Bold>
       </MatchingBottomContainer>
-    </ViewCardContainer>
+    </ColumnViewCardContainer>
   );
 };
 
@@ -757,8 +902,8 @@ const AcceptedMatchCard = ({ candidate, onClick }: { candidate: MatchCandidateDt
   const meta = `${formatAgeRange(candidate.age)} · ${formatGender(candidate.gender)}${candidate.location ? ` · ${toLocationLabel(candidate.location)}` : ""}`;
 
   return (
-    <ViewCardContainer style={{ flexDirection: "column", gap: "8px", cursor: onClick ? "pointer" : "default" }} onClick={onClick}>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: "16px", width: "100%" }}>
+    <AcceptedViewCardContainer $clickable={!!onClick} onClick={onClick}>
+      <AcceptedProfileRow>
         <ProfileWrapper>
           <ProfileImg imageUrl={avatarUrl} />
         </ProfileWrapper>
@@ -769,21 +914,21 @@ const AcceptedMatchCard = ({ candidate, onClick }: { candidate: MatchCandidateDt
             <Label2 $color="var(--color-semantic-label-alternative)">{candidate.introduction}</Label2>
           )}
         </LabelContainer>
-      </div>
+      </AcceptedProfileRow>
       <MatchingBottomContainer>
-        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-          <img src="/icons/status/time.svg" alt="" style={{ width: "16px", height: "16px" }} />
+        <TimeLabelRow>
+          <TimeIcon src="/icons/status/time.svg" alt="" />
           <Caption2 $color="var(--color-semantic-label-alternative)">남은 시간</Caption2>
-        </div>
+        </TimeLabelRow>
         <Body1Bold $weight="bold">{timeLeft}</Body1Bold>
       </MatchingBottomContainer>
-    </ViewCardContainer>
+    </AcceptedViewCardContainer>
   );
 };
 
 //- Main Component
 //================================================================================================
-export default function MatchingDay({
+export function MatchingDay({
   matchType,
   buttonState,
   day,
@@ -819,7 +964,7 @@ export default function MatchingDay({
   const [profileSelect, setProfileSelect] = useState(false);
   const [groupModalOpen, setGroupModalOpen] = useState(false);
   const [groupDeclined, setGroupDeclined] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState<any>(null);
+  const [selectedProfile, setSelectedProfile] = useState<ProfileDetailProfile | null>(null);
 
   const { showToast } = useToast();
   const notifKey = quizSetId ? `ditto_match_accepted_notif_${quizSetId}` : null;
@@ -875,7 +1020,6 @@ export default function MatchingDay({
             detail={
               <SelectImgDiv>
                 {candidates.map((c, i) => {
-                  const badge = getMatchBadgeInfo(c.scoreBreakdown?.matchedQuestions ?? 0);
                   const detail = {
                     name: c.nickname,
                     age: c.age,
@@ -886,13 +1030,12 @@ export default function MatchingDay({
                     matchCount: c.scoreBreakdown?.matchedQuestions,
                   };
                   return (
-                    <ListItemContainer
+                    <SelectableListItemContainer
                       key={c.userId}
                       onClick={() => { setProfileSelect(false); setSelectedProfile(detail); }}
-                      style={{ cursor: "pointer" }}
                     >
                       <BottomSheetProfile profile={detail} />
-                    </ListItemContainer>
+                    </SelectableListItemContainer>
                   );
                 })}
               </SelectImgDiv>
@@ -1032,7 +1175,7 @@ export default function MatchingDay({
             cardType={matchType}
             buttonState={buttonState}
             isChatTime={isChatTime}
-            hasChat={!!chatRoom?.lastMessage}
+            hasChat={!!chatRoom?.lastMessageContent}
             onClick={!isChatTime
               ? matchType === "many"
                 ? () => setGroupModalOpen(true)

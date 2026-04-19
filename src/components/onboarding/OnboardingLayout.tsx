@@ -1,7 +1,7 @@
 import { ActionContainer, BodyContainer, HeadContainer, HeaderTop, PageContainer } from "@/components/onboarding/OnboardingContainer";
 import { Label1Normal, Title3 } from "@/components/common/Text";
-import Nav from "../display/Nav";
-import { ActionButton, ActionSheet } from "../input/Action";
+import { Nav } from "@/components/display/Nav";
+import { ActionButton, ActionSheet } from "@/components/input/Action";
 
 interface OnboardingLayoutProps {
   step: number;
@@ -22,7 +22,7 @@ interface OnboardingLayoutProps {
   children: React.ReactNode;
 }
 
-export default function OnboardingLayout({
+export function OnboardingLayout({
   step,
   totalSteps,
   title,
@@ -38,7 +38,7 @@ export default function OnboardingLayout({
   onSubAction, // ✅ 구조 분해 할당
   children,
 }: OnboardingLayoutProps) {
-  console.log('[src/components/onboarding/Onboarding_layout.tsx] OnboardingLayout'); // __component_log__
+  console.log('[src/components/onboarding/OnboardingLayout.tsx] OnboardingLayout'); // __component_log__
   return (
     <>
     <PageContainer>

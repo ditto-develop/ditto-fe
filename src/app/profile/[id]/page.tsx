@@ -1,4 +1,4 @@
-import ProfilePageClient from "./ProfilePageClient";
+import { ProfilePageClient } from "./ProfilePageClient";
 
 export function generateStaticParams() {
   return [{ id: "placeholder" }];

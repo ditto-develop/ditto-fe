@@ -48,13 +48,13 @@ export default function AdminLoginPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#f5f5f5',
+        background: 'var(--color-semantic-background-elevated-alternative)',
         fontFamily: 'sans-serif',
       }}
     >
       <div
         style={{
-          background: '#fff',
+          background: 'var(--color-semantic-static-white)',
           borderRadius: 16,
           padding: '40px 36px',
           boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
@@ -63,12 +63,12 @@ export default function AdminLoginPage() {
       >
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{ fontSize: 28, marginBottom: 8 }}>⚙️</div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1a1a2e' }}>관리자 로그인</h1>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--color-semantic-label-strong)' }}>관리자 로그인</h1>
         </div>
 
         <form onSubmit={handleLogin}>
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--color-semantic-label-normal)', marginBottom: 6 }}>
               아이디
             </label>
             <input
@@ -81,7 +81,7 @@ export default function AdminLoginPage() {
                 width: '100%',
                 padding: '10px 12px',
                 borderRadius: 8,
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--color-semantic-line-solid-neutral)',
                 fontSize: 14,
                 boxSizing: 'border-box',
               }}
@@ -89,7 +89,7 @@ export default function AdminLoginPage() {
           </div>
 
           <div style={{ marginBottom: 24 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--color-semantic-label-normal)', marginBottom: 6 }}>
               비밀번호
             </label>
             <input
@@ -102,7 +102,7 @@ export default function AdminLoginPage() {
                 width: '100%',
                 padding: '10px 12px',
                 borderRadius: 8,
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--color-semantic-line-solid-neutral)',
                 fontSize: 14,
                 boxSizing: 'border-box',
               }}
@@ -112,8 +112,8 @@ export default function AdminLoginPage() {
           {error && (
             <div
               style={{
-                background: '#fee2e2',
-                color: '#dc2626',
+                background: 'var(--color-semantic-fill-alternative)',
+                color: 'var(--color-semantic-status-negative)',
                 padding: '10px 14px',
                 borderRadius: 8,
                 fontSize: 13,
@@ -130,8 +130,8 @@ export default function AdminLoginPage() {
             style={{
               width: '100%',
               padding: '12px',
-              background: loading ? '#a5b4fc' : '#7c6bff',
-              color: '#fff',
+              background: loading ? 'var(--color-semantic-accent-background-violet)' : 'var(--color-semantic-accent-background-violet)',
+              color: 'var(--color-semantic-static-white)',
               border: 'none',
               borderRadius: 10,
               fontWeight: 700,

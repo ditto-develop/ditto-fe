@@ -3,62 +3,9 @@
  * BE 엔드포인트와 1:1 대응
  */
 
-const getApiBase = () => process.env.NEXT_PUBLIC_API_BASE || "https://ditto.pics";
+import { apiFetch } from "@/shared/lib/api/client";
 
-function getToken(): string {
-    return typeof window !== "undefined" ? localStorage.getItem("accessToken") || "" : "";
-}
-
-async function tryRefreshToken(): Promise<string | null> {
-    try {
-        const res = await fetch(`${getApiBase()}/api/users/auth/refresh`, {
-            method: "POST",
-            credentials: "include",
-        });
-        if (!res.ok) return null;
-        const data = await res.json();
-        const newToken = data?.data?.accessToken;
-        if (newToken && typeof window !== "undefined") {
-            localStorage.setItem("accessToken", newToken);
-            return newToken;
-        }
-        return null;
-    } catch {
-        return null;
-    }
-}
-
-// BE는 { success, data?, error? } 래핑 구조로 응답
-async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-    const makeRequest = (token: string) =>
-        fetch(`${getApiBase()}/api${path}`, {
-            ...options,
-            headers: {
-                "Content-Type": "application/json",
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                ...(options.headers as Record<string, string>),
-            },
-        });
-
-    let res = await makeRequest(getToken());
-
-    // 401이면 토큰 갱신 후 1회 재시도
-    if (res.status === 401) {
-        const newToken = await tryRefreshToken();
-        if (newToken) {
-            res = await makeRequest(newToken);
-        }
-    }
-
-    if (!res.ok) {
-        throw new Error(`API ${res.status}: ${path}`);
-    }
-    const json = (await res.json()) as { success: boolean; data?: T; error?: string };
-    if (!json.success) {
-        throw new Error(json.error || `API error: ${path}`);
-    }
-    return json.data as T;
-}
+export { apiFetch, tryRefreshToken } from "@/shared/lib/api/client";
 
 // --- BE DTO types ---
 

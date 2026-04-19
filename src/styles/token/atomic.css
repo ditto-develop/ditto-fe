@@ -78,7 +78,7 @@
   --color-atomic-green-10: #00240C;
 
   --color-atomic-olive-99: #EEF4ED;
-  --color-atomic-olive-95: #D4E5DD; 
+  --color-atomic-olive-95: #D4E5D5;
   --color-atomic-olive-90: #ADC9AD;
   --color-atomic-olive-80: #88AC88;
   --color-atomic-olive-70: #6E946E;
@@ -103,16 +103,16 @@
 
   --color-atomic-redOrange-99: #FFFAF7;
   --color-atomic-redOrange-95: #FEEEE5;
-  --color-atomic-redOrange-90: #FEDBC6;
-  --color-atomic-redOrange-80: #FFC09C;
-  --color-atomic-redOrange-70: #FF9C63;
+  --color-atomic-redOrange-90: #FED9C4;
+  --color-atomic-redOrange-80: #FFBD96;
+  --color-atomic-redOrange-70: #FF9B61;
   --color-atomic-redOrange-60: #FF7B2E;
   --color-atomic-redOrange-50: #FF5E00;
   --color-atomic-redOrange-48: #F55A00;
-  --color-atomic-redOrange-40: #CC4B00;
-  --color-atomic-redOrange-30: #943600;
-  --color-atomic-redOrange-20: #5C22000;
-  --color-atomic-redOrange-10: #2E1100;
+  --color-atomic-redOrange-40: #C94A00;
+  --color-atomic-redOrange-30: #913500;
+  --color-atomic-redOrange-20: #592100;
+  --color-atomic-redOrange-10: #290F00;
 
   --color-atomic-lime-99: #F8FFF2;
   --color-atomic-lime-95: #E6FFD4;
@@ -199,6 +199,20 @@
   --color-atomic-vintagePink-20: #4C353A;
   --color-atomic-vintagePink-10: #3A292E;
 
+  --color-atomic-pink-99: var(--color-atomic-vintagePink-99);
+  --color-atomic-pink-90: var(--color-atomic-vintagePink-90);
+  --color-atomic-pink-80: var(--color-atomic-vintagePink-80);
+  --color-atomic-pink-70: var(--color-atomic-vintagePink-70);
+  --color-atomic-pink-60: var(--color-atomic-vintagePink-60);
+  --color-atomic-pink-50: var(--color-atomic-vintagePink-50);
+  --color-atomic-pink-46: var(--color-atomic-vintagePink-46);
+  --color-atomic-pink-40: var(--color-atomic-vintagePink-40);
+  --color-atomic-pink-30: var(--color-atomic-vintagePink-30);
+  --color-atomic-pink-20: var(--color-atomic-vintagePink-20);
+  --color-atomic-pink-10: var(--color-atomic-vintagePink-10);
+
+  --color-atomic-brickOrange-39: #A15B17;
+
   --color-atomic-opacity-0: 0;
   --color-atomic-opacity-5: 0.05;
   --color-atomic-opacity-8: 0.08;
@@ -214,4 +228,176 @@
   --color-atomic-opacity-88: 0.88;
   --color-atomic-opacity-97: 0.97;
   --color-atomic-opacity-100: 1;
+
+  /* Spacing */
+  --space-0: 0px;
+  --space-\[1px\]: 1px;
+  --space-\[2px\]: 2px;
+  --space-1: 4px;
+  --space-\[6px\]: 6px;
+  --space-2: 8px;
+  --space-\[10px\]: 10px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-9: 36px;
+  --space-10: 40px;
+  --space-11: 44px;
+  --space-12: 48px;
+  --space-14: 56px;
+  --space-16: 64px;
+  --space-18: 72px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-28: 112px;
+  --space-30: 120px;
+  --space-32: 128px;
+  --space-36: 144px;
+  --space-40: 160px;
+  --space-48: 192px;
+  --space-52: 208px;
+  --space-56: 224px;
+  --space-64: 256px;
+  --space-72: 288px;
+  --space-80: 320px;
+  --space-max: 420px;
+
+  --spacing-0: var(--space-0);
+  --spacing-1px: var(--space-\[1px\]);
+  --spacing-2px: var(--space-\[2px\]);
+  --spacing-1: var(--space-1);
+  --spacing-6px: var(--space-\[6px\]);
+  --spacing-2: var(--space-2);
+  --spacing-10px: var(--space-\[10px\]);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-5: var(--space-5);
+  --spacing-6: var(--space-6);
+  --spacing-7: var(--space-7);
+  --spacing-8: var(--space-8);
+  --spacing-9: var(--space-9);
+  --spacing-10: var(--space-10);
+  --spacing-11: var(--space-11);
+  --spacing-12: var(--space-12);
+  --spacing-14: var(--space-14);
+  --spacing-16: var(--space-16);
+  --spacing-18: var(--space-18);
+  --spacing-20: var(--space-20);
+  --spacing-24: var(--space-24);
+  --spacing-28: var(--space-28);
+  --spacing-30: var(--space-30);
+  --spacing-32: var(--space-32);
+  --spacing-36: var(--space-36);
+  --spacing-40: var(--space-40);
+  --spacing-48: var(--space-48);
+  --spacing-52: var(--space-52);
+  --spacing-56: var(--space-56);
+  --spacing-64: var(--space-64);
+  --spacing-72: var(--space-72);
+  --spacing-80: var(--space-80);
+  --spacing-max: var(--space-max);
+
+  /* Typography */
+  --typography-font-family: var(--font-pretendard-jp), "Pretendard JP", sans-serif;
+
+  --typography-display-1-font-size: 56px;
+  --typography-display-1-font-weight: 700;
+  --typography-display-1-line-height: 72px;
+  --typography-display-1-letter-spacing: -0.0319em;
+
+  --typography-display-2-font-size: 40px;
+  --typography-display-2-font-weight: 700;
+  --typography-display-2-line-height: 52px;
+  --typography-display-2-letter-spacing: -0.0282em;
+
+  --typography-title-1-font-size: 36px;
+  --typography-title-1-font-weight: 700;
+  --typography-title-1-line-height: 48px;
+  --typography-title-1-letter-spacing: -0.027em;
+
+  --typography-title-2-font-size: 28px;
+  --typography-title-2-font-weight: 700;
+  --typography-title-2-line-height: 38px;
+  --typography-title-2-letter-spacing: -0.0236em;
+
+  --typography-title-3-font-size: 24px;
+  --typography-title-3-font-weight: 700;
+  --typography-title-3-line-height: 32px;
+  --typography-title-3-letter-spacing: -0.023em;
+
+  --typography-heading-1-font-size: 22px;
+  --typography-heading-1-font-weight: 600;
+  --typography-heading-1-line-height: 30px;
+  --typography-heading-1-letter-spacing: -0.0194em;
+
+  --typography-heading-2-font-size: 20px;
+  --typography-heading-2-font-weight: 600;
+  --typography-heading-2-line-height: 28px;
+  --typography-heading-2-letter-spacing: -0.012em;
+
+  --typography-headline-1-font-size: 18px;
+  --typography-headline-1-font-weight: 600;
+  --typography-headline-1-line-height: 26px;
+  --typography-headline-1-letter-spacing: -0.002em;
+
+  --typography-headline-2-font-size: 17px;
+  --typography-headline-2-font-weight: 600;
+  --typography-headline-2-line-height: 24px;
+  --typography-headline-2-letter-spacing: 0em;
+
+  --typography-body-1-normal-font-size: 16px;
+  --typography-body-1-normal-font-weight: 400;
+  --typography-body-1-normal-line-height: 24px;
+  --typography-body-1-normal-letter-spacing: 0.0057em;
+
+  --typography-body-1-reading-font-size: 16px;
+  --typography-body-1-reading-font-weight: 400;
+  --typography-body-1-reading-line-height: 26px;
+  --typography-body-1-reading-letter-spacing: 0.0057em;
+
+  --typography-body-2-normal-font-size: 15px;
+  --typography-body-2-normal-font-weight: 400;
+  --typography-body-2-normal-line-height: 22px;
+  --typography-body-2-normal-letter-spacing: 0.0096em;
+
+  --typography-body-2-reading-font-size: 15px;
+  --typography-body-2-reading-font-weight: 400;
+  --typography-body-2-reading-line-height: 24px;
+  --typography-body-2-reading-letter-spacing: 0.0096em;
+
+  --typography-label-1-normal-font-size: 14px;
+  --typography-label-1-normal-font-weight: 600;
+  --typography-label-1-normal-line-height: 20px;
+  --typography-label-1-normal-letter-spacing: 0.0145em;
+
+  --typography-label-1-reading-font-size: 14px;
+  --typography-label-1-reading-font-weight: 600;
+  --typography-label-1-reading-line-height: 22px;
+  --typography-label-1-reading-letter-spacing: 0.0145em;
+
+  --typography-label-2-font-size: 13px;
+  --typography-label-2-font-weight: 400;
+  --typography-label-2-line-height: 18px;
+  --typography-label-2-letter-spacing: 0.0194em;
+
+  --typography-caption-1-font-size: 12px;
+  --typography-caption-1-font-weight: 400;
+  --typography-caption-1-line-height: 16px;
+  --typography-caption-1-letter-spacing: 0.0252em;
+
+  --typography-caption-2-font-size: 11px;
+  --typography-caption-2-font-weight: 400;
+  --typography-caption-2-line-height: 14px;
+  --typography-caption-2-letter-spacing: 0.0311em;
+
+  /* Backward-compatible aliases */
+  --typography-label-1-normal-bold-font-family: var(--typography-font-family);
+  --typography-label-1-normal-bold-font-size: var(--typography-label-1-normal-font-size);
+  --typography-label-1-normal-bold-font-style: normal;
+  --typography-label-1-normal-bold-font-weight: var(--typography-label-1-normal-font-weight);
+  --typography-label-1-normal-bold-line-height: var(--typography-label-1-normal-line-height);
+  --typography-label-1-normal-bold-letter-spacing: var(--typography-label-1-normal-letter-spacing);
 }

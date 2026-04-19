@@ -14,19 +14,23 @@ const Header = styled.div`
     align-items: flex-start;
 `;
 
+const AlarmIcon = styled.img`
+    padding-top: 4px;
+`;
 
-export default function MainHeader(){
+export function MainHeader(){
   console.log('[src/app/home/MainHeader.tsx] MainHeader'); // __component_log__
     return(
         <Header>
             <img 
                 height={32}
-                src='/logo/dittologo.svg'
+                src="/assets/logo/ditto.svg"
+                alt="Ditto"
             />
             
-            <img 
+            <AlarmIcon
                 src='/icons/navigation/alarm.svg'
-                style={{paddingTop: '4px'}}
+                alt="알림"
             />
         </Header>
     )

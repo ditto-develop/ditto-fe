@@ -1,7 +1,7 @@
 "use client";
 
 import styled from "styled-components";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 interface SectionHeaderProps {
     title: string;
@@ -13,7 +13,7 @@ interface SectionHeaderProps {
  * SectionHeader — Figma: Section Header/Section Header
  * 섹션 제목 + 선택적 부제목. height: 32px (Figma 기준).
  */
-export default function SectionHeader({ title, subtitle, className }: SectionHeaderProps) {
+export function SectionHeader({ title, subtitle, className }: SectionHeaderProps) {
   console.log('[src/shared/ui/SectionHeader/SectionHeader.tsx] SectionHeader'); // __component_log__
     return (
         <Container className={className}>
@@ -32,16 +32,16 @@ const Container = styled.div`
 
 const Title = styled.h2`
   margin: 0;
-  font-size: 22px;
+  font-size: var(--typography-heading-1-font-size);
   font-weight: 700;
   line-height: 1.3;
-  color: var(--color-semantic-label-strong, #1A1A1A);
+  color: var(--color-semantic-label-strong);
 `;
 
 const Subtitle = styled.p`
   margin: 0;
-  font-size: 14px;
+  font-size: var(--typography-label-1-normal-font-size);
   font-weight: 400;
   line-height: 1.4;
-  color: var(--color-semantic-label-alternative, rgba(60, 60, 60, 0.61));
+  color: var(--color-semantic-label-alternative);
 `;

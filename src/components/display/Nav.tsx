@@ -1,5 +1,5 @@
 import styled from "styled-components"
-import { Heading1Bold } from "../common/Text";
+import { Heading1Bold } from "@/components/common/Text";
 
 // TypeScript 사용 시 Interface 정의 (필요 없으시면 삭제 가능)
 interface NavProps {
@@ -8,7 +8,7 @@ interface NavProps {
   label?: string;      // 중앙 타이틀
 }
 
-export default function Nav({ prev, close, label }: NavProps) {
+export function Nav({ prev, close, label }: NavProps) {
   console.log('[src/components/display/Nav.tsx] Nav'); // __component_log__
   return (
     <NavContainer>
@@ -54,7 +54,7 @@ const NavContainer = styled.div`
   padding: 0 16px; // 좌우 패딩만 주고 높이는 고정하는 것이 배치에 유리합니다
   box-sizing: border-box;
 
-  background-color: var(--Background-Normal-Normal, #E9E6E2);
+  background-color: var(--color-semantic-background-normal-normal);
 `;
 
 // 클릭 가능한 영역 확보 및 정렬
@@ -77,9 +77,9 @@ const IconImg = styled.img`
 `;
 
 const NavLabel = styled.div`
-  font-size: 16px; // 디자인에 맞춰 조절
+  font-size: var(--typography-body-1-normal-font-size); // 디자인에 맞춰 조절
   font-weight: 700;
-  color: var(--color-semantic-label-strong, #1A1A1A); // 토큰 적용
+  color: var(--color-semantic-label-strong); // 토큰 적용
   text-align: center;
   flex: 1; // 양쪽 아이콘 사이의 남은 공간을 모두 차지
   

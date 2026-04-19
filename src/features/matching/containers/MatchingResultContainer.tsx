@@ -1,11 +1,11 @@
 "use client";
 
 import styled from "styled-components";
-import { TopNavigation } from "@/shared/ui/TopNavigation";
-import { SectionHeader } from "@/shared/ui/SectionHeader";
-import { ContentBadge } from "@/shared/ui/ContentBadge";
-import { Avatar } from "@/shared/ui/Avatar";
-import { SurfaceCard } from "@/shared/ui/SurfaceCard";
+import { TopNavigation } from "@/shared/ui";
+import { SectionHeader } from "@/shared/ui";
+import { ContentBadge } from "@/shared/ui";
+import { Avatar } from "@/shared/ui";
+import { SurfaceCard } from "@/shared/ui";
 import { getMatchBadgeInfo, type MatchProfile } from "@/features/matching";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import { useMatchCandidates } from "@/features/matching/hooks/useMatchCandidates";
@@ -46,7 +46,7 @@ function MatchProfileCard({ profile }: { profile: MatchProfile }) {
  * MatchingResultContainer — Figma: 3.1 매칭 결과 1:1
  * 실제 API 연결 + 피그마 UI
  */
-export default function MatchingResultContainer({
+export function MatchingResultContainer({
     onBack,
     onProfileClick,
 }: {
@@ -162,13 +162,13 @@ const MatchIcon = styled.span`
 `;
 
 const MatchLabelText = styled.span`
-  font-size: 14px;
+  font-size: var(--typography-label-1-normal-font-size);
   color: var(--color-semantic-accent-foreground-vintagePink);
 `;
 
 const HeaderDescription = styled.p`
   margin: 0;
-  font-size: 14px;
+  font-size: var(--typography-label-1-normal-font-size);
   line-height: 1.5;
   color: var(--color-semantic-label-alternative);
   white-space: pre-line;
@@ -195,7 +195,7 @@ const BadgeRow = styled.div`
 `;
 
 const MatchCount = styled.span`
-  font-size: 12px;
+  font-size: var(--typography-caption-1-font-size);
   color: var(--color-semantic-label-alternative);
 `;
 
@@ -226,18 +226,18 @@ const CardHeader = styled.div`
 `;
 
 const CardNickname = styled.span`
-  font-size: 17px;
+  font-size: var(--typography-headline-2-font-size);
   font-weight: 700;
   color: var(--color-semantic-label-normal);
 `;
 
 const CardMeta = styled.span`
-  font-size: 13px;
+  font-size: var(--typography-label-2-font-size);
   color: var(--color-semantic-label-alternative);
 `;
 
 const CardBio = styled.span`
-  font-size: 13px;
+  font-size: var(--typography-label-2-font-size);
   color: var(--color-semantic-label-alternative);
 `;
 
@@ -262,17 +262,17 @@ const StatusRow = styled.div`
 `;
 
 const StatusIcon = styled.span`
-  font-size: 12px;
+  font-size: var(--typography-caption-1-font-size);
   color: var(--color-semantic-status-positive);
 `;
 
 const StatusCheck = styled.span`
-  font-size: 12px;
+  font-size: var(--typography-caption-1-font-size);
   color: var(--color-semantic-label-alternative);
 `;
 
 const StatusText = styled.span<{ $green?: boolean }>`
-  font-size: 12px;
+  font-size: var(--typography-caption-1-font-size);
   color: ${({ $green }) =>
       $green
           ? "var(--color-semantic-status-positive)"
@@ -280,7 +280,7 @@ const StatusText = styled.span<{ $green?: boolean }>`
 `;
 
 const StateText = styled.p`
-  font-size: 14px;
+  font-size: var(--typography-label-1-normal-font-size);
   color: var(--color-semantic-label-alternative);
   text-align: center;
   padding: 32px 0;

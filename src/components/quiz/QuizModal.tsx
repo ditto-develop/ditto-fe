@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Body1Normal, Body2Normal, Heading1Bold } from '../common/Text';
+import { Body1Normal, Body2Normal, Heading1Bold } from "@/components/common/Text";
 
 interface QuizResumeModalProps {
   isOpen: boolean;
@@ -11,7 +11,7 @@ interface QuizResumeModalProps {
 
 const ANIMATION_DURATION = 300; // ms
 
-export default function QuizModal({
+export function QuizModal({
   isOpen,
   onClose,
   onRestart,

@@ -1,7 +1,7 @@
 import {
   useToast
 } from "@/context/ToastContext";
-import {
+import type {
   ControlButtonVariant,
   FormData,
   OnChange
@@ -15,16 +15,16 @@ import {
 import {
   Caption1,
   Label1Normal
-} from "../../common/Text";
+} from "@/components/common/Text";
 import {
   MultiSelectChip
-} from "../../input/Multiselect";
+} from "@/components/input/Multiselect";
 import {
   Select
-} from "../../input/Select";
+} from "@/components/input/Select";
 import {
   TextField
-} from "../../input/TextField";
+} from "@/components/input/TextField";
 import {
   DefaultContainer,
   DivideContainer,
@@ -33,8 +33,8 @@ import {
   ProfileEdit,
   ProfileImg,
   ProfileWrapper,
-} from "../OnboardingContainer";
-import ProfileSelect from "../ProfileSelect";
+} from "@/components/onboarding/OnboardingContainer";
+import { ProfileSelect } from "@/components/onboarding/ProfileSelect";
 
 const interestOptions = [
   { label: "💪 운동", value: "workout" },

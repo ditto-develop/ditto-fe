@@ -1,9 +1,9 @@
 "use client";
 
 import styled from "styled-components";
-import MainHeader from "./MainHeader";
-import MainSection from "./MainSection";
-import MainBottomNav from "./MainBottomNav";
+import { MainHeader } from "./MainHeader";
+import { MainSection } from "./MainSection";
+import { MainBottomNav } from "./MainBottomNav";
 import { Suspense } from "react";
 
 const MainContainer = styled.div`

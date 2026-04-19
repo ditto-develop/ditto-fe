@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { adminFetch } from '../adminApi';
+import { adminFetch } from "@/app/admin/adminApi";
 
 interface ActiveQuizSet {
   id: string;
@@ -60,11 +60,11 @@ interface ApiResponse {
 }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  PENDING:   { bg: '#fef3c7', text: '#d97706' },
-  ACCEPTED:  { bg: '#d1fae5', text: '#059669' },
-  REJECTED:  { bg: '#fee2e2', text: '#dc2626' },
-  CANCELLED: { bg: '#f3f4f6', text: '#6b7280' },
-  EXPIRED:   { bg: '#f3f4f6', text: '#9ca3af' },
+  PENDING:   { bg: 'var(--color-semantic-fill-alternative)', text: 'var(--color-semantic-status-cautionary)' },
+  ACCEPTED:  { bg: 'var(--color-semantic-fill-alternative)', text: 'var(--color-semantic-status-positive)' },
+  REJECTED:  { bg: 'var(--color-semantic-fill-alternative)', text: 'var(--color-semantic-status-negative)' },
+  CANCELLED: { bg: 'var(--color-semantic-fill-alternative)', text: 'var(--color-semantic-label-alternative)' },
+  EXPIRED:   { bg: 'var(--color-semantic-fill-alternative)', text: 'var(--color-semantic-label-assistive)' },
 };
 
 const ALL_STATUSES = ['', 'PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'EXPIRED'];
@@ -240,8 +240,8 @@ export default function MatchesPage() {
     cursor: 'pointer',
     fontWeight: 600,
     fontSize: 14,
-    background: active ? '#7c6bff' : '#f3f4f6',
-    color: active ? '#fff' : '#6b7280',
+    background: active ? 'var(--color-semantic-accent-background-violet)' : 'var(--color-semantic-fill-alternative)',
+    color: active ? 'var(--color-semantic-static-white)' : 'var(--color-semantic-label-alternative)',
     transition: 'all 0.15s',
   });
 
@@ -255,8 +255,8 @@ export default function MatchesPage() {
             onClick={handleToggleDummyForm}
             style={{
               padding: '8px 20px',
-              background: showDummyForm ? '#7c6bff' : '#ede9ff',
-              color: showDummyForm ? '#fff' : '#7c6bff',
+              background: showDummyForm ? 'var(--color-semantic-accent-background-violet)' : 'var(--color-semantic-fill-alternative)',
+              color: showDummyForm ? 'var(--color-semantic-static-white)' : 'var(--color-semantic-accent-foreground-violet)',
               border: 'none',
               borderRadius: 8,
               cursor: 'pointer',
@@ -271,8 +271,8 @@ export default function MatchesPage() {
             disabled={resetting}
             style={{
               padding: '8px 20px',
-              background: resetting ? '#f3f4f6' : '#fee2e2',
-              color: resetting ? '#9ca3af' : '#dc2626',
+              background: resetting ? 'var(--color-semantic-fill-alternative)' : 'var(--color-semantic-fill-alternative)',
+              color: resetting ? 'var(--color-semantic-label-assistive)' : 'var(--color-semantic-status-negative)',
               border: 'none',
               borderRadius: 8,
               cursor: resetting ? 'not-allowed' : 'pointer',
@@ -288,32 +288,32 @@ export default function MatchesPage() {
       {/* 더미 대화신청 폼 */}
       {showDummyForm && (
         <div style={{
-          background: '#faf9ff',
-          border: '1.5px solid #c4b5fd',
+          background: 'var(--color-semantic-background-elevated-alternative)',
+          border: '1.5px solid var(--color-semantic-accent-foreground-violet)',
           borderRadius: 12,
           padding: 24,
           marginBottom: 24,
         }}>
-          <h2 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#5b21b6' }}>
+          <h2 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: 'var(--color-semantic-accent-foreground-violet)' }}>
             더미 유저 → 실제 유저 대화 신청
           </h2>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 16 }}>
             {/* 보내는 사람 (더미) */}
             <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--color-semantic-label-alternative)', marginBottom: 6 }}>
                 보내는 사람 (더미 유저)
               </label>
               <input
                 placeholder="닉네임/이름 검색"
                 value={dummySearchFrom}
                 onChange={(e) => setDummySearchFrom(e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, marginBottom: 6, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--color-semantic-line-solid-neutral)', fontSize: 13, marginBottom: 6, boxSizing: 'border-box' }}
               />
               <select
                 value={dummyForm.fromUserId}
                 onChange={(e) => setDummyForm((f) => ({ ...f, fromUserId: e.target.value }))}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--color-semantic-line-solid-neutral)', fontSize: 13, boxSizing: 'border-box' }}
               >
                 <option value="">선택...</option>
                 {filteredFromUsers.map((u) => (
@@ -326,19 +326,19 @@ export default function MatchesPage() {
 
             {/* 받는 사람 (실제) */}
             <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--color-semantic-label-alternative)', marginBottom: 6 }}>
                 받는 사람 (실제 유저)
               </label>
               <input
                 placeholder="닉네임/이름 검색"
                 value={dummySearchTo}
                 onChange={(e) => setDummySearchTo(e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, marginBottom: 6, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--color-semantic-line-solid-neutral)', fontSize: 13, marginBottom: 6, boxSizing: 'border-box' }}
               />
               <select
                 value={dummyForm.toUserId}
                 onChange={(e) => setDummyForm((f) => ({ ...f, toUserId: e.target.value }))}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--color-semantic-line-solid-neutral)', fontSize: 13, boxSizing: 'border-box' }}
               >
                 <option value="">선택...</option>
                 {filteredToUsers.map((u) => (
@@ -351,14 +351,14 @@ export default function MatchesPage() {
 
             {/* 퀴즈셋 */}
             <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--color-semantic-label-alternative)', marginBottom: 6 }}>
                 퀴즈셋
               </label>
               <div style={{ height: 36, marginBottom: 6 }} />
               <select
                 value={dummyForm.quizSetId}
                 onChange={(e) => setDummyForm((f) => ({ ...f, quizSetId: e.target.value }))}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--color-semantic-line-solid-neutral)', fontSize: 13, boxSizing: 'border-box' }}
               >
                 <option value="">선택...</option>
                 {activeQuizSets.map((qs) => (
@@ -376,8 +376,8 @@ export default function MatchesPage() {
               disabled={submitting}
               style={{
                 padding: '10px 24px',
-                background: submitting ? '#a78bfa' : '#7c6bff',
-                color: '#fff',
+                background: submitting ? 'var(--color-semantic-accent-background-violet)' : 'var(--color-semantic-accent-background-violet)',
+                color: 'var(--color-semantic-static-white)',
                 border: 'none',
                 borderRadius: 8,
                 cursor: submitting ? 'not-allowed' : 'pointer',
@@ -389,10 +389,10 @@ export default function MatchesPage() {
             </button>
 
             {dummyError && (
-              <span style={{ color: '#dc2626', fontSize: 13 }}>{dummyError}</span>
+              <span style={{ color: 'var(--color-semantic-status-negative)', fontSize: 13 }}>{dummyError}</span>
             )}
             {dummyResult && (
-              <span style={{ color: dummyResult.alreadyExists ? '#d97706' : '#059669', fontSize: 13, fontWeight: 600 }}>
+              <span style={{ color: dummyResult.alreadyExists ? 'var(--color-semantic-status-cautionary)' : 'var(--color-semantic-status-positive)', fontSize: 13, fontWeight: 600 }}>
                 {dummyResult.alreadyExists
                   ? `이미 존재하는 요청 (${dummyResult.fromUserNickname} → ${dummyResult.toUserNickname})`
                   : `생성 완료! ${dummyResult.fromUserNickname} → ${dummyResult.toUserNickname} (${dummyResult.score}점)`}
@@ -416,11 +416,11 @@ export default function MatchesPage() {
       {tab === 'ONE_TO_ONE' && (
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 24, flexWrap: 'wrap' }}>
           <div>
-            <label style={{ display: 'block', fontSize: 13, color: '#6b7280', marginBottom: 4 }}>상태</label>
+            <label style={{ display: 'block', fontSize: 13, color: 'var(--color-semantic-label-alternative)', marginBottom: 4 }}>상태</label>
             <select
               value={status}
               onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-              style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 14 }}
+              style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--color-semantic-line-solid-neutral)', fontSize: 14 }}
             >
               {ALL_STATUSES.map((s) => (
                 <option key={s} value={s}>{s || '전체'}</option>
@@ -428,22 +428,22 @@ export default function MatchesPage() {
             </select>
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: 13, color: '#6b7280', marginBottom: 4 }}>퀴즈셋 ID</label>
+            <label style={{ display: 'block', fontSize: 13, color: 'var(--color-semantic-label-alternative)', marginBottom: 4 }}>퀴즈셋 ID</label>
             <input
               value={pendingQuizSetId}
               onChange={(e) => setPendingQuizSetId(e.target.value)}
               placeholder="quizSetId..."
-              style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 14, width: 260 }}
+              style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--color-semantic-line-solid-neutral)', fontSize: 14, width: 260 }}
             />
           </div>
           <button
             onClick={applyFilter}
-            style={{ padding: '8px 20px', background: '#7c6bff', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
+            style={{ padding: '8px 20px', background: 'var(--color-semantic-accent-background-violet)', color: 'var(--color-semantic-static-white)', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
           >
             적용
           </button>
           {result && (
-            <span style={{ color: '#6b7280', fontSize: 14, marginLeft: 8 }}>
+            <span style={{ color: 'var(--color-semantic-label-alternative)', fontSize: 14, marginLeft: 8 }}>
               전체 <strong>{result.total}</strong>건
             </span>
           )}
@@ -452,7 +452,7 @@ export default function MatchesPage() {
 
       {/* 그룹 요약 */}
       {tab === 'GROUP' && (
-        <div style={{ marginBottom: 16, color: '#6b7280', fontSize: 14 }}>
+        <div style={{ marginBottom: 16, color: 'var(--color-semantic-label-alternative)', fontSize: 14 }}>
           그룹 퀴즈 완료자 <strong>{groupItems.length}</strong>명
           {' · '}수락 <strong>{groupItems.filter(i => i.groupJoined).length}</strong>명
           {' · '}대기 <strong>{groupItems.filter(i => !i.groupDeclined && !i.groupJoined).length}</strong>명
@@ -461,19 +461,19 @@ export default function MatchesPage() {
       )}
 
       {error && (
-        <div style={{ background: '#fee2e2', color: '#dc2626', padding: 16, borderRadius: 8, marginBottom: 16 }}>
+        <div style={{ background: 'var(--color-semantic-fill-alternative)', color: 'var(--color-semantic-status-negative)', padding: 16, borderRadius: 8, marginBottom: 16 }}>
           {error}
         </div>
       )}
 
       {/* 1:1 테이블 */}
       {tab === 'ONE_TO_ONE' && (
-        <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--color-semantic-static-white)', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr style={{ background: '#f8f9fa', borderBottom: '1px solid #e5e7eb' }}>
+              <tr style={{ background: 'var(--color-semantic-fill-alternative)', borderBottom: '1px solid var(--color-semantic-line-normal-neutral)' }}>
                 {['보낸 사람', '받은 사람', '퀴즈셋 ID', '상태', '점수', '요청일', '응답일'].map((h) => (
-                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>
+                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: 'var(--color-semantic-label-normal)', whiteSpace: 'nowrap' }}>
                     {h}
                   </th>
                 ))}
@@ -481,22 +481,22 @@ export default function MatchesPage() {
             </thead>
             <tbody>
               {result?.data.map((m) => {
-                const sc = STATUS_COLORS[m.status] ?? { bg: '#f3f4f6', text: '#6b7280' };
+                const sc = STATUS_COLORS[m.status] ?? { bg: 'var(--color-semantic-fill-alternative)', text: 'var(--color-semantic-label-alternative)' };
                 return (
-                  <tr key={m.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                  <tr key={m.id} style={{ borderBottom: '1px solid var(--color-semantic-fill-alternative)' }}>
                     <td style={{ padding: '10px 16px', fontWeight: 500 }}>{m.fromUserNickname}</td>
                     <td style={{ padding: '10px 16px', fontWeight: 500 }}>{m.toUserNickname}</td>
-                    <td style={{ padding: '10px 16px', color: '#9ca3af', fontSize: 11 }}>{m.quizSetId.slice(0, 8)}…</td>
+                    <td style={{ padding: '10px 16px', color: 'var(--color-semantic-label-assistive)', fontSize: 11 }}>{m.quizSetId.slice(0, 8)}…</td>
                     <td style={{ padding: '10px 16px' }}>
                       <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.text }}>
                         {m.status}
                       </span>
                     </td>
                     <td style={{ padding: '10px 16px', fontWeight: 600 }}>{m.score.toFixed(0)}</td>
-                    <td style={{ padding: '10px 16px', color: '#6b7280', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '10px 16px', color: 'var(--color-semantic-label-alternative)', whiteSpace: 'nowrap' }}>
                       {new Date(m.requestedAt).toLocaleDateString('ko-KR')}
                     </td>
-                    <td style={{ padding: '10px 16px', color: '#6b7280', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '10px 16px', color: 'var(--color-semantic-label-alternative)', whiteSpace: 'nowrap' }}>
                       {m.respondedAt ? new Date(m.respondedAt).toLocaleDateString('ko-KR') : '-'}
                     </td>
                   </tr>
@@ -504,7 +504,7 @@ export default function MatchesPage() {
               })}
               {result?.data.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ padding: 32, textAlign: 'center', color: '#9ca3af' }}>매칭 요청이 없습니다.</td>
+                  <td colSpan={7} style={{ padding: 32, textAlign: 'center', color: 'var(--color-semantic-label-assistive)' }}>매칭 요청이 없습니다.</td>
                 </tr>
               )}
             </tbody>
@@ -514,12 +514,12 @@ export default function MatchesPage() {
 
       {/* 그룹 테이블 */}
       {tab === 'GROUP' && (
-        <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--color-semantic-static-white)', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr style={{ background: '#f8f9fa', borderBottom: '1px solid #e5e7eb' }}>
+              <tr style={{ background: 'var(--color-semantic-fill-alternative)', borderBottom: '1px solid var(--color-semantic-line-normal-neutral)' }}>
                 {['닉네임', '이메일', '퀴즈셋', '완료일시', '참여 여부'].map((h) => (
-                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>
+                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: 'var(--color-semantic-label-normal)', whiteSpace: 'nowrap' }}>
                     {h}
                   </th>
                 ))}
@@ -527,18 +527,22 @@ export default function MatchesPage() {
             </thead>
             <tbody>
               {groupItems.map((p) => (
-                <tr key={p.userId} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                <tr key={p.userId} style={{ borderBottom: '1px solid var(--color-semantic-fill-alternative)' }}>
                   <td style={{ padding: '10px 16px', fontWeight: 500 }}>{p.nickname}</td>
-                  <td style={{ padding: '10px 16px', color: '#6b7280' }}>{p.email}</td>
-                  <td style={{ padding: '10px 16px', color: '#6b7280' }}>{p.quizSetTitle}</td>
-                  <td style={{ padding: '10px 16px', color: '#6b7280', whiteSpace: 'nowrap' }}>
+                  <td style={{ padding: '10px 16px', color: 'var(--color-semantic-label-alternative)' }}>{p.email}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--color-semantic-label-alternative)' }}>{p.quizSetTitle}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--color-semantic-label-alternative)', whiteSpace: 'nowrap' }}>
                     {p.completedAt ? new Date(p.completedAt).toLocaleString('ko-KR') : '-'}
                   </td>
                   <td style={{ padding: '10px 16px' }}>
                     <span style={{
                       padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 700,
-                      background: p.groupDeclined ? '#fee2e2' : p.groupJoined ? '#d1fae5' : '#fef3c7',
-                      color: p.groupDeclined ? '#dc2626' : p.groupJoined ? '#059669' : '#d97706',
+                      background: p.groupDeclined ? 'var(--color-semantic-fill-alternative)' : 'var(--color-semantic-fill-alternative)',
+                      color: p.groupDeclined
+                        ? 'var(--color-semantic-status-negative)'
+                        : p.groupJoined
+                          ? 'var(--color-semantic-status-positive)'
+                          : 'var(--color-semantic-status-cautionary)',
                     }}>
                       {p.groupDeclined ? '거절' : p.groupJoined ? '수락' : '대기'}
                     </span>
@@ -547,7 +551,7 @@ export default function MatchesPage() {
               ))}
               {groupItems.length === 0 && (
                 <tr>
-                  <td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#9ca3af' }}>그룹 매칭 참여자가 없습니다.</td>
+                  <td colSpan={5} style={{ padding: 32, textAlign: 'center', color: 'var(--color-semantic-label-assistive)' }}>그룹 매칭 참여자가 없습니다.</td>
                 </tr>
               )}
             </tbody>
@@ -561,17 +565,17 @@ export default function MatchesPage() {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            style={{ padding: '6px 16px', borderRadius: 8, border: '1px solid #d1d5db', cursor: page === 1 ? 'not-allowed' : 'pointer', background: '#fff' }}
+            style={{ padding: '6px 16px', borderRadius: 8, border: '1px solid var(--color-semantic-line-solid-neutral)', cursor: page === 1 ? 'not-allowed' : 'pointer', background: 'var(--color-semantic-static-white)' }}
           >
             이전
           </button>
-          <span style={{ padding: '6px 12px', color: '#6b7280', fontSize: 14 }}>
+          <span style={{ padding: '6px 12px', color: 'var(--color-semantic-label-alternative)', fontSize: 14 }}>
             {page} / {totalPages}
           </span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            style={{ padding: '6px 16px', borderRadius: 8, border: '1px solid #d1d5db', cursor: page === totalPages ? 'not-allowed' : 'pointer', background: '#fff' }}
+            style={{ padding: '6px 16px', borderRadius: 8, border: '1px solid var(--color-semantic-line-solid-neutral)', cursor: page === totalPages ? 'not-allowed' : 'pointer', background: 'var(--color-semantic-static-white)' }}
           >
             다음
           </button>

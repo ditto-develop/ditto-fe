@@ -1,6 +1,7 @@
 "use client";
 
 import { Headline1 } from "@/components/common/Text";
+import type { KakaoLoginResult } from "@/types/kakao";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 
@@ -11,7 +12,7 @@ const ButtonContainer = styled.div`
   justify-content: center;
   align-items: center;
   border-radius: 12px;
-  border: 1px solid var(--Primary-Normal, #1a1815);
+  border: 1px solid var(--color-semantic-primary-normal);
   cursor: pointer; 
   background-color: transparent; 
   transition: opacity 0.2s;
@@ -29,16 +30,8 @@ const ButtonInnerContainer = styled.div`
 
 `;
 
-declare global {
-  interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    Kakao: any;
-  }
-}
-
 interface KakaoLoginProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onLoginComplete?: (result: any) => void;
+  onLoginComplete?: (result: KakaoLoginResult) => void;
 }
 
 export const KakaoLogin = ({ onLoginComplete }: KakaoLoginProps) => {

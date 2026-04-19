@@ -4,8 +4,9 @@ import { useEffect, useState, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Body1Normal } from "@/components/common/Text";
 import styled from "styled-components";
-import Tutorial from "@/components/onboarding/Tutorial";
-import { ApiError, OpenAPI, UserService } from "@/lib/api";
+import { Tutorial } from "@/components/onboarding/Tutorial";
+import { UserService } from "@/lib/api";
+import type { KakaoCallbackResponse, KakaoLoginResult } from "@/types/kakao";
 
 const LoadingContainer = styled.div`
   display: flex;
@@ -16,13 +17,29 @@ const LoadingContainer = styled.div`
   gap: 16px;
 `;
 
+const isKakaoCallbackResponse = (value: unknown): value is KakaoCallbackResponse => {
+  if (!value || typeof value !== "object") return false;
+  return "kakaoId" in value;
+};
+
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return "알 수 없는 오류가 발생했습니다.";
+};
+
+const toKakaoLoginResult = (data: KakaoCallbackResponse): KakaoLoginResult => ({
+  ...data,
+  kakaoId: Number(data.kakaoId),
+});
+
 function KakaoLoginContent() {
   console.log('[src/app/oauth/kakao/page.tsx] KakaoLoginContent'); // __component_log__
   const router = useRouter();
   const searchParams = useSearchParams();
   const code = searchParams.get("code");
 
-  const [initialData, setInitialData] = useState<any>(null);
+  const [initialData, setInitialData] = useState<KakaoLoginResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const isFetched = useRef(false);
 
@@ -41,8 +58,8 @@ function KakaoLoginContent() {
           body: JSON.stringify({ code, redirectUri }),
         });
 
-        const kakaoData = await kakaoResponse.json();
-        if (!kakaoResponse.ok || !kakaoData.kakaoId) {
+        const kakaoData: unknown = await kakaoResponse.json();
+        if (!kakaoResponse.ok || !isKakaoCallbackResponse(kakaoData)) {
           throw new Error("카카오 사용자 정보를 가져오는데 실패했습니다.");
         }
 
@@ -72,12 +89,12 @@ function KakaoLoginContent() {
         } else {
           // FAILURE: New user, or other login error -> Start signup
           console.log("New user detected or login failed. Proceeding to sign-up.");
-          setInitialData(kakaoData);
+          setInitialData(toKakaoLoginResult(kakaoData));
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         // This will now only catch critical errors like network failure
         console.error("Authentication process failed:", err);
-        setError(err.message || "알 수 없는 오류가 발생했습니다.");
+        setError(getErrorMessage(err));
       }
     };
 

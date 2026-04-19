@@ -22,6 +22,19 @@ export type ChatRoomDetailDto = {
     roomId: string;
     expiresAt: string | null;
     partner: ChatPartnerDto;
+    status?: string;
+    canSendMessage?: boolean;
+    endedAt?: string | null;
+    endedByUserId?: string | null;
+    endedReason?: string | null;
+    isEnded?: boolean;
+    isPartnerLeft?: boolean;
+    partnerLastReadMessageId?: string | null;
+    readReceipts?: Array<{
+        userId: string;
+        lastReadMessageId: string;
+        readAt: string;
+    }>;
 };
 export class ChatService {
     /**

@@ -12,7 +12,7 @@ interface FullScreenModalProps {
 
 const ANIMATION_DURATION = 300;
 
-export default function FullScreenModal({
+export function FullScreenModal({
     isOpen,
     onClose,
     children,

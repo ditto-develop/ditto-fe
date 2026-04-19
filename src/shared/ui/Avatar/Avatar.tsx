@@ -22,7 +22,7 @@ const sizeMap: Record<AvatarSize, number> = {
  * Avatar — Figma: Avatar/Avatar
  * 원형 프로필 이미지. 매칭 카드(80px), 소개노트(100px) 등에서 사용.
  */
-export default function Avatar({ src, alt = "프로필", size = "lg", className }: AvatarProps) {
+export function Avatar({ src, alt = "프로필", size = "lg", className }: AvatarProps) {
   console.log('[src/shared/ui/Avatar/Avatar.tsx] Avatar'); // __component_log__
     const px = sizeMap[size];
     return (
@@ -44,7 +44,7 @@ const AvatarContainer = styled.div<{ $size: number }>`
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
-  background-color: var(--color-semantic-background-normal-normal, #F2F0ED);
+  background-color: var(--color-semantic-background-normal-normal);
   border: 1px solid var(--color-semantic-line-normal-alternative);
   box-sizing: border-box;
 `;
@@ -62,7 +62,7 @@ const Placeholder = styled.div<{ $size: number }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--color-semantic-background-elevated-alternative, #FAF9F7);
+  background-color: var(--color-semantic-background-elevated-alternative);
 `;
 
 const PlaceholderImg = styled.img`

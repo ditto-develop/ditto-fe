@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 
 type AtomicColor = {
   name: string;   // --color-atomic-blue-60
-  value: string;  // #3385FF
+  value: string;  // var(--color-semantic-accent-foreground-blue)
 };
 
 const AtomicColorBox: React.FC<AtomicColor> = ({ name, value }) => {
@@ -14,7 +14,7 @@ const AtomicColorBox: React.FC<AtomicColor> = ({ name, value }) => {
         gap: 12,
         padding: 8,
         borderRadius: 8,
-        border: "1px solid #e5e5e5",
+        border: "1px solid var(--color-semantic-line-normal-neutral)",
       }}
     >
       <div
@@ -23,13 +23,13 @@ const AtomicColorBox: React.FC<AtomicColor> = ({ name, value }) => {
           height: 40,
           borderRadius: 6,
           backgroundColor: value,
-          border: "1px solid #ddd",
+          border: "1px solid var(--color-semantic-line-normal-neutral)",
           flexShrink: 0,
         }}
       />
       <div style={{ display: "flex", flexDirection: "column" }}>
         <strong style={{ fontSize: 13 }}>{name}</strong>
-        <span style={{ fontSize: 12, color: "#666" }}>{value}</span>
+        <span style={{ fontSize: 12, color: "var(--color-semantic-label-alternative)" }}>{value}</span>
       </div>
     </div>
   );
@@ -90,9 +90,11 @@ const AtomicColorPalette: React.FC = () => {
   );
 };
 
-export default {
+const meta = {
   title: "Design Tokens/Atomic Colors",
   component: AtomicColorPalette,
 };
+
+export default meta;
 
 export const AllAtomicColors = () => <AtomicColorPalette />;

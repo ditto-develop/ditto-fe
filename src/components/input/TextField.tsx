@@ -76,7 +76,7 @@ export const TextField: React.FC<TextFieldProps> = ({
         />
         {status==="error" && 
           <RightAddonImg
-            src='/textfield/error.svg'
+            src="/icons/status/textfield-error.svg"
           />  
         }
         {showRightAddon && (
@@ -88,7 +88,7 @@ export const TextField: React.FC<TextFieldProps> = ({
             ): 
             rightAddonVariant === "success" ?(
               <RightAddonImg
-                src='/textfield/success.svg'
+                src="/icons/status/textfield-success.svg"
               />
             ) : rightAddonVariant === "button" ?(
               <RightAddonButton onClick={onRightAddonClick}>
@@ -143,7 +143,7 @@ const FieldRoot = styled.div`
 `;
 
 const FieldLabel = styled(Label1Normal)`
-  color: var(--color-semantic-label-normal, #1a1815);
+  color: var(--color-semantic-label-normal);
 `;
 
 const InputWrapper = styled.div<{
@@ -178,7 +178,7 @@ const InputWrapper = styled.div<{
     css`
       border-color: var(
         --Semantic-Status-Negative,
-        var(--Status-Negative, #e03131)
+        var(--color-semantic-status-negative)
       );
     `}
 
@@ -190,11 +190,11 @@ const InputWrapper = styled.div<{
 
   /* focus-within: 외곽선, 그림자, 오른쪽 구분선 진하게 */
   &:focus-within {
-    border-color: var(--Primary-Normal, #1a1815);
+    border-color: var(--color-semantic-primary-normal);
     box-shadow: 0 0 0 1px rgba(26, 24, 21, 0.06);
 
     ${RightArea}::before {
-      background: var(--Primary-Normal, #1a1815);
+      background: var(--color-semantic-primary-normal);
     }
   }
 `;
@@ -209,7 +209,7 @@ const StyledInput = styled(Body1Normal).attrs({ as: "input" })<{
   border: none;
   outline: none;
 
-  color: var(--Semantic-Label-Normal, #1a1815);
+  color: var(--Semantic-Label-Normal, var(--color-semantic-label-normal));
 
   &::placeholder {
     color: var(
@@ -228,7 +228,7 @@ const StyledInput = styled(Body1Normal).attrs({ as: "input" })<{
 
 // 버튼 버전 (알약형)
 const RightAddonButton = styled.button`
-  color: var(--Semantic-Label-Normal, #1a1815);
+  color: var(--Semantic-Label-Normal, var(--color-semantic-label-normal));
 `;
 
 //아이콘
@@ -238,7 +238,7 @@ const RightAddonImg = styled.img`
 
 // 단순 텍스트 버전
 const RightAddonTextOnly = styled(Label2)`
-  color: var(--Semantic-Label-Normal, #1a1815);
+  color: var(--Semantic-Label-Normal, var(--color-semantic-label-normal));
 `;
 
 // 헬퍼 텍스트
@@ -246,13 +246,13 @@ const HelperText = styled(Caption1)<{ $status: InputStatus }>`
   color: ${({ $status }) => {
     switch ($status) {
       case "success":
-        return "var(--color-semantic-label-normal, #557a55)";
+        return "var(--color-semantic-label-normal)";
       case "error":
-        return "var(--color-semantic-status-negative, #e03131)";
+        return "var(--color-semantic-status-negative)";
       case "disabled":
         return "rgba(47, 43, 39, 0.35)";
       default:
-        return "var(--color-semantic-label-alternative, rgba(47, 43, 39, 0.61))";
+        return "var(--color-semantic-label-alternative)";
     }
   }};
 `;

@@ -2,12 +2,11 @@
 
 import React, { useState } from "react";
 import styled from "styled-components";
-import FullScreenModal from "../display/FullScreenModal";
-import Nav from "../display/Nav";
-import BottomSheet from "../display/BottomSheet";
-import BottomToast from "../display/Toast";
-import ProfileDetailModal from "./ProfileDetailModal";
-import AlertModal from "../display/AlertModal";
+import { FullScreenModal } from "@/components/display/FullScreenModal";
+import { Nav } from "@/components/display/Nav";
+import { BottomSheet } from "@/components/display/BottomSheet";
+import { ProfileDetailModal } from "@/components/home/ProfileDetailModal";
+import { AlertModal } from "@/components/display/AlertModal";
 import {
   Heading2Bold,
   Body2Normal,
@@ -15,12 +14,13 @@ import {
   Label2,
   Headline2,
   Caption1,
-} from "../common/Text";
-import { AlertStatus } from "../display/Card";
-import { MatchCandidateDto, joinGroupMatch, declineGroupMatch } from "@/features/matching/api/matchingApi";
+} from "@/components/common/Text";
+import type { AlertStatus } from "@/components/display/Card";
+import type { MatchCandidateDto} from "@/features/matching/api/matchingApi";
+import { joinGroupMatch, declineGroupMatch } from "@/features/matching/api/matchingApi";
 import { formatAgeRange } from "@/shared/lib/formatAge";
-import { ProfileImg, ProfileWrapper } from "../onboarding/OnboardingContainer";
-import { ActionButton } from "../input/Action";
+import { ProfileImg, ProfileWrapper } from "@/components/onboarding/OnboardingContainer";
+import { ActionButton } from "@/components/input/Action";
 import { useToast } from "@/context/ToastContext";
 
 // ---- Helpers ----
@@ -92,7 +92,7 @@ interface GroupMatchingResultModalProps {
 
 // ---- Component ----
 
-export default function GroupMatchingResultModal({
+export function GroupMatchingResultModal({
   isOpen,
   onClose,
   onDecline,
@@ -132,7 +132,6 @@ export default function GroupMatchingResultModal({
       setJoinResult({ participantCount: result.participantCount, isActive: result.isActive });
 
       if (result.isActive) {
-        // 3명 이상 참여 → 즉시 활성화: 모달 닫고 홈 카드 교체
         const toastId = `group-join-active-${Date.now()}`;
         showToast("그룹에 참여했어요! 대화는 금요일에 시작 돼요", "default", {
           id: toastId,
@@ -143,7 +142,11 @@ export default function GroupMatchingResultModal({
         onClose();
         onJoinSuccess?.();
       } else {
-        // 3명 미만 → 모달 유지, 버튼 비활성화, 대기 상태로 전환
+        showToast(
+          "그룹 참여를 신청했어요. 3명 이상이 참여하면 금요일에 대화가 시작돼요.",
+          "default",
+          { duration: 3000 }
+        );
         onJoinPending?.();
       }
     } catch (e) {
@@ -159,28 +162,28 @@ export default function GroupMatchingResultModal({
         <Nav prev={onClose} />
 
         <HeaderContainer>
-          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          <MatchTypeRow>
             <img src="/icons/content/people.svg" alt="" width={16} height={16} />
-            <Caption2 $color="var(--color-semantic-accent-foreground-vintage-green, #5A7A5A)">
+            <Caption2 $color="var(--color-semantic-accent-foreground-vintage-green)">
               그룹 매칭
             </Caption2>
-          </div>
-          <Heading2Bold style={{ fontSize: "24px", margin: "4px 0 8px 0" }}>
+          </MatchTypeRow>
+          <ResultTitle>
             이번 주 매칭 결과
-          </Heading2Bold>
-          <Body2Normal $color="var(--color-semantic-label-neutral)" style={{ whiteSpace: "pre-wrap" }}>
+          </ResultTitle>
+          <ResultDescription $color="var(--color-semantic-label-neutral)">
             나와 비슷한 답을 한 사람들을 찾았어요.{"\n"}
             3명 이상이 참여해야 대화가 시작돼요.
-          </Body2Normal>
+          </ResultDescription>
         </HeaderContainer>
 
         <ContentBody>
           {candidates.length === 0 ? (
             <EmptyState>
-              <img src="/assets/illustration/empty-state.png" alt="" style={{ width: 120, height: 120 }} />
-              <Body2Normal $color="var(--color-semantic-label-alternative)" style={{ textAlign: "center" }}>
+              <EmptyStateImage src="/assets/illustration/empty-state.png" alt="" />
+              <EmptyStateText $color="var(--color-semantic-label-alternative)">
                 아직 충분한 참여자가 없어요.{"\n"}다음 주를 기대해 주세요!
-              </Body2Normal>
+              </EmptyStateText>
             </EmptyState>
           ) : (
             /* Figma 1310:35990 — 뱃지행 + 그룹 카드 */
@@ -201,9 +204,8 @@ export default function GroupMatchingResultModal({
                 <AvatarGrid>
                   {shown.map((c, i) => (
                     <AvatarSlot key={c.userId}>
-                      <ProfileImg
+                      <FullSizeProfileImg
                         imageUrl={getAvatarUrl(c.gender, i)}
-                        style={{ width: "100%", height: "100%" }}
                       />
                     </AvatarSlot>
                   ))}
@@ -212,7 +214,7 @@ export default function GroupMatchingResultModal({
                       <Caption1 $color="white" $weight="bold">+{extra}</Caption1>
                     </PlusBadge>
                   ) : shown.length < 4 ? (
-                    <AvatarSlot style={{ opacity: 0 }} />
+                    <HiddenAvatarSlot />
                   ) : null}
                 </AvatarGrid>
 
@@ -229,7 +231,7 @@ export default function GroupMatchingResultModal({
                         width={14}
                         height={14}
                       />
-                      <Caption1 $color="var(--color-semantic-label-neutral, rgba(47,43,39,0.88))">
+                      <Caption1 $color="var(--color-semantic-label-neutral)">
                         그룹 참여를 신청했어요
                       </Caption1>
                     </JoinedRow>
@@ -237,12 +239,11 @@ export default function GroupMatchingResultModal({
                 </GroupInfo>
 
                 {!joinResult && (
-                  <img
+                  <ChevronIcon
                     src="/icons/navigation/chevron-right.svg"
                     alt=""
                     width={24}
                     height={24}
-                    style={{ opacity: 0.3, flexShrink: 0 }}
                   />
                 )}
               </GroupCard>
@@ -256,36 +257,22 @@ export default function GroupMatchingResultModal({
           )}
         </ContentBody>
 
-        {joinResult && !joinResult.isActive && (
-          <ToastOverlay>
-            <BottomToast
-              id="group-join-pending"
-              message="그룹 참여를 신청했어요. 3명 이상이 참여하면 금요일에 대화가 시작돼요."
-              type="none"
-              duration={0}
-              onClose={() => {}}
-            />
-          </ToastOverlay>
-        )}
-
         {candidates.length > 0 && (
           <BottomActions>
-            <div style={{ display: "flex", gap: "12px" }}>
-              <ActionButton
+            <ActionRow>
+              <EqualActionButton
                 variant={joinResult ? "disabled" : "secondary"}
                 onClick={!joinResult ? () => setRejectAlertOpen(true) : undefined}
-                style={{ flex: 1 }}
               >
                 거절하기
-              </ActionButton>
-              <ActionButton
+              </EqualActionButton>
+              <EqualActionButton
                 variant={joinResult ? "disabled" : "primary"}
                 onClick={!joinResult && !joining ? () => setJoinConfirmOpen(true) : undefined}
-                style={{ flex: 1 }}
               >
                 {joining ? "참여 중..." : "참여하기"}
-              </ActionButton>
-            </div>
+              </EqualActionButton>
+            </ActionRow>
           </BottomActions>
         )}
       </FullScreenModal>
@@ -328,12 +315,11 @@ export default function GroupMatchingResultModal({
                           </Label2>
                         )}
                       </MemberTextInfo>
-                      <img
+                      <ChevronIcon
                         src="/icons/navigation/chevron-right.svg"
                         alt=""
                         width={24}
                         height={24}
-                        style={{ opacity: 0.3, flexShrink: 0 }}
                       />
                     </MemberCard>
                   </MemberItem>
@@ -404,6 +390,21 @@ const HeaderContainer = styled.div`
   flex-shrink: 0;
 `;
 
+const MatchTypeRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const ResultTitle = styled(Heading2Bold)`
+  font-size: var(--typography-title-3-font-size);
+  margin: 4px 0 8px 0;
+`;
+
+const ResultDescription = styled(Body2Normal)`
+  white-space: pre-wrap;
+`;
+
 const ContentBody = styled.div`
   flex: 1;
   padding: 24px 16px;
@@ -412,7 +413,7 @@ const ContentBody = styled.div`
   gap: 8px;
   overflow-y: auto;
   padding-bottom: 120px;
-  background-color: var(--color-semantic-background-normal-normal, #e9e6e2);
+  background-color: var(--color-semantic-background-normal-normal);
 `;
 
 const EmptyState = styled.div`
@@ -421,6 +422,15 @@ const EmptyState = styled.div`
   align-items: center;
   gap: 16px;
   padding: 40px 0;
+`;
+
+const EmptyStateImage = styled.img`
+  width: 120px;
+  height: 120px;
+`;
+
+const EmptyStateText = styled(Body2Normal)`
+  text-align: center;
 `;
 
 const CardWrapper = styled.div`
@@ -447,7 +457,7 @@ const Badge = styled.div<{ $bgColor: string }>`
 
 /* Figma 1310:35601 */
 const GroupCard = styled.div<{ $joined?: boolean }>`
-  background-color: var(--color-semantic-fill-normal, rgba(108, 101, 95, 0.08));
+  background-color: var(--color-semantic-fill-normal);
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -479,7 +489,16 @@ const AvatarSlot = styled.div`
   width: 40px;
   height: 40px;
   overflow: hidden;
-  background-color: var(--color-semantic-background-normal-alternative, #DDD8D3);
+  background-color: var(--color-semantic-background-normal-alternative);
+`;
+
+const HiddenAvatarSlot = styled(AvatarSlot)`
+  opacity: 0;
+`;
+
+const FullSizeProfileImg = styled(ProfileImg)`
+  width: 100%;
+  height: 100%;
 `;
 
 /* Figma 1310:35612 */
@@ -509,15 +528,6 @@ const FeedbackBox = styled.div<{ $isError?: boolean }>`
     $isError ? "rgba(179, 53, 40, 0.08)" : "rgba(85, 122, 85, 0.08)"};
 `;
 
-
-const ToastOverlay = styled.div`
-  position: fixed;
-  bottom: 100px;
-  left: 16px;
-  right: 16px;
-  z-index: 11;
-`;
-
 const BottomActions = styled.div`
   position: fixed;
   bottom: 0;
@@ -525,8 +535,22 @@ const BottomActions = styled.div`
   right: 0;
   padding: 16px;
   background-color: var(--color-semantic-background-normal-normal);
-  border-top: 1px solid var(--color-semantic-line-normal-normal, rgba(108, 101, 95, 0.12));
+  border-top: 1px solid var(--color-semantic-line-normal-normal);
   z-index: 10;
+`;
+
+const ActionRow = styled.div`
+  display: flex;
+  gap: 12px;
+`;
+
+const EqualActionButton = styled(ActionButton)`
+  flex: 1;
+`;
+
+const ChevronIcon = styled.img`
+  opacity: 0.3;
+  flex-shrink: 0;
 `;
 
 /* BottomSheet 내부 — Figma 1347:14821 */
@@ -572,7 +596,7 @@ const MemberCard = styled.div`
   display: flex;
   align-items: center;
   gap: 16px;
-  background-color: var(--color-semantic-fill-normal, rgba(108, 101, 95, 0.08));
+  background-color: var(--color-semantic-fill-normal);
   box-sizing: border-box;
 `;
 

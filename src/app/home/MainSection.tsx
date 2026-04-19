@@ -1,13 +1,14 @@
 "use client";
 
-import MatchingDay from "@/components/home/MatchingDay";
-import ThisWeekQuiz from "@/components/home/ThisWeekQuiz";
-import TimeLine from "@/components/home/Timeline";
-import { MatchingCardType } from "@/components/home/MatchingDay";
+import { MatchingDay } from "@/components/home/MatchingDay";
+import { ThisWeekQuiz } from "@/components/home/ThisWeekQuiz";
+import { TimeLine } from "@/components/home/Timeline";
+import type { MatchingCardType } from "@/components/home/MatchingDay";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { SystemService, SystemStateDto, QuizProgressService, QuizProgressDto, IntroNotesService, ChatService } from "@/lib/api";
-import { getMatchCandidates, getMatchingStatus, MatchCandidateDto } from "@/features/matching/api/matchingApi";
+import type { MatchCandidateDto } from "@/features/matching/api/matchingApi";
+import { getMatchCandidates, getMatchingStatus } from "@/features/matching/api/matchingApi";
 import type { ChatRoomItemDto } from "@/lib/api/models/ChatRoomItemDto";
 import { useHomeReady } from "@/context/HomeReadyContext";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -37,7 +38,13 @@ function mapPeriod(apiPeriod: SystemStateDto.period): Period {
   }
 }
 
-export default function MainSection() {
+async function getLatestChatRoom(): Promise<ChatRoomItemDto | undefined> {
+  const chatRes = await ChatService.chatControllerGetChatRooms();
+  if (!chatRes.success || !chatRes.data || chatRes.data.length === 0) return undefined;
+  return chatRes.data[0];
+}
+
+export function MainSection() {
   console.log('[src/app/home/MainSection.tsx] MainSection'); // __component_log__
   const [period, setPeriod] = useState<Period | null>(null);
   const [dayIndex] = useState<number>(getKstDayIndex());
@@ -125,10 +132,8 @@ export default function MainSection() {
               else setMatchType("one");
             }
             if (fetchedPeriod === "CHATTING") {
-              const chatRes = await ChatService.chatControllerGetChatRooms();
-              if (chatRes.success && chatRes.data && chatRes.data.length > 0) {
-                setChatRoom(chatRes.data[0]);
-              }
+              const latestChatRoom = await getLatestChatRoom();
+              if (latestChatRoom) setChatRoom(latestChatRoom);
             }
           } catch {
             // 퀴즈를 풀지 않았거나 매칭 후보가 없는 경우 → failmatch
@@ -144,6 +149,37 @@ export default function MainSection() {
     }
     load();
   }, [setHomeReady]);
+
+  useEffect(() => {
+    if (period !== "CHATTING") return;
+
+    let isMounted = true;
+    let isFetching = false;
+
+    const refreshLatestChatRoom = async () => {
+      if (isFetching) return;
+      isFetching = true;
+
+      try {
+        const latestChatRoom = await getLatestChatRoom();
+        if (isMounted && latestChatRoom) setChatRoom(latestChatRoom);
+      } catch {
+        // ignore
+      } finally {
+        isFetching = false;
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      if (document.hidden) return;
+      refreshLatestChatRoom();
+    }, 3000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, [period]);
 
   if (loading || period === null) {
     return <MainSectionContainer><TimeLine /></MainSectionContainer>;
@@ -171,17 +207,22 @@ export default function MainSection() {
           />
         );
       case "CHATTING": {
+        const getChatPath = (room: ChatRoomItemDto) =>
+          room.isGroup
+            ? `/chat/group/${room.roomId}`
+            : `/chat/one-on-one/${room.roomId}`;
+
         const handleStartChat = async () => {
           try {
             if (chatRoom) {
-              router.push(`/chat/one-on-one/${chatRoom.roomId}`);
+              router.push(getChatPath(chatRoom));
               return;
             }
             if (!acceptedMatchRequestId) return;
             const res = await ChatService.chatControllerCreateChatRoom({ matchRequestId: acceptedMatchRequestId });
             if (res.success && res.data) {
               setChatRoom(res.data);
-              router.push(`/chat/one-on-one/${res.data.roomId}`);
+              router.push(getChatPath(res.data));
             }
           } catch {
             showToast("채팅방을 열 수 없어요. 잠시 후 다시 시도해주세요.", "error");

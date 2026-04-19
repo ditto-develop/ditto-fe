@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { adminFetch } from '../adminApi';
+import { adminFetch } from "@/app/admin/adminApi";
 
 interface SystemState {
   year: number;
@@ -20,21 +20,21 @@ const PERIODS = [
     value: 'QUIZ_PERIOD',
     label: 'QUIZ_PERIOD',
     description: '월 ~ 수 | 퀴즈 풀기',
-    color: '#3b82f6',
+    color: 'var(--color-semantic-accent-foreground-blue)',
     emoji: '📝',
   },
   {
     value: 'MATCHING_PERIOD',
     label: 'MATCHING_PERIOD',
     description: '목요일 | 매칭',
-    color: '#f59e0b',
+    color: 'var(--color-semantic-status-cautionary)',
     emoji: '💞',
   },
   {
     value: 'CHATTING_PERIOD',
     label: 'CHATTING_PERIOD',
     description: '금 ~ 일 | 채팅',
-    color: '#10b981',
+    color: 'var(--color-semantic-status-positive)',
     emoji: '💬',
   },
 ];
@@ -95,7 +95,7 @@ export default function TimeOverridePage() {
   return (
     <div>
       <h1 style={{ margin: '0 0 8px', fontSize: 24, fontWeight: 700 }}>시간 임시 조정</h1>
-      <p style={{ color: '#666', margin: '0 0 32px' }}>
+      <p style={{ color: 'var(--color-semantic-label-alternative)', margin: '0 0 32px' }}>
         오늘의 기간을 수동으로 설정합니다. 자정 스케줄러는 오버라이드가 해제될 때까지 자동 업데이트를 건너뜁니다.
       </p>
 
@@ -103,7 +103,7 @@ export default function TimeOverridePage() {
       {systemState && (
         <div
           style={{
-            background: '#fff',
+            background: 'var(--color-semantic-static-white)',
             borderRadius: 12,
             padding: 20,
             boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
@@ -114,8 +114,8 @@ export default function TimeOverridePage() {
           }}
         >
           <div>
-            <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 4 }}>현재 시스템 상태</div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: '#374151' }}>
+            <div style={{ fontSize: 12, color: 'var(--color-semantic-label-assistive)', marginBottom: 4 }}>현재 시스템 상태</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--color-semantic-label-normal)' }}>
               {systemState.year}년 {systemState.month}월 {systemState.week}주차
             </div>
           </div>
@@ -123,8 +123,8 @@ export default function TimeOverridePage() {
             style={{
               padding: '8px 16px',
               borderRadius: 20,
-              background: `${currentPeriod?.color ?? '#6b7280'}20`,
-              color: currentPeriod?.color ?? '#6b7280',
+              background: `rgb(from ${currentPeriod?.color ?? 'var(--color-semantic-label-alternative)'} r g b / 0.13)`,
+              color: currentPeriod?.color ?? 'var(--color-semantic-label-alternative)',
               fontWeight: 700,
               fontSize: 14,
             }}
@@ -137,7 +137,7 @@ export default function TimeOverridePage() {
       {/* Period selector */}
       <div
         style={{
-          background: '#fff',
+          background: 'var(--color-semantic-static-white)',
           borderRadius: 12,
           padding: 24,
           boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
@@ -155,10 +155,10 @@ export default function TimeOverridePage() {
                   flex: 1,
                   minWidth: 180,
                   padding: '16px 20px',
-                  border: `2px solid ${isSelected ? p.color : '#e5e7eb'}`,
+                  border: `2px solid ${isSelected ? p.color : 'var(--color-semantic-line-normal-neutral)'}`,
                   borderRadius: 12,
                   cursor: 'pointer',
-                  background: isSelected ? `${p.color}10` : '#fafafa',
+                  background: isSelected ? `rgb(from ${p.color} r g b / 0.06)` : 'var(--color-semantic-background-elevated-alternative)',
                   transition: 'all 0.15s',
                 }}
               >
@@ -171,10 +171,10 @@ export default function TimeOverridePage() {
                   style={{ display: 'none' }}
                 />
                 <div style={{ fontSize: 22, marginBottom: 6 }}>{p.emoji}</div>
-                <div style={{ fontWeight: 700, color: isSelected ? p.color : '#374151', marginBottom: 2 }}>
+                <div style={{ fontWeight: 700, color: isSelected ? p.color : 'var(--color-semantic-label-normal)', marginBottom: 2 }}>
                   {p.label}
                 </div>
-                <div style={{ fontSize: 12, color: '#6b7280' }}>{p.description}</div>
+                <div style={{ fontSize: 12, color: 'var(--color-semantic-label-alternative)' }}>{p.description}</div>
               </label>
             );
           })}
@@ -188,8 +188,8 @@ export default function TimeOverridePage() {
           disabled={loading || !selected}
           style={{
             padding: '12px 28px',
-            background: '#7c6bff',
-            color: '#fff',
+            background: 'var(--color-semantic-accent-background-violet)',
+            color: 'var(--color-semantic-static-white)',
             border: 'none',
             borderRadius: 10,
             cursor: loading ? 'not-allowed' : 'pointer',
@@ -205,9 +205,9 @@ export default function TimeOverridePage() {
           disabled={loading}
           style={{
             padding: '12px 28px',
-            background: '#fff',
-            color: '#374151',
-            border: '1px solid #d1d5db',
+            background: 'var(--color-semantic-static-white)',
+            color: 'var(--color-semantic-label-normal)',
+            border: '1px solid var(--color-semantic-line-solid-neutral)',
             borderRadius: 10,
             cursor: loading ? 'not-allowed' : 'pointer',
             fontWeight: 600,
@@ -226,8 +226,8 @@ export default function TimeOverridePage() {
             marginTop: 16,
             padding: '12px 16px',
             borderRadius: 8,
-            background: message.type === 'success' ? '#d1fae5' : '#fee2e2',
-            color: message.type === 'success' ? '#065f46' : '#dc2626',
+            background: message.type === 'success' ? 'var(--color-semantic-fill-alternative)' : 'var(--color-semantic-fill-alternative)',
+            color: message.type === 'success' ? 'var(--color-semantic-status-positive)' : 'var(--color-semantic-status-negative)',
             fontSize: 14,
             fontWeight: 500,
           }}
@@ -241,10 +241,10 @@ export default function TimeOverridePage() {
         style={{
           marginTop: 32,
           padding: 16,
-          background: '#f8f9fa',
+          background: 'var(--color-semantic-fill-alternative)',
           borderRadius: 10,
           fontSize: 13,
-          color: '#6b7280',
+          color: 'var(--color-semantic-label-alternative)',
           lineHeight: 1.6,
         }}
       >

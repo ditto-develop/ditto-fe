@@ -1,11 +1,11 @@
 "use client";
 
 import { Body1Normal } from "@/components/common/Text";
-import Card from "@/components/display/Card";
+import { Card } from "@/components/display/Card";
 import { useMemo } from "react";
 import styled from "styled-components";
 import Lottie from "lottie-react";
-import rippleAnimation from "../../../public/assets/ripple.json";
+import rippleAnimation from "@/assets/ripple.json";
 
 interface TimelineProps {
   currentStep: number; // 1, 2, 3 중 현재 단계
@@ -70,14 +70,14 @@ const NumberCircle = styled.div`
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background-color: #1a1815; /* 진한 검정/갈색 */
-  color: #ffffff;
+  background-color: var(--color-semantic-primary-normal); /* 진한 검정/갈색 */
+  color: var(--color-semantic-static-white);
   display: flex;
   justify-content: center;
   align-items: center;
 
   font-family: var(--font-pretendard); /* 폰트 설정 (필요시 변경) */
-  font-size: 12px;
+  font-size: var(--typography-caption-1-font-size);
   font-weight: 700;
   line-height: 100%;
 
@@ -126,7 +126,7 @@ interface TimeLineProps {
   date?: Date; // date가 없으면 오늘 날짜를 사용
 }
 
-export default function TimeLine({ date = new Date() }: TimeLineProps) {
+export function TimeLine({ date = new Date() }: TimeLineProps) {
   console.log('[src/components/home/Timeline.tsx] TimeLine'); // __component_log__
   const currentStep = useMemo(() => {
     const utc = date.getTime() + (date.getTimezoneOffset() * 60 * 1000);

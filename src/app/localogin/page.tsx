@@ -23,9 +23,9 @@ const Card = styled.div`
 `;
 
 const Title = styled.h1`
-  font-size: 20px;
+  font-size: var(--typography-heading-2-font-size);
   font-weight: 700;
-  color: var(--color-semantic-text-normal-strong);
+  color: var(--color-semantic-label-strong);
   margin: 0;
   text-align: center;
 `;
@@ -34,9 +34,9 @@ const Badge = styled.span`
   display: inline-block;
   padding: 2px 8px;
   border-radius: 4px;
-  background-color: var(--color-semantic-accent-normal);
+  background-color: var(--color-semantic-accent-background-violet);
   color: var(--color-semantic-background-normal-normal);
-  font-size: 11px;
+  font-size: var(--typography-caption-2-font-size);
   font-weight: 600;
   margin-left: 8px;
   vertical-align: middle;
@@ -49,9 +49,9 @@ const Form = styled.form`
 `;
 
 const Label = styled.label`
-  font-size: 13px;
+  font-size: var(--typography-label-2-font-size);
   font-weight: 500;
-  color: var(--color-semantic-text-normal-alternative);
+  color: var(--color-semantic-label-alternative);
   display: block;
   margin-bottom: 6px;
 `;
@@ -62,13 +62,13 @@ const Input = styled.input`
   border-radius: 10px;
   border: 1px solid var(--color-semantic-line-normal-normal);
   background-color: var(--color-semantic-background-normal-normal);
-  color: var(--color-semantic-text-normal-strong);
-  font-size: 15px;
+  color: var(--color-semantic-label-strong);
+  font-size: var(--typography-body-2-normal-font-size);
   outline: none;
   box-sizing: border-box;
 
   &:focus {
-    border-color: var(--color-semantic-accent-normal);
+    border-color: var(--color-semantic-accent-background-violet);
   }
 `;
 
@@ -77,9 +77,9 @@ const Button = styled.button`
   padding: 14px;
   border-radius: 10px;
   border: none;
-  background-color: var(--color-semantic-accent-normal);
+  background-color: var(--color-semantic-accent-background-violet);
   color: var(--color-semantic-background-normal-normal);
-  font-size: 15px;
+  font-size: var(--typography-body-2-normal-font-size);
   font-weight: 600;
   cursor: pointer;
   margin-top: 4px;
@@ -91,7 +91,7 @@ const Button = styled.button`
 `;
 
 const ErrorText = styled.p`
-  font-size: 13px;
+  font-size: var(--typography-label-2-font-size);
   color: var(--color-semantic-status-negative);
   text-align: center;
   margin: 0;
@@ -105,8 +105,8 @@ const HintBox = styled.div`
 `;
 
 const HintText = styled.p`
-  font-size: 12px;
-  color: var(--color-semantic-text-normal-alternative);
+  font-size: var(--typography-caption-1-font-size);
+  color: var(--color-semantic-label-alternative);
   margin: 0;
   line-height: 1.6;
 `;
@@ -120,8 +120,8 @@ const BlockedContainer = styled.div`
 `;
 
 const BlockedText = styled.p`
-  font-size: 16px;
-  color: var(--color-semantic-text-normal-strong);
+  font-size: var(--typography-body-1-normal-font-size);
+  color: var(--color-semantic-label-strong);
 `;
 
 export default function LocalLoginPage() {

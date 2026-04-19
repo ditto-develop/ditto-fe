@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import styled from "styled-components";
 
 interface TopNavigationProps {
@@ -7,6 +8,7 @@ interface TopNavigationProps {
     onClose?: () => void;
     label?: string;
     className?: string;
+    trailingElement?: React.ReactNode;
 }
 
 /**
@@ -14,8 +16,9 @@ interface TopNavigationProps {
  * 모바일 앱 상단 네비게이션 바.
  * back(←) 또는 close(×) 아이콘, 중앙 라벨을 선택적으로 사용.
  */
-export default function TopNavigation({ onBack, onClose, label, className }: TopNavigationProps) {
+export function TopNavigation({ onBack, onClose, label, className, trailingElement }: TopNavigationProps) {
   console.log('[src/shared/ui/TopNavigation/TopNavigation.tsx] TopNavigation'); // __component_log__
+    const hasTrailing = !!onClose || !!trailingElement;
     return (
         <NavContainer className={className}>
             <IconBox onClick={onBack} $isVisible={!!onBack}>
@@ -24,9 +27,13 @@ export default function TopNavigation({ onBack, onClose, label, className }: Top
 
             {label && <NavLabel>{label}</NavLabel>}
 
-            <IconBox onClick={onClose} $isVisible={!!onClose}>
-                <IconImg src="/icons/navigation/close.svg" alt="close" />
-            </IconBox>
+            {trailingElement ? (
+                <TrailingBox>{trailingElement}</TrailingBox>
+            ) : (
+                <IconBox onClick={onClose} $isVisible={!!onClose}>
+                    <IconImg src="/icons/navigation/close.svg" alt="close" />
+                </IconBox>
+            )}
         </NavContainer>
     );
 }
@@ -61,10 +68,18 @@ const IconImg = styled.img`
   display: block;
 `;
 
+const TrailingBox = styled.div`
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
 const NavLabel = styled.div`
-  font-size: 16px;
+  font-size: var(--typography-body-1-normal-font-size);
   font-weight: 700;
-  color: var(--color-semantic-label-strong, #1A1A1A);
+  color: var(--color-semantic-label-strong);
   text-align: center;
   flex: 1;
   white-space: nowrap;

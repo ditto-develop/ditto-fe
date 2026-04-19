@@ -11,7 +11,7 @@ export interface ProfileIntroViewProps {
     introNotes: Array<{ question: string; answer: string }>;
 }
 
-export default function ProfileIntroView({
+export function ProfileIntroView({
     avatarUrl,
     name,
     rating,
@@ -86,7 +86,7 @@ const AvatarWrapper = styled.div`
   height: 100px;
   border-radius: 50%;
   overflow: hidden;
-  background-color: var(--color-semantic-background-normal-normal, #F2F0ED);
+  background-color: var(--color-semantic-background-normal-normal);
   border: 1px solid rgba(108, 101, 95, 0.08);
 `;
 
@@ -104,9 +104,9 @@ const NameRow = styled.div`
 `;
 
 const ProfileName = styled.span`
-  font-size: 24px;
+  font-size: var(--typography-title-3-font-size);
   font-weight: 700;
-  color: var(--color-semantic-label-normal, #1A1815);
+  color: var(--color-semantic-label-normal);
 `;
 
 const RatingBadge = styled.div`
@@ -116,18 +116,18 @@ const RatingBadge = styled.div`
 `;
 
 const RatingStar = styled.span`
-  font-size: 14px;
-  color: var(--color-semantic-status-positive, #557A55);
+  font-size: var(--typography-label-1-normal-font-size);
+  color: var(--color-semantic-status-positive);
 `;
 
 const RatingText = styled.span`
-  font-size: 14px;
+  font-size: var(--typography-label-1-normal-font-size);
   font-weight: 600;
-  color: var(--color-semantic-status-positive, #557A55);
+  color: var(--color-semantic-status-positive);
 `;
 
 const ProfileMeta = styled.span`
-  font-size: 16px;
+  font-size: var(--typography-body-1-normal-font-size);
   font-weight: 500;
   color: var(--color-semantic-label-alternative);
   text-align: center;
@@ -152,8 +152,8 @@ const InterestBadge = styled.div`
   gap: 4px;
   padding: 4px 10px;
   border-radius: 6px;
-  background-color: var(--color-semantic-fill-normal, rgba(108, 101, 95, 0.08));
-  font-size: 13px;
+  background-color: var(--color-semantic-fill-normal);
+  font-size: var(--typography-label-2-font-size);
   font-weight: 500;
   color: var(--color-semantic-label-alternative);
 `;
@@ -163,7 +163,7 @@ export const QnACard = styled.div`
   min-height: 0;
   width: calc(100% - 32px);
   margin: 32px 16px 0;
-  background-color: var(--color-semantic-background-elevated-alternative, #FAF8F5);
+  background-color: var(--color-semantic-background-elevated-alternative);
   border-radius: 12px;
   overflow: visible;
   display: flex;
@@ -199,14 +199,14 @@ const IntroQAItem = styled.div`
 `;
 
 const IntroQAQuestion = styled.p`
-  font-size: 14px;
+  font-size: var(--typography-label-1-normal-font-size);
   font-weight: 600;
   color: var(--color-semantic-label-alternative);
   margin: 0;
 `;
 
 const IntroQAAnswer = styled.p`
-  font-size: 16px;
+  font-size: var(--typography-body-1-normal-font-size);
   font-weight: 400;
   color: var(--color-semantic-label-normal);
   margin: 0;
@@ -217,7 +217,7 @@ const IntroQAAnswer = styled.p`
 const QnADivider = styled.hr`
   margin: 24px 0;
   border: none;
-  border-top: 1px dashed var(--color-semantic-line-normal-neutral, #C7C1B9);
+  border-top: 1px dashed var(--color-semantic-line-normal-neutral);
   width: 100%;
 `;
 
@@ -237,7 +237,7 @@ const Dot = styled.div`
 `;
 
 const MoreText = styled.span`
-  font-size: 14px;
+  font-size: var(--typography-label-1-normal-font-size);
   font-weight: 600;
   color: var(--color-semantic-label-alternative);
   text-align: center;

@@ -18,8 +18,9 @@ import {
   Body1Normal,
   Headline1,
 } from "@/components/common/Text";
-import { SplashCarousel } from "../Carousle";
+import { SplashCarousel } from "@/components/onboarding/Carousel";
 import { KakaoLogin } from "@/components/input/KakaoLogin";
+import type { KakaoLoginResult } from "@/types/kakao";
 
 // --- Styled Components ---
 const TmpContainer = styled.div`
@@ -31,11 +32,11 @@ const TmpContainer = styled.div`
 `;
 
 interface Step0Props {
-  onLoginComplete: (result: any) => void; // This prop is kept for Tutorial.tsx but the logic inside is now empty
+  onLoginComplete: (result: KakaoLoginResult) => void; // This prop is kept for Tutorial.tsx but the logic inside is now empty
 }
 
 export function Step0({ onLoginComplete }: Step0Props) {
-  console.log('[src/components/onboarding/step/Step_0.tsx] Step0'); // __component_log__
+  console.log('[src/components/onboarding/step/Step0.tsx] Step0'); // __component_log__
   // All logic related to handleKakaoFlow, useEffect, and state has been removed
   // as it is now handled by /app/oauth/kakao/page.tsx.
   // This component is now only responsible for displaying the initial UI.
@@ -99,7 +100,7 @@ export function Step0({ onLoginComplete }: Step0Props) {
           <ButtonContainer>
             <KakaoLogin onLoginComplete={onLoginComplete} />
             <Caption1
-              $color="var(--Semantic-Label-Alternative, var(--Label-Alternative, rgba(47, 43, 39, 0.61)))"
+              $color="var(--color-semantic-label-alternative)"
             >
               회원가입 시{" "}
               <UnderlineBoldSpan>이용약관</UnderlineBoldSpan> 및{" "}

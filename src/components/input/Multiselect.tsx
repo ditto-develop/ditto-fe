@@ -57,8 +57,8 @@ export const MultiSelectChip: React.FC<MultiSelectChipProps> = ({
         <Body2Normal
           $color={
             selected
-              ? "var(--Semantic-Inverse-Label, var(--Inverse-Label, #F3F1EF))"
-              : "var(--Semantic-Label-Alternative, var(--Label-Alternative, rgba(47, 43, 39, 0.61)))"
+              ? "var(--color-semantic-inverse-label)"
+              : "var(--color-semantic-label-alternative)"
           }
         >
           {option.label}
@@ -134,13 +134,13 @@ const ChipButton = styled.button<{
 
   background-color: ${({ $selected }) =>
     $selected
-      ? "var(--Primary-Hover, #8E867F)"
+      ? "var(--color-semantic-primary-hover)"
       : "var(--Fill-Alternative, rgba(108, 101, 95, 0.05))"};
 
   color: ${({ $selected }) =>
     $selected
-      ? "#F3F1EF"
-      : "var(--color-semantic-label-alternative, var(--color-semantic-label-alternative, rgba(47, 43, 39, 0.61)))"};
+      ? "var(--color-semantic-inverse-label)"
+      : "var(--color-semantic-label-alternative, var(--color-semantic-label-alternative))"};
 
   &:hover:not(:disabled) {
     opacity: 0.9;
@@ -148,7 +148,7 @@ const ChipButton = styled.button<{
 
   &:disabled {
     cursor: default;
-    background-color: var(--chip-bg-disabled, #dedede);
-    color: var(--chip-text-disabled, #aaaaaa);
+    background-color: var(--color-semantic-interaction-disable);
+    color: var(--color-semantic-label-disable);
   }
 `;

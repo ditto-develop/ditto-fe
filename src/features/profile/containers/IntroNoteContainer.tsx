@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
-import { TopNavigation } from "@/shared/ui/TopNavigation";
-import AlertModal from "@/components/display/AlertModal";
+import { TopNavigation } from "@/shared/ui";
+import { AlertModal } from "@/components/display/AlertModal";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import type { IntroNoteState } from "@/features/profile";
 import { useUserProfile } from "@/features/profile/hooks/useUserProfile";
@@ -16,13 +16,13 @@ import {
 import { ProfileDetailService, type AnswerComparisonItemDto } from "@/lib/api";
 import { getUserIntroNotes, type IntroNoteAnswer } from "@/features/profile/api/profileApi";
 import { useToast } from "@/context/ToastContext";
-import ProfileIntroView, { QnACard } from "@/features/profile/ui/ProfileIntroView";
+import { ProfileIntroView, QnACard } from "@/features/profile/ui/ProfileIntroView";
 
 /**
  * IntroNoteContainer — Figma: 3.2 소개노트
  * 실제 API 연결 + 상태별 버튼 (before_request / after_acceptance / completed / chat_started)
  */
-export default function IntroNoteContainer({
+export function IntroNoteContainer({
     userId,
     quizSetId,
     matchRequestId,
@@ -271,11 +271,11 @@ const PageContainer = styled.div`
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  background-color: var(--color-semantic-background-normal-normal, #F2F0ED);
+  background-color: var(--color-semantic-background-normal-normal);
 `;
 
 const StateText = styled.p`
-  font-size: 14px;
+  font-size: var(--typography-label-1-normal-font-size);
   color: var(--color-semantic-label-alternative);
   text-align: center;
   padding: 32px 0;
@@ -295,7 +295,7 @@ const AvatarWrapper = styled.div`
   height: 100px;
   border-radius: 50%;
   overflow: hidden;
-  background-color: var(--color-semantic-background-normal-normal, #F2F0ED);
+  background-color: var(--color-semantic-background-normal-normal);
   border: 1px solid rgba(108, 101, 95, 0.08);
 `;
 
@@ -313,9 +313,9 @@ const NameRow = styled.div`
 `;
 
 const ProfileName = styled.span`
-  font-size: 24px;
+  font-size: var(--typography-title-3-font-size);
   font-weight: 700;
-  color: var(--color-semantic-label-normal, #1A1815);
+  color: var(--color-semantic-label-normal);
 `;
 
 const RatingBadge = styled.div`
@@ -325,18 +325,18 @@ const RatingBadge = styled.div`
 `;
 
 const RatingStar = styled.span`
-  font-size: 14px;
-  color: var(--color-semantic-status-positive, #557A55);
+  font-size: var(--typography-label-1-normal-font-size);
+  color: var(--color-semantic-status-positive);
 `;
 
 const RatingText = styled.span`
-  font-size: 14px;
+  font-size: var(--typography-label-1-normal-font-size);
   font-weight: 600;
-  color: var(--color-semantic-status-positive, #557A55);
+  color: var(--color-semantic-status-positive);
 `;
 
 const ProfileMeta = styled.span`
-  font-size: 16px;
+  font-size: var(--typography-body-1-normal-font-size);
   font-weight: 500;
   color: var(--color-semantic-label-alternative);
   text-align: center;
@@ -375,7 +375,7 @@ const QAItem = styled.div`
 `;
 
 const QAQuestion = styled.p`
-  font-size: 14px;
+  font-size: var(--typography-label-1-normal-font-size);
   font-weight: 600;
   color: var(--color-semantic-label-normal);
   margin: 0;
@@ -392,7 +392,7 @@ const QAAnswerChip = styled.span<{ $isMatch: boolean; $isMe?: boolean }>`
   align-items: center;
   padding: 4px 10px;
   border-radius: 20px;
-  font-size: 13px;
+  font-size: var(--typography-label-2-font-size);
   font-weight: 500;
   background-color: ${({ $isMatch, $isMe }) =>
     $isMatch
@@ -402,10 +402,10 @@ const QAAnswerChip = styled.span<{ $isMatch: boolean; $isMe?: boolean }>`
       : "rgba(179, 53, 40, 0.08)"};
   color: ${({ $isMatch, $isMe }) =>
     $isMatch
-      ? "var(--color-semantic-status-positive, #557A55)"
+      ? "var(--color-semantic-status-positive)"
       : $isMe
       ? "var(--color-semantic-label-normal)"
-      : "var(--color-semantic-status-negative, #B33528)"};
+      : "var(--color-semantic-status-negative)"};
 `;
 
 const BottomSection = styled.div`
@@ -419,11 +419,11 @@ const BottomSection = styled.div`
 
 const GradientFade = styled.div`
   height: 40px;
-  background: linear-gradient(to bottom, transparent, var(--color-semantic-background-normal-normal, #F2F0ED));
+  background: linear-gradient(to bottom, transparent, var(--color-semantic-background-normal-normal));
 `;
 
 const ButtonArea = styled.div`
-  background-color: var(--color-semantic-background-normal-normal, #F2F0ED);
+  background-color: var(--color-semantic-background-normal-normal);
   padding: 16px;
   padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   display: flex;
@@ -440,9 +440,9 @@ const PrimaryButton = styled.button`
   padding: 16px;
   border: none;
   border-radius: 12px;
-  background-color: var(--color-semantic-primary-normal, #1A1815);
-  color: var(--color-semantic-inverse-label, #FAF9F7);
-  font-size: 16px;
+  background-color: var(--color-semantic-primary-normal);
+  color: var(--color-semantic-inverse-label);
+  font-size: var(--typography-body-1-normal-font-size);
   font-weight: 600;
   cursor: pointer;
 
@@ -464,15 +464,15 @@ const CompletedButton = styled.button`
   padding: 12px 28px;
   border: none;
   border-radius: 12px;
-  background-color: var(--color-semantic-background-normal-alternative, #DDD8D3);
-  color: var(--color-semantic-label-assistive, rgba(47, 43, 39, 0.28));
-  font-size: 16px;
+  background-color: var(--color-semantic-background-normal-alternative);
+  color: var(--color-semantic-label-assistive);
+  font-size: var(--typography-body-1-normal-font-size);
   font-weight: 600;
   cursor: not-allowed;
 `;
 
 const ButtonIcon = styled.span`
-  font-size: 14px;
+  font-size: var(--typography-label-1-normal-font-size);
   display: flex;
   align-items: center;
 `;
@@ -485,9 +485,9 @@ const SecondaryButton = styled.button`
   padding: 16px;
   border: 1px solid var(--color-semantic-line-normal-normal);
   border-radius: 12px;
-  background-color: var(--color-semantic-background-normal-normal, #F2F0ED);
+  background-color: var(--color-semantic-background-normal-normal);
   color: var(--color-semantic-label-normal);
-  font-size: 16px;
+  font-size: var(--typography-body-1-normal-font-size);
   font-weight: 600;
   cursor: pointer;
 

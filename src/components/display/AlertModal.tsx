@@ -2,7 +2,7 @@
 
 import React from 'react';
 import styled from 'styled-components';
-import { Body2Normal, Headline1, Body1Bold } from '../common/Text';
+import { Body2Normal, Headline1, Body1Bold } from "@/components/common/Text";
 
 interface AlertModalProps {
     isOpen: boolean;
@@ -16,11 +16,12 @@ interface AlertModalProps {
     cancelParams?: {
         text: string;
         onClick: () => void;
+        isDestructive?: boolean;
     };
     onClose?: () => void; // Optional if handled by buttons
 }
 
-export default function AlertModal({
+export function AlertModal({
     isOpen,
     title,
     message,
@@ -39,7 +40,7 @@ export default function AlertModal({
                         {title}
                     </Headline1>
                     <Body2Normal
-                        $color="var(--color-semantic-label-alternative, rgba(47, 43, 39, 0.61))"
+                        $color="var(--color-semantic-label-alternative)"
                         style={{ whiteSpace: 'pre-wrap' }}
                     >
                         {message}
@@ -50,7 +51,7 @@ export default function AlertModal({
                     {cancelParams && (
                         <ActionButton
                             onClick={cancelParams.onClick}
-                            $variant="cancel"
+                            $variant={cancelParams.isDestructive ? 'destructive' : 'cancel'}
                         >
                             {cancelParams.text}
                         </ActionButton>
@@ -87,7 +88,7 @@ const AlertContainer = styled.div`
   width: 100%;
   max-width: 400px;
   min-width: 320px;
-  background-color: var(--color-semantic-background-elevated-normal, #E9E6E2);
+  background-color: var(--color-semantic-background-elevated-normal);
   border-radius: 12px;
   overflow: hidden;
   display: flex;
@@ -116,9 +117,9 @@ const ActionButton = styled(Body1Bold).attrs({ as: 'button' }) <{ $variant: 'con
   
   color: ${({ $variant }) => {
         switch ($variant) {
-            case 'destructive': return 'var(--color-semantic-status-destructive, #FF3B30)';
-            case 'cancel': return 'var(--color-semantic-label-alternative, rgba(47, 43, 39, 0.61))';
-            default: return 'var(--color-semantic-primary-normal, #1A1815)';
+            case 'destructive': return 'var(--color-semantic-status-destructive)';
+            case 'cancel': return 'var(--color-semantic-label-alternative)';
+            default: return 'var(--color-semantic-primary-normal)';
         }
     }};
 

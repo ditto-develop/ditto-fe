@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { adminFetch } from '../adminApi';
+import { adminFetch } from "@/app/admin/adminApi";
 
 interface DbStats {
   users: number;
@@ -42,11 +42,11 @@ const STAT_CARDS = [
 ];
 
 const STATUS_COLORS: Record<string, string> = {
-  PENDING: '#f59e0b',
-  ACCEPTED: '#10b981',
-  REJECTED: '#ef4444',
-  CANCELLED: '#6b7280',
-  EXPIRED: '#9ca3af',
+  PENDING: 'var(--color-semantic-status-cautionary)',
+  ACCEPTED: 'var(--color-semantic-status-positive)',
+  REJECTED: 'var(--color-semantic-status-negative)',
+  CANCELLED: 'var(--color-semantic-label-alternative)',
+  EXPIRED: 'var(--color-semantic-label-assistive)',
 };
 
 export default function DbPage() {
@@ -82,15 +82,15 @@ export default function DbPage() {
   return (
     <div>
       <h1 style={{ margin: '0 0 8px', fontSize: 24, fontWeight: 700 }}>DB 관리</h1>
-      <p style={{ color: '#666', margin: '0 0 32px' }}>데이터베이스 엔티티 현황</p>
+      <p style={{ color: 'var(--color-semantic-label-alternative)', margin: '0 0 32px' }}>데이터베이스 엔티티 현황</p>
 
       {error && (
-        <div style={{ background: '#fee2e2', color: '#dc2626', padding: 16, borderRadius: 8, marginBottom: 24 }}>
+        <div style={{ background: 'var(--color-semantic-fill-alternative)', color: 'var(--color-semantic-status-negative)', padding: 16, borderRadius: 8, marginBottom: 24 }}>
           {error}
         </div>
       )}
 
-      {!stats && !error && <p style={{ color: '#888' }}>로딩 중...</p>}
+      {!stats && !error && <p style={{ color: 'var(--color-semantic-label-assistive)' }}>로딩 중...</p>}
 
       {stats && (
         <>
@@ -100,15 +100,15 @@ export default function DbPage() {
               <div
                 key={key}
                 style={{
-                  background: '#fff',
+                  background: 'var(--color-semantic-static-white)',
                   borderRadius: 12,
                   padding: '20px 24px',
                   boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
                 }}
               >
                 <div style={{ fontSize: 28, marginBottom: 8 }}>{emoji}</div>
-                <div style={{ fontSize: 32, fontWeight: 700, color: '#1a1a2e' }}>{stats[key].toLocaleString()}</div>
-                <div style={{ color: '#666', fontSize: 14, marginTop: 4 }}>{label}</div>
+                <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--color-semantic-label-strong)' }}>{stats[key].toLocaleString()}</div>
+                <div style={{ color: 'var(--color-semantic-label-alternative)', fontSize: 14, marginTop: 4 }}>{label}</div>
               </div>
             ))}
           </div>
@@ -116,7 +116,7 @@ export default function DbPage() {
           {/* Match requests by status */}
           <div
             style={{
-              background: '#fff',
+              background: 'var(--color-semantic-static-white)',
               borderRadius: 12,
               padding: 24,
               boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
@@ -131,7 +131,7 @@ export default function DbPage() {
                   style={{
                     padding: '8px 16px',
                     borderRadius: 20,
-                    background: `${STATUS_COLORS[status]}20`,
+                    background: `rgb(from ${STATUS_COLORS[status]} r g b / 0.13)`,
                     color: STATUS_COLORS[status],
                     fontWeight: 600,
                     fontSize: 14,
@@ -146,7 +146,7 @@ export default function DbPage() {
           {/* 더미 데이터 생성 */}
           <div
             style={{
-              background: '#fff',
+              background: 'var(--color-semantic-static-white)',
               borderRadius: 12,
               padding: 24,
               boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
@@ -154,7 +154,7 @@ export default function DbPage() {
             }}
           >
             <h2 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 600 }}>더미 데이터 생성</h2>
-            <p style={{ color: '#666', fontSize: 13, margin: '0 0 16px' }}>
+            <p style={{ color: 'var(--color-semantic-label-alternative)', fontSize: 13, margin: '0 0 16px' }}>
               현재 주차 기준으로 1:1 유저 15명 + GROUP 유저 15명을 생성합니다.
               <br />
               프로필 사진, 소개문, 소개 노트(10문항), 퀴즈 완료, 매칭/채팅방까지 한 번에 세팅됩니다.
@@ -168,8 +168,8 @@ export default function DbPage() {
                 disabled={seeding}
                 style={{
                   padding: '10px 24px',
-                  background: seeding ? '#f3f4f6' : '#7c6bff',
-                  color: seeding ? '#9ca3af' : '#fff',
+                  background: seeding ? 'var(--color-semantic-fill-alternative)' : 'var(--color-semantic-accent-background-violet)',
+                  color: seeding ? 'var(--color-semantic-label-assistive)' : 'var(--color-semantic-static-white)',
                   border: 'none',
                   borderRadius: 8,
                   cursor: seeding ? 'not-allowed' : 'pointer',
@@ -182,19 +182,19 @@ export default function DbPage() {
 
               {seedResult && (
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                  <Badge color="#7c6bff" label={`생성된 유저 ${seedResult.createdUsers}명`} />
-                  <Badge color="#f59e0b" label={`1:1 ${seedResult.oneToOneUsers}명`} />
-                  <Badge color="#10b981" label={`GROUP ${seedResult.groupUsers}명`} />
-                  <Badge color="#3b82f6" label={`매칭 ${seedResult.matchRequests}건`} />
-                  <Badge color="#8b5cf6" label={`채팅방 ${seedResult.chatRooms}개`} />
+                  <Badge color="var(--color-semantic-accent-foreground-violet)" label={`생성된 유저 ${seedResult.createdUsers}명`} />
+                  <Badge color="var(--color-semantic-status-cautionary)" label={`1:1 ${seedResult.oneToOneUsers}명`} />
+                  <Badge color="var(--color-semantic-status-positive)" label={`GROUP ${seedResult.groupUsers}명`} />
+                  <Badge color="var(--color-semantic-accent-foreground-blue)" label={`매칭 ${seedResult.matchRequests}건`} />
+                  <Badge color="var(--color-semantic-accent-foreground-violet)" label={`채팅방 ${seedResult.chatRooms}개`} />
                 </div>
               )}
             </div>
           </div>
 
-          <div style={{ color: '#999', fontSize: 12 }}>
+          <div style={{ color: 'var(--color-semantic-label-assistive)', fontSize: 12 }}>
             Prisma Studio로 상세 조회:{' '}
-            <a href="http://localhost:5555" target="_blank" rel="noreferrer" style={{ color: '#7c6bff' }}>
+            <a href="http://localhost:5555" target="_blank" rel="noreferrer" style={{ color: 'var(--color-semantic-accent-foreground-violet)' }}>
               localhost:5555
             </a>{' '}
             (별도 실행 필요: <code>npx prisma studio</code>)
@@ -211,7 +211,7 @@ function Badge({ color, label }: { color: string; label: string }) {
       style={{
         padding: '4px 12px',
         borderRadius: 20,
-        background: `${color}18`,
+        background: `rgb(from ${color} r g b / 0.09)`,
         color,
         fontWeight: 600,
         fontSize: 13,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { adminFetch } from '../adminApi';
+import { adminFetch } from "@/app/admin/adminApi";
 
 interface Role {
   code: string;
@@ -109,9 +109,9 @@ export default function UsersPage() {
   };
 
   const roleColor: Record<string, string> = {
-    SUPER_ADMIN: '#7c6bff',
-    ADMIN: '#3b82f6',
-    USER: '#10b981',
+    SUPER_ADMIN: 'var(--color-semantic-accent-foreground-violet)',
+    ADMIN: 'var(--color-semantic-accent-foreground-blue)',
+    USER: 'var(--color-semantic-status-positive)',
   };
 
   const genderLabel = (g: string) => (g === 'MALE' ? '남' : g === 'FEMALE' ? '여' : g);
@@ -119,19 +119,19 @@ export default function UsersPage() {
   return (
     <div>
       <h1 style={{ margin: '0 0 8px', fontSize: 24, fontWeight: 700 }}>사용자 관리</h1>
-      <p style={{ color: '#666', margin: '0 0 24px' }}>
+      <p style={{ color: 'var(--color-semantic-label-alternative)', margin: '0 0 24px' }}>
         전체 사용자: <strong>{users.length}</strong>명
       </p>
 
       {error && (
-        <div style={{ background: '#fee2e2', color: '#dc2626', padding: 16, borderRadius: 8, marginBottom: 16 }}>
+        <div style={{ background: 'var(--color-semantic-fill-alternative)', color: 'var(--color-semantic-status-negative)', padding: 16, borderRadius: 8, marginBottom: 16 }}>
           {error}
         </div>
       )}
 
       <div
         style={{
-          background: '#fff',
+          background: 'var(--color-semantic-static-white)',
           borderRadius: 12,
           boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
           overflow: 'hidden',
@@ -139,9 +139,9 @@ export default function UsersPage() {
       >
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
           <thead>
-            <tr style={{ background: '#f8f9fa', borderBottom: '1px solid #e5e7eb' }}>
+            <tr style={{ background: 'var(--color-semantic-fill-alternative)', borderBottom: '1px solid var(--color-semantic-line-normal-neutral)' }}>
               {['닉네임', '이름', '전화번호', '성별', '나이', '역할', '가입일', ''].map((h) => (
-                <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>
+                <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: 'var(--color-semantic-label-normal)', whiteSpace: 'nowrap' }}>
                   {h}
                 </th>
               ))}
@@ -152,18 +152,18 @@ export default function UsersPage() {
               <tr
                 key={user.id}
                 style={{
-                  borderBottom: '1px solid #f3f4f6',
+                  borderBottom: '1px solid var(--color-semantic-fill-alternative)',
                   opacity: user.leftAt ? 0.5 : 1,
                 }}
               >
                 <td style={{ padding: '12px 16px', fontWeight: 500 }}>
                   {user.nickname}
-                  {user.leftAt && <span style={{ marginLeft: 6, fontSize: 11, color: '#9ca3af' }}>(탈퇴)</span>}
+                  {user.leftAt && <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--color-semantic-label-assistive)' }}>(탈퇴)</span>}
                 </td>
-                <td style={{ padding: '12px 16px', color: '#6b7280' }}>{user.name}</td>
-                <td style={{ padding: '12px 16px', color: '#6b7280' }}>{user.phoneNumber}</td>
-                <td style={{ padding: '12px 16px', color: '#6b7280' }}>{user.gender}</td>
-                <td style={{ padding: '12px 16px', color: '#6b7280' }}>{user.age}</td>
+                <td style={{ padding: '12px 16px', color: 'var(--color-semantic-label-alternative)' }}>{user.name}</td>
+                <td style={{ padding: '12px 16px', color: 'var(--color-semantic-label-alternative)' }}>{user.phoneNumber}</td>
+                <td style={{ padding: '12px 16px', color: 'var(--color-semantic-label-alternative)' }}>{user.gender}</td>
+                <td style={{ padding: '12px 16px', color: 'var(--color-semantic-label-alternative)' }}>{user.age}</td>
                 <td style={{ padding: '12px 16px' }}>
                   <span
                     style={{
@@ -171,14 +171,14 @@ export default function UsersPage() {
                       borderRadius: 12,
                       fontSize: 12,
                       fontWeight: 600,
-                      background: `${roleColor[user.role.code] ?? '#6b7280'}20`,
-                      color: roleColor[user.role.code] ?? '#6b7280',
+                      background: `rgb(from ${roleColor[user.role.code] ?? 'var(--color-semantic-label-alternative)'} r g b / 0.13)`,
+                      color: roleColor[user.role.code] ?? 'var(--color-semantic-label-alternative)',
                     }}
                   >
                     {user.role.code}
                   </span>
                 </td>
-                <td style={{ padding: '12px 16px', color: '#6b7280', whiteSpace: 'nowrap' }}>
+                <td style={{ padding: '12px 16px', color: 'var(--color-semantic-label-alternative)', whiteSpace: 'nowrap' }}>
                   {new Date(user.joinedAt).toLocaleDateString('ko-KR')}
                 </td>
                 <td style={{ padding: '12px 16px', display: 'flex', gap: 6 }}>
@@ -187,8 +187,8 @@ export default function UsersPage() {
                     disabled={matchLoading === user.id}
                     style={{
                       padding: '4px 10px',
-                      background: '#eff6ff',
-                      color: '#3b82f6',
+                      background: 'var(--color-semantic-fill-alternative)',
+                      color: 'var(--color-semantic-accent-background-lightBlue)',
                       border: 'none',
                       borderRadius: 6,
                       cursor: 'pointer',
@@ -204,8 +204,8 @@ export default function UsersPage() {
                     disabled={deleting === user.id}
                     style={{
                       padding: '4px 12px',
-                      background: '#fee2e2',
-                      color: '#dc2626',
+                      background: 'var(--color-semantic-fill-alternative)',
+                      color: 'var(--color-semantic-status-negative)',
                       border: 'none',
                       borderRadius: 6,
                       cursor: 'pointer',
@@ -220,7 +220,7 @@ export default function UsersPage() {
             ))}
             {users.length === 0 && !error && (
               <tr>
-                <td colSpan={8} style={{ padding: 32, textAlign: 'center', color: '#9ca3af' }}>
+                <td colSpan={8} style={{ padding: 32, textAlign: 'center', color: 'var(--color-semantic-label-assistive)' }}>
                   사용자가 없습니다.
                 </td>
               </tr>
@@ -240,7 +240,7 @@ export default function UsersPage() {
         >
           <div
             style={{
-              background: '#fff', borderRadius: 16, padding: 28, width: 560,
+              background: 'var(--color-semantic-static-white)', borderRadius: 16, padding: 28, width: 560,
               maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
             }}
             onClick={(e) => e.stopPropagation()}
@@ -251,27 +251,27 @@ export default function UsersPage() {
                   {matchModal.user.nickname}의 매칭 후보
                 </h2>
                 {matchModal.data.quizSetId && (
-                  <p style={{ margin: '4px 0 0', fontSize: 12, color: '#9ca3af' }}>
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--color-semantic-label-assistive)' }}>
                     퀴즈셋: {matchModal.data.quizSetId} · {matchModal.data.matchingType}
                   </p>
                 )}
               </div>
               <button
                 onClick={() => { setMatchModal(null); setMatchError(''); }}
-                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6b7280' }}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--color-semantic-label-alternative)' }}
               >
                 ✕
               </button>
             </div>
 
             {matchError && (
-              <div style={{ background: '#fee2e2', color: '#dc2626', padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 14 }}>
+              <div style={{ background: 'var(--color-semantic-fill-alternative)', color: 'var(--color-semantic-status-negative)', padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 14 }}>
                 {matchError}
               </div>
             )}
 
             {matchModal.data.candidates.length === 0 && !matchError && (
-              <p style={{ color: '#9ca3af', textAlign: 'center', padding: '24px 0' }}>
+              <p style={{ color: 'var(--color-semantic-label-assistive)', textAlign: 'center', padding: '24px 0' }}>
                 매칭 후보가 없습니다.
               </p>
             )}
@@ -281,14 +281,14 @@ export default function UsersPage() {
                 <div
                   key={c.userId}
                   style={{
-                    border: '1px solid #e5e7eb', borderRadius: 10, padding: '14px 16px',
+                    border: '1px solid var(--color-semantic-line-normal-neutral)', borderRadius: 10, padding: '14px 16px',
                     display: 'flex', alignItems: 'center', gap: 14,
                   }}
                 >
                   <div style={{
                     width: 36, height: 36, borderRadius: '50%',
-                    background: '#f3f4f6', display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', fontWeight: 700, color: '#6b7280', fontSize: 14, flexShrink: 0,
+                    background: 'var(--color-semantic-fill-alternative)', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', fontWeight: 700, color: 'var(--color-semantic-label-alternative)', fontSize: 14, flexShrink: 0,
                   }}>
                     {idx + 1}
                   </div>
@@ -297,18 +297,18 @@ export default function UsersPage() {
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 15 }}>{c.nickname}</div>
-                    <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>
+                    <div style={{ fontSize: 13, color: 'var(--color-semantic-label-alternative)', marginTop: 2 }}>
                       {genderLabel(c.gender)} · {c.age}세{c.location ? ` · ${c.location}` : ''}
                     </div>
                     {c.introduction && (
-                      <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 12, color: 'var(--color-semantic-label-assistive)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {c.introduction}
                       </div>
                     )}
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: '#3b82f6' }}>{c.matchRate}%</div>
-                    <div style={{ fontSize: 11, color: '#9ca3af' }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-semantic-accent-foreground-blue)' }}>{c.matchRate}%</div>
+                    <div style={{ fontSize: 11, color: 'var(--color-semantic-label-assistive)' }}>
                       {c.scoreBreakdown.matchedQuestions}/{c.scoreBreakdown.totalQuestions} 일치
                     </div>
                   </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, KeyboardEvent } from "react";
+import type { KeyboardEvent } from "react";
+import { useState, useRef } from "react";
 import styled from "styled-components";
 
 interface ChatInputProps {
@@ -8,7 +9,10 @@ interface ChatInputProps {
   disabled?: boolean;
 }
 
-export default function ChatInput({ onSend, disabled }: ChatInputProps) {
+const MAX_MESSAGE_LENGTH = 500;
+const TEXTAREA_MAX_HEIGHT = 190;
+
+export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [sending, setSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -23,6 +27,7 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
       setValue("");
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
+        textareaRef.current.style.overflowY = "hidden";
       }
     } finally {
       setSending(false);
@@ -40,7 +45,8 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
+    el.style.height = `${Math.min(el.scrollHeight, TEXTAREA_MAX_HEIGHT)}px`;
+    el.style.overflowY = el.scrollHeight > TEXTAREA_MAX_HEIGHT ? "auto" : "hidden";
   };
 
   const canSend = value.trim().length > 0 && !sending && !disabled;
@@ -56,6 +62,7 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
           onInput={handleInput}
           placeholder="텍스트를 입력해 주세요."
           rows={1}
+          maxLength={MAX_MESSAGE_LENGTH}
           disabled={disabled}
         />
         <SendButton onClick={handleSend} disabled={!canSend} $active={canSend}>
@@ -67,8 +74,9 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
 }
 
 const Outer = styled.div`
-  background-color: var(--color-semantic-background-normal-normal, #E9E6E2);
-  padding: 16px;
+  flex-shrink: 0;
+  background-color: var(--color-semantic-background-normal-normal);
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
 `;
 
@@ -76,11 +84,13 @@ const FieldWrapper = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 56px;
   padding: 12px;
   border-radius: 12px;
   border: 1px solid rgba(108, 101, 95, 0.16);
   box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.03);
   background: transparent;
+  box-sizing: border-box;
 `;
 
 const TextArea = styled.textarea`
@@ -91,15 +101,17 @@ const TextArea = styled.textarea`
   background: transparent;
   padding: 0 4px;
   font-family: inherit;
-  font-size: 16px;
+  font-size: var(--typography-body-1-normal-font-size);
   line-height: 1.5;
-  letter-spacing: 0.057px;
-  color: var(--color-semantic-label-normal, #1A1815);
-  max-height: 120px;
-  overflow-y: auto;
+  font-weight: 400;
+  letter-spacing: 0.0912px;
+  color: var(--color-semantic-label-normal);
+  max-height: 190px;
+  overflow-y: hidden;
+  box-sizing: border-box;
 
   &::placeholder {
-    color: rgba(47, 43, 39, 0.28);
+    color: var(--color-semantic-label-assistive);
   }
 `;
 
@@ -109,7 +121,7 @@ const SendButton = styled.button<{ $active: boolean }>`
   border-radius: 50%;
   border: none;
   cursor: ${({ $active }) => ($active ? "pointer" : "default")};
-  background-color: var(--color-semantic-primary-normal, #1A1815);
+  background-color: var(--color-semantic-primary-normal);
   display: flex;
   align-items: center;
   justify-content: center;

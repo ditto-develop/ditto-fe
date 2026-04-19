@@ -94,7 +94,7 @@ export const StepItem = styled.div`
     top: 23px;                /* 아이콘 크기에 맞춰 조정 */
     width: 2px;
     height: calc(100%); /* 다음 아이콘까지 연결되도록 */
-    background: #C7C1B9;       /* 라인 색상 (토큰으로 변경 가능) */
+    background: var(--color-semantic-line-solid-normal);       /* 라인 색상 (토큰으로 변경 가능) */
   }
 
   /* 마지막 아이템은 라인 제거 */
@@ -195,7 +195,7 @@ export const ProfileEdit = styled.div`
   background-color: black;
   border-radius: 50%;
 
-  background-image: url('/onboarding/profileimg/edit.svg');
+  background-image: url('/icons/action/edit.svg');
   background-repeat: no-repeat;
   background-position: center;
   background-size: 16px 16px; 

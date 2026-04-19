@@ -8,9 +8,10 @@ import {
 
 } from "@/context/ToastContext";
 
-import {
+import type {
 
-  CreateUserDto,
+  CreateUserDto} from "@/lib/api";
+import {
 
   IntroNotesService,
 
@@ -22,7 +23,7 @@ import {
 
 } from "@/lib/api";
 
-import {
+import type {
 
   ControlButtonVariant,
 
@@ -31,6 +32,7 @@ import {
   OnChange
 
 } from "@/types/type";
+import type { KakaoLoginResult } from "@/types/kakao";
 
 import {
 
@@ -54,9 +56,9 @@ import {
 
   Label1Normal
 
-} from "../common/Text";
+} from "@/components/common/Text";
 
-import OnboardingLayout from "./Onboarding_layout";
+import { OnboardingLayout } from "@/components/onboarding/OnboardingLayout";
 
 
 
@@ -64,49 +66,50 @@ import {
 
   Step0
 
-} from "./step/Step_0";
+} from "@/components/onboarding/step/Step0";
 
 
 
+import type {
+
+  Step1Ref
+
+} from "./step/Step_1";
 import {
 
   Step1Final,
 
-  Step1Identity,
-
-  Step1Ref
+  Step1Identity
 
 } from "./step/Step_1"; // Step1Final용 타입이 따로 있다면 import 필요
 
-import {
-
-  Step2Profile,
+import type {
 
   Step2Ref
 
 } from "./step/Step_2";
-
 import {
 
-  Step3Intro,
+  Step2Profile
+
+} from "./step/Step_2";
+
+import type {
 
   Step3Ref
 
 } from "./step/Step_3";
+import {
+
+  Step3Intro
+
+} from "./step/Step_3";
 
 interface TutorialProps {
-  initialData?: {
-    name?: string;
-    profileImage?: string;
-    email?: string;
-    gender?: string;
-    kakaoId?: number;
-    nickname?: string;
-    isRegistered?: boolean; // 기존 회원 여부
-  };
+  initialData?: KakaoLoginResult;
 }
 
-export default function Tutorial({ initialData }: TutorialProps) {
+export function Tutorial({ initialData }: TutorialProps) {
   console.log('[src/components/onboarding/Tutorial.tsx] Tutorial'); // __component_log__
   const { showToast, removeToast } = useToast();
   const router = useRouter();
@@ -171,8 +174,7 @@ export default function Tutorial({ initialData }: TutorialProps) {
   }, [initialData, router]);
 
   // --- Step 0에서 로그인 완료 시 호출되는 핸들러 ---
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleLoginComplete = (loginResult: any) => {
+  const handleLoginComplete = (loginResult: KakaoLoginResult) => {
     console.log('Data after Kakao login:', loginResult);
     if (loginResult.isRegistered) {
       router.push("/home");

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { adminFetch } from '../adminApi';
+import { adminFetch } from "@/app/admin/adminApi";
 
 interface QuizProgressItem {
   userId: string;
@@ -28,14 +28,14 @@ interface ApiResponse {
 }
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
-  COMPLETED:   { label: '완료', color: '#10b981' },
-  IN_PROGRESS: { label: '진행중', color: '#f59e0b' },
-  NOT_STARTED: { label: '미시작', color: '#9ca3af' },
+  COMPLETED:   { label: '완료', color: 'var(--color-semantic-status-positive)' },
+  IN_PROGRESS: { label: '진행중', color: 'var(--color-semantic-status-cautionary)' },
+  NOT_STARTED: { label: '미시작', color: 'var(--color-semantic-label-assistive)' },
 };
 
 const MATCHING_TYPE_LABEL: Record<string, { label: string; color: string }> = {
-  ONE_TO_ONE: { label: '1:1', color: '#7c6bff' },
-  GROUP:      { label: '그룹', color: '#3b82f6' },
+  ONE_TO_ONE: { label: '1:1', color: 'var(--color-semantic-accent-foreground-violet)' },
+  GROUP:      { label: '그룹', color: 'var(--color-semantic-accent-foreground-blue)' },
 };
 
 export default function QuizProgressPage() {
@@ -70,13 +70,13 @@ export default function QuizProgressPage() {
           onClick={fetchData}
           style={{
             padding: '6px 14px',
-            background: '#f3f4f6',
+            background: 'var(--color-semantic-fill-alternative)',
             border: 'none',
             borderRadius: 8,
             cursor: 'pointer',
             fontSize: 13,
             fontWeight: 500,
-            color: '#374151',
+            color: 'var(--color-semantic-label-normal)',
           }}
         >
           새로고침
@@ -86,23 +86,23 @@ export default function QuizProgressPage() {
       {/* 주차 + 요약 */}
       {data && (
         <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-          <div style={{ padding: '10px 16px', background: '#fff', borderRadius: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', fontSize: 14, color: '#374151' }}>
+          <div style={{ padding: '10px 16px', background: 'var(--color-semantic-static-white)', borderRadius: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', fontSize: 14, color: 'var(--color-semantic-label-normal)' }}>
             📅 {data.year}년 {data.month}월 {data.week}주차
           </div>
-          <div style={{ padding: '10px 16px', background: '#fff', borderRadius: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', fontSize: 14 }}>
+          <div style={{ padding: '10px 16px', background: 'var(--color-semantic-static-white)', borderRadius: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', fontSize: 14 }}>
             전체 <strong>{data.total}</strong>명
           </div>
-          <div style={{ padding: '10px 16px', background: '#d1fae515', border: '1px solid #10b98130', borderRadius: 10, fontSize: 14, color: '#10b981' }}>
+          <div style={{ padding: '10px 16px', background: 'rgb(from var(--color-semantic-fill-alternative) r g b / 0.08)', border: '1px solid rgb(from var(--color-semantic-accent-background-lime) r g b / 0.19)', borderRadius: 10, fontSize: 14, color: 'var(--color-semantic-status-positive)' }}>
             완료 <strong>{completedCount}</strong>명
           </div>
-          <div style={{ padding: '10px 16px', background: '#fef3c715', border: '1px solid #f59e0b30', borderRadius: 10, fontSize: 14, color: '#f59e0b' }}>
+          <div style={{ padding: '10px 16px', background: 'rgb(from var(--color-semantic-fill-alternative) r g b / 0.08)', border: '1px solid rgb(from var(--color-semantic-accent-background-redOrange) r g b / 0.19)', borderRadius: 10, fontSize: 14, color: 'var(--color-semantic-status-cautionary)' }}>
             진행중 <strong>{inProgressCount}</strong>명
           </div>
         </div>
       )}
 
       {error && (
-        <div style={{ background: '#fee2e2', color: '#dc2626', padding: 16, borderRadius: 8, marginBottom: 16 }}>
+        <div style={{ background: 'var(--color-semantic-fill-alternative)', color: 'var(--color-semantic-status-negative)', padding: 16, borderRadius: 8, marginBottom: 16 }}>
           {error}
         </div>
       )}
@@ -123,8 +123,8 @@ export default function QuizProgressPage() {
                 cursor: 'pointer',
                 fontSize: 13,
                 fontWeight: active ? 700 : 400,
-                background: active ? '#1a1a2e' : '#f3f4f6',
-                color: active ? '#fff' : '#374151',
+                background: active ? 'var(--color-semantic-inverse-background)' : 'var(--color-semantic-fill-alternative)',
+                color: active ? 'var(--color-semantic-static-white)' : 'var(--color-semantic-label-normal)',
                 transition: 'all 0.15s',
               }}
             >
@@ -135,12 +135,12 @@ export default function QuizProgressPage() {
       </div>
 
       {/* 테이블 */}
-      <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--color-semantic-static-white)', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
           <thead>
-            <tr style={{ background: '#f8f9fa', borderBottom: '1px solid #e5e7eb' }}>
+            <tr style={{ background: 'var(--color-semantic-fill-alternative)', borderBottom: '1px solid var(--color-semantic-line-normal-neutral)' }}>
               {['닉네임', '이메일', '퀴즈셋', '타입', '상태', '선택일시', '완료일시'].map((h) => (
-                <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>
+                <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: 'var(--color-semantic-label-normal)', whiteSpace: 'nowrap' }}>
                   {h}
                 </th>
               ))}
@@ -149,26 +149,26 @@ export default function QuizProgressPage() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={7} style={{ padding: 32, textAlign: 'center', color: '#9ca3af' }}>불러오는 중...</td>
+                <td colSpan={7} style={{ padding: 32, textAlign: 'center', color: 'var(--color-semantic-label-assistive)' }}>불러오는 중...</td>
               </tr>
             )}
             {!loading && filtered.length === 0 && (
               <tr>
-                <td colSpan={7} style={{ padding: 32, textAlign: 'center', color: '#9ca3af' }}>데이터가 없습니다.</td>
+                <td colSpan={7} style={{ padding: 32, textAlign: 'center', color: 'var(--color-semantic-label-assistive)' }}>데이터가 없습니다.</td>
               </tr>
             )}
             {filtered.map((item) => {
-              const statusInfo = STATUS_LABEL[item.status] ?? { label: item.status, color: '#9ca3af' };
-              const typeInfo = MATCHING_TYPE_LABEL[item.matchingType] ?? { label: item.matchingType, color: '#9ca3af' };
+              const statusInfo = STATUS_LABEL[item.status] ?? { label: item.status, color: 'var(--color-semantic-label-assistive)' };
+              const typeInfo = MATCHING_TYPE_LABEL[item.matchingType] ?? { label: item.matchingType, color: 'var(--color-semantic-label-assistive)' };
               return (
-                <tr key={item.userId} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                <tr key={item.userId} style={{ borderBottom: '1px solid var(--color-semantic-fill-alternative)' }}>
                   <td style={{ padding: '12px 16px', fontWeight: 500 }}>{item.nickname}</td>
-                  <td style={{ padding: '12px 16px', color: '#6b7280' }}>{item.email}</td>
-                  <td style={{ padding: '12px 16px', color: '#6b7280', maxWidth: 200 }}>{item.quizSetTitle}</td>
+                  <td style={{ padding: '12px 16px', color: 'var(--color-semantic-label-alternative)' }}>{item.email}</td>
+                  <td style={{ padding: '12px 16px', color: 'var(--color-semantic-label-alternative)', maxWidth: 200 }}>{item.quizSetTitle}</td>
                   <td style={{ padding: '12px 16px' }}>
                     <span style={{
                       padding: '2px 8px', borderRadius: 12, fontSize: 12, fontWeight: 600,
-                      background: `${typeInfo.color}20`, color: typeInfo.color,
+                      background: `rgb(from ${typeInfo.color} r g b / 0.13)`, color: typeInfo.color,
                     }}>
                       {typeInfo.label}
                     </span>
@@ -176,15 +176,15 @@ export default function QuizProgressPage() {
                   <td style={{ padding: '12px 16px' }}>
                     <span style={{
                       padding: '2px 8px', borderRadius: 12, fontSize: 12, fontWeight: 600,
-                      background: `${statusInfo.color}20`, color: statusInfo.color,
+                      background: `rgb(from ${statusInfo.color} r g b / 0.13)`, color: statusInfo.color,
                     }}>
                       {statusInfo.label}
                     </span>
                   </td>
-                  <td style={{ padding: '12px 16px', color: '#6b7280', whiteSpace: 'nowrap' }}>
+                  <td style={{ padding: '12px 16px', color: 'var(--color-semantic-label-alternative)', whiteSpace: 'nowrap' }}>
                     {new Date(item.selectedAt).toLocaleString('ko-KR')}
                   </td>
-                  <td style={{ padding: '12px 16px', color: '#6b7280', whiteSpace: 'nowrap' }}>
+                  <td style={{ padding: '12px 16px', color: 'var(--color-semantic-label-alternative)', whiteSpace: 'nowrap' }}>
                     {item.completedAt ? new Date(item.completedAt).toLocaleString('ko-KR') : '-'}
                   </td>
                 </tr>

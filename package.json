@@ -39,6 +39,7 @@
     "@types/styled-components": "^5.1.36",
     "eslint": "^9",
     "eslint-config-next": "16.0.5",
+    "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-storybook": "^0.11.0",
     "openapi-typescript-codegen": "^0.30.0",
     "playwright": "^1.57.0",

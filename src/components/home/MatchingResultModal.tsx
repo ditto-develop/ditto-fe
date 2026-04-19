@@ -2,9 +2,9 @@
 
 import React from 'react';
 import styled from 'styled-components';
-import FullScreenModal from '../display/FullScreenModal'; // Adjust import path if needed
-import Nav from '../display/Nav';
-import ProfileDetailModal from './ProfileDetailModal';
+import { FullScreenModal } from "@/components/display/FullScreenModal"; // Adjust import path if needed
+import { Nav } from "@/components/display/Nav";
+import { ProfileDetailModal } from "@/components/home/ProfileDetailModal";
 import {
     Heading2Bold,
     Body2Normal,
@@ -12,8 +12,8 @@ import {
     Caption2,
     Label2,
     Headline2
-} from '../common/Text';
-import { AlertStatus } from '../display/Card'; // Reuse AlertStatus type
+} from "@/components/common/Text";
+import type { AlertStatus } from "@/components/display/Card"; // Reuse AlertStatus type
 
 // --- Types ---
 interface MatchingResultModalProps {
@@ -100,7 +100,7 @@ const MOCK_PROFILES: MatchProfile[] = [
     }
 ];
 
-export default function MatchingResultModal({ isOpen, onClose }: MatchingResultModalProps) {
+export function MatchingResultModal({ isOpen, onClose }: MatchingResultModalProps) {
   console.log('[src/components/home/MatchingResultModal.tsx] MatchingResultModal'); // __component_log__
     const [selectedProfile, setSelectedProfile] = React.useState<MatchProfile | null>(null);
 
@@ -114,22 +114,22 @@ export default function MatchingResultModal({ isOpen, onClose }: MatchingResultM
                 <HeaderContainer>
 
                     <TitleSection>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <MatchTypeRow>
                             <img src="/icons/content/people.svg" alt="" width={16} height={16} />
-                            <Caption2 $color="var(--color-semantic-accent-foreground-vintage-pink, #956B72)">1:1 매칭</Caption2>
-                        </div>
-                        <Heading2Bold style={{ fontSize: '24px', margin: '4px 0 8px 0' }}>이번 주 매칭 결과</Heading2Bold>
-                        <Body2Normal $color="var(--color-semantic-label-neutral)" style={{ whiteSpace: 'pre-wrap' }}>
+                            <Caption2 $color="var(--color-semantic-accent-foreground-vintage-pink)">1:1 매칭</Caption2>
+                        </MatchTypeRow>
+                        <ResultTitle>이번 주 매칭 결과</ResultTitle>
+                        <ResultDescription $color="var(--color-semantic-label-neutral)">
                             나와 가장 비슷한 답을 한 사람들을 찾았어요.{'\n'}
                             서로를 선택한 단 한사람과 대화를 나눌 수 있어요.
-                        </Body2Normal>
+                        </ResultDescription>
                     </TitleSection>
                 </HeaderContainer>
 
                 {/* 2. Content Body (List of Profiles) */}
                 <ContentBody>
                     {MOCK_PROFILES.map((profile) => (
-                        <ProfileCard key={profile.id} onClick={() => setSelectedProfile(profile)} style={{ cursor: 'pointer' }}>
+                        <ProfileCard key={profile.id} onClick={() => setSelectedProfile(profile)}>
                             {/* Badge Row */}
                             <BadgeRow>
                                 <Badge $status={profile.badgeColor}>
@@ -151,7 +151,7 @@ export default function MatchingResultModal({ isOpen, onClose }: MatchingResultM
                                 <TextInfo>
                                     <NameRow>
                                         <Headline2>{profile.name}</Headline2>
-                                        <img src="/icons/navigation/chevron-right.svg" alt="Detail" width={24} height={24} style={{ opacity: 0.3 }} />
+                                        <ChevronIcon src="/icons/navigation/chevron-right.svg" alt="Detail" width={24} height={24} />
                                     </NameRow>
                                     <Label2 $color="var(--color-semantic-label-alternative)">
                                         {profile.ageRange} · {profile.gender} · {profile.location}
@@ -167,9 +167,9 @@ export default function MatchingResultModal({ isOpen, onClose }: MatchingResultM
                                         {profile.statusIcon && (
                                             <StatusIconImg src={profile.statusIcon} alt="" width={12} height={12} />
                                         )}
-                                        <Caption1 style={{ color: profile.statusColor, fontWeight: 500 }}>
+                                        <StatusText $statusColor={profile.statusColor}>
                                             {profile.statusText}
-                                        </Caption1>
+                                        </StatusText>
                                     </StatusOverlay>
                                 )}
                             </InfoCard>
@@ -215,6 +215,21 @@ const TitleSection = styled.div`
   flex-direction: column;
 `;
 
+const MatchTypeRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const ResultTitle = styled(Heading2Bold)`
+  font-size: var(--typography-title-3-font-size);
+  margin: 4px 0 8px 0;
+`;
+
+const ResultDescription = styled(Body2Normal)`
+  white-space: pre-wrap;
+`;
+
 const ContentBody = styled.div`
   flex: 1;
   padding: 32px 16px;
@@ -223,13 +238,14 @@ const ContentBody = styled.div`
   gap: 24px;
   overflow-y: auto;
   padding-bottom: 50px;
-  background-color: var(--color-semantic-background-normal-normal, #E9E6E2);
+  background-color: var(--color-semantic-background-normal-normal);
 `;
 
 const ProfileCard = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
+  cursor: pointer;
 `;
 
 const BadgeRow = styled.div`
@@ -258,7 +274,7 @@ const Badge = styled.div<{ $status: AlertStatus }>`
 `;
 
 const InfoCard = styled.div`
-  background-color: var(--color-semantic-fill-normal, rgba(108, 101, 95, 0.08));
+  background-color: var(--color-semantic-fill-normal);
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -272,7 +288,7 @@ const AvatarWrapper = styled.div`
   height: 80px;
   border-radius: 50%;
   overflow: hidden;
-  background-color: var(--color-semantic-background-normal-alternative, #ddd8d3);
+  background-color: var(--color-semantic-background-normal-alternative);
   flex-shrink: 0;
   display: flex;
   justify-content: center;
@@ -300,6 +316,10 @@ const NameRow = styled.div`
   width: 100%;
 `;
 
+const ChevronIcon = styled.img`
+  opacity: 0.3;
+`;
+
 const StatusOverlay = styled.div`
   position: absolute;
   bottom: 16px;
@@ -309,9 +329,14 @@ const StatusOverlay = styled.div`
   gap: 2px;
 `;
 
+const StatusText = styled(Caption1)<{ $statusColor?: string }>`
+  color: ${({ $statusColor }) => $statusColor ?? 'var(--color-semantic-label-neutral)'};
+  font-weight: 500;
+`;
+
 const StatusIcon = styled.span`
-  font-size: 12px;
-  color: var(--color-semantic-status-positive, #557A55);
+  font-size: var(--typography-caption-1-font-size);
+  color: var(--color-semantic-status-positive);
 `;
 
 const StatusIconImg = styled.img`

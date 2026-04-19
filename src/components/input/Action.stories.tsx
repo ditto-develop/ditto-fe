@@ -15,7 +15,7 @@ const meta: Meta<typeof ActionSheet> = {
   },
 };
 
-export default meta;
+export { meta };
 type Story = StoryObj<typeof meta>;
 
 /**
@@ -29,11 +29,11 @@ const MobileMock = ({ children }: { children: React.ReactNode }) => (
       maxWidth: "100%",
       height: 800,
       margin: "0 auto",
-      background: "#f5f5f5",
+      background: "var(--color-semantic-background-elevated-alternative)",
       display: "flex",
       flexDirection: "column",
       justifyContent: "flex-end",
-      border: "1px solid #ddd",
+      border: "1px solid var(--color-semantic-line-normal-neutral)",
       borderRadius: 16,
       overflow: "hidden",
     }}
@@ -107,8 +107,8 @@ export const StickyBottom: Story = {
         maxWidth: "100%",
         height: 800,
         margin: "0 auto",
-        background: "#f5f5f5",
-        border: "1px solid #ddd",
+        background: "var(--color-semantic-background-elevated-alternative)",
+        border: "1px solid var(--color-semantic-line-normal-neutral)",
         borderRadius: 16,
         position: "relative",
         overflow: "hidden",

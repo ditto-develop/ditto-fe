@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import MatchingResultContainer from "@/features/matching/containers/MatchingResultContainer";
+import { MatchingResultContainer } from "@/features/matching/containers/MatchingResultContainer";
 import type { ProfileClickInfo } from "@/features/matching/containers/MatchingResultContainer";
 
 export default function MatchingPage() {

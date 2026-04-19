@@ -1,6 +1,6 @@
 import React, { useState, forwardRef, useImperativeHandle } from "react";
 import styled from "styled-components";
-import { Caption1 } from "../common/Text";
+import { Caption1 } from "@/components/common/Text";
 
 interface TextAreaWithActionsProps {
   id: string; // 각 컴포넌트 고유 ID
@@ -167,7 +167,7 @@ const StyledTextarea = styled.textarea`
   outline: none;
   resize: none;
   background: transparent;
-  font-size: 16px;
+  font-size: var(--typography-body-1-normal-font-size);
   line-height: 1.4;
 
   &::placeholder {
@@ -176,7 +176,7 @@ const StyledTextarea = styled.textarea`
 `;
 
 const SavedText = styled.p`
-  font-size: 16px;
+  font-size: var(--typography-body-1-normal-font-size);
   margin: 0;
   padding: 4px 0;
   cursor: pointer;
@@ -190,7 +190,7 @@ const FooterRow = styled.div`
 
   p {
     margin: 0;
-    font-size: 13px;
+    font-size: var(--typography-label-2-font-size);
     color: var(--color-semantic-label-alternative);
   }
 `;
@@ -203,7 +203,7 @@ const ActionGroup = styled.div`
   button {
     border: none;
     background: none;
-    font-size: 15px;
+    font-size: var(--typography-body-2-normal-font-size);
     cursor: pointer;
     padding: 4px 0;
   }

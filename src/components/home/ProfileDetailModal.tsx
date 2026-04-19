@@ -2,17 +2,43 @@
 
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import FullScreenModal from '../display/FullScreenModal';
-import Nav from '../display/Nav';
-import AlertModal from '../display/AlertModal';
-import Toast from '../display/Toast';
-import ProfileIntroView from '@/features/profile/ui/ProfileIntroView';
-import { ActionButton, ActionSheet } from '../input/Action';
+import { FullScreenModal } from "@/components/display/FullScreenModal";
+import { Nav } from "@/components/display/Nav";
+import { AlertModal } from "@/components/display/AlertModal";
+import { ProfileIntroView } from '@/features/profile/ui/ProfileIntroView';
+import { ActionButton, ActionSheet } from "@/components/input/Action";
+import { getUserProfile, getUserIntroNotes, type IntroNoteAnswer } from '@/features/profile/api/profileApi';
+import { toLocationLabel, toOccupationLabel, toInterestLabel } from '@/shared/lib/profileLabels';
+import { useToast } from '@/context/ToastContext';
+
+export interface ProfileDetailProfile {
+  id?: string;
+  userId?: string;
+  name: string;
+  avatarUrl?: string | null;
+  age?: number;
+  ageRange?: string;
+  gender?: string;
+  location?: string | null;
+  bio?: string | null;
+  matchCount?: number;
+  statusText?: string;
+  statusIcon?: string;
+  statusColor?: string;
+}
+
+interface ProfileDetailData {
+  profileId: string;
+  introNotes: IntroNoteAnswer[];
+  interests: string[];
+  rating?: number;
+  occupation?: string;
+}
 
 interface ProfileDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  profile: any;
+  profile: ProfileDetailProfile | null;
   hideCta?: boolean;
   isAlreadyRequested?: boolean;
 }
@@ -23,7 +49,7 @@ const CheckIcon = () => (
   </svg>
 );
 
-export default function ProfileDetailModal({
+export function ProfileDetailModal({
   isOpen,
   onClose,
   profile,
@@ -32,16 +58,40 @@ export default function ProfileDetailModal({
 }: ProfileDetailModalProps) {
   console.log('[src/components/home/ProfileDetailModal.tsx] ProfileDetailModal'); // __component_log__
   const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const [toastMessage, setToastMessage] = useState<React.ReactNode | null>(null);
-  const [isRequested, setIsRequested] = useState(isAlreadyRequested);
+  const [requestedProfileKey, setRequestedProfileKey] = useState<string | null>(null);
+  const [detailData, setDetailData] = useState<ProfileDetailData | null>(null);
+  const { showToast } = useToast();
+  const profileId = profile?.id ?? profile?.userId;
+  const profileKey = profileId ?? profile?.name ?? null;
+  const isRequested = isAlreadyRequested || (profileKey !== null && requestedProfileKey === profileKey);
 
   useEffect(() => {
-    setIsRequested(isAlreadyRequested);
-  }, [isAlreadyRequested, profile]);
+    if (!isOpen || !profileId) return;
+    let cancelled = false;
+
+    Promise.all([
+      getUserProfile(profileId).catch(() => null),
+      getUserIntroNotes(profileId).catch(() => []),
+    ]).then(([dto, notes]) => {
+      if (cancelled) return;
+      setDetailData({
+        profileId,
+        introNotes: notes,
+        interests: (dto?.interests ?? []).map(toInterestLabel),
+        rating: dto?.rating,
+        occupation: dto?.occupation ? toOccupationLabel(dto.occupation) : undefined,
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, profileId]);
 
   if (!profile) return null;
 
-  const metaText = [profile.ageRange, profile.gender, profile.location, '유통/판매']
+  const currentDetailData = detailData?.profileId === profileId ? detailData : null;
+  const metaText = [profile.ageRange, profile.gender, profile.location ? toLocationLabel(profile.location) || profile.location : undefined, currentDetailData?.occupation]
     .filter(Boolean)
     .join(' · ');
 
@@ -52,16 +102,12 @@ export default function ProfileDetailModal({
 
         <ContentBody>
           <ProfileIntroView
-            avatarUrl={profile.avatarUrl}
+            avatarUrl={profile.avatarUrl ?? '/assets/avatar/m1.png'}
             name={profile.name}
-            rating={4.5}
+            rating={currentDetailData?.rating}
             metaText={metaText}
-            interests={['🏃 운동', '🎬 영화/드라마', '🖼️ 전시']}
-            introNotes={[
-              { question: 'Q5. 최근 1년 내 가장 잘한 선택은?', answer: '퇴사하고 커피 공부한 것' },
-              { question: 'Q6. 나를 가장 행복하게 만드는 순간은?', answer: '새로운 여행지의 카페가보기' },
-              { question: 'Q10. 나를 한 단어로 표현한다면?', answer: '조용한 카페 탐방러' },
-            ]}
+            interests={currentDetailData?.interests ?? []}
+            introNotes={currentDetailData?.introNotes ?? []}
           />
         </ContentBody>
 
@@ -69,15 +115,14 @@ export default function ProfileDetailModal({
           <BottomActionContainer>
             <ActionSheet>
               {isRequested ? (
-                <ActionButton
+                <DisabledRequestButton
                   variant="disabled"
                   disabled={true}
                   onClick={() => {}}
                   icon={<CheckIcon />}
-                  style={{ backgroundColor: 'var(--color-semantic-interaction-disable, #DDD8D3)' }}
                 >
                   대화 신청 완료
-                </ActionButton>
+                </DisabledRequestButton>
               ) : (
                 <ActionButton
                   variant="primary"
@@ -90,18 +135,6 @@ export default function ProfileDetailModal({
             </ActionSheet>
           </BottomActionContainer>
         )}
-
-        {toastMessage && (
-          <ToastContainer>
-            <Toast
-              id="request-toast"
-              message={toastMessage}
-              type="none"
-              onClose={() => setToastMessage(null)}
-              duration={3000}
-            />
-          </ToastContainer>
-        )}
       </FullScreenModal>
 
       <AlertModal
@@ -111,8 +144,11 @@ export default function ProfileDetailModal({
         confirmParams={{
           text: '네, 신청할게요',
           onClick: () => {
-            setToastMessage('대화 신청을 완료했어요.');
-            setIsRequested(true);
+            showToast('대화 신청을 완료했어요.', 'none', {
+              id: 'request-toast',
+              duration: 3000,
+            });
+            setRequestedProfileKey(profileKey);
             setIsAlertOpen(false);
           },
         }}
@@ -133,7 +169,7 @@ const ContentBody = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  background-color: var(--color-semantic-background-normal-normal, #F2F0ED);
+  background-color: var(--color-semantic-background-normal-normal);
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
 `;
@@ -152,10 +188,6 @@ const BottomActionContainer = styled.div`
   }
 `;
 
-const ToastContainer = styled.div`
-  position: absolute;
-  bottom: 100px;
-  left: 16px;
-  right: 16px;
-  z-index: 20;
+const DisabledRequestButton = styled(ActionButton)`
+  background-color: var(--color-semantic-interaction-disable);
 `;

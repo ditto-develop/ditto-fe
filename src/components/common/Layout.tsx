@@ -23,7 +23,7 @@ export const Section = styled.section`
 
 export const Heading = styled(BaseText).attrs({ as: "h3" })`
   padding: 0 20px;
-  font-size: 14px;
+  font-size: var(--typography-label-1-normal-font-size);
   font-weight: 500;
   color: var(--color-semantic-label-alternative);
   text-transform: uppercase;

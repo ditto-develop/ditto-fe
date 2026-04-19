@@ -3,14 +3,17 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ChatMessageDto } from './ChatMessageDto';
+
+export type ReadReceiptDto = {
+    userId: string;
+    lastReadMessageId: string;
+    readAt: string;
+};
+
 export type MessageListDto = {
-    /**
-     * 메시지 목록
-     */
     messages: Array<ChatMessageDto>;
-    /**
-     * 다음 페이지 커서 (없으면 마지막 페이지)
-     */
     nextCursor?: string;
+    partnerLastReadMessageId?: string | null;
+    readReceipts?: Array<ReadReceiptDto>;
 };
 

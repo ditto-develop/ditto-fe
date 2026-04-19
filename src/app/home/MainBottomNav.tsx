@@ -4,8 +4,8 @@ import React from 'react';
 import styled from 'styled-components';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import Image from 'next/image';
 import { Caption2 } from '@/components/common/Text';
+import { Icon, type IconName } from '@/shared/ui';
 
 // 1. 네비게이션 아이템 설정 (경로, 라벨, 아이콘 경로 등)
 // 실제 프로젝트에 있는 이미지 경로로 교체해주세요.
@@ -13,22 +13,19 @@ const NAV_ITEMS = [
   {
     label: '홈',
     path: '/home', // 메인 페이지
-    iconOn: '/icons/home-on.svg', 
-    iconOff: '/icons/home-off.svg',
+    iconName: 'tab.home',
   },
   {
     label: '대화방',
     path: '/chat',
-    iconOn: '/icons/talk-on.svg',
-    iconOff: '/icons/talk-off.svg',
+    iconName: 'tab.talk',
   },
   {
     label: '프로필',
     path: '/profile',
-    iconOn: '/icons/profile-on.svg',
-    iconOff: '/icons/profile-off.svg',
+    iconName: 'tab.profile',
   },
-];
+] satisfies Array<{ label: string; path: string; iconName: IconName }>;
 
 const MainBottomNav = () => {
   const pathname = usePathname(); // 현재 경로 가져오기
@@ -43,12 +40,7 @@ const MainBottomNav = () => {
           <NavItem key={item.path} href={item.path}>
             {/* 이미지 영역: 활성 상태에 따라 다른 이미지 렌더링 */}
             <IconWrapper>
-              <Image 
-                src={isActive ? item.iconOn : item.iconOff} 
-                alt={item.label}
-                width={24} // 디자인 시안에 맞는 사이즈 입력
-                height={24}
-              />
+              <TabIcon name={item.iconName} $isActive={isActive} />
             </IconWrapper>
             
             {/* 텍스트 영역: active 상태를 props로 전달하여 색상 변경 */}
@@ -62,7 +54,7 @@ const MainBottomNav = () => {
   );
 };
 
-export default MainBottomNav;
+export { MainBottomNav };
 
 // --- Styled Components ---
 
@@ -97,11 +89,18 @@ const IconWrapper = styled.div`
   /* 이미지가 div 배경이 아니라 img 태그로 들어가므로 사이즈 제어는 Image 컴포넌트나 여기서 */
 `;
 
+const TabIcon = styled(Icon)<{ $isActive: boolean }>`
+  color: ${({ $isActive }) =>
+    $isActive
+      ? "var(--color-semantic-primary-normal)"
+      : "var(--color-semantic-interaction-inactive)"};
+`;
+
 const NavLabel = styled(Caption2)<{ $isActive: boolean }>`
   // Caption2의 기본 스타일은 유지됨
 
   // 활성 상태에 따른 색상 변경 로직 추가
-  color: ${({ $isActive }) => ($isActive ? 'var(--color-semantic-primary-normal)' : 'var(--color-semantic-interaction-inactive,)')};
+  color: ${({ $isActive }) => ($isActive ? 'var(--color-semantic-primary-normal)' : 'var(--color-semantic-interaction-inactive)')};
 
   // (선택사항) 활성화 시 폰트를 두껍게 하고 싶다면 추가, 아니면 제거
   // font-weight: ${({ $isActive }) => ($isActive ? 'bold' : 'inherit')};

@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
-import IntroNoteContainer from "@/features/profile/containers/IntroNoteContainer";
+import { IntroNoteContainer } from "@/features/profile/containers/IntroNoteContainer";
 import type { IntroNoteState } from "@/features/profile";
 
 function ProfileContent() {
@@ -33,7 +33,7 @@ function ProfileContent() {
     );
 }
 
-export default function ProfilePageClient() {
+export function ProfilePageClient() {
   console.log('[src/app/profile/[id]/page.tsx] ProfilePage'); // __component_log__
     return (
         <Suspense>

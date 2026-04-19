@@ -1,6 +1,6 @@
 "use client";
 
-import AlertModal from "@/components/display/AlertModal";
+import { AlertModal } from "@/components/display/AlertModal";
 
 interface ChatLeaveModalProps {
   isOpen: boolean;
@@ -8,7 +8,7 @@ interface ChatLeaveModalProps {
   onConfirm: () => void;
 }
 
-export default function ChatLeaveModal({
+export function ChatLeaveModal({
   isOpen,
   onClose,
   onConfirm,
@@ -18,13 +18,14 @@ export default function ChatLeaveModal({
       isOpen={isOpen}
       title="정말 대화를 종료하시겠어요?"
       message="이 대화를 끝내면 이번주는 다시 대화할 수 없어요."
-      confirmParams={{
-        text: "취소",
-        onClick: onClose,
-      }}
       cancelParams={{
         text: "나가기",
         onClick: onConfirm,
+        isDestructive: true,
+      }}
+      confirmParams={{
+        text: "취소",
+        onClick: onClose,
       }}
     />
   );

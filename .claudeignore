@@ -1,0 +1,11 @@
+node_modules/
+.next/
+out/
+storybook-static/
+amplify/
+.figma_cache/
+public/assets/
+src/shared/lib/api/generated/
+tsconfig.tsbuildinfo
+package-lock.json
+*.log

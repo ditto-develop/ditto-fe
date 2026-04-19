@@ -1,7 +1,7 @@
 "use client";
 
 import styled from "styled-components";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 type BadgeVariant = "positive" | "cautionary" | "destructive" | "navy" | "neutral";
 
@@ -21,10 +21,10 @@ const bgColorMap: Record<BadgeVariant, string> = {
 };
 
 const fgColorMap: Record<BadgeVariant, string> = {
-    positive: "var(--color-semantic-status-positive, #557A55)",
-    cautionary: "var(--color-semantic-status-cautionary, #C06E1C)",
-    destructive: "var(--color-semantic-status-negative, #B33528)",
-    navy: "var(--color-semantic-accent-foreground-Navy, #37607E)",
+    positive: "var(--color-semantic-status-positive)",
+    cautionary: "var(--color-semantic-status-cautionary)",
+    destructive: "var(--color-semantic-status-negative)",
+    navy: "var(--color-semantic-accent-foreground-Navy)",
     neutral: "var(--color-semantic-label-alternative)",
 };
 
@@ -32,7 +32,7 @@ const fgColorMap: Record<BadgeVariant, string> = {
  * ContentBadge — Figma: Content Badge/Content Badge
  * 매칭 일치율("😍 당신과 가장 비슷해요"), 프로필 태그("운동", "영화/드라마") 등에 사용.
  */
-export default function ContentBadge({
+export function ContentBadge({
     children,
     variant = "neutral",
     icon,
@@ -59,12 +59,12 @@ const Badge = styled.div<{ $variant: BadgeVariant }>`
 `;
 
 const BadgeIcon = styled.span`
-  font-size: 13px;
+  font-size: var(--typography-label-2-font-size);
   line-height: 1;
 `;
 
 const BadgeText = styled.span<{ $variant: BadgeVariant }>`
-  font-size: 13px;
+  font-size: var(--typography-label-2-font-size);
   font-weight: 500;
   line-height: 1.385;
   color: ${({ $variant }) => fgColorMap[$variant]};

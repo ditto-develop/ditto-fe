@@ -46,13 +46,13 @@ export const ActionContent = styled.div`
 `;
 
 export const ActionTitle = styled(BaseText).attrs({ as: "h4" })`
-  font-size: 16px;
+  font-size: var(--typography-body-1-normal-font-size);
   font-weight: 500;
   color: var(--color-semantic-label-normal);
 `;
 
 export const ActionDescription = styled(BaseText).attrs({ as: "p" })`
-  font-size: 14px;
+  font-size: var(--typography-label-1-normal-font-size);
   color: var(--color-semantic-label-alternative);
 `;
 
