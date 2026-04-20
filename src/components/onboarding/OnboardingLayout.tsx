@@ -1,6 +1,6 @@
 import { ActionContainer, BodyContainer, HeadContainer, HeaderTop, PageContainer } from "@/components/onboarding/OnboardingContainer";
-import { Label1Normal, Title3 } from "@/components/common/Text";
-import { Nav } from "@/components/display/Nav";
+import { Label1Normal, Title3 } from "@/shared/ui";
+import { Nav } from "@/shared/ui";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 
 interface OnboardingLayoutProps {

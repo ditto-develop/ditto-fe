@@ -2,11 +2,11 @@
 
 import React, { useState } from "react";
 import styled from "styled-components";
-import { FullScreenModal } from "@/components/display/FullScreenModal";
-import { Nav } from "@/components/display/Nav";
-import { BottomSheet } from "@/components/display/BottomSheet";
+import { FullScreenModal } from "@/shared/ui";
+import { Nav } from "@/shared/ui";
+import { BottomSheet } from "@/shared/ui";
 import { ProfileDetailModal } from "@/components/home/ProfileDetailModal";
-import { AlertModal } from "@/components/display/AlertModal";
+import { AlertModal } from "@/shared/ui";
 import {
   Heading2Bold,
   Body2Normal,
@@ -14,7 +14,7 @@ import {
   Label2,
   Headline2,
   Caption1,
-} from "@/components/common/Text";
+} from "@/shared/ui";
 import type { AlertStatus } from "@/components/display/Card";
 import type { MatchCandidateDto} from "@/features/matching/api/matchingApi";
 import { joinGroupMatch, declineGroupMatch } from "@/features/matching/api/matchingApi";

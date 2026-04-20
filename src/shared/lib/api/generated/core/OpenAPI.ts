@@ -25,10 +25,8 @@ export const OpenAPI: OpenAPIConfig = {
     WITH_CREDENTIALS: false,
     CREDENTIALS: 'include',
     TOKEN: async () => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('accessToken') || '';
-        }
-        return '';
+        if (typeof window === 'undefined') return '';
+        return localStorage.getItem('accessToken') ?? '';
     },
     USERNAME: undefined,
     PASSWORD: undefined,

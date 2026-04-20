@@ -2,10 +2,10 @@
 
 import { useEffect, useState, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Body1Normal } from "@/components/common/Text";
+import { Body1Normal } from "@/shared/ui";
 import styled from "styled-components";
 import { Tutorial } from "@/components/onboarding/Tutorial";
-import { UserService } from "@/lib/api";
+import { UserService } from "@/shared/lib/api/generated";
 import type { KakaoCallbackResponse, KakaoLoginResult } from "@/types/kakao";
 
 const LoadingContainer = styled.div`

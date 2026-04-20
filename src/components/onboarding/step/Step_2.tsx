@@ -15,16 +15,17 @@ import {
 import {
   Caption1,
   Label1Normal
-} from "@/components/common/Text";
+} from "@/shared/ui";
 import {
   MultiSelectChip
-} from "@/components/input/Multiselect";
+} from "@/shared/ui";
 import {
   Select
-} from "@/components/input/Select";
+} from "@/shared/ui";
 import {
   TextField
-} from "@/components/input/TextField";
+} from "@/shared/ui";
+import { ApiError, UserService } from "@/shared/lib/api/generated";
 import {
   DefaultContainer,
   DivideContainer,
@@ -112,32 +113,18 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
     }
 
     if (validateNickname(data.nickname)) {
-      // TODO: 백엔드 닉네임 중복 확인 API 구현 후 아래 주석 해제
-      /*
       try {
-        await request(OpenAPI, {
-          method: "GET",
-          url: `/api/users/nickname/${data.nickname}/availability`,
-        });
-
-        // 성공 (2xx) -> 사용 가능한 닉네임
+        await UserService.userControllerCheckNicknameAvailability(data.nickname);
         setNickset(true); // 저장 완료 상태로 전환
         showToast("닉네임이 저장되었어요.", "success");
       } catch (error) {
         if (error instanceof ApiError && error.status === 409) {
-          // 409 Conflict -> 중복된 닉네임
           setNickerr(["이미 사용 중인 닉네임입니다."]);
         } else {
-          // 그 외 API 오류
           console.error("Nickname check failed:", error);
           showToast("닉네임 확인 중 오류가 발생했습니다.", "error");
         }
       }
-      */
-
-      // 현재는 API가 없으므로 로컬 검증만 통과하면 저장 처리
-      setNickset(true);
-      showToast("닉네임이 저장되었어요.", "success");
     }
   };
 

@@ -45,8 +45,21 @@ export type CurrentWeekQuizSetDto = {
      */
     isActive: boolean;
     /**
+     * 매칭 타입
+     */
+    matchingType: CurrentWeekQuizSetDto.matchingType;
+    /**
      * 퀴즈 목록 (순서대로 정렬됨)
      */
     quizzes: Array<QuizDto>;
 };
+export namespace CurrentWeekQuizSetDto {
+    /**
+     * 매칭 타입
+     */
+    export enum matchingType {
+        ONE_TO_ONE = 'ONE_TO_ONE',
+        GROUP = 'GROUP',
+    }
+}
 

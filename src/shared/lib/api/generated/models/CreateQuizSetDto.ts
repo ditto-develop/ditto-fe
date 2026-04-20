@@ -28,8 +28,21 @@ export type CreateQuizSetDto = {
      */
     description?: string;
     /**
+     * 매칭 타입 (ONE_TO_ONE: 1대1 매칭, GROUP: 그룹 매칭)
+     */
+    matchingType?: CreateQuizSetDto.matchingType;
+    /**
      * 강제 적용 패스워드
      */
     forcePassword?: string;
 };
+export namespace CreateQuizSetDto {
+    /**
+     * 매칭 타입 (ONE_TO_ONE: 1대1 매칭, GROUP: 그룹 매칭)
+     */
+    export enum matchingType {
+        ONE_TO_ONE = 'ONE_TO_ONE',
+        GROUP = 'GROUP',
+    }
+}
 

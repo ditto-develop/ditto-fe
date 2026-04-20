@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { ActionArea, ActionContent, ActionTitle, ActionDescription, ActionExtra } from "../components/common/ActionArea";
+import { ActionArea, ActionContent, ActionTitle, ActionDescription, ActionExtra } from "@/shared/ui";
 
 const meta: Meta<typeof ActionArea> = {
     title: "Components/ActionArea",

@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
-import type { GroupChatMember } from "@/lib/api/services/GroupChatService";
+import type { GroupChatMemberDto } from "@/shared/lib/api/generated";
 import {
   getUserProfile,
   type PublicProfileDto,
 } from "@/features/profile/api/profileApi";
-import { ProfileDetailService } from "@/lib/api";
-import type { UserAnswersComparisonDto } from "@/lib/api/models/UserAnswersComparisonDto";
+import { ProfileDetailService } from "@/shared/lib/api/generated";
+import type { UserAnswersComparisonDto } from "@/shared/lib/api/generated";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import {
   toLocationLabel,
@@ -18,16 +18,16 @@ import {
 import { TopNavigation } from "@/shared/ui";
 
 interface MemberData {
-  member: GroupChatMember;
+  member: GroupChatMemberDto;
   profile: PublicProfileDto | null;
   comparison: UserAnswersComparisonDto | null;
 }
 
 interface GroupMemberListPageProps {
-  members: GroupChatMember[];
+  members: GroupChatMemberDto[];
   myUserId: string;
   onClose: () => void;
-  onMemberClick: (member: GroupChatMember) => void;
+  onMemberClick: (member: GroupChatMemberDto) => void;
 }
 
 function getCompatibilityInfo(
@@ -146,7 +146,7 @@ export function GroupMemberListPage({
                   <AvatarImg
                     src={
                       myData.profile?.profileImageUrl ||
-                      myData.member.profileImageUrl ||
+                      myData.member.avatarUrl ||
                       "/assets/avatar/m1.png"
                     }
                     alt={myData.member.nickname}
@@ -209,7 +209,7 @@ export function GroupMemberListPage({
                         <AvatarImg
                           src={
                             profile?.profileImageUrl ||
-                            member.profileImageUrl ||
+                            member.avatarUrl ||
                             "/assets/avatar/m1.png"
                           }
                           alt={member.nickname}

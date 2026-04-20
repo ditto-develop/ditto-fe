@@ -4,7 +4,7 @@ import React from 'react';
 import styled from 'styled-components';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Caption2 } from '@/components/common/Text';
+import { Caption2 } from '@/shared/ui';
 import { Icon, type IconName } from '@/shared/ui';
 
 // 1. 네비게이션 아이템 설정 (경로, 라벨, 아이콘 경로 등)

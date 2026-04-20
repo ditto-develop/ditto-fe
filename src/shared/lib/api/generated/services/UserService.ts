@@ -6,6 +6,7 @@ import type { CreateAdminUserDto } from '../models/CreateAdminUserDto';
 import type { CreateUserDto } from '../models/CreateUserDto';
 import type { LoginDto } from '../models/LoginDto';
 import type { LoginResponseDto } from '../models/LoginResponseDto';
+import type { Object } from '../models/Object';
 import type { SocialLoginDto } from '../models/SocialLoginDto';
 import type { UpdateUserDto } from '../models/UpdateUserDto';
 import type { UserDto } from '../models/UserDto';
@@ -177,28 +178,6 @@ export class UserService {
         });
     }
     /**
-     * 본인 정보 조회
-     * 현재 로그인한 사용자의 정보를 조회합니다.
-     * @returns any 본인 정보 조회 성공
-     * @throws ApiError
-     */
-    public static userControllerGetMyProfile(): CancelablePromise<{
-        success?: boolean;
-        data?: UserDto;
-        error?: string;
-    }> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/api/users/me/profile',
-            errors: {
-                400: `잘못된 요청입니다.`,
-                401: `인증이 필요합니다.`,
-                403: `접근 권한이 없습니다.`,
-                500: `서버 내부 오류가 발생했습니다.`,
-            },
-        });
-    }
-    /**
      * 사용자 탈퇴
      * 사용자를 탈퇴 처리합니다.
      * @param id 사용자 ID
@@ -311,6 +290,33 @@ export class UserService {
         });
     }
     /**
+     * 로컬 테스트 로그인 (개발 환경 전용)
+     * localhost 개발 환경에서만 사용 가능한 username/password 로그인입니다.
+     * @param requestBody
+     * @returns any 로그인 성공
+     * @throws ApiError
+     */
+    public static userControllerLocalLogin(
+        requestBody: LoginDto,
+    ): CancelablePromise<{
+        success?: boolean;
+        data?: LoginResponseDto;
+        error?: string;
+    }> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/users/local-login',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `잘못된 요청입니다.`,
+                401: `인증 실패`,
+                403: `접근 권한이 없습니다.`,
+                500: `서버 내부 오류가 발생했습니다.`,
+            },
+        });
+    }
+    /**
      * 소셜 로그인
      * 소셜 계정으로 로그인합니다.
      * @param requestBody
@@ -372,6 +378,34 @@ export class UserService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/users/auth/logout',
+            errors: {
+                400: `잘못된 요청입니다.`,
+                401: `인증이 필요합니다.`,
+                403: `접근 권한이 없습니다.`,
+                500: `서버 내부 오류가 발생했습니다.`,
+            },
+        });
+    }
+    /**
+     * 닉네임 사용 가능 여부 확인
+     * 닉네임이 사용 가능한지 확인합니다.
+     * @param nickname 확인할 닉네임
+     * @returns any 닉네임 사용 가능 여부 확인 성공
+     * @throws ApiError
+     */
+    public static userControllerCheckNicknameAvailability(
+        nickname: string,
+    ): CancelablePromise<{
+        success?: boolean;
+        data?: Object;
+        error?: string;
+    }> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/users/nickname/{nickname}/availability',
+            path: {
+                'nickname': nickname,
+            },
             errors: {
                 400: `잘못된 요청입니다.`,
                 401: `인증이 필요합니다.`,

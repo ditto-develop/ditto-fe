@@ -1,5 +1,5 @@
 import { ActionContainer } from "@/components/onboarding/OnboardingContainer";
-import { Title3 } from "@/components/common/Text";
+import { Title3 } from "@/shared/ui";
 import React, { useState } from "react";
 import styled from "styled-components";
 import { ActionButton, ActionSheet } from "@/components/input/Action";

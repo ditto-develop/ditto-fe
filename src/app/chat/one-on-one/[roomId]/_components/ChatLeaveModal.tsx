@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertModal } from "@/components/display/AlertModal";
+import { AlertModal } from "@/shared/ui";
 
 interface ChatLeaveModalProps {
   isOpen: boolean;

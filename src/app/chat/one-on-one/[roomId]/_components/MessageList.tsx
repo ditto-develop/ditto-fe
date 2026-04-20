@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import styled from "styled-components";
-import { ChatService } from "@/lib/api/services/ChatService";
+import { ChatService } from "@/shared/lib/api/generated";
 import type { MessageItem } from "./MessageBubble";
 import { MessageBubble } from "./MessageBubble";
 

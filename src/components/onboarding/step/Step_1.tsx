@@ -1,4 +1,4 @@
-import { TextField } from "@/components/input/TextField";
+import { TextField } from "@/shared/ui";
 import type { FormData, ControlButtonVariant, OnChange } from "@/types/type";
 import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
 

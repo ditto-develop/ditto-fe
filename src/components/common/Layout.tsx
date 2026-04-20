@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { BaseText } from "./Text";
+import { BaseText } from "@/shared/ui/Text/Text";
 
 /*
  * Layout Components

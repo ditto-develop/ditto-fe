@@ -1,11 +1,11 @@
 "use client";
 
-import { BottomSheet } from "@/components/display/BottomSheet";
+import { BottomSheet } from "@/shared/ui";
 import {
   Body1Bold,
   Heading2Bold,
   Label2,
-} from "@/components/common/Text";
+} from "@/shared/ui";
 import { Card } from "@/components/display/Card";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import { useTargetDayCountdown } from "@/lib/hooks/useKstCountdown";

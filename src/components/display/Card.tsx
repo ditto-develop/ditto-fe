@@ -2,7 +2,7 @@
 
 import styled from "styled-components";
 import type { ReactNode } from "react";
-import { Caption1, Heading2Bold, Label1Normal } from "@/components/common/Text";
+import { Caption1, Heading2Bold, Label1Normal } from "@/shared/ui";
 
 // --- Types ---
 export type AlertStatus = 'positive' | 'cautionary' | 'destructive' | 'navy';

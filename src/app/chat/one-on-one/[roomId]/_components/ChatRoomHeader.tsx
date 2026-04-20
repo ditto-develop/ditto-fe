@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
-import { Headline2, Label1Normal } from "@/components/common/Text";
+import { Headline2, Label1Normal } from "@/shared/ui";
 import { useTimer } from "./useTimer";
 
 interface ChatRoomHeaderProps {

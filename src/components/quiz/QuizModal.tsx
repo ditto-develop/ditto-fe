@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Body1Normal, Body2Normal, Heading1Bold } from "@/components/common/Text";
+import { Body1Normal, Body2Normal, Heading1Bold } from "@/shared/ui";
 
 interface QuizResumeModalProps {
   isOpen: boolean;

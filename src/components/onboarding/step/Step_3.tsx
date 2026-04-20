@@ -13,12 +13,12 @@ import styled from "styled-components";
 import {
   Caption1,
   Label1Normal
-} from "@/components/common/Text";
+} from "@/shared/ui";
 import type {
-  TextAreaWithActionsRef} from "@/components/input/TextArea";
+  TextAreaWithActionsRef} from "@/shared/ui";
 import {
   TextAreaWithActions
-} from "@/components/input/TextArea";
+} from "@/shared/ui";
 import {
   IntroContainer,
   QuestionContainer

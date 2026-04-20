@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { TopNavigation } from "@/shared/ui";
-import { AlertModal } from "@/components/display/AlertModal";
+import { AlertModal } from "@/shared/ui";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import type { IntroNoteState } from "@/features/profile";
 import { useUserProfile } from "@/features/profile/hooks/useUserProfile";
@@ -13,7 +13,7 @@ import {
     acceptMatchRequest,
     rejectMatchRequest,
 } from "@/features/matching/api/matchingApi";
-import { ProfileDetailService, type AnswerComparisonItemDto } from "@/lib/api";
+import { ProfileDetailService, type AnswerComparisonItemDto } from "@/shared/lib/api/generated";
 import { getUserIntroNotes, type IntroNoteAnswer } from "@/features/profile/api/profileApi";
 import { useToast } from "@/context/ToastContext";
 import { ProfileIntroView, QnACard } from "@/features/profile/ui/ProfileIntroView";

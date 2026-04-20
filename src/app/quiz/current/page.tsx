@@ -2,13 +2,13 @@
 
 import { useEffect, useState, Suspense } from "react";
 import styled, { css, keyframes } from "styled-components";
-import { Label1Normal, Label2, Title2, Title3 } from "@/components/common/Text";
-import { Nav } from "@/components/display/Nav";
+import { Label1Normal, Label2, Title2, Title3 } from "@/shared/ui";
+import { Nav } from "@/shared/ui";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import { useRouter, useSearchParams } from "next/navigation";
 import { QuizModal } from "@/components/quiz/QuizModal";
-import type { CurrentWeekQuizSetsResponseDto, QuizDto } from "@/lib/api";
-import { QuizSetsService, QuizProgressService } from "@/lib/api";
+import { QuizProgressService, QuizSetsService } from "@/shared/lib/api/generated";
+import type { CurrentWeekQuizSetsResponseDto, QuizDto } from "@/shared/lib/api/generated";
 
 // --- Types ---
 // QuizData is now inferred from QuizDto

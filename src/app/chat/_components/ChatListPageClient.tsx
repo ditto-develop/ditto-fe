@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import styled from "styled-components";
 import { MainBottomNav } from "@/app/home/MainBottomNav";
 import { ChatRoomListItem, type ChatRoomListItemData } from "./ChatRoomListItem";
-import { ChatService } from "@/lib/api/services/ChatService";
+import { ChatService } from "@/shared/lib/api/generated";
 import { getChatRoomEndState } from "@/app/chat/_utils/chatRoomStatus";
 
 type FilterType = "전체" | "진행중" | "종료";

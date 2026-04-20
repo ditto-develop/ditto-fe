@@ -8,20 +8,13 @@ import {
 
 } from "@/context/ToastContext";
 
-import type {
-
-  CreateUserDto} from "@/lib/api";
 import {
 
   IntroNotesService,
 
-  OpenAPI,
-
-  ProfileService,
-
-  UserService
-
 } from "@/lib/api";
+import { ProfileService, UserService } from "@/shared/lib/api/generated";
+import type { CreateUserDto } from "@/shared/lib/api/generated";
 
 import type {
 
@@ -56,7 +49,7 @@ import {
 
   Label1Normal
 
-} from "@/components/common/Text";
+} from "@/shared/ui";
 
 import { OnboardingLayout } from "@/components/onboarding/OnboardingLayout";
 

@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FullScreenModal } from "@/components/display/FullScreenModal";
-import { Nav } from "@/components/display/Nav";
-import { AlertModal } from "@/components/display/AlertModal";
+import { FullScreenModal } from "@/shared/ui";
+import { Nav } from "@/shared/ui";
+import { AlertModal } from "@/shared/ui";
 import { ProfileIntroView } from '@/features/profile/ui/ProfileIntroView';
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import { getUserProfile, getUserIntroNotes, type IntroNoteAnswer } from '@/features/profile/api/profileApi';

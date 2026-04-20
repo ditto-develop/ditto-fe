@@ -7,7 +7,7 @@ import { OnboardingLayout } from "@/components/onboarding/OnboardingLayout";
 import type { Step3Ref } from "@/components/onboarding/step/Step_3";
 import { Step3Intro } from "@/components/onboarding/step/Step_3";
 import type { ControlButtonVariant, FormData } from "@/types/type";
-import { Label1Normal } from "@/components/common/Text";
+import { Label1Normal } from "@/shared/ui";
 
 const EMPTY_INTRO: FormData["introduce"] = Array.from({ length: 10 }, () => "");
 

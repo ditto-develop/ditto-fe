@@ -17,9 +17,9 @@ import {
   UnderlineBoldSpan,
   Body1Normal,
   Headline1,
-} from "@/components/common/Text";
+} from "@/shared/ui";
 import { SplashCarousel } from "@/components/onboarding/Carousel";
-import { KakaoLogin } from "@/components/input/KakaoLogin";
+import { KakaoLogin } from "@/components/auth/KakaoLogin";
 import type { KakaoLoginResult } from "@/types/kakao";
 
 // --- Styled Components ---

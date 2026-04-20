@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import styled from "styled-components";
-import { ChatService, type ChatRoomDetailDto } from "@/lib/api/services/ChatService";
+import { ChatService, type ChatRoomDetailDto } from "@/shared/lib/api/generated";
 import { ChatRoomHeader } from "./ChatRoomHeader";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
@@ -171,7 +171,7 @@ export function ChatRoomPageClient() {
         roomId={roomId}
         messages={messages}
         currentUserId={myUserId ?? ""}
-        partnerAvatarUrl={roomDetail.partner.profileImageUrl}
+        partnerAvatarUrl={roomDetail.partner.profileImageUrl ?? null}
         partnerNickname={roomDetail.partner.nickname}
         partnerLastReadMessageId={partnerLastReadMessageId}
         onMessagesUpdate={handleMessagesUpdate}

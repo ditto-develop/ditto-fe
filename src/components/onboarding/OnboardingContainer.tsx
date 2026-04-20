@@ -66,13 +66,6 @@ export const TopProgressContainer = styled.div`
   position: relative;
 `;
 
-export const TopStepperContainer = styled.div`
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-2, 8px);
-    align-self: stretch;
-`;
-
 export const StepperImgContainer = styled.img`
     z-index: 2; 
     padding-top: 0px;

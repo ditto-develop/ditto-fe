@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Scan } from 'lucide-react';
-import { Body2Normal } from '@/components/common/Text';
+import { Body2Normal } from '@/shared/ui';
 
 // --- 타입 정의 ---
 type ToastType = 'default' | 'info' | 'success' | 'warning' | 'error' | 'none';

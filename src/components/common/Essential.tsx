@@ -30,13 +30,3 @@ export const HomeBar = styled.div`
     border-radius: 100px;
   }
 `;
-
-export const SafeAreaTop = styled.div`
-    padding-top: env(safe-area-inset-top);
-    background-color: var(--color-semantic-background-normal-normal);
-`;
-
-export const SafeAreaBottom = styled.div`
-    padding-bottom: env(safe-area-inset-bottom);
-    background-color: var(--color-semantic-background-normal-normal);
-`;

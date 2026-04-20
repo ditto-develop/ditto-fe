@@ -4,11 +4,12 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import styled from "styled-components";
 import {
-  GroupChatService,
-  type GroupVote,
+  ChatService,
+  type GroupVoteDto,
   type GroupChatRoomDetailDto,
-  type GroupMessageItem,
-} from "@/lib/api/services/GroupChatService";
+  type GroupChatMessageDto,
+  type GroupChatMemberDto,
+} from "@/shared/lib/api/generated";
 import { GroupChatRoomHeader } from "./GroupChatRoomHeader";
 import { GroupMessageList } from "./GroupMessageList";
 import { GroupChatMenuBottomSheet } from "./GroupChatMenuBottomSheet";
@@ -20,7 +21,6 @@ import { VoteSubmissionPage } from "./VoteSubmissionPage";
 import { VoteBanner } from "./VoteBanner";
 import { ChatInput } from "@/app/chat/one-on-one/[roomId]/_components/ChatInput";
 import { ChatLeaveModal } from "@/app/chat/one-on-one/[roomId]/_components/ChatLeaveModal";
-import type { GroupChatMember } from "@/lib/api/services/GroupChatService";
 
 function getUserIdFromToken(): string | null {
   try {
@@ -40,17 +40,17 @@ export function GroupChatRoomPageClient() {
 
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [roomDetail, setRoomDetail] = useState<GroupChatRoomDetailDto | null>(null);
-  const [messages, setMessages] = useState<GroupMessageItem[]>([]);
+  const [messages, setMessages] = useState<GroupChatMessageDto[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isVoteCreateOpen, setIsVoteCreateOpen] = useState(false);
-  const [activeVote, setActiveVote] = useState<GroupVote | null>(null);
+  const [activeVote, setActiveVote] = useState<GroupVoteDto | null>(null);
   const [voteView, setVoteView] = useState<"submission" | "results" | null>(null);
   const [isMemberListOpen, setIsMemberListOpen] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<GroupChatMember | null>(null);
+  const [selectedMember, setSelectedMember] = useState<GroupChatMemberDto | null>(null);
 
   useEffect(() => {
     const userId = getUserIdFromToken();
@@ -59,8 +59,8 @@ export function GroupChatRoomPageClient() {
     const init = async () => {
       try {
         const [detailRes, msgRes] = await Promise.all([
-          GroupChatService.getGroupChatRoomDetail(roomId),
-          GroupChatService.getGroupMessages(roomId, undefined, 30),
+          ChatService.chatControllerGetGroupRoomDetail(roomId),
+          ChatService.chatControllerGetGroupMessages(roomId, undefined, 30),
         ]);
 
         if (detailRes.success && detailRes.data) {
@@ -74,7 +74,7 @@ export function GroupChatRoomPageClient() {
           setHasMore(!!msgRes.data.nextCursor);
         }
 
-        GroupChatService.markGroupAsRead(roomId).catch(() => {});
+        ChatService.chatControllerMarkGroupAsRead(roomId).catch(() => {});
       } catch {
         // ignore
       } finally {
@@ -96,7 +96,7 @@ export function GroupChatRoomPageClient() {
       if (isFetching || document.hidden) return;
       isFetching = true;
       try {
-        const res = await GroupChatService.getGroupChatRoomDetail(roomId);
+        const res = await ChatService.chatControllerGetGroupRoomDetail(roomId);
         if (isMounted && res.success && res.data) {
           setRoomDetail(res.data);
         }
@@ -115,7 +115,7 @@ export function GroupChatRoomPageClient() {
   }, [roomId, roomDetail]);
 
   const handleMessagesUpdate = useCallback(
-    (newMessages: GroupMessageItem[], cursor: string | null) => {
+    (newMessages: GroupChatMessageDto[], cursor: string | null) => {
       setMessages(newMessages);
       setNextCursor(cursor);
       setHasMore(!!cursor);
@@ -125,9 +125,9 @@ export function GroupChatRoomPageClient() {
 
   const handleSend = async (content: string) => {
     try {
-      const res = await GroupChatService.sendGroupMessage(roomId, { content });
+      const res = await ChatService.chatControllerSendGroupMessage(roomId, { content });
       if (res.success && res.data) {
-        setMessages((prev) => [...prev, res.data as GroupMessageItem]);
+        setMessages((prev) => [...prev, res.data as unknown as GroupChatMessageDto]);
       }
     } catch {
       // ignore — polling will pick it up
@@ -136,7 +136,7 @@ export function GroupChatRoomPageClient() {
 
   const handleLeave = async () => {
     try {
-      await GroupChatService.leaveGroupChatRoom(roomId, { reason: "USER_LEFT" });
+      await ChatService.chatControllerLeaveGroupChatRoom(roomId, { reason: "USER_LEFT" });
     } catch {
       // ignore
     }
@@ -152,20 +152,20 @@ export function GroupChatRoomPageClient() {
       return;
     }
 
-    const res = await GroupChatService.getGroupVote(roomId, targetVoteId);
+    const res = await ChatService.chatControllerGetVoteDetail(roomId, targetVoteId);
     if (res.success && res.data) {
       setActiveVote(res.data);
       setVoteView(res.data.myVote ? "results" : "submission");
     }
   };
 
-  const handleVoteCreated = (vote: GroupVote) => {
+  const handleVoteCreated = (vote: GroupVoteDto) => {
     setActiveVote(vote);
     setRoomDetail((prev) =>
       prev
         ? {
             ...prev,
-            vote: { id: vote.id, title: vote.title },
+            vote,
           }
         : prev
     );
@@ -247,7 +247,7 @@ export function GroupChatRoomPageClient() {
         <GroupVoteCreateModal
           onClose={() => setIsVoteCreateOpen(false)}
           onComplete={async (payload) => {
-            const res = await GroupChatService.createGroupVote(roomId, {
+            const res = await ChatService.chatControllerCreateVote(roomId, {
               title: "만남 투표 진행 중",
               allowMultiple: payload.allowMultiple,
               placeOptions: payload.placeOptions.map((label) => ({ label })),
@@ -305,7 +305,7 @@ export function GroupChatRoomPageClient() {
         <GroupMemberProfilePage
           userId={selectedMember.userId}
           nickname={selectedMember.nickname}
-          profileImageUrl={selectedMember.profileImageUrl}
+          profileImageUrl={selectedMember.avatarUrl ?? null}
           onClose={() => setSelectedMember(null)}
         />
       )}

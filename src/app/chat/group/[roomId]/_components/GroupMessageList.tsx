@@ -3,15 +3,15 @@
 import { useEffect, useRef, useCallback } from "react";
 import type React from "react";
 import styled from "styled-components";
-import { GroupChatService, type GroupMessageItem } from "@/lib/api/services/GroupChatService";
+import { ChatService, type GroupChatMessageDto } from "@/shared/lib/api/generated";
 import { GroupMessageBubble } from "./GroupMessageBubble";
 import { VoteCreatedMessageBubble } from "./VoteCreatedMessageBubble";
 
 interface GroupMessageListProps {
   roomId: string;
-  messages: GroupMessageItem[];
+  messages: GroupChatMessageDto[];
   currentUserId: string;
-  onMessagesUpdate: (messages: GroupMessageItem[], nextCursor: string | null) => void;
+  onMessagesUpdate: (messages: GroupChatMessageDto[], nextCursor: string | null) => void;
   nextCursor: string | null;
   hasMore: boolean;
   isEnded: boolean;
@@ -20,6 +20,19 @@ interface GroupMessageListProps {
 }
 
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
+type VoteSummary = { head: string; extraCount: number };
+
+function toVoteSummary(value: unknown): VoteSummary {
+  if (!value || typeof value !== "object") {
+    return { head: "", extraCount: 0 };
+  }
+
+  const record = value as Record<string, unknown>;
+  return {
+    head: typeof record.head === "string" ? record.head : "",
+    extraCount: typeof record.extraCount === "number" ? record.extraCount : 0,
+  };
+}
 
 function formatDateLabel(date: Date): string {
   const y = date.getFullYear();
@@ -94,7 +107,7 @@ export function GroupMessageList({
 
     const poll = async () => {
       try {
-        const res = await GroupChatService.getGroupMessages(roomId, undefined, 30);
+        const res = await ChatService.chatControllerGetGroupMessages(roomId, undefined, 30);
         if (!res.success || !res.data) return;
 
         const polled = res.data.messages.slice().reverse();
@@ -112,7 +125,7 @@ export function GroupMessageList({
         latestMessageId.current = latestNew;
         onMessagesUpdate([...messages, ...genuinelyNew], res.data.nextCursor ?? null);
 
-        GroupChatService.markGroupAsRead(roomId).catch(() => {});
+        ChatService.chatControllerMarkGroupAsRead(roomId).catch(() => {});
       } catch {
         // ignore
       }
@@ -132,7 +145,7 @@ export function GroupMessageList({
     const prevScrollHeight = el.scrollHeight;
 
     try {
-      const res = await GroupChatService.getGroupMessages(roomId, nextCursor ?? undefined, 30);
+      const res = await ChatService.chatControllerGetGroupMessages(roomId, nextCursor ?? undefined, 30);
       if (!res.success || !res.data) return;
 
       const older = res.data.messages.slice().reverse();
@@ -209,11 +222,11 @@ export function GroupMessageList({
             key={msg.id}
             isMine={isMine}
             senderNickname={msg.senderNickname}
-            senderAvatarUrl={msg.senderAvatarUrl}
+            senderAvatarUrl={msg.senderAvatarUrl ?? null}
             isFirstInGroup={isFirstInGroup}
             isLastInGroup={isLastInGroup}
-            placeSummary={msg.voteMeta?.placeSummary ?? { head: "", extraCount: 0 }}
-            timeSummary={msg.voteMeta?.timeSummary ?? { head: "", extraCount: 0 }}
+            placeSummary={toVoteSummary(msg.voteMeta?.placeSummary)}
+            timeSummary={toVoteSummary(msg.voteMeta?.timeSummary)}
             timestamp={msg.createdAt}
             unreadCount={msg.unreadCount}
             onClick={() => {

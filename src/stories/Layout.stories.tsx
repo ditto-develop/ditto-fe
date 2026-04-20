@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { LayoutPage, Section, Heading, List } from "../components/common/Layout";
-import { StatusBar, HomeBar } from "../components/common/Essential";
-import { ActionArea, ActionContent, ActionTitle } from "../components/common/ActionArea";
-import { Divider } from "../components/common/Divider";
+import { LayoutPage, Section, Heading, List } from "@/components/common/Layout";
+import { StatusBar, HomeBar } from "@/components/common/Essential";
+import { ActionArea, ActionContent, ActionTitle } from "@/shared/ui";
+import { Divider } from "@/shared/ui";
 
 const meta: Meta<typeof LayoutPage> = {
     title: "Components/Layout",

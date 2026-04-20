@@ -1,6 +1,6 @@
 "use client";
 
-import { Body1Normal } from "@/components/common/Text";
+import { Body1Normal } from "@/shared/ui";
 import { Card } from "@/components/display/Card";
 import { useMemo } from "react";
 import styled from "styled-components";

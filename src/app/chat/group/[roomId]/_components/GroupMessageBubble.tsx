@@ -1,10 +1,10 @@
 "use client";
 
 import styled from "styled-components";
-import type { GroupMessageItem } from "@/lib/api/services/GroupChatService";
+import type { GroupChatMessageDto } from "@/shared/lib/api/generated";
 
 interface GroupMessageBubbleProps {
-  message: GroupMessageItem;
+  message: GroupChatMessageDto;
   isMine: boolean;
   isFirstInGroup: boolean;
   isLastInGroup: boolean;

@@ -1,7 +1,7 @@
 "use client"
 
 import { ImgContainer, MainContainer } from "@/components/splash/SplashContainer";
-import { Body1Normal } from "@/components/common/Text";
+import { Body1Normal } from "@/shared/ui";
 
 export function Splash() {
   console.log('[src/components/splash/Splash.tsx] Splash'); // __component_log__
