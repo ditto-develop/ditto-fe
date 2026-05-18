@@ -2,19 +2,23 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type CreatePlaceOptionDto = {
+export type KakaoPlaceSearchResultDto = {
     /**
-     * 장소 레이블
+     * 카카오 장소 ID
      */
-    label: string;
+    id: string;
+    /**
+     * 장소명
+     */
+    name: string;
     /**
      * 주소
      */
-    address?: string;
+    address: string;
     /**
-     * 지도 URL (kakao/naver 등)
+     * 카카오맵 장소 URL
      */
-    mapLink?: string;
+    mapUrl: string;
     /**
      * 위도
      */

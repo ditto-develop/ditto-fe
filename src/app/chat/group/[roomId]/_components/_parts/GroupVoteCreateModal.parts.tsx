@@ -176,6 +176,57 @@ export const TextOptionField = styled.div<{ $error?: boolean }>`
   padding: 12px;
 `;
 
+export const PlaceOptionField = styled.button<{ $error?: boolean }>`
+  ${fieldShell};
+  display: flex;
+  align-items: center;
+  gap: var(--space-\[6px\]);
+  padding: var(--space-3);
+  border-color: ${({ $error }) =>
+    $error
+      ? "var(--color-semantic-status-negative)"
+      : "var(--color-semantic-line-normal-neutral)"};
+  color: var(--color-semantic-label-assistive);
+  cursor: pointer;
+  text-align: left;
+`;
+
+export const PlaceOptionContent = styled.span`
+  display: flex;
+  flex: 1;
+  min-width: var(--space-0);
+  flex-direction: column;
+  gap: var(--space-\[2px\]);
+  padding: var(--space-0) var(--space-1);
+`;
+
+export const PlaceOptionLabel = styled.span<{ $placeholder?: boolean }>`
+  ${textStyle};
+  overflow: hidden;
+  color: ${({ $placeholder }) =>
+    $placeholder
+      ? "var(--color-semantic-label-assistive)"
+      : "var(--color-semantic-label-normal)"};
+  font-size: var(--typography-body-1-normal-font-size);
+  font-weight: var(--typography-body-1-normal-font-weight);
+  line-height: var(--typography-body-1-normal-line-height);
+  letter-spacing: var(--typography-body-1-normal-letter-spacing);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+export const PlaceOptionMeta = styled.span`
+  ${textStyle};
+  overflow: hidden;
+  color: var(--color-semantic-label-alternative);
+  font-size: var(--typography-label-2-font-size);
+  font-weight: var(--typography-label-2-font-weight);
+  line-height: var(--typography-label-2-line-height);
+  letter-spacing: var(--typography-label-2-letter-spacing);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
 export const TimeOptionCard = styled.div<{ $error?: boolean }>`
   display: flex;
   flex-direction: column;
@@ -350,6 +401,9 @@ export const ActionArea = styled.footer`
   right: 0;
   bottom: 0;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   padding: 16px;
   padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   background-color: var(--color-semantic-background-normal-normal);
@@ -381,6 +435,10 @@ export const PrimaryButton = styled.button<{ $active: boolean }>`
   font-weight: 600;
   line-height: 1.5;
   letter-spacing: 0.091px;
+
+  &:disabled {
+    cursor: default;
+  }
 `;
 
 export const IconSvg = styled.svg`
@@ -411,6 +469,20 @@ export function LinkIcon(props: React.SVGProps<SVGSVGElement>) {
         strokeWidth="1.8"
         strokeLinecap="round"
       />
+    </IconSvg>
+  );
+}
+
+export function LocationIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <IconSvg viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M12 21C15.5 17.8 18 14.6 18 10.8C18 7.5 15.3 5 12 5C8.7 5 6 7.5 6 10.8C6 14.6 8.5 17.8 12 21Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="10.8" r="2.2" stroke="currentColor" strokeWidth="1.7" />
     </IconSvg>
   );
 }

@@ -103,7 +103,7 @@ export const OptionList = styled.div`
   gap: 10px;
 `;
 
-export const OptionRow = styled.button<{ $checked: boolean }>`
+export const OptionRow = styled.div<{ $checked: boolean }>`
   ${textStyle};
   display: flex;
   align-items: center;
@@ -122,6 +122,7 @@ export const OptionRow = styled.button<{ $checked: boolean }>`
       ? "1px solid var(--color-semantic-primary-normal)"
       : "1px solid transparent"};
   text-align: left;
+  user-select: none;
 `;
 
 export const OptionLabel = styled.span<{ $checked: boolean }>`
@@ -161,6 +162,26 @@ export const LocationBadge = styled.span`
   flex-shrink: 0;
   border-radius: 8px;
   background-color: var(--color-semantic-fill-normal);
+`;
+
+export const MapPinButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background-color: var(--color-semantic-interaction-disable);
+  color: var(--color-semantic-label-normal);
+  cursor: pointer;
+
+  &:disabled {
+    color: var(--color-semantic-label-assistive);
+    cursor: not-allowed;
+  }
 `;
 
 export const AddOptionButton = styled.button`

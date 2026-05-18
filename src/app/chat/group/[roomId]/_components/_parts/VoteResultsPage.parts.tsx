@@ -208,6 +208,7 @@ export const OptionCard = styled.button<{
   $isWinner: boolean;
   $hasVotes: boolean;
   $isAllVoted: boolean;
+  $clickable?: boolean;
 }>`
   ${fontBase}
   display: flex;
@@ -217,7 +218,7 @@ export const OptionCard = styled.button<{
   padding: 16px;
   border-radius: 12px;
   text-align: left;
-  cursor: pointer;
+  cursor: ${({ $clickable }) => ($clickable ? "pointer" : "default")};
   transition: opacity 0.15s ease;
   overflow: hidden;
   box-sizing: border-box;
@@ -231,6 +232,8 @@ export const OptionCard = styled.button<{
               var(--color-semantic-line-solid-neutral)
             );
             border: 1px solid var(--color-semantic-primary-normal);
+            border-bottom-color: var(--color-semantic-label-normal);
+            border-bottom-width: 1.5px;
           `
         : css`
             background-color: var(
@@ -238,6 +241,7 @@ export const OptionCard = styled.button<{
               var(--color-semantic-line-solid-neutral)
             );
             border: 1px solid transparent;
+            border-bottom: 1.5px solid var(--color-semantic-label-normal);
           `;
     }
     return css`
@@ -254,9 +258,13 @@ export const OptionCard = styled.button<{
       opacity: 0.74;
     `}
 
-  &:active {
-    opacity: 0.78;
-  }
+  ${({ $clickable }) =>
+    $clickable &&
+    css`
+      &:active {
+        opacity: 0.78;
+      }
+    `}
 `;
 
 export const OptionHeader = styled.div`
@@ -362,7 +370,7 @@ export const ActionButton = styled.button`
   }
 `;
 
-export const AddOptionButton = styled.button`
+export const AddOptionButton = styled.button<{ $disabled?: boolean }>`
   ${fontBase}
   display: flex;
   align-items: center;
@@ -375,7 +383,8 @@ export const AddOptionButton = styled.button`
   border-radius: 12px;
   background: transparent;
   color: var(--color-semantic-label-alternative);
-  cursor: pointer;
+  cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
+  opacity: ${({ $disabled }) => ($disabled ? 0.48 : 1)};
   font-size: var(--typography-body-1-normal-font-size);
   font-weight: 400;
   line-height: 1.5;

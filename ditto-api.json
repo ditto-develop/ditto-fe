@@ -9310,6 +9310,233 @@
         ]
       }
     },
+    "/api/chat/votes/place-search": {
+      "get": {
+        "description": "카카오 Local API를 통해 키워드 기반 장소를 검색합니다.",
+        "operationId": "ChatController_searchPlaces",
+        "parameters": [
+          {
+            "name": "query",
+            "required": true,
+            "in": "query",
+            "description": "검색어",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "required": false,
+            "in": "query",
+            "description": "조회 건수 (기본 15, 최대 15)",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "카카오 장소 검색 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/KakaoPlaceSearchResultDto"
+                      }
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "에러 메시지"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "잘못된 요청입니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "message": {
+                          "type": "string",
+                          "example": "잘못된 요청입니다."
+                        },
+                        "code": {
+                          "type": "string",
+                          "example": "BAD_REQUEST"
+                        },
+                        "statusCode": {
+                          "type": "number",
+                          "example": 400
+                        }
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "path": {
+                      "type": "string",
+                      "example": "/api/endpoint"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증이 필요합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "message": {
+                          "type": "string",
+                          "example": "토큰이 제공되지 않았습니다."
+                        },
+                        "code": {
+                          "type": "string",
+                          "example": "UNAUTHORIZED"
+                        },
+                        "statusCode": {
+                          "type": "number",
+                          "example": 401
+                        }
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "path": {
+                      "type": "string",
+                      "example": "/api/endpoint"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "접근 권한이 없습니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "message": {
+                          "type": "string",
+                          "example": "접근 권한이 없습니다."
+                        },
+                        "code": {
+                          "type": "string",
+                          "example": "FORBIDDEN"
+                        },
+                        "statusCode": {
+                          "type": "number",
+                          "example": 403
+                        }
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "path": {
+                      "type": "string",
+                      "example": "/api/endpoint"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "서버 내부 오류가 발생했습니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "message": {
+                          "type": "string",
+                          "example": "알 수 없는 오류가 발생했습니다."
+                        },
+                        "code": {
+                          "type": "string",
+                          "example": "INTERNAL_SERVER_ERROR"
+                        },
+                        "statusCode": {
+                          "type": "number",
+                          "example": 500
+                        }
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "path": {
+                      "type": "string",
+                      "example": "/api/endpoint"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "카카오 장소 검색",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
     "/api/chat/group-rooms/{roomId}/votes": {
       "post": {
         "description": "그룹 채팅방에 투표를 생성합니다. 방당 활성 투표는 1개로 제한됩니다.",
@@ -16976,9 +17203,24 @@
             "type": "string",
             "description": "장소 레이블"
           },
+          "address": {
+            "type": "string",
+            "description": "주소",
+            "nullable": true
+          },
           "mapLink": {
             "type": "string",
             "description": "지도 URL",
+            "nullable": true
+          },
+          "latitude": {
+            "type": "number",
+            "description": "위도",
+            "nullable": true
+          },
+          "longitude": {
+            "type": "number",
+            "description": "경도",
             "nullable": true
           },
           "voterIds": {
@@ -16992,6 +17234,9 @@
         "required": [
           "id",
           "label",
+          "address",
+          "latitude",
+          "longitude",
           "voterIds"
         ]
       },
@@ -17274,6 +17519,47 @@
           }
         }
       },
+      "KakaoPlaceSearchResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "카카오 장소 ID",
+            "example": "26338954"
+          },
+          "name": {
+            "type": "string",
+            "description": "장소명",
+            "example": "스타벅스 강남역점"
+          },
+          "address": {
+            "type": "string",
+            "description": "주소",
+            "example": "서울 강남구 테헤란로 231"
+          },
+          "mapUrl": {
+            "type": "string",
+            "description": "카카오맵 장소 URL",
+            "example": "https://place.map.kakao.com/26338954"
+          },
+          "latitude": {
+            "type": "number",
+            "description": "위도",
+            "example": 37.4979502
+          },
+          "longitude": {
+            "type": "number",
+            "description": "경도",
+            "example": 127.0276368
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "address",
+          "mapUrl"
+        ]
+      },
       "CreatePlaceOptionDto": {
         "type": "object",
         "properties": {
@@ -17282,10 +17568,25 @@
             "description": "장소 레이블",
             "example": "홍대 앞 카페"
           },
+          "address": {
+            "type": "string",
+            "description": "주소",
+            "example": "서울 마포구 양화로 160"
+          },
           "mapLink": {
             "type": "string",
             "description": "지도 URL (kakao/naver 등)",
             "example": "https://map.kakao.com/?q=홍대"
+          },
+          "latitude": {
+            "type": "number",
+            "description": "위도",
+            "example": 37.4979502
+          },
+          "longitude": {
+            "type": "number",
+            "description": "경도",
+            "example": 127.0276368
           }
         },
         "required": [
@@ -17387,9 +17688,23 @@
             "type": "string",
             "description": "장소 레이블 (PLACE 타입)"
           },
+          "address": {
+            "type": "string",
+            "description": "주소 (PLACE 타입)"
+          },
           "mapLink": {
             "type": "string",
             "description": "지도 URL (PLACE 타입)"
+          },
+          "latitude": {
+            "type": "number",
+            "description": "위도 (PLACE 타입)",
+            "example": 37.4979502
+          },
+          "longitude": {
+            "type": "number",
+            "description": "경도 (PLACE 타입)",
+            "example": 127.0276368
           },
           "dateLabel": {
             "type": "string",

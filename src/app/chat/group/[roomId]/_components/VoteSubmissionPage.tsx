@@ -20,9 +20,9 @@ import {
   ClockIcon,
   ClockIconSmall,
   HiddenDateInput,
-  LocationBadge,
   LocationIcon,
   LocationIconSmall,
+  MapPinButton,
   NavCount,
   NavTitle,
   NewInput,
@@ -44,6 +44,7 @@ import {
   TimePickerField,
   TopNavigation,
 } from "./_parts/VoteSubmissionPage.parts";
+import { PlaceMapPage } from "./PlaceMapPage";
 
 interface VoteSubmissionPageProps {
   vote: GroupVoteDto;
@@ -76,6 +77,17 @@ function formatDateLabelFromInputs(date: string, time: string): string {
   return `${mo}월 ${d}일 ${WEEKDAYS[dt.getDay()]} ${formatTimeLabel(time)}`;
 }
 
+function hasPlaceCoordinates(option: VotePlaceOptionDto) {
+  return typeof option.latitude === "number" && typeof option.longitude === "number";
+}
+
+function handleRowKeyDown(event: React.KeyboardEvent, action: () => void) {
+  if (event.key !== "Enter" && event.key !== " ") return;
+
+  event.preventDefault();
+  action();
+}
+
 export function VoteSubmissionPage({
   vote,
   roomId,
@@ -95,6 +107,7 @@ export function VoteSubmissionPage({
   const [newTimeValue, setNewTimeValue] = useState("");
   const [isAddingTime, setIsAddingTime] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [mapTarget, setMapTarget] = useState<VotePlaceOptionDto | null>(null);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -108,6 +121,13 @@ export function VoteSubmissionPage({
   const togglePlace = (id: string) => {
     setSelectedPlaceIds((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
+      return vote.allowMultiple ? [...prev, id] : [id];
+    });
+  };
+
+  const selectPlaceFromMap = (id: string) => {
+    setSelectedPlaceIds((prev) => {
+      if (prev.includes(id)) return prev;
       return vote.allowMultiple ? [...prev, id] : [id];
     });
   };
@@ -211,18 +231,29 @@ export function VoteSubmissionPage({
           <OptionList>
             {placeOptions.map((option) => {
               const checked = selectedPlaceIds.includes(option.id);
+              const canOpenMap = hasPlaceCoordinates(option);
               return (
                 <OptionRow
                   key={option.id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => togglePlace(option.id)}
+                  onKeyDown={(event) => handleRowKeyDown(event, () => togglePlace(option.id))}
                   $checked={checked}
                 >
                   <Radio $checked={checked}>{checked && <CheckIcon />}</Radio>
                   <OptionLabel $checked={checked}>{option.label}</OptionLabel>
-                  <LocationBadge>
-                    <LocationIconSmall $muted={!option.mapLink} />
-                  </LocationBadge>
+                  <MapPinButton
+                    type="button"
+                    disabled={!canOpenMap}
+                    aria-label={`${option.label} 지도 보기`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      if (canOpenMap) setMapTarget(option);
+                    }}
+                  >
+                    <LocationIconSmall $muted={!canOpenMap} />
+                  </MapPinButton>
                 </OptionRow>
               );
             })}
@@ -231,7 +262,7 @@ export function VoteSubmissionPage({
                 <NewInput
                   value={newPlaceLabel}
                   onChange={(e) => setNewPlaceLabel(e.target.value)}
-                  placeholder="장소 이름"
+                  placeholder="장소 선택"
                   autoFocus
                 />
                 <NewInputActions>
@@ -263,8 +294,10 @@ export function VoteSubmissionPage({
               return (
                 <OptionRow
                   key={option.id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => toggleTime(option.id)}
+                  onKeyDown={(event) => handleRowKeyDown(event, () => toggleTime(option.id))}
                   $checked={checked}
                 >
                   <Radio $checked={checked}>{checked && <CheckIcon />}</Radio>
@@ -316,6 +349,16 @@ export function VoteSubmissionPage({
           투표하기
         </PrimaryButton>
       </ActionArea>
+      {mapTarget && (
+        <PlaceMapPage
+          place={mapTarget}
+          onClose={() => setMapTarget(null)}
+          onSelect={() => {
+            selectPlaceFromMap(mapTarget.id);
+            setMapTarget(null);
+          }}
+        />
+      )}
     </PageRoot>
   );
 }

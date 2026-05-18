@@ -12,6 +12,7 @@ import type { CreateVoteDto } from '../models/CreateVoteDto';
 import type { GroupChatRoomDetailDto } from '../models/GroupChatRoomDetailDto';
 import type { GroupMessageListDto } from '../models/GroupMessageListDto';
 import type { GroupVoteDto } from '../models/GroupVoteDto';
+import type { KakaoPlaceSearchResultDto } from '../models/KakaoPlaceSearchResultDto';
 import type { LeaveChatRoomDto } from '../models/LeaveChatRoomDto';
 import type { LeaveGroupChatRoomDto } from '../models/LeaveGroupChatRoomDto';
 import type { MessageListDto } from '../models/MessageListDto';
@@ -369,6 +370,37 @@ export class ChatService {
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                400: `잘못된 요청입니다.`,
+                401: `인증이 필요합니다.`,
+                403: `접근 권한이 없습니다.`,
+                500: `서버 내부 오류가 발생했습니다.`,
+            },
+        });
+    }
+    /**
+     * 카카오 장소 검색
+     * 카카오 Local API를 통해 키워드 기반 장소를 검색합니다.
+     * @param query 검색어
+     * @param size 조회 건수 (기본 15, 최대 15)
+     * @returns any 카카오 장소 검색 성공
+     * @throws ApiError
+     */
+    public static chatControllerSearchPlaces(
+        query: string,
+        size?: number,
+    ): CancelablePromise<{
+        success?: boolean;
+        data?: Array<KakaoPlaceSearchResultDto>;
+        error?: string;
+    }> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/chat/votes/place-search',
+            query: {
+                'query': query,
+                'size': size,
+            },
             errors: {
                 400: `잘못된 요청입니다.`,
                 401: `인증이 필요합니다.`,

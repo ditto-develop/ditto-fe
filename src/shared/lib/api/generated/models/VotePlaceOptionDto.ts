@@ -12,9 +12,21 @@ export type VotePlaceOptionDto = {
      */
     label: string;
     /**
+     * 주소
+     */
+    address: string | null;
+    /**
      * 지도 URL
      */
     mapLink?: string | null;
+    /**
+     * 위도
+     */
+    latitude: number | null;
+    /**
+     * 경도
+     */
+    longitude: number | null;
     /**
      * 이 옵션에 투표한 유저 ID 목록
      */

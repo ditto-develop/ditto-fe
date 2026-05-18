@@ -45,6 +45,7 @@ export type { GroupMessageListDto } from './models/GroupMessageListDto';
 export { GroupVoteDto } from './models/GroupVoteDto';
 export type { IntroNotesDto } from './models/IntroNotesDto';
 export type { KakaoCallbackDto } from './models/KakaoCallbackDto';
+export type { KakaoPlaceSearchResultDto } from './models/KakaoPlaceSearchResultDto';
 export type { LeaveChatRoomDto } from './models/LeaveChatRoomDto';
 export type { LeaveGroupChatRoomDto } from './models/LeaveGroupChatRoomDto';
 export type { LoginDto } from './models/LoginDto';

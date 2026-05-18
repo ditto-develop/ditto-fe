@@ -16,29 +16,35 @@ import {
   HiddenPickerInput,
   Hint,
   IconButton,
-  LinkIcon,
+  LocationIcon,
   ModalRoot,
   MultipleSelectButton,
   NavigationFiller,
   OptionFieldGroup,
-  OptionInput,
   OptionList,
   PickerLabel,
+  PlaceOptionContent,
+  PlaceOptionField,
+  PlaceOptionLabel,
+  PlaceOptionMeta,
   PlusIcon,
   PrimaryButton,
   RadioCircle,
   RadioDot,
   Section,
   StepChip,
-  TextOptionField,
   TimeInputRow,
   TimeOptionCard,
   Title,
   TopNavigation,
   Wrapper,
 } from "./_parts/GroupVoteCreateModal.parts";
+import { PlaceSearchModal } from "./PlaceSearchModal";
+import type { SelectedPlace } from "./PlaceSearchModal";
 
 type VoteType = "place" | "time";
+
+type PlaceOption = SelectedPlace;
 
 type TimeOption = {
   date: string;
@@ -48,10 +54,10 @@ type TimeOption = {
 interface GroupVoteCreateModalProps {
   onClose: () => void;
   onComplete?: (payload: {
-    placeOptions: string[];
+    placeOptions: PlaceOption[];
     timeOptions: Array<TimeOption & { dateLabel: string }>;
     allowMultiple: boolean;
-  }) => void;
+  }) => void | Promise<void>;
 }
 
 const MIN_OPTION_COUNT = 2;
@@ -161,13 +167,16 @@ export function GroupVoteCreateModal({
   onComplete,
 }: GroupVoteCreateModalProps) {
   const [voteType, setVoteType] = useState<VoteType>("place");
-  const [placeOptions, setPlaceOptions] = useState<string[]>(["", ""]);
+  const [placeOptions, setPlaceOptions] = useState<Array<PlaceOption | null>>([null, null]);
   const [timeOptions, setTimeOptions] = useState<TimeOption[]>([
     { date: "", time: "" },
     { date: "", time: "" },
   ]);
   const [allowMultiple, setAllowMultiple] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [placeSearchTarget, setPlaceSearchTarget] = useState<number | null>(null);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -177,7 +186,11 @@ export function GroupVoteCreateModal({
   }, []);
 
   const validPlaceOptions = useMemo(
-    () => placeOptions.filter((option) => option.trim().length > 0),
+    () =>
+      placeOptions.filter(
+        (option): option is PlaceOption =>
+          option !== null && option.name.trim().length > 0
+      ),
     [placeOptions]
   );
 
@@ -205,15 +218,18 @@ export function GroupVoteCreateModal({
 
   const handleAddOption = () => {
     if (voteType === "place") {
-      setPlaceOptions((prev) => [...prev, ""]);
+      setPlaceOptions((prev) => [...prev, null]);
       return;
     }
 
     setTimeOptions((prev) => [...prev, { date: "", time: "" }]);
   };
 
-  const handlePrimaryClick = () => {
+  const handlePrimaryClick = async () => {
+    if (isSubmitting) return;
+
     setSubmitted(true);
+    setSubmitError(null);
 
     if (!canProceed) return;
 
@@ -223,15 +239,22 @@ export function GroupVoteCreateModal({
       return;
     }
 
-    onComplete?.({
-      placeOptions: validPlaceOptions,
-      timeOptions: validTimeOptions.map((option) => ({
-        ...option,
-        dateLabel: `${formatDateLabel(option.date)} ${formatTimeLabel(option.time)}`,
-      })),
-      allowMultiple,
-    });
-    onClose();
+    try {
+      setIsSubmitting(true);
+      await onComplete?.({
+        placeOptions: validPlaceOptions,
+        timeOptions: validTimeOptions.map((option) => ({
+          ...option,
+          dateLabel: `${formatDateLabel(option.date)} ${formatTimeLabel(option.time)}`,
+        })),
+        allowMultiple,
+      });
+      onClose();
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "투표를 생성할 수 없습니다.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -268,27 +291,25 @@ export function GroupVoteCreateModal({
               {voteType === "place" ? (
                 <>
                   {placeOptions.map((option, index) => {
-                    const hasError = submitted && option.trim().length === 0;
+                    const hasError = submitted && option === null;
 
                     return (
                       <OptionFieldGroup key={`place-${index}`}>
-                        <TextOptionField $error={hasError}>
-                          <LinkIcon aria-hidden="true" />
-                          <OptionInput
-                            value={option}
-                            onChange={(event) => {
-                              const nextValue = event.target.value;
-                              setPlaceOptions((prev) =>
-                                prev.map((item, itemIndex) =>
-                                  itemIndex === index ? nextValue : item
-                                )
-                              );
-                            }}
-                            placeholder="지도 링크를 입력해 주세요."
-                            aria-label={`장소 옵션 ${index + 1}`}
-                          />
-                        </TextOptionField>
-                        {hasError && <ErrorMessage>링크를 입력해 주세요.</ErrorMessage>}
+                        <PlaceOptionField
+                          type="button"
+                          $error={hasError}
+                          onClick={() => setPlaceSearchTarget(index)}
+                          aria-label={`장소 옵션 ${index + 1}`}
+                        >
+                          <LocationIcon aria-hidden="true" />
+                          <PlaceOptionContent>
+                            <PlaceOptionLabel $placeholder={!option}>
+                              {option ? option.name : "장소 선택"}
+                            </PlaceOptionLabel>
+                            {option && <PlaceOptionMeta>{option.address}</PlaceOptionMeta>}
+                          </PlaceOptionContent>
+                        </PlaceOptionField>
+                        {hasError && <ErrorMessage>장소를 선택해 주세요.</ErrorMessage>}
                       </OptionFieldGroup>
                     );
                   })}
@@ -304,36 +325,36 @@ export function GroupVoteCreateModal({
                       <OptionFieldGroup key={`time-${index}`}>
                         <TimeOptionCard $error={hasError}>
                           <NativePickerField
-                              type="date"
-                              value={option.date}
+                            type="date"
+                            value={option.date}
                             label={formatDateLabel(option.date)}
                             isPlaceholder={!option.date}
                             icon={<CalendarIcon aria-hidden="true" />}
                             ariaLabel={`시간 옵션 ${index + 1} 날짜`}
                             onChange={(nextValue) => {
-                                setTimeOptions((prev) =>
-                                  prev.map((item, itemIndex) =>
-                                    itemIndex === index ? { ...item, date: nextValue } : item
-                                  )
-                                );
-                              }}
-                            />
+                              setTimeOptions((prev) =>
+                                prev.map((item, itemIndex) =>
+                                  itemIndex === index ? { ...item, date: nextValue } : item
+                                )
+                              );
+                            }}
+                          />
                           <NativePickerField
-                              type="time"
-                              value={option.time}
+                            type="time"
+                            value={option.time}
                             label={formatTimeLabel(option.time)}
                             isPlaceholder={!option.time}
                             subtle
                             icon={<ClockIcon aria-hidden="true" />}
                             ariaLabel={`시간 옵션 ${index + 1} 시간`}
                             onChange={(nextValue) => {
-                                setTimeOptions((prev) =>
-                                  prev.map((item, itemIndex) =>
-                                    itemIndex === index ? { ...item, time: nextValue } : item
-                                  )
-                                );
-                              }}
-                            />
+                              setTimeOptions((prev) =>
+                                prev.map((item, itemIndex) =>
+                                  itemIndex === index ? { ...item, time: nextValue } : item
+                                )
+                              );
+                            }}
+                          />
                         </TimeOptionCard>
                         {hasError && <ErrorMessage>옵션을 선택해 주세요.</ErrorMessage>}
                       </OptionFieldGroup>
@@ -363,14 +384,29 @@ export function GroupVoteCreateModal({
       </Body>
 
       <ActionArea>
+        {submitError && <ErrorMessage>{submitError}</ErrorMessage>}
         <PrimaryButton
           type="button"
           onClick={handlePrimaryClick}
-          $active={canProceed}
+          $active={canProceed && !isSubmitting}
+          disabled={isSubmitting}
         >
-          {voteType === "place" ? "다음" : "완료"}
+          {isSubmitting ? "생성 중..." : voteType === "place" ? "다음" : "완료"}
         </PrimaryButton>
       </ActionArea>
+
+      {placeSearchTarget !== null && (
+        <PlaceSearchModal
+          onClose={() => setPlaceSearchTarget(null)}
+          onSelect={(place) => {
+            setPlaceOptions((prev) =>
+              prev.map((item, itemIndex) =>
+                itemIndex === placeSearchTarget ? place : item
+              )
+            );
+          }}
+        />
+      )}
     </ModalRoot>
   );
 }

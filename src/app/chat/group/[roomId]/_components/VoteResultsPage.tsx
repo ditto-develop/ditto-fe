@@ -49,6 +49,7 @@ import {
   VoteCounter,
   VotersLine,
 } from "./_parts/VoteResultsPage.parts";
+import { PlaceMapPage } from "./PlaceMapPage";
 
 const WEEKDAYS = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
 
@@ -68,6 +69,10 @@ function formatDateLabelFromInputs(date: string, time: string): string {
   if (!y || !mo || !d) return "";
   const dt = new Date(y, mo - 1, d);
   return `${mo}월 ${d}일 ${WEEKDAYS[dt.getDay()]} ${formatTimeLabel(time)}`;
+}
+
+function hasPlaceCoordinates(option: VotePlaceOptionDto) {
+  return typeof option.latitude === "number" && typeof option.longitude === "number";
 }
 
 interface VoteResultsPageProps {
@@ -94,6 +99,7 @@ export function VoteResultsPage({
   const [isAddingTime, setIsAddingTime] = useState(false);
   const [newTimeDate, setNewTimeDate] = useState("");
   const [newTimeValue, setNewTimeValue] = useState("");
+  const [mapTarget, setMapTarget] = useState<VotePlaceOptionDto | null>(null);
 
   useEffect(() => {
     setPlaceOptions(vote.placeOptions);
@@ -118,6 +124,7 @@ export function VoteResultsPage({
   const isAllVoted = vote.votedCount >= vote.totalMembers;
   const showRevote = isOpen && hasMyVote && !isAllVoted;
   const showAddOptions = isOpen && !isAllVoted;
+  const canAddOptions = !hasMyVote && isOpen && !isAllVoted;
   const totalMembers = vote.totalMembers;
 
   const handleAddPlace = async () => {
@@ -170,6 +177,7 @@ export function VoteResultsPage({
     const hasVotes = voteCount > 0;
     const isMine = myPlaceIds.has(option.id);
     const progressPct = totalMembers > 0 ? (voteCount / totalMembers) * 100 : 0;
+    const canOpenMap = hasPlaceCoordinates(option);
 
     return (
       <OptionCard
@@ -177,9 +185,10 @@ export function VoteResultsPage({
         $isWinner={isWinner}
         $hasVotes={hasVotes}
         $isAllVoted={isAllVoted}
+        $clickable={canOpenMap}
         type="button"
         onClick={() => {
-          if (option.mapLink) window.open(option.mapLink, "_blank", "noopener");
+          if (canOpenMap) setMapTarget(option);
         }}
       >
         <OptionHeader>
@@ -212,6 +221,7 @@ export function VoteResultsPage({
         $isWinner={isWinner}
         $hasVotes={hasVotes}
         $isAllVoted={isAllVoted}
+        $clickable={false}
         as="div"
       >
         <OptionHeader>
@@ -257,12 +267,12 @@ export function VoteResultsPage({
           <OptionList>
             {placeOptions.map(renderPlaceOption)}
             {showAddOptions && (
-              isAddingPlace ? (
+              canAddOptions && isAddingPlace ? (
                 <NewInputRow>
                   <NewInput
                     value={newPlaceLabel}
                     onChange={(e) => setNewPlaceLabel(e.target.value)}
-                    placeholder="장소 이름"
+                    placeholder="장소 선택"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleAddPlace();
@@ -278,7 +288,14 @@ export function VoteResultsPage({
                   </NewInputActions>
                 </NewInputRow>
               ) : (
-                <AddOptionButton type="button" onClick={() => setIsAddingPlace(true)}>
+                <AddOptionButton
+                  type="button"
+                  disabled={!canAddOptions}
+                  $disabled={!canAddOptions}
+                  onClick={() => {
+                    if (canAddOptions) setIsAddingPlace(true);
+                  }}
+                >
                   <PlusIcon />
                   새로운 장소 추가하기
                 </AddOptionButton>
@@ -299,7 +316,7 @@ export function VoteResultsPage({
           <OptionList>
             {timeOptions.map(renderTimeOption)}
             {showAddOptions && (
-              isAddingTime ? (
+              canAddOptions && isAddingTime ? (
                 <NewTimeRow>
                   <TimePickerField>
                     <CalendarIcon />
@@ -329,7 +346,14 @@ export function VoteResultsPage({
                   </NewInputActions>
                 </NewTimeRow>
               ) : (
-                <AddOptionButton type="button" onClick={() => setIsAddingTime(true)}>
+                <AddOptionButton
+                  type="button"
+                  disabled={!canAddOptions}
+                  $disabled={!canAddOptions}
+                  onClick={() => {
+                    if (canAddOptions) setIsAddingTime(true);
+                  }}
+                >
                   <PlusIcon />
                   새로운 시간 추가하기
                 </AddOptionButton>
@@ -346,6 +370,13 @@ export function VoteResultsPage({
             다시 투표하기
           </ActionButton>
         </ActionArea>
+      )}
+      {mapTarget && (
+        <PlaceMapPage
+          place={mapTarget}
+          onClose={() => setMapTarget(null)}
+          onSelect={() => setMapTarget(null)}
+        />
       )}
     </Overlay>
   );

@@ -250,13 +250,28 @@ export function GroupChatRoomPageClient() {
             const res = await ChatService.chatControllerCreateVote(roomId, {
               title: "만남 투표 진행 중",
               allowMultiple: payload.allowMultiple,
-              placeOptions: payload.placeOptions.map((label) => ({ label })),
+              placeOptions: payload.placeOptions.map((place) => ({
+                label: place.name,
+                address: place.address,
+                mapLink: place.mapUrl,
+                latitude: place.latitude,
+                longitude: place.longitude,
+              })),
               timeOptions: payload.timeOptions,
             });
 
             if (res.success && res.data) {
               handleVoteCreated(res.data);
+              const msgRes = await ChatService.chatControllerGetGroupMessages(roomId, undefined, 30);
+              if (msgRes.success && msgRes.data) {
+                setMessages(msgRes.data.messages.slice().reverse());
+                setNextCursor(msgRes.data.nextCursor ?? null);
+                setHasMore(!!msgRes.data.nextCursor);
+              }
+              return;
             }
+
+            throw new Error(res.error ?? "투표를 생성할 수 없습니다.");
           }}
         />
       )}

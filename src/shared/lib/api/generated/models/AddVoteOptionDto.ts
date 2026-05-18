@@ -12,9 +12,21 @@ export type AddVoteOptionDto = {
      */
     label?: string;
     /**
+     * 주소 (PLACE 타입)
+     */
+    address?: string;
+    /**
      * 지도 URL (PLACE 타입)
      */
     mapLink?: string;
+    /**
+     * 위도 (PLACE 타입)
+     */
+    latitude?: number;
+    /**
+     * 경도 (PLACE 타입)
+     */
+    longitude?: number;
     /**
      * 표시용 날짜 레이블 (TIME 타입)
      */
