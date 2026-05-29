@@ -8,12 +8,13 @@ import type { ApiResult } from './ApiResult';
 import { CancelablePromise } from './CancelablePromise';
 import type { OnCancel } from './CancelablePromise';
 import type { OpenAPIConfig } from './OpenAPI';
+import { refreshExternalToken } from '@/shared/lib/api/externalApi';
 
 // Token refresh deduplication: ensures only one refresh call happens at a time
 let isRefreshing = false;
 let refreshPromise: Promise<string | null> | null = null;
 
-const tryRefreshAccessToken = async (baseUrl: string): Promise<string | null> => {
+const tryRefreshAccessToken = async (_baseUrl: string): Promise<string | null> => {
     if (isRefreshing && refreshPromise) {
         return refreshPromise;
     }
@@ -21,18 +22,14 @@ const tryRefreshAccessToken = async (baseUrl: string): Promise<string | null> =>
     isRefreshing = true;
     refreshPromise = (async () => {
         try {
-            const response = await fetch(`${baseUrl}/api/users/auth/refresh`, {
-                method: 'POST',
-                credentials: 'include',
-            });
-
-            if (!response.ok) return null;
-
-            const data = await response.json();
-            const newAccessToken = data?.data?.accessToken;
+            const data = await refreshExternalToken();
+            const newAccessToken = data.accessToken;
 
             if (newAccessToken && typeof window !== 'undefined') {
                 localStorage.setItem('accessToken', newAccessToken);
+                if (data.refreshToken) {
+                    localStorage.setItem('refreshToken', data.refreshToken);
+                }
                 return newAccessToken;
             }
             return null;

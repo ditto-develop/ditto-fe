@@ -4,8 +4,11 @@ export interface KakaoLoginResult {
   email?: string;
   gender?: string;
   kakaoId?: number;
+  providerUserId?: number | string;
   nickname?: string;
   isRegistered?: boolean;
+  accessToken?: string | null;
+  refreshToken?: string | null;
 }
 
 export interface KakaoCallbackResponse extends KakaoLoginResult {

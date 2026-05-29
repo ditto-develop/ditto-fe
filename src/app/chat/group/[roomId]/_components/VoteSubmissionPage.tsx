@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type React from "react";
 import type {
   CastVoteDto,
@@ -25,9 +25,11 @@ import {
   MapPinButton,
   NavCount,
   NavTitle,
-  NewInput,
-  NewInputActions,
   NewInputRow,
+  NewPlaceField,
+  NewPlaceIcon,
+  NewPlaceText,
+  NewTimeFieldGroup,
   NewTimeRow,
   OptionLabel,
   OptionList,
@@ -40,11 +42,12 @@ import {
   Section,
   SectionHeader,
   SectionTitle,
-  TextButton,
   TimePickerField,
   TopNavigation,
 } from "./_parts/VoteSubmissionPage.parts";
 import { PlaceMapPage } from "./PlaceMapPage";
+import { PlaceSearchModal } from "./PlaceSearchModal";
+import type { SelectedPlace } from "./PlaceSearchModal";
 
 interface VoteSubmissionPageProps {
   vote: GroupVoteDto;
@@ -81,6 +84,10 @@ function hasPlaceCoordinates(option: VotePlaceOptionDto) {
   return typeof option.latitude === "number" && typeof option.longitude === "number";
 }
 
+function canResolvePlaceMap(option: VotePlaceOptionDto) {
+  return hasPlaceCoordinates(option) || Boolean(option.address?.trim() || option.label.trim());
+}
+
 function handleRowKeyDown(event: React.KeyboardEvent, action: () => void) {
   if (event.key !== "Enter" && event.key !== " ") return;
 
@@ -103,11 +110,13 @@ export function VoteSubmissionPage({
   const [timeOptions, setTimeOptions] = useState<VoteTimeOptionDto[]>(vote.timeOptions);
   const [newPlaceLabel, setNewPlaceLabel] = useState("");
   const [isAddingPlace, setIsAddingPlace] = useState(false);
+  const [isPlaceSearchOpen, setIsPlaceSearchOpen] = useState(false);
   const [newTimeDate, setNewTimeDate] = useState("");
   const [newTimeValue, setNewTimeValue] = useState("");
   const [isAddingTime, setIsAddingTime] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [mapTarget, setMapTarget] = useState<VotePlaceOptionDto | null>(null);
+  const addingTimeKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -139,13 +148,17 @@ export function VoteSubmissionPage({
     });
   };
 
-  const handleAddPlace = async () => {
-    const label = newPlaceLabel.trim();
+  const handleAddPlace = async (place?: SelectedPlace) => {
+    const label = (place?.name ?? newPlaceLabel).trim();
     if (!label) return;
 
     const res = await ChatService.chatControllerAddVoteOption(roomId, vote.id, {
       type: AddVoteOptionDto.type.PLACE,
       label,
+      address: place?.address,
+      mapLink: place?.mapUrl,
+      latitude: place?.latitude,
+      longitude: place?.longitude,
     });
 
     if (res.success && res.data) {
@@ -159,25 +172,26 @@ export function VoteSubmissionPage({
 
     setNewPlaceLabel("");
     setIsAddingPlace(false);
+    setIsPlaceSearchOpen(false);
   };
 
-  const handleAddTime = async () => {
-    if (!newTimeDate || !newTimeValue) return;
-    const dateLabel = formatDateLabelFromInputs(newTimeDate, newTimeValue);
+  const handleAddTime = useCallback(async (date: string, time: string) => {
+    if (!date || !time) return;
+    const dateLabel = formatDateLabelFromInputs(date, time);
     if (!dateLabel) return;
 
     const res = await ChatService.chatControllerAddVoteOption(roomId, vote.id, {
       type: AddVoteOptionDto.type.TIME,
       dateLabel,
-      date: newTimeDate,
-      time: newTimeValue,
+      date,
+      time,
     });
 
     if (res.success && res.data) {
       setPlaceOptions(res.data.placeOptions);
       setTimeOptions(res.data.timeOptions);
     } else if (onLocalAddTime) {
-      const updated = onLocalAddTime({ dateLabel, date: newTimeDate, time: newTimeValue });
+      const updated = onLocalAddTime({ dateLabel, date, time });
       setPlaceOptions(updated.placeOptions);
       setTimeOptions(updated.timeOptions);
     }
@@ -185,7 +199,18 @@ export function VoteSubmissionPage({
     setNewTimeDate("");
     setNewTimeValue("");
     setIsAddingTime(false);
-  };
+    addingTimeKeyRef.current = null;
+  }, [onLocalAddTime, roomId, vote.id]);
+
+  useEffect(() => {
+    if (!isAddingTime || !newTimeDate || !newTimeValue) return;
+
+    const timeKey = `${newTimeDate}-${newTimeValue}`;
+    if (addingTimeKeyRef.current === timeKey) return;
+
+    addingTimeKeyRef.current = timeKey;
+    void handleAddTime(newTimeDate, newTimeValue);
+  }, [handleAddTime, isAddingTime, newTimeDate, newTimeValue]);
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -231,7 +256,7 @@ export function VoteSubmissionPage({
           <OptionList>
             {placeOptions.map((option) => {
               const checked = selectedPlaceIds.includes(option.id);
-              const canOpenMap = hasPlaceCoordinates(option);
+              const canOpenMap = canResolvePlaceMap(option);
               return (
                 <OptionRow
                   key={option.id}
@@ -257,29 +282,20 @@ export function VoteSubmissionPage({
                 </OptionRow>
               );
             })}
-            {isAddingPlace ? (
+            {isAddingPlace && (
               <NewInputRow>
-                <NewInput
-                  value={newPlaceLabel}
-                  onChange={(e) => setNewPlaceLabel(e.target.value)}
-                  placeholder="장소 선택"
-                  autoFocus
-                />
-                <NewInputActions>
-                  <TextButton type="button" onClick={() => { setIsAddingPlace(false); setNewPlaceLabel(""); }}>
-                    취소
-                  </TextButton>
-                  <TextButton type="button" $primary onClick={handleAddPlace}>
-                    추가
-                  </TextButton>
-                </NewInputActions>
+                <NewPlaceField type="button" onClick={() => setIsPlaceSearchOpen(true)}>
+                  <NewPlaceIcon>
+                    <LocationIconSmall $muted />
+                  </NewPlaceIcon>
+                  <NewPlaceText>장소 선택</NewPlaceText>
+                </NewPlaceField>
               </NewInputRow>
-            ) : (
-              <AddOptionButton type="button" onClick={() => setIsAddingPlace(true)}>
-                <PlusIcon />
-                새로운 장소 추가하기
-              </AddOptionButton>
             )}
+            <AddOptionButton type="button" onClick={() => setIsAddingPlace(true)}>
+              <PlusIcon />
+              새로운 장소 추가하기
+            </AddOptionButton>
           </OptionList>
         </Section>
 
@@ -305,41 +321,36 @@ export function VoteSubmissionPage({
                 </OptionRow>
               );
             })}
-            {isAddingTime ? (
+            {isAddingTime && (
               <NewTimeRow>
-                <TimePickerField>
-                  <CalendarIcon />
-                  <HiddenDateInput
-                    type="date"
-                    value={newTimeDate}
-                    onChange={(e) => setNewTimeDate(e.target.value)}
-                  />
-                  <PickerDisplay>{newTimeDate || "날짜 선택"}</PickerDisplay>
-                </TimePickerField>
-                <TimePickerField>
-                  <ClockIconSmall />
-                  <HiddenDateInput
-                    type="time"
-                    value={newTimeValue}
-                    onChange={(e) => setNewTimeValue(e.target.value)}
-                  />
-                  <PickerDisplay>{newTimeValue ? formatTimeLabel(newTimeValue) : "시간 선택"}</PickerDisplay>
-                </TimePickerField>
-                <NewInputActions>
-                  <TextButton type="button" onClick={() => { setIsAddingTime(false); setNewTimeDate(""); setNewTimeValue(""); }}>
-                    취소
-                  </TextButton>
-                  <TextButton type="button" $primary onClick={handleAddTime}>
-                    추가
-                  </TextButton>
-                </NewInputActions>
+                <NewTimeFieldGroup>
+                  <TimePickerField>
+                    <CalendarIcon />
+                    <HiddenDateInput
+                      type="date"
+                      value={newTimeDate}
+                      onChange={(e) => setNewTimeDate(e.target.value)}
+                    />
+                    <PickerDisplay $empty={!newTimeDate}>{newTimeDate || "날짜 선택"}</PickerDisplay>
+                  </TimePickerField>
+                  <TimePickerField>
+                    <ClockIconSmall />
+                    <HiddenDateInput
+                      type="time"
+                      value={newTimeValue}
+                      onChange={(e) => setNewTimeValue(e.target.value)}
+                    />
+                    <PickerDisplay $empty={!newTimeValue}>
+                      {newTimeValue ? formatTimeLabel(newTimeValue) : "시간 선택"}
+                    </PickerDisplay>
+                  </TimePickerField>
+                </NewTimeFieldGroup>
               </NewTimeRow>
-            ) : (
-              <AddOptionButton type="button" onClick={() => setIsAddingTime(true)}>
-                <PlusIcon />
-                새로운 시간 추가하기
-              </AddOptionButton>
             )}
+            <AddOptionButton type="button" onClick={() => setIsAddingTime(true)}>
+              <PlusIcon />
+              새로운 시간 추가하기
+            </AddOptionButton>
           </OptionList>
         </Section>
       </Body>
@@ -356,6 +367,14 @@ export function VoteSubmissionPage({
           onSelect={() => {
             selectPlaceFromMap(mapTarget.id);
             setMapTarget(null);
+          }}
+        />
+      )}
+      {isPlaceSearchOpen && (
+        <PlaceSearchModal
+          onClose={() => setIsPlaceSearchOpen(false)}
+          onSelect={(place) => {
+            void handleAddPlace(place);
           }}
         />
       )}

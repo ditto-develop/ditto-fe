@@ -3,6 +3,7 @@
 import styled from "styled-components";
 import { useRouter } from "next/navigation";
 import { getChatRoomEndState } from "@/app/chat/_utils/chatRoomStatus";
+import { formatChatMessagePreview } from "@/app/chat/_utils/messagePreview";
 
 // Extended type to support optional status fields the BE may return
 export interface ChatRoomListItemData {
@@ -82,7 +83,7 @@ export function ChatRoomListItem({ room }: ChatRoomListItemProps) {
           </DateText>
         </TopRow>
         <BottomRow>
-          <LastMessage>{room.lastMessageContent ?? ""}</LastMessage>
+          <LastMessage>{formatChatMessagePreview(room.lastMessageContent)}</LastMessage>
           {showUnread && (
             <UnreadBadge>
               <UnreadBadgeBg />

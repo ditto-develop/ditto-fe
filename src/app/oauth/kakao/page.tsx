@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Body1Normal } from "@/shared/ui";
 import styled from "styled-components";
 import { Tutorial } from "@/components/onboarding/Tutorial";
-import { UserService } from "@/shared/lib/api/generated";
+import { handleExternalSocialCallback } from "@/shared/lib/api/externalApi";
 import type { KakaoCallbackResponse, KakaoLoginResult } from "@/types/kakao";
 
 const LoadingContainer = styled.div`
@@ -19,7 +19,7 @@ const LoadingContainer = styled.div`
 
 const isKakaoCallbackResponse = (value: unknown): value is KakaoCallbackResponse => {
   if (!value || typeof value !== "object") return false;
-  return "kakaoId" in value;
+  return "kakaoId" in value || "providerUserId" in value || "name" in value;
 };
 
 const getErrorMessage = (error: unknown): string => {
@@ -30,7 +30,7 @@ const getErrorMessage = (error: unknown): string => {
 
 const toKakaoLoginResult = (data: KakaoCallbackResponse): KakaoLoginResult => ({
   ...data,
-  kakaoId: Number(data.kakaoId),
+  kakaoId: Number(data.kakaoId ?? data.providerUserId),
 });
 
 function KakaoLoginContent() {
@@ -50,34 +50,15 @@ function KakaoLoginContent() {
     const handleLoginFlow = async () => {
       console.log("Attempting login flow with code:", code);
       try {
-        // 1. Get Kakao user info from our own API route
-        const redirectUri = `${window.location.origin}/oauth/kakao`;
-        const kakaoResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE}/api/auth/kakao/callback`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code, redirectUri }),
-        });
-
-        const kakaoData: unknown = await kakaoResponse.json();
-        if (!kakaoResponse.ok || !isKakaoCallbackResponse(kakaoData)) {
-          throw new Error("카카오 사용자 정보를 가져오는데 실패했습니다.");
+        const kakaoData: unknown = await handleExternalSocialCallback("KAKAO", code);
+        if (!isKakaoCallbackResponse(kakaoData)) {
+          throw new Error("카카오 로그인 응답을 확인할 수 없습니다.");
         }
 
-        const kakaoId = String(kakaoData.kakaoId);
-
-        // 2. Attempt social login
-        const loginResponse = await UserService.userControllerSocialLogin({
-          provider: "kakao",
-          providerUserId: kakaoId,
-        });
-
-        console.log("Full social login response:", loginResponse);
-
-        // 3. Handle response based on the 'success' flag in the body
-        if (loginResponse.success && loginResponse.data?.accessToken) {
+        if (kakaoData.accessToken) {
           // SUCCESS: Existing user logged in
           console.log("Login successful for existing user.");
-          const { accessToken, refreshToken } = loginResponse.data;
+          const { accessToken, refreshToken } = kakaoData;
 
           localStorage.setItem("accessToken", accessToken);
           if (refreshToken) {
@@ -89,6 +70,9 @@ function KakaoLoginContent() {
         } else {
           // FAILURE: New user, or other login error -> Start signup
           console.log("New user detected or login failed. Proceeding to sign-up.");
+          if (!kakaoData.kakaoId && !kakaoData.providerUserId) {
+            throw new Error("회원가입에 필요한 소셜 사용자 ID가 응답에 없습니다.");
+          }
           setInitialData(toKakaoLoginResult(kakaoData));
         }
       } catch (err: unknown) {

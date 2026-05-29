@@ -1,8 +1,8 @@
 "use client";
 
 import { Headline1 } from "@/shared/ui";
+import { startExternalSocialLogin } from "@/shared/lib/api/externalApi";
 import type { KakaoLoginResult } from "@/types/kakao";
-import { useRouter } from "next/navigation";
 import styled from "styled-components";
 
 const ButtonContainer = styled.div`
@@ -34,20 +34,9 @@ interface KakaoLoginProps {
   onLoginComplete?: (result: KakaoLoginResult) => void;
 }
 
-export const KakaoLogin = ({ onLoginComplete }: KakaoLoginProps) => {
-  const router = useRouter();
-
+export const KakaoLogin = (_props: KakaoLoginProps) => {
   const handleLogin = () => {
-    // SDK 로드 여부 방어 코드
-    if (!window.Kakao || !window.Kakao.isInitialized()) {
-      alert("카카오 로그인을 준비 중입니다. 잠시 후 다시 시도해주세요.");
-      return;
-    }
-
-    // ✅ 리다이렉트 URI는 폴더 구조(app/oauth/kakao/page.tsx)와 일치해야 합니다.
-    window.Kakao.Auth.authorize({
-      redirectUri: `${window.location.origin}/oauth/kakao`,
-    });
+    startExternalSocialLogin("KAKAO");
   };
 
   return (

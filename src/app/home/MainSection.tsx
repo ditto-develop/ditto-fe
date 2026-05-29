@@ -7,10 +7,11 @@ import type { MatchingCardType } from "@/components/home/MatchingDay";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { IntroNotesService } from "@/lib/api";
-import { ChatService, QuizProgressDto, QuizProgressService, SystemService, SystemStateDto } from "@/shared/lib/api/generated";
+import { ChatService, QuizProgressDto, SystemService, SystemStateDto } from "@/shared/lib/api/generated";
 import type { ChatRoomItemDto } from "@/shared/lib/api/generated";
 import type { MatchCandidateDto } from "@/features/matching/api/matchingApi";
 import { getMatchCandidates, getMatchingStatus } from "@/features/matching/api/matchingApi";
+import { getExternalQuizProgress } from "@/shared/lib/api/externalApi";
 import { useHomeReady } from "@/context/HomeReadyContext";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useToast } from "@/context/ToastContext";
@@ -97,12 +98,12 @@ export function MainSection() {
         }
 
         if (fetchedPeriod === "QUIZ") {
-          const progressRes = await QuizProgressService.quizProgressControllerGetProgress();
-          if (progressRes.success && progressRes.data) {
+          const progress = await getExternalQuizProgress();
+          if (progress) {
             setIsQuizComplete(
-              progressRes.data.status === QuizProgressDto.status.COMPLETED
+              progress.status === QuizProgressDto.status.COMPLETED
             );
-            setParticipantCount(progressRes.data.participantCount ?? 0);
+            setParticipantCount(progress.participantCount ?? 0);
           }
         } else {
           // MATCHING or CHATTING: 매칭 결과로 matchType 결정

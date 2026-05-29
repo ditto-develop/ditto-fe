@@ -25,7 +25,7 @@ import {
 import {
   TextField
 } from "@/shared/ui";
-import { ApiError, UserService } from "@/shared/lib/api/generated";
+import { checkExternalNicknameAvailability } from "@/shared/lib/api/externalApi";
 import {
   DefaultContainer,
   DivideContainer,
@@ -114,16 +114,16 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
 
     if (validateNickname(data.nickname)) {
       try {
-        await UserService.userControllerCheckNicknameAvailability(data.nickname);
+        const availability = await checkExternalNicknameAvailability(data.nickname);
+        if (availability.available === false) {
+          setNickerr(["이미 사용 중인 닉네임입니다."]);
+          return;
+        }
         setNickset(true); // 저장 완료 상태로 전환
         showToast("닉네임이 저장되었어요.", "success");
       } catch (error) {
-        if (error instanceof ApiError && error.status === 409) {
-          setNickerr(["이미 사용 중인 닉네임입니다."]);
-        } else {
-          console.error("Nickname check failed:", error);
-          showToast("닉네임 확인 중 오류가 발생했습니다.", "error");
-        }
+        console.error("Nickname check failed:", error);
+        showToast("닉네임 확인 중 오류가 발생했습니다.", "error");
       }
     }
   };

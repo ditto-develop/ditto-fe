@@ -15,6 +15,7 @@ import {
 } from "@/lib/api";
 import { ProfileService, UserService } from "@/shared/lib/api/generated";
 import type { CreateUserDto } from "@/shared/lib/api/generated";
+import { createExternalUser } from "@/shared/lib/api/externalApi";
 
 import type {
 
@@ -237,7 +238,7 @@ export function Tutorial({ initialData }: TutorialProps) {
         console.log("전송 데이터 확인:", createUserDto); 
 
         // [수정됨] 중복 호출 제거 (한 번만 호출)
-        const createResponse = await UserService.userControllerCreate(createUserDto);
+        const createResponse = await createExternalUser(createUserDto);
         console.log("Create User Response:", createResponse);
 
 

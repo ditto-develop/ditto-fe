@@ -100,6 +100,7 @@ export function GroupMatchingResultModal({
   onJoinPending,
   joinPending = false,
   candidates,
+  quizSetId,
   groupName = "같은 취미, 취향 그룹",
 }: GroupMatchingResultModalProps) {
   console.log('[src/components/home/GroupMatchingResultModal.tsx] GroupMatchingResultModal'); // __component_log__
@@ -128,7 +129,7 @@ export function GroupMatchingResultModal({
     setJoining(true);
     setError(null);
     try {
-      const result = await joinGroupMatch();
+      const result = await joinGroupMatch(quizSetId);
       setJoinResult({ participantCount: result.participantCount, isActive: result.isActive });
 
       if (result.isActive) {
@@ -346,7 +347,7 @@ export function GroupMatchingResultModal({
           text: "네, 거절할게요",
           onClick: async () => {
             setRejectAlertOpen(false);
-            try { await declineGroupMatch(); } catch { /* ignore */ }
+            try { await declineGroupMatch(quizSetId); } catch { /* ignore */ }
             onClose();
             onDecline?.();
           },

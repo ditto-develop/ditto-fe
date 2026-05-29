@@ -7,8 +7,8 @@ import { Nav } from "@/shared/ui";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import { useRouter, useParams } from "next/navigation";
 import { QuizModal } from "@/components/quiz/QuizModal";
-import { QuizProgressDto, QuizProgressService } from "@/shared/lib/api/generated";
 import type { QuizWithAnswerDto } from "@/shared/lib/api/generated";
+import { getExternalQuizSetWithProgress, submitExternalQuizAnswer } from "@/shared/lib/api/externalApi";
 
 export function QuizPageClient() {
   console.log('[src/app/quiz/[id]/page.tsx] Quiz'); // __component_log__
@@ -29,12 +29,12 @@ export function QuizPageClient() {
   useEffect(() => {
     async function fetchQuizzes() {
       try {
-        const res = await QuizProgressService.quizProgressControllerGetQuizSetWithProgress(quizSetId);
-        if (res.success && res.data) {
-          setQuizzes(res.data.quizzes);
+        const res = await getExternalQuizSetWithProgress(quizSetId);
+        if (res) {
+          setQuizzes(res.quizzes);
           // 이전에 답변한 문제가 있으면 해당 step부터 시작
-          const lastAnswered = res.data.quizzes.findIndex((q) => !q.userAnswer);
-          setCurrentStep(lastAnswered === -1 ? res.data.quizzes.length - 1 : lastAnswered);
+          const lastAnswered = res.quizzes.findIndex((q) => !q.userAnswer);
+          setCurrentStep(lastAnswered === -1 ? res.quizzes.length - 1 : lastAnswered);
           if (lastAnswered === -1) setIsFinish(true);
         } else {
           setError("퀴즈를 불러오지 못했어요.");
@@ -58,10 +58,7 @@ export function QuizPageClient() {
     setSelectedChoiceId(choiceId);
 
     // 답변 서버에 제출 (비동기, 실패해도 UI는 진행)
-    QuizProgressService.quizProgressControllerSubmitAnswer({
-      quizId: currentQuiz.id,
-      choiceId,
-    }).catch(() => {/* 답변 제출 실패는 무시하고 UI 진행 */});
+    submitExternalQuizAnswer(currentQuiz.id, choiceId).catch(() => {/* 답변 제출 실패는 무시하고 UI 진행 */});
 
     setTimeout(() => {
       setIsFadingOut(true);

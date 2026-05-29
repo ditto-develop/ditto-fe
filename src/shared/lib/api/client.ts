@@ -2,6 +2,7 @@ import { ApiError as GeneratedApiError } from "./generated/core/ApiError";
 import type { ApiRequestOptions } from "./generated/core/ApiRequestOptions";
 import { OpenAPI, type OpenAPIConfig } from "./generated/core/OpenAPI";
 import { request } from "./generated/core/request";
+import { refreshExternalToken } from "./externalApi";
 
 /** API BASE URL 가져오기 */
 export function getApiBase(): string {
@@ -38,20 +39,13 @@ export function clearToken(): void {
 
 export async function tryRefreshToken(): Promise<string | null> {
     try {
-        const json = await request<{ success: boolean; data?: { accessToken?: string } }>(
-            {
-                ...apiConfig,
-                WITH_CREDENTIALS: true,
-                TOKEN: undefined,
-            },
-            {
-                method: "POST",
-                url: "/users/auth/refresh",
-            },
-        );
-        const newToken = json?.data?.accessToken;
+        const tokenResponse = await refreshExternalToken();
+        const newToken = tokenResponse.accessToken;
         if (newToken && typeof window !== "undefined") {
             localStorage.setItem("accessToken", newToken);
+            if (tokenResponse.refreshToken) {
+                localStorage.setItem("refreshToken", tokenResponse.refreshToken);
+            }
             return newToken;
         }
         return null;

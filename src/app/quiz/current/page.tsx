@@ -7,7 +7,7 @@ import { Nav } from "@/shared/ui";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import { useRouter, useSearchParams } from "next/navigation";
 import { QuizModal } from "@/components/quiz/QuizModal";
-import { QuizProgressService, QuizSetsService } from "@/shared/lib/api/generated";
+import { getExternalCurrentWeekQuizSets, submitExternalQuizAnswer } from "@/shared/lib/api/externalApi";
 import type { CurrentWeekQuizSetsResponseDto, QuizDto } from "@/shared/lib/api/generated";
 
 // --- Types ---
@@ -43,15 +43,10 @@ function QuizContent() {
     const fetchQuizData = async () => {
       try {
         setLoading(true);
-        const response = await QuizSetsService.quizSetControllerGetCurrentWeek();
-        if (response.success && response.data) {
-          setQuizData(response.data);
-        } else {
-          throw new Error(response.error || "Failed to fetch quiz data.");
-        }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        setError(err.message || "An unknown error occurred.");
+        const response = await getExternalCurrentWeekQuizSets();
+        setQuizData(response);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "An unknown error occurred.");
       } finally {
         setLoading(false);
       }
@@ -76,10 +71,7 @@ function QuizContent() {
     setSelectedChoiceId(choiceId);
 
     // 서버에 답변 제출 (비동기, 실패해도 UI 진행)
-    QuizProgressService.quizProgressControllerSubmitAnswer({
-      quizId: currentQuiz.id!,
-      choiceId,
-    }).catch(() => {});
+    submitExternalQuizAnswer(currentQuiz.id, choiceId).catch(() => {});
 
     setTimeout(() => {
       setIsFadingOut(true);

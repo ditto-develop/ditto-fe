@@ -231,9 +231,7 @@ export const OptionCard = styled.button<{
               --color-semantic-background-normal-alternative,
               var(--color-semantic-line-solid-neutral)
             );
-            border: 1px solid var(--color-semantic-primary-normal);
-            border-bottom-color: var(--color-semantic-label-normal);
-            border-bottom-width: 1.5px;
+            border: 1px solid transparent;
           `
         : css`
             background-color: var(
@@ -241,7 +239,6 @@ export const OptionCard = styled.button<{
               var(--color-semantic-line-solid-neutral)
             );
             border: 1px solid transparent;
-            border-bottom: 1.5px solid var(--color-semantic-label-normal);
           `;
     }
     return css`
@@ -377,6 +374,7 @@ export const AddOptionButton = styled.button<{ $disabled?: boolean }>`
   justify-content: center;
   gap: 4px;
   width: 100%;
+  height: 48px;
   padding: 12px;
   border: 1px solid
     var(--color-semantic-line-normal-neutral);
@@ -394,21 +392,56 @@ export const AddOptionButton = styled.button<{ $disabled?: boolean }>`
 export const NewInputRow = styled.div`
   display: flex;
   flex-direction: column;
+  width: 100%;
   gap: 8px;
+`;
+
+export const NewPlaceField = styled.button`
+  ${fontBase}
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  height: 48px;
   padding: 12px;
-  border-radius: 12px;
   border: 1px solid
     var(--color-semantic-line-normal-neutral);
+  border-radius: 12px;
+  background-color: transparent;
+  color: var(--color-semantic-label-assistive);
+  cursor: pointer;
+  box-sizing: border-box;
+  text-align: left;
+`;
+
+export const NewPlaceIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: var(--color-semantic-label-assistive);
+`;
+
+export const NewPlaceText = styled.span`
+  ${fontBase}
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 4px;
+  color: var(--color-semantic-label-assistive);
+  font-size: var(--typography-body-1-normal-font-size);
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.091px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 export const NewTimeRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid
-    var(--color-semantic-line-normal-neutral);
+  width: 100%;
 `;
 
 export const NewInput = styled.input`
@@ -431,17 +464,39 @@ export const NewInput = styled.input`
   }
 `;
 
+export const NewTimeFieldGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+`;
+
 export const TimePickerField = styled.label`
   position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 12px;
+  gap: 4px;
+  height: 48px;
+  padding: 12px;
   border: 1px solid
     var(--color-semantic-line-normal-neutral);
-  border-radius: 8px;
+  box-sizing: border-box;
   cursor: pointer;
-  color: var(--color-semantic-label-normal);
+  color: var(--color-semantic-label-assistive);
+
+  &:first-of-type {
+    border-width: 1px;
+    border-radius: 12px 12px 0 0;
+    background-color: transparent;
+  }
+
+  &:last-of-type {
+    border-width: 0 1px 1px;
+    border-radius: 0 0 12px 12px;
+    background-color: rgb(
+      from var(--color-semantic-background-normal-alternative) r g b /
+        var(--color-atomic-opacity-52)
+    );
+  }
 `;
 
 export const HiddenDateInput = styled.input`
@@ -457,13 +512,20 @@ export const HiddenDateInput = styled.input`
   -webkit-appearance: none;
 `;
 
-export const PickerDisplay = styled.span`
+export const PickerDisplay = styled.span<{ $empty?: boolean }>`
   ${fontBase}
   flex: 1;
-  font-size: var(--typography-body-2-normal-font-size);
-  font-weight: 500;
-  line-height: 1.467;
-  color: var(--color-semantic-label-normal);
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 4px;
+  color: ${({ $empty }) =>
+    $empty ? "var(--color-semantic-label-assistive)" : "var(--color-semantic-label-normal)"};
+  font-size: var(--typography-body-1-normal-font-size);
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.091px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 export const NewInputActions = styled.div`

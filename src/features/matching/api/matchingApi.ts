@@ -3,7 +3,15 @@
  * BE 엔드포인트와 1:1 대응
  */
 
-import { apiFetch } from "@/shared/lib/api/client";
+import {
+    acceptExternalMatchRequest,
+    declineExternalGroupMatch,
+    getExternalMatchCandidates,
+    getExternalMatchingStatus,
+    joinExternalGroupMatch,
+    rejectExternalMatchRequest,
+    sendExternalMatchRequest,
+} from "@/shared/lib/api/externalApi";
 
 export { apiFetch, tryRefreshToken } from "@/shared/lib/api/client";
 
@@ -57,26 +65,23 @@ export interface GetMatchingStatusResponse {
 // --- API functions ---
 
 export function getMatchCandidates(): Promise<GetMatchCandidatesResponse> {
-    return apiFetch("/matches/1on1");
+    return getExternalMatchCandidates();
 }
 
 export function sendMatchRequest(toUserId: string, quizSetId: string): Promise<MatchRequestDto> {
-    return apiFetch("/matches/request", {
-        method: "POST",
-        body: JSON.stringify({ toUserId, quizSetId }),
-    });
+    return sendExternalMatchRequest(toUserId, quizSetId);
 }
 
 export function acceptMatchRequest(matchRequestId: string): Promise<MatchRequestDto> {
-    return apiFetch(`/matches/request/${matchRequestId}/accept`, { method: "POST" });
+    return acceptExternalMatchRequest(matchRequestId);
 }
 
 export function rejectMatchRequest(matchRequestId: string): Promise<MatchRequestDto> {
-    return apiFetch(`/matches/request/${matchRequestId}/reject`, { method: "POST" });
+    return rejectExternalMatchRequest(matchRequestId);
 }
 
 export function getMatchingStatus(quizSetId: string): Promise<GetMatchingStatusResponse> {
-    return apiFetch(`/matching/status/${quizSetId}`);
+    return getExternalMatchingStatus(quizSetId);
 }
 
 export interface GroupJoinResult {
@@ -86,10 +91,10 @@ export interface GroupJoinResult {
     isActive: boolean;
 }
 
-export function joinGroupMatch(): Promise<GroupJoinResult> {
-    return apiFetch("/matches/group/join", { method: "POST" });
+export function joinGroupMatch(quizSetId?: string): Promise<GroupJoinResult> {
+    return joinExternalGroupMatch(quizSetId);
 }
 
-export function declineGroupMatch(): Promise<void> {
-    return apiFetch("/matches/group/decline", { method: "POST" });
+export function declineGroupMatch(quizSetId?: string): Promise<void> {
+    return declineExternalGroupMatch(quizSetId);
 }

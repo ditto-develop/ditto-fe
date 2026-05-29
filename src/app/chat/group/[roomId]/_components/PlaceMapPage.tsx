@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Copy, LocateFixed, MapPin, X } from "lucide-react";
 import type { VotePlaceOptionDto } from "@/shared/lib/api/generated";
 import { loadKakaoMaps } from "@/shared/lib/kakao-maps";
@@ -34,22 +34,82 @@ function hasCoordinates(place: VotePlaceOptionDto) {
   return typeof place.latitude === "number" && typeof place.longitude === "number";
 }
 
+type Coordinate = {
+  latitude: number;
+  longitude: number;
+};
+
+function parseCoordinate(x: string, y: string): Coordinate | null {
+  const longitude = Number.parseFloat(x);
+  const latitude = Number.parseFloat(y);
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+
+  return { latitude, longitude };
+}
+
+function searchAddress(maps: KakaoMapsNamespace, address: string): Promise<Coordinate | null> {
+  return new Promise((resolve) => {
+    if (!address.trim()) {
+      resolve(null);
+      return;
+    }
+
+    const geocoder = new maps.services.Geocoder();
+    geocoder.addressSearch(address, (result, status) => {
+      if (status !== maps.services.Status.OK || result.length === 0) {
+        resolve(null);
+        return;
+      }
+
+      resolve(parseCoordinate(result[0].x, result[0].y));
+    });
+  });
+}
+
+function searchKeyword(maps: KakaoMapsNamespace, keyword: string): Promise<Coordinate | null> {
+  return new Promise((resolve) => {
+    if (!keyword.trim()) {
+      resolve(null);
+      return;
+    }
+
+    const places = new maps.services.Places();
+    places.keywordSearch(keyword, (result, status) => {
+      if (status !== maps.services.Status.OK || result.length === 0) {
+        resolve(null);
+        return;
+      }
+
+      resolve(parseCoordinate(result[0].x, result[0].y));
+    });
+  });
+}
+
+async function resolvePlaceCoordinate(maps: KakaoMapsNamespace, place: VotePlaceOptionDto): Promise<Coordinate | null> {
+  if (hasCoordinates(place)) {
+    return {
+      latitude: place.latitude as number,
+      longitude: place.longitude as number,
+    };
+  }
+
+  return (
+    (await searchAddress(maps, place.address ?? "")) ??
+    (await searchKeyword(maps, [place.label, place.address].filter(Boolean).join(" "))) ??
+    (await searchKeyword(maps, place.label))
+  );
+}
+
 export function PlaceMapPage({ place, onClose, onSelect }: PlaceMapPageProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<KakaoMap | null>(null);
   const markerRef = useRef<KakaoMarker | null>(null);
   const markerClickListenerRef = useRef<KakaoMapListener | null>(null);
-  const [loading, setLoading] = useState(hasCoordinates(place));
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copyLabel, setCopyLabel] = useState("복사");
-
-  const coordinate = useMemo(() => {
-    if (!hasCoordinates(place)) return null;
-    return {
-      latitude: place.latitude as number,
-      longitude: place.longitude as number,
-    };
-  }, [place]);
+  const [coordinate, setCoordinate] = useState<Coordinate | null>(null);
 
   const recenter = useCallback(() => {
     if (!coordinate || !mapRef.current) return;
@@ -85,21 +145,25 @@ export function PlaceMapPage({ place, onClose, onSelect }: PlaceMapPageProps) {
   };
 
   useEffect(() => {
-    if (!coordinate || !mapContainerRef.current) {
-      setLoading(false);
-      return undefined;
-    }
-
     let cancelled = false;
 
     setLoading(true);
     setError(null);
+    setCoordinate(null);
 
     void loadKakaoMaps()
-      .then((maps) => {
+      .then(async (maps) => {
         if (cancelled || !mapContainerRef.current) return;
 
-        const center = new maps.LatLng(coordinate.latitude, coordinate.longitude);
+        const resolvedCoordinate = await resolvePlaceCoordinate(maps, place);
+        if (cancelled || !mapContainerRef.current) return;
+
+        if (!resolvedCoordinate) {
+          setError("이 장소의 지도 정보를 불러올 수 없습니다.");
+          return;
+        }
+
+        const center = new maps.LatLng(resolvedCoordinate.latitude, resolvedCoordinate.longitude);
         const map = new maps.Map(mapContainerRef.current, {
           center,
           level: 3,
@@ -115,6 +179,7 @@ export function PlaceMapPage({ place, onClose, onSelect }: PlaceMapPageProps) {
         mapRef.current = map;
         markerRef.current = marker;
         markerClickListenerRef.current = listener;
+        setCoordinate(resolvedCoordinate);
 
         window.setTimeout(() => {
           map.relayout();
@@ -141,7 +206,7 @@ export function PlaceMapPage({ place, onClose, onSelect }: PlaceMapPageProps) {
       markerRef.current = null;
       mapRef.current = null;
     };
-  }, [coordinate]);
+  }, [place]);
 
   return (
     <PageRoot role="dialog" aria-modal="true" aria-labelledby="place-map-title">
@@ -153,23 +218,17 @@ export function PlaceMapPage({ place, onClose, onSelect }: PlaceMapPageProps) {
       </TopBar>
 
       <MapArea>
-        {coordinate ? (
-          <>
-            <MapContainer ref={mapContainerRef} />
-            <MapControlLayer>
-              <MapControlButton type="button" onClick={moveToCurrentLocation} aria-label="현재 위치로 이동">
-                <LocateFixed aria-hidden="true" size={20} strokeWidth={1.8} />
-              </MapControlButton>
-              <MapControlButton type="button" onClick={recenter} aria-label="장소 위치로 이동">
-                <MapPin aria-hidden="true" size={20} fill="currentColor" strokeWidth={0} />
-              </MapControlButton>
-            </MapControlLayer>
-            {loading && <LoadingState>지도를 불러오는 중입니다.</LoadingState>}
-            {error && <EmptyState>{error}</EmptyState>}
-          </>
-        ) : (
-          <EmptyState>이 장소의 지도 정보를 불러올 수 없습니다.</EmptyState>
-        )}
+        <MapContainer ref={mapContainerRef} />
+        <MapControlLayer>
+          <MapControlButton type="button" onClick={moveToCurrentLocation} aria-label="현재 위치로 이동">
+            <LocateFixed aria-hidden="true" size={20} strokeWidth={1.8} />
+          </MapControlButton>
+          <MapControlButton type="button" onClick={recenter} aria-label="장소 위치로 이동">
+            <MapPin aria-hidden="true" size={20} fill="currentColor" strokeWidth={0} />
+          </MapControlButton>
+        </MapControlLayer>
+        {loading && <LoadingState>지도를 불러오는 중입니다.</LoadingState>}
+        {error && <EmptyState>{error}</EmptyState>}
       </MapArea>
 
       <BottomCard>
