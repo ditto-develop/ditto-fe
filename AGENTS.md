@@ -1,30 +1,243 @@
-# FE Agents Guide (Codex / Claude)
+# FE Agents Guide
 
-이 폴더(`ditto-fe-migration/`)에서 작업하는 모든 코딩 에이전트(Codex 포함)는 아래 문서를 Claude Code와 **완전히 동일하게** 따른다.
+This file is the Codex entrypoint for `ditto-fe-migration/`.
 
-## 반드시 먼저 읽을 것
+All coding agents working in this folder, including Codex and Claude Code, must follow the same project rules.
 
-1. [`../CLAUDE.md`](../CLAUDE.md) — 프로젝트 공통 규칙과 클린 코드 공통 원칙
-2. [`./CLAUDE.md`](./CLAUDE.md) — FE 상세 규약 (**본 문서의 본체**)
-3. [`../AGENTS.md`](../AGENTS.md) — 저장소 진입점 요약
+The source of truth for FE rules is `./CLAUDE.md`.
 
-본 파일은 Codex가 이 폴더에 진입했을 때 기본으로 읽는 진입점이며, 규칙 자체는 위 문서들을 그대로 따른다.
+---
 
-## 작업 진행 방식
+## Required Reading Order
 
-- 클린업 작업은 `~/.claude/plans/ditto-fe-migration-fancy-rose.md`에 정의된 **배치(batch) 단위**로만 진행한다.
-- 한 PR에 여러 배치를 섞지 않는다. 파일 rename과 내용 수정은 커밋을 분리한다.
-- 브랜치 네이밍: `chore/cleanup-<letter>-<slug>` (예: `chore/cleanup-b-fetch-unify`)
-- 대상 브랜치: `feat/s3-migration`
-- 검증: `npm run lint && npm run build && npx tsc --noEmit` 통과 + 주요 페이지 스모크 테스트 + 배포 후 `gh run watch`.
+Before making any change, read these files in order:
 
-## 즉시 중단하고 사용자에게 질문해야 하는 경우
+1. `../CLAUDE.md` — repository-level rules and clean code principles
+2. `./CLAUDE.md` — FE-specific rules and conventions
+3. `../AGENTS.md` — repository entrypoint summary
 
-1. 하드코딩된 색/폰트가 기존 CSS 변수 토큰과 매핑되지 않을 때
-2. generated API와 legacy API의 spec이 다를 때 (필드·타입 불일치)
-3. Mock 분기 제거 시 BE 연동 완료 여부가 불명확할 때
-4. 거대 컴포넌트 분해의 섹션 경계가 모호할 때
-5. public API(외부 import 심볼) 이름·시그니처 변경이 필요할 때
-6. 배치 범위를 벗어나는 로직 변경이 필요해 보일 때
+Do not rely only on this file.
 
-임의로 근사값을 고르거나 추측하지 않는다.
+---
+
+## Role of Codex in This Repository
+
+Codex is the implementation agent.
+
+The expected workflow is:
+
+1. Claude Code creates the plan.
+2. Codex implements the approved plan.
+3. Claude Code reviews the diff.
+4. Codex applies review fixes if needed.
+5. Claude Code prepares or validates the PR.
+
+Codex should not expand the task scope beyond the provided Claude plan.
+
+If there is no Claude plan, Codex must first inspect the relevant files and produce a short implementation plan before editing.
+
+---
+
+## Current Target Project
+
+Only this project is in scope:
+
+- `ditto-fe-migration/`
+
+Out of scope:
+
+- `ditto-fe/`
+- `ditto-develop/ditto-be/`
+- Backend implementation changes
+- Legacy frontend cleanup outside `ditto-fe-migration/`
+
+Do not modify out-of-scope projects unless the user explicitly asks.
+
+---
+
+## Branch and PR Rules
+
+- Base branch: `feat/s3-migration`
+- Cleanup branch naming: `chore/cleanup-<letter>-<slug>`
+  - Example: `chore/cleanup-b-fetch-unify`
+- One cleanup batch = one PR
+- Do not mix multiple batches in one PR
+- Separate file rename commits from content-change commits
+
+---
+
+## Cleanup Batch Rule
+
+Cleanup work must follow the batch definitions in:
+
+`~/.claude/plans/ditto-fe-migration-fancy-rose.md`
+
+Do not cross batch boundaries.
+
+If a required change appears to exceed the current batch scope, stop and ask the user.
+
+---
+
+## Implementation Rules
+
+When implementing:
+
+1. Read the relevant files first.
+2. Search for existing patterns using `rg` or equivalent.
+3. Reuse existing utilities and components.
+4. Make the smallest correct change.
+5. Preserve existing behavior.
+6. Avoid speculative refactoring.
+7. Do not change public APIs without user confirmation.
+8. Do not introduce new dependencies unless explicitly approved.
+9. Do not change deployment, CI, or infrastructure files unless required by the task.
+
+---
+
+## Strict FE Rules
+
+Follow `./CLAUDE.md` for all FE conventions, especially:
+
+- Use generated API services from `src/shared/lib/api/generated/`
+- Do not call `fetch` or `axios` directly
+- Use styled-components only
+- Do not add CSS Modules or emotion
+- Do not use hardcoded colors, fonts, or spacing
+- Do not use hex, rgb, rgba, hsl, or fallback color values
+- Do not add new `any`, `@ts-ignore`, or `@ts-expect-error`
+- Use `import type` for type imports
+- Prefer `@/` alias imports
+- Do not use parent relative imports like `../` or `../../`
+- Do not use default exports except Next.js route files
+- Do not introduce React Query in this cleanup scope
+
+---
+
+## API Rules
+
+- Components and hooks must call generated services from `src/shared/lib/api/generated/`.
+- Do not create manual service files for endpoints missing from generated API.
+- Do not manually duplicate generated DTOs.
+- Do not loosen generated response types by making fields optional.
+- If generated API and legacy API differ, stop and ask the user.
+
+---
+
+## Styling Rules
+
+- All colors, fonts, and spacing must use CSS variable tokens.
+- Do not use hardcoded `hex`, `rgb`, `rgba`, `hsl`, or fallback token values.
+- Do not use inline styles for colors or typography.
+- If a hardcoded value cannot be mapped to an existing token, stop and ask the user.
+- Do not choose approximate token values.
+
+---
+
+## Validation
+
+After changes, run:
+
+```bash
+npm run lint && npm run build && npx tsc --noEmit
+```
+
+If any command fails:
+
+1. Identify whether the failure is caused by your changes.
+2. Fix failures caused by your changes.
+3. Clearly report pre-existing failures.
+
+Do not report completion before validation is complete.
+
+---
+
+## Smoke Test Targets
+
+When relevant, manually check:
+
+- `/home`
+- `/chat/one-on-one/[roomId]`
+- `/chat/group/[roomId]`
+- Group vote modal
+- `/onboarding`
+- `/admin/matches`
+- `/admin/users`
+- `/auth/callback`
+
+---
+
+## Deployment Verification
+
+After deployment, verify GitHub Actions with:
+
+```bash
+gh run watch <run_id> --repo ditto-develop/ditto-fe
+```
+
+If the run fails:
+
+1. Inspect the logs.
+2. Fix the issue.
+3. Push again.
+4. Watch the new run.
+
+Do not report success before the deployment workflow succeeds.
+
+---
+
+## Stop and Ask the User
+
+Stop immediately and ask the user if:
+
+1. A hardcoded color or font cannot be mapped to an existing token.
+2. Generated API and legacy API specs differ.
+3. It is unclear whether BE integration is complete before removing mock code.
+4. The split boundary of a large component is ambiguous.
+5. A public API name or signature must change.
+6. A required logic change exceeds the current cleanup batch.
+7. The Claude plan conflicts with `./CLAUDE.md`.
+
+Do not guess.
+Do not choose approximate values.
+Do not silently change scope.
+
+---
+
+## Git / Diff Rules
+
+Before finishing:
+
+1. Inspect the diff.
+2. Remove debug logs.
+3. Remove temporary comments.
+4. Remove unused imports.
+5. Confirm no unrelated files were changed.
+6. Confirm rename-only changes are separated from content changes when applicable.
+
+---
+
+## Final Response Format
+
+Always finish with:
+
+```md
+## Summary
+
+- ...
+
+## Files Changed
+
+- `path/to/file`: ...
+
+## Validation
+
+- `npm run lint`: passed / failed / not run
+- `npm run build`: passed / failed / not run
+- `npx tsc --noEmit`: passed / failed / not run
+
+## Notes / Risks
+
+- ...
+```
+
+Do not claim that a command passed unless it was actually run.

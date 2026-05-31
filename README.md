@@ -15,7 +15,7 @@
 | Styling | styled-components 6 |
 | Animation | Framer Motion, Lottie |
 | UI Icons | Lucide React |
-| Testing | Vitest, Playwright |
+| Testing | Vitest, Playwright, Cypress |
 | Component Explorer | Storybook 8 |
 | Containerization | Docker, Docker Compose |
 | Deployment | AWS EC2 (via GitHub Actions) |
@@ -43,7 +43,7 @@ npm install
 
 ```env
 NEXT_PUBLIC_KAKAO_JS_KEY=your_kakao_js_key
-NEXT_PUBLIC_REDIRECT_URI=http://localhost:3000/oauth/kakao
+NEXT_PUBLIC_REDIRECT_URI=http://localhost:3000/auth/callback
 NEXT_PUBLIC_API_BASE=https://ditto.pics
 ```
 
@@ -68,6 +68,9 @@ npm run dev
 | `npm run typecheck` | TypeScript 타입 검사 |
 | `npm run test` | Vitest 단위 테스트 실행 |
 | `npm run test:e2e` | Playwright E2E 테스트 실행 |
+| `npm run cypress:open` | Cypress 테스트 러너 실행 |
+| `npm run cypress:run` | 실행 중인 로컬 서버 대상으로 Cypress E2E 테스트 실행 |
+| `npm run test:e2e:cypress` | 개발 서버 실행 후 Cypress E2E 테스트 실행 |
 | `npm run verify` | lint + typecheck + test 통합 검증 |
 | `npm run storybook` | Storybook 개발 서버 실행 (port 6006) |
 | `npm run build-storybook` | Storybook 정적 빌드 |
@@ -89,7 +92,7 @@ src/
 │   │   └── [id]/           # 특정 유저 프로필
 │   ├── onboarding/         # 온보딩 (튜토리얼, 자기소개 작성)
 │   │   └── intro/          # 자기소개 입력
-│   └── oauth/kakao/        # 카카오 소셜 로그인 콜백
+│   └── auth/callback/      # 카카오 소셜 로그인 콜백
 │
 ├── components/             # 공통/페이지별 UI 컴포넌트
 │   ├── common/             # 버튼, 레이아웃 등 기본 컴포넌트

@@ -6,7 +6,7 @@ import { Body1Normal } from "@/shared/ui";
 import styled from "styled-components";
 import { Tutorial } from "@/components/onboarding/Tutorial";
 import { handleExternalSocialCallback } from "@/shared/lib/api/externalApi";
-import type { KakaoCallbackResponse, KakaoLoginResult } from "@/types/kakao";
+import type { KakaoLoginResult } from "@/types/kakao";
 
 const LoadingContainer = styled.div`
   display: flex;
@@ -17,10 +17,10 @@ const LoadingContainer = styled.div`
   gap: 16px;
 `;
 
-const isKakaoCallbackResponse = (value: unknown): value is KakaoCallbackResponse => {
-  if (!value || typeof value !== "object") return false;
-  return "kakaoId" in value || "providerUserId" in value || "name" in value;
-};
+type CallbackData = { accessToken?: string | null; refreshToken?: string | null };
+
+const isCallbackData = (value: unknown): value is CallbackData =>
+  !!value && typeof value === "object" && "accessToken" in value;
 
 const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) return error.message;
@@ -28,64 +28,57 @@ const getErrorMessage = (error: unknown): string => {
   return "알 수 없는 오류가 발생했습니다.";
 };
 
-const toKakaoLoginResult = (data: KakaoCallbackResponse): KakaoLoginResult => ({
-  ...data,
-  kakaoId: Number(data.kakaoId ?? data.providerUserId),
-});
-
 function KakaoLoginContent() {
-  console.log('[src/app/oauth/kakao/page.tsx] KakaoLoginContent'); // __component_log__
+  console.log('[src/app/auth/callback/page.tsx] KakaoLoginContent'); // __component_log__
   const router = useRouter();
   const searchParams = useSearchParams();
   const code = searchParams.get("code");
+  const oauthError = searchParams.get("error");
+  const oauthErrorDescription = searchParams.get("error_description");
 
+  // 신규 회원 진입 시 빈 initialData({})로 Tutorial step 1에서 시작
   const [initialData, setInitialData] = useState<KakaoLoginResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const isFetched = useRef(false);
 
   useEffect(() => {
+    if (oauthError) {
+      setError(oauthErrorDescription || `카카오 로그인이 취소되었거나 실패했습니다. (${oauthError})`);
+      return;
+    }
     if (!code || isFetched.current) return;
     isFetched.current = true;
 
     const handleLoginFlow = async () => {
       console.log("Attempting login flow with code:", code);
       try {
-        const kakaoData: unknown = await handleExternalSocialCallback("KAKAO", code);
-        if (!isKakaoCallbackResponse(kakaoData)) {
+        const raw: unknown = await handleExternalSocialCallback("KAKAO", code);
+        if (!isCallbackData(raw)) {
           throw new Error("카카오 로그인 응답을 확인할 수 없습니다.");
         }
 
-        if (kakaoData.accessToken) {
-          // SUCCESS: Existing user logged in
+        if (raw.accessToken) {
+          // 기존 회원: 토큰 저장 후 홈으로
           console.log("Login successful for existing user.");
-          const { accessToken, refreshToken } = kakaoData;
-
-          localStorage.setItem("accessToken", accessToken);
-          if (refreshToken) {
-            localStorage.setItem("refreshToken", refreshToken);
+          localStorage.setItem("accessToken", raw.accessToken);
+          if (raw.refreshToken) {
+            localStorage.setItem("refreshToken", raw.refreshToken);
           }
-
-
-          router.push("/home"); // Redirect to home
+          router.push("/home");
         } else {
-          // FAILURE: New user, or other login error -> Start signup
-          console.log("New user detected or login failed. Proceeding to sign-up.");
-          if (!kakaoData.kakaoId && !kakaoData.providerUserId) {
-            throw new Error("회원가입에 필요한 소셜 사용자 ID가 응답에 없습니다.");
-          }
-          setInitialData(toKakaoLoginResult(kakaoData));
+          // 신규 회원: kakaoId 없이 회원가입 단계 진입
+          console.log("New user detected. Proceeding to sign-up.");
+          setInitialData({});
         }
       } catch (err: unknown) {
-        // This will now only catch critical errors like network failure
         console.error("Authentication process failed:", err);
         setError(getErrorMessage(err));
       }
     };
 
     handleLoginFlow();
-  }, [code, router]);
+  }, [code, oauthError, oauthErrorDescription, router]);
 
-  // If there was an error, display it
   if (error) {
     return (
       <LoadingContainer>
@@ -95,12 +88,11 @@ function KakaoLoginContent() {
     );
   }
 
-  // If we have initialData, it's a new user, so render the Tutorial
+  // initialData({})가 설정되면 신규 회원 → Tutorial step 1부터 시작
   if (initialData) {
     return <Tutorial initialData={initialData} />;
   }
 
-  // Otherwise, show a loading indicator
   return (
     <LoadingContainer>
       <Body1Normal>카카오 로그인 처리 중입니다...</Body1Normal>
@@ -109,8 +101,7 @@ function KakaoLoginContent() {
 }
 
 export default function KakaoRedirectPage() {
-  console.log('[src/app/oauth/kakao/page.tsx] KakaoRedirectPage'); // __component_log__
-  // ... (rest of the component remains the same)
+  console.log('[src/app/auth/callback/page.tsx] KakaoRedirectPage'); // __component_log__
   return (
     <Suspense
       fallback={
