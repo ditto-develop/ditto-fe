@@ -8,14 +8,8 @@ import {
 
 } from "@/context/ToastContext";
 
-import {
-
-  IntroNotesService,
-
-} from "@/lib/api";
-import { ProfileService, UserService } from "@/shared/lib/api/generated";
 import type { CreateUserDto } from "@/shared/lib/api/generated";
-import { createExternalUser } from "@/shared/lib/api/externalApi";
+import { createExternalUser, startExternalSocialLogin } from "@/shared/lib/api/externalApi";
 
 import type {
 
@@ -217,67 +211,33 @@ export function Tutorial({ initialData }: TutorialProps) {
           nickname: formData.nickname,
           phoneNumber: formData.phone,
           
-          // 이메일 처리: 없으면 카카오ID 기반 가짜 이메일 생성
-          email: formData.email && formData.email !== "" 
-                ? formData.email 
-                : `${formData.kakaoId}@kakao.com`,
+          email: formData.email || "",
 
-          gender: parsedGender, 
+          gender: parsedGender,
           age: parsedAge,
 
-          // 생일 처리: 없으면 현재 시간(오늘)으로 설정 (ISO String 필수)
-          // 주의: 실제 생일을 받지 못했다면 오늘 날짜로 들어갑니다.
-          birthDate: formData.birthDate 
-                ? new Date(formData.birthDate).toISOString() 
+          birthDate: formData.birthDate
+                ? new Date(formData.birthDate).toISOString()
                 : new Date().toISOString(),
 
           provider: "kakao",
-          providerUserId: String(formData.kakaoId),
+          // 신규 회원은 kakaoId 없이 가입 — 재로그인 시 BE가 실제 kakaoId를 연결
+          providerUserId: formData.kakaoId ? String(formData.kakaoId) : "register-user",
         };
 
-        console.log("전송 데이터 확인:", createUserDto); 
+        console.log("전송 데이터 확인:", createUserDto);
 
-        // [수정됨] 중복 호출 제거 (한 번만 호출)
         const createResponse = await createExternalUser(createUserDto);
         console.log("Create User Response:", createResponse);
 
-
-        // 회원가입 후 로그인 처리
-        const loginResponse = await UserService.userControllerSocialLogin({
-          provider: "kakao",
-          providerUserId: String(formData.kakaoId),
-        });
-        console.log("Social Login Response:", loginResponse);
-
-        if (loginResponse.data?.accessToken) {
-          // 토큰 저장
-          localStorage.setItem("accessToken", loginResponse.data.accessToken);
-          if (loginResponse.data.refreshToken) {
-            localStorage.setItem("refreshToken", loginResponse.data.refreshToken);
-          }
-
-          // 프로필 저장 (프로필 이미지, 지역, 직업, 관심사)
-          await ProfileService.profileControllerUpdateMyProfile({
-            profileImageUrl: formData.pic ? `/assets/avatar/${formData.pic}.png` : undefined,
-            location: formData.place ?? undefined,
-            occupation: formData.job ?? undefined,
-            interests: formData.interest.length > 0 ? formData.interest : undefined,
-          }).catch(() => {});
-
-          // 소개 노트 저장 (작성된 내용이 있을 경우)
-          const introValues = step3Ref.current?.getCurrentValues() ?? formData.introduce;
-          if (introValues.some((v) => v.trim().length > 0)) {
-            await IntroNotesService.introNotesControllerUpdateMyIntroNotes({
-              answers: introValues,
-            }).catch(() => {});
-          }
-
-          showToast("회원가입이 완료되었습니다!", "success");
-
-          router.push("/home");
-        } else {
-          throw new Error("Access token not received.");
-        }
+        // BE 작업 대기: 회원가입 직후 토큰을 함께 발급하는 엔드포인트가 없어,
+        //   OAuth 흐름을 재시작해 callback에서 토큰을 받아온다.
+        //   (카카오 세션이 살아있으면 추가 인증 없이 즉시 callback으로 돌아옴)
+        // BE 작업 대기: 아래 프로필/소개노트 PATCH·PUT 엔드포인트 추가 후 저장 복구 필요
+        //   - profileImageUrl: `/assets/avatar/${formData.pic}.png`
+        //   - location, occupation, interests, introduce
+        showToast("회원가입이 완료되었습니다!", "success");
+        startExternalSocialLogin("KAKAO");
       } catch (error) {
         console.error("Signup failed:", error);
         // 에러 메시지를 사용자에게 보여줄 때, 너무 기술적인 내용보다는 부드럽게 표현

@@ -6,7 +6,7 @@ import { refreshExternalToken } from "./externalApi";
 
 /** API BASE URL 가져오기 */
 export function getApiBase(): string {
-    return process.env.NEXT_PUBLIC_API_BASE || "https://ditto.pics";
+    return process.env.NEXT_PUBLIC_API_BASE || "https://api.ditto.pics";
 }
 
 const getAccessToken = (): string => {

@@ -54,6 +54,7 @@ const eslintConfig = defineConfig([
     files: [
       "eslint.config.mjs",
       "next.config.*",
+      "cypress.config.*",
       "vitest.config.*",
       "**/*.stories.{js,jsx,ts,tsx}",
       "**/.storybook/**/*.{js,jsx,ts,tsx}",

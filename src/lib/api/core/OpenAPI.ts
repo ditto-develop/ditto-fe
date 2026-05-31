@@ -20,7 +20,7 @@ export type OpenAPIConfig = {
 };
 
 export const OpenAPI: OpenAPIConfig = {
-    BASE: process.env.NEXT_PUBLIC_API_BASE || 'https://ditto.pics',
+    BASE: process.env.NEXT_PUBLIC_API_BASE || 'https://api.ditto.pics',
     VERSION: '0.0.1',
     WITH_CREDENTIALS: false,
     CREDENTIALS: 'include',

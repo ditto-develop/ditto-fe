@@ -6,7 +6,6 @@ import { TimeLine } from "@/components/home/Timeline";
 import type { MatchingCardType } from "@/components/home/MatchingDay";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { IntroNotesService } from "@/lib/api";
 import { ChatService, QuizProgressDto, SystemService, SystemStateDto } from "@/shared/lib/api/generated";
 import type { ChatRoomItemDto } from "@/shared/lib/api/generated";
 import type { MatchCandidateDto } from "@/features/matching/api/matchingApi";
@@ -82,10 +81,11 @@ export function MainSection() {
 
     async function load() {
       try {
-        // systemState와 introNotes를 병렬로 요청
+        // BE 작업 대기: IntroNotes(GET /api/v1/users/me/intro-notes) 엔드포인트가 api.ditto.pics에 추가될 때까지
+        //   isIntroComplete는 false로 유지된다. 엔드포인트 추가 후 externalApi 패턴으로 호출 복구 필요.
         const [stateRes, introRes] = await Promise.all([
           SystemService.systemControllerGetSystemState(),
-          IntroNotesService.introNotesControllerGetMyIntroNotes().catch(() => null),
+          Promise.resolve(null as { success: boolean; data?: { completedCount: number; answers: string[] } } | null),
         ]);
 
         if (!stateRes.success || !stateRes.data) return;

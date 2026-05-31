@@ -352,7 +352,31 @@ When relevant, manually test:
 
 ## 13. Deployment Verification
 
-After deployment, verify GitHub Actions:
+### 13.0 How Deployment Works (read this first)
+
+Deployment is triggered **only by pushing commits** to the `feat/s3-migration` branch. There is no other trigger.
+
+- The workflow is [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml): on push it runs `npm ci` → `npm run build` (static export to `./out`) → `aws s3 sync ./out s3://<bucket> --delete` → CloudFront `/*` invalidation.
+- **Uncommitted or unpushed changes are NEVER deployed.** Working-tree edits and local `npm run build` output (`./out`) have no effect on the live site until they are committed AND pushed. If "deployment isn't happening," first check `git status` and `git log origin/feat/s3-migration..feat/s3-migration` for unpushed work — that is the most common cause.
+
+### 13.1 When the User Says "Push" / "Deploy"
+
+A push/deploy instruction means: commit ALL relevant changes, push to `feat/s3-migration`, and watch the run until it succeeds. Do not stop at "validation passed" — the user expects the code to actually reach the remote and deploy. Run `npm run lint && npm run build && npx tsc --noEmit` first, then commit and push.
+
+### 13.2 Deployment Infrastructure (AWS, account `247842832483`)
+
+| Resource | Value |
+|---|---|
+| GitHub repo | `ditto-develop/ditto-fe` (branch `feat/s3-migration`) |
+| S3 bucket | `ditto-pics-247842832483-ap-northeast-2` (region `ap-northeast-2`) |
+| CloudFront distribution | `E2IAN5BWR5D33B` |
+| Domains | `ditto.pics`, `www.ditto.pics`, `test.ditto.pics` (`d28wm0h79feewt.cloudfront.net`) |
+
+To compare deployed vs local content directly: `aws s3 ls s3://ditto-pics-247842832483-ap-northeast-2/ --recursive`, or `aws s3 cp <key> -` to inspect a file. Note that `_next/static/chunks/*` filenames are content-hashed and the build ID differs on every build, so chunk-name diffs are expected noise — compare route/HTML structure and normalized content, not raw filenames.
+
+### 13.3 Verify GitHub Actions
+
+After pushing, verify GitHub Actions:
 
 ```bash
 gh run watch <run_id> --repo ditto-develop/ditto-fe

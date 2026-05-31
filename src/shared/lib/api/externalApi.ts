@@ -51,9 +51,6 @@ type NicknameAvailability = {
 type OAuthCallbackResult = {
     accessToken?: string | null;
     refreshToken?: string | null;
-    name?: string | null;
-    kakaoId?: ExternalId | null;
-    providerUserId?: ExternalId | null;
 };
 
 const toId = (value: ExternalId | null | undefined): string => String(value ?? "");
@@ -173,8 +170,15 @@ export function refreshExternalToken(): Promise<LoginResponseDto> {
     });
 }
 
-export function logoutExternal(): Promise<null> {
-    return externalApiFetch<null>("/api/v1/users/auth/logout", { method: "POST" });
+export async function logoutExternal(): Promise<null> {
+    try {
+        return await externalApiFetch<null>("/api/v1/users/auth/logout", { method: "POST" });
+    } finally {
+        if (typeof window !== "undefined") {
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+        }
+    }
 }
 
 export function checkExternalNicknameAvailability(nickname: string): Promise<NicknameAvailability> {
@@ -182,18 +186,7 @@ export function checkExternalNicknameAvailability(nickname: string): Promise<Nic
 }
 
 export function startExternalSocialLogin(provider: string): void {
-    if (provider.toUpperCase() === "KAKAO") {
-        const query = new URLSearchParams({
-            client_id: "270549696b7c0eba2eeefbb45472c09b",
-            redirect_uri: `${window.location.origin}/oauth/kakao`,
-            response_type: "code",
-            scope: "account_email",
-        });
-        window.location.href = `https://kauth.kakao.com/oauth/authorize?${query.toString()}`;
-        return;
-    }
-
-    window.location.href = `${process.env.NEXT_PUBLIC_EXTERNAL_API_BASE || "https://api.ditto.pics"}/api/v1/users/social-login/${provider}`;
+    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE || "https://api.ditto.pics"}/api/v1/users/social-login/${provider}`;
 }
 
 export function handleExternalSocialCallback(provider: string, code: string): Promise<OAuthCallbackResult> {
