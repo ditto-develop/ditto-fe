@@ -16,7 +16,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const { isHomeReady } = useHomeReady();
 
   // 로그인이 필요 없는 공개 경로
-  const isPublicPath = pathname === "/" || pathname.startsWith('/oauth') || pathname === '/localogin' || pathname === '/localogin/';
+  const isAuthCallbackPath = pathname === "/auth/callback" || pathname === "/auth/callback/";
+  const isPublicPath = pathname === "/" || pathname.startsWith('/oauth') || isAuthCallbackPath || pathname === '/localogin' || pathname === '/localogin/';
   // 관리자 경로: ClientLayout 리다이렉트/스플래시 완전 제외
   const isAdminPath = pathname.startsWith('/admin');
 
