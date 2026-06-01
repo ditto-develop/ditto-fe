@@ -101,7 +101,6 @@ interface ThisWeekQuizProps {
 }
 
 export function ThisWeekQuiz({ iscomplete, isIntroComplete, participantCount }: ThisWeekQuizProps) {
-  console.log('[src/components/home/ThisWeekQuiz.tsx] ThisWeekQuiz'); // __component_log__
   const router = useRouter();
   const today = new Date().getDay(); // (KST 변환 로직 필요 시 적용)
   const target = today === 4 ? 5 : 4;

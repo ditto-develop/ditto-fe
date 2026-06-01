@@ -38,7 +38,6 @@ export function OnboardingLayout({
   onSubAction, // ✅ 구조 분해 할당
   children,
 }: OnboardingLayoutProps) {
-  console.log('[src/components/onboarding/OnboardingLayout.tsx] OnboardingLayout'); // __component_log__
   return (
     <>
     <PageContainer>

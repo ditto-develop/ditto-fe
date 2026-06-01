@@ -88,7 +88,6 @@ const NumberCircle = styled.div`
 // --- Component ---
 
 export function Timeline({ currentStep }: TimelineProps) {
-  console.log('[src/components/home/Timeline.tsx] Timeline'); // __component_log__
   const steps = [
     { id: 1, label: "월~수 : 퀴즈 기간" },
     { id: 2, label: "목 : 매칭 기간" },
@@ -127,7 +126,6 @@ interface TimeLineProps {
 }
 
 export function TimeLine({ date = new Date() }: TimeLineProps) {
-  console.log('[src/components/home/Timeline.tsx] TimeLine'); // __component_log__
   const currentStep = useMemo(() => {
     const utc = date.getTime() + (date.getTimezoneOffset() * 60 * 1000);
     const kstOffset = 9 * 60 * 60 * 1000;

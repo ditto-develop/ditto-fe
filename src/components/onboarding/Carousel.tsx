@@ -10,7 +10,6 @@ type CarouselProps = {
 };
 
 export function SplashCarousel({ images, interval = 2000 }: CarouselProps) {
-  console.log('[src/components/onboarding/Carousel.tsx] SplashCarousel'); // __component_log__
   const [index, setIndex] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 

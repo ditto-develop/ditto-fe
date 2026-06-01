@@ -243,7 +243,6 @@ const SheetOption = styled.li<{ $selected?: boolean }>`
 export function Select<T extends Primitive = string>(
   props: SelectProps<T>
 ) {
-  console.log('[src/shared/ui/form/Select/Select.tsx] Select'); // __component_log__
   const {
     label,
     isessential,

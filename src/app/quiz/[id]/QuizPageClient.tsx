@@ -11,7 +11,6 @@ import type { QuizWithAnswerDto } from "@/shared/lib/api/generated";
 import { getExternalQuizSetWithProgress, submitExternalQuizAnswer } from "@/shared/lib/api/externalApi";
 
 export function QuizPageClient() {
-  console.log('[src/app/quiz/[id]/page.tsx] Quiz'); // __component_log__
   const router = useRouter();
   const params = useParams();
   const quizSetId = String(params.id);
@@ -339,7 +338,6 @@ const getRandomImage = () => {
 };
 
 function FinishView(){
-  console.log('[src/app/quiz/[id]/page.tsx] FinishView'); // __component_log__
   const router = useRouter();
   const [imgSrc] = useState(getRandomImage);
 

@@ -19,7 +19,6 @@ const AlarmIcon = styled.img`
 `;
 
 export function MainHeader(){
-  console.log('[src/app/home/MainHeader.tsx] MainHeader'); // __component_log__
     return(
         <Header>
             <img 

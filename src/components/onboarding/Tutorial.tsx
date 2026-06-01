@@ -98,7 +98,6 @@ interface TutorialProps {
 }
 
 export function Tutorial({ initialData }: TutorialProps) {
-  console.log('[src/components/onboarding/Tutorial.tsx] Tutorial'); // __component_log__
   const { showToast, removeToast } = useToast();
   const router = useRouter();
 
@@ -152,26 +151,16 @@ export function Tutorial({ initialData }: TutorialProps) {
 
   // ✅ 기존 회원 체크 로직 (Tutorial 마운트 시 실행)
   useEffect(() => {
-    if (initialData) {
-      console.log("Initial data from server:", initialData);
-    }
     if (initialData?.isRegistered) {
-      console.log("기존 회원입니다. 메인으로 이동합니다.");
       router.push("/home");
     }
   }, [initialData, router]);
 
   // --- Step 0에서 로그인 완료 시 호출되는 핸들러 ---
   const handleLoginComplete = (loginResult: KakaoLoginResult) => {
-    console.log('Data after Kakao login:', loginResult);
     if (loginResult.isRegistered) {
       router.push("/home");
     } else {
-      console.log('Kakao ID:', loginResult.kakaoId);
-      console.log('Nickname:', loginResult.nickname);
-      console.log('Profile Image:', loginResult.profileImage);
-      console.log('Email:', loginResult.email);
-      console.log('Gender:', loginResult.gender);
       setFormData((prev) => ({
         ...prev,
         kakaoId: loginResult.kakaoId,
@@ -186,8 +175,6 @@ export function Tutorial({ initialData }: TutorialProps) {
 
   // --- 페이지 이동 로직 ---
   const goNextStep = async () => {
-    console.log(`Data at the end of step ${step}:`, formData);
-    
     // Step 1~3: 단순 페이지 이동
     if (step < 4) {
       setControlButton("disabled");
@@ -195,7 +182,6 @@ export function Tutorial({ initialData }: TutorialProps) {
     } 
     // Step 4: 최종 회원가입 요청
     else {
-      console.log("튜토리얼 최종 완료 및 회원가입 요청:", formData);
       try {
         // 1. 나이 처리: "40-45" -> 40 (숫자로 변환)
         const parsedAge = formData.age ? parseInt(formData.age, 10) : 0;
@@ -225,10 +211,7 @@ export function Tutorial({ initialData }: TutorialProps) {
           providerUserId: formData.kakaoId ? String(formData.kakaoId) : "register-user",
         };
 
-        console.log("전송 데이터 확인:", createUserDto);
-
-        const createResponse = await createExternalUser(createUserDto);
-        console.log("Create User Response:", createResponse);
+        await createExternalUser(createUserDto);
 
         // BE 작업 대기: 회원가입 직후 토큰을 함께 발급하는 엔드포인트가 없어,
         //   OAuth 흐름을 재시작해 callback에서 토큰을 받아온다.

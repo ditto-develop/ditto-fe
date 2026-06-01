@@ -103,7 +103,6 @@ export function GroupMatchingResultModal({
   quizSetId,
   groupName = "같은 취미, 취향 그룹",
 }: GroupMatchingResultModalProps) {
-  console.log('[src/components/home/GroupMatchingResultModal.tsx] GroupMatchingResultModal'); // __component_log__
   const { showToast, removeToast } = useToast();
   const [joining, setJoining] = useState(false);
   const [joinResult, setJoinResult] = useState<{ participantCount: number; isActive: boolean } | null>(

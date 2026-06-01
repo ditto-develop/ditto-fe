@@ -35,7 +35,6 @@ export function IntroNoteContainer({
     initialState: IntroNoteState;
     onBack: () => void;
 }) {
-  console.log('[src/features/profile/containers/IntroNoteContainer.tsx] IntroNoteContainer'); // __component_log__
     const router = useRouter();
     const { showToast } = useToast();
     const { profile, loading, error } = useUserProfile(userId);

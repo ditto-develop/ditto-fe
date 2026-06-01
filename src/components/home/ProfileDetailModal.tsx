@@ -56,7 +56,6 @@ export function ProfileDetailModal({
   hideCta = false,
   isAlreadyRequested = false,
 }: ProfileDetailModalProps) {
-  console.log('[src/components/home/ProfileDetailModal.tsx] ProfileDetailModal'); // __component_log__
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [requestedProfileKey, setRequestedProfileKey] = useState<string | null>(null);
   const [detailData, setDetailData] = useState<ProfileDetailData | null>(null);

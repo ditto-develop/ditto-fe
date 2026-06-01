@@ -52,7 +52,8 @@ async function tryRefreshExternalAccessToken(): Promise<string | null> {
         const refreshToken = getRefreshToken();
         if (!refreshToken) return null;
         try {
-            const res = await fetch(`${getExternalApiBase()}${REFRESH_PATH}`, {
+            const refreshUrl = `${getExternalApiBase()}${REFRESH_PATH}`;
+            const res = await fetch(refreshUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Accept: "application/json" },
                 body: JSON.stringify({ refreshToken }),
@@ -82,8 +83,11 @@ async function doFetch<T>(path: string, options: ExternalRequestOptions, token: 
     if (token) headers.Authorization = `Bearer ${token}`;
     if (options.body !== undefined) headers["Content-Type"] = "application/json";
 
-    const response = await fetch(`${getExternalApiBase()}${path}`, {
-        method: options.method || "GET",
+    const method = options.method || "GET";
+    const url = `${getExternalApiBase()}${path}`;
+
+    const response = await fetch(url, {
+        method,
         headers,
         body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
     });

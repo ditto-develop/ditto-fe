@@ -9,7 +9,6 @@ interface NavProps {
 }
 
 export function Nav({ prev, close, label }: NavProps) {
-  console.log('[src/shared/ui/Nav/Nav.tsx] Nav'); // __component_log__
   return (
     <NavContainer>
       {/* prev 함수가 있을 때만 보이지만(visible), 

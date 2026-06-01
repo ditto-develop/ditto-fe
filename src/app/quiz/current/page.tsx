@@ -22,7 +22,6 @@ export default function Quiz() {
 }
 
 function QuizContent() {
-  console.log('[src/app/quiz/current/page.tsx] Quiz'); // __component_log__
   const router = useRouter();
   const searchParams = useSearchParams();
   const matchingType = searchParams.get("type"); // 'ONE_TO_ONE' | 'GROUP' | null
@@ -355,7 +354,6 @@ const getRandomImage = () => {
 };
 
 function FinishView(){
-  console.log('[src/app/quiz/current/page.tsx] FinishView'); // __component_log__
   const router = useRouter();
   const [imgSrc] = useState(getRandomImage); 
 

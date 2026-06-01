@@ -14,7 +14,6 @@ interface SurfaceCardProps {
  * warm neutral 배경, 8px radius, 24px padding, 24px gap.
  */
 export function SurfaceCard({ children, className, onClick }: SurfaceCardProps) {
-  console.log('[src/shared/ui/SurfaceCard/SurfaceCard.tsx] SurfaceCard'); // __component_log__
     return (
         <Card className={className} onClick={onClick} $clickable={!!onClick}>
             {children}

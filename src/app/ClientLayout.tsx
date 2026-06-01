@@ -7,7 +7,6 @@ import Script from "next/script";
 import { useEffect, useState } from "react";
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
-  console.log('[src/app/ClientLayout.tsx] ClientLayout'); // __component_log__
   const [isHydrated, setIsHydrated] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [splashDone, setSplashDone] = useState(false); // 비로그인 3초 타이머용
@@ -67,7 +66,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const kakaoInit = () => {
     if (window.Kakao && !window.Kakao.isInitialized()) {
       window.Kakao.init(process.env.NEXT_PUBLIC_KAKAO_JS_KEY);
-      console.log("Kakao SDK Initialized");
     }
   };
 

@@ -46,7 +46,6 @@ async function getLatestChatRoom(): Promise<ChatRoomItemDto | undefined> {
 }
 
 export function MainSection() {
-  console.log('[src/app/home/MainSection.tsx] MainSection'); // __component_log__
   const [period, setPeriod] = useState<Period | null>(null);
   const [dayIndex] = useState<number>(getKstDayIndex());
   const [isQuizComplete, setIsQuizComplete] = useState(false);

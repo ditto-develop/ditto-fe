@@ -35,7 +35,6 @@ export const Step1Identity = forwardRef<Step1Ref, Step1Props>(({ data, onChange,
       
       if (!isValid) {
         // 필요하다면 여기서 에러 토스트를 띄우거나 포커스를 줄 수 있습니다.
-        console.log("필수 입력값을 확인해주세요.");
         return false; // 다음 단계로 이동 불가
       }
 
@@ -86,7 +85,6 @@ export const Step1Final = forwardRef<Step1Ref, Step1Props>(({ setControlButton }
   // 현재는 특별한 로직이 없으므로 무조건 통과하도록 설정
   useImperativeHandle(ref, () => ({
     handleSubmit: () => {
-      console.log("인증 완료 화면 확인");
       return true;
     }
   }));

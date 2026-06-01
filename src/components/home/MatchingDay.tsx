@@ -69,7 +69,6 @@ export function MatchingDay({
   quizSetId?: string;
   onStartChat?: () => void;
 }) {
-  console.log('[src/components/home/MatchingDay.tsx] MatchingDay'); // __component_log__
   const router = useRouter();
   const [profileSelect, setProfileSelect] = useState(false);
   const [groupModalOpen, setGroupModalOpen] = useState(false);

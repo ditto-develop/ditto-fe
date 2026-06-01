@@ -29,7 +29,6 @@ export function AlertModal({
     cancelParams,
     onClose,
 }: AlertModalProps) {
-  console.log('[src/shared/ui/AlertModal/AlertModal.tsx] AlertModal'); // __component_log__
     if (!isOpen) return null;
 
     return (

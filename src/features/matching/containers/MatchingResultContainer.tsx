@@ -23,7 +23,6 @@ export interface ProfileClickInfo {
  * Avatar(80px) + 닉네임/나이/성별/지역/한줄소개 + 대화 상태
  */
 function MatchProfileCard({ profile }: { profile: MatchProfile }) {
-  console.log('[src/features/matching/containers/MatchingResultContainer.tsx] MatchProfileCard'); // __component_log__
     return (
         <CardRow>
             <Avatar src={profile.avatarUrl} size="lg" />
@@ -53,7 +52,6 @@ export function MatchingResultContainer({
     onBack: () => void;
     onProfileClick: (info: ProfileClickInfo) => void;
 }) {
-  console.log('[src/features/matching/containers/MatchingResultContainer.tsx] MatchingResultContainer'); // __component_log__
     const { quizSetId, candidates, hasAcceptedMatch, acceptedMatchUserId, loading, error } = useMatchCandidates();
 
     const sorted = [...candidates].sort((a, b) => b.matchRate - a.matchRate);

@@ -38,7 +38,6 @@ export function ContentBadge({
     icon,
     className,
 }: ContentBadgeProps) {
-  console.log('[src/shared/ui/ContentBadge/ContentBadge.tsx] ContentBadge'); // __component_log__
     return (
         <Badge $variant={variant} className={className}>
             {icon && <BadgeIcon>{icon}</BadgeIcon>}

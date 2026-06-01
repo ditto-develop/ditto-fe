@@ -6,7 +6,6 @@ import { IntroNoteContainer } from "@/features/profile/containers/IntroNoteConta
 import type { IntroNoteState } from "@/features/profile";
 
 function ProfileContent() {
-  console.log('[src/app/profile/[id]/page.tsx] ProfileContent'); // __component_log__
     const router = useRouter();
     const params = useParams();
     const searchParams = useSearchParams();
@@ -34,7 +33,6 @@ function ProfileContent() {
 }
 
 export function ProfilePageClient() {
-  console.log('[src/app/profile/[id]/page.tsx] ProfilePage'); // __component_log__
     return (
         <Suspense>
             <ProfileContent />
