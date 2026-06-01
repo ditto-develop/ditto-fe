@@ -53,6 +53,7 @@ async function tryRefreshExternalAccessToken(): Promise<string | null> {
         if (!refreshToken) return null;
         try {
             const refreshUrl = `${getExternalApiBase()}${REFRESH_PATH}`;
+            console.log(`[externalApiFetch] → POST ${refreshUrl} (token refresh)`);
             const res = await fetch(refreshUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -60,6 +61,7 @@ async function tryRefreshExternalAccessToken(): Promise<string | null> {
             });
             type RefreshData = { accessToken?: string; refreshToken?: string };
             const json = (await res.json().catch(() => null)) as ExternalResponse<RefreshData> | null;
+            console.log(`[externalApiFetch] ← ${res.status} POST ${refreshUrl} (token refresh)`, json);
             const newToken = json?.data?.accessToken;
             if (!res.ok || !json?.success || !newToken) return null;
             localStorage.setItem("accessToken", newToken);
@@ -86,6 +88,11 @@ async function doFetch<T>(path: string, options: ExternalRequestOptions, token: 
     const method = options.method || "GET";
     const url = `${getExternalApiBase()}${path}`;
 
+    console.groupCollapsed(`[externalApiFetch] → ${method} ${url}`);
+    console.log("request headers:", headers);
+    if (options.body !== undefined) console.log("request body:", options.body);
+    console.groupEnd();
+
     const response = await fetch(url, {
         method,
         headers,
@@ -93,6 +100,11 @@ async function doFetch<T>(path: string, options: ExternalRequestOptions, token: 
     });
 
     const json = (await response.json().catch(() => null)) as ExternalResponse<T> | null;
+
+    console.groupCollapsed(`[externalApiFetch] ← ${response.status} ${method} ${url}`);
+    console.log("response status:", response.status, response.ok ? "(ok)" : "(error)");
+    console.log("response json:", json);
+    console.groupEnd();
 
     if (response.status === 401) {
         const err = new Error(getErrorMessage(json?.error, `External API 401: ${path}`));

@@ -186,7 +186,9 @@ export function checkExternalNicknameAvailability(nickname: string): Promise<Nic
 }
 
 export function startExternalSocialLogin(provider: string): void {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE || "https://api.ditto.pics"}/api/v1/users/social-login/${provider}`;
+    const url = `${process.env.NEXT_PUBLIC_API_BASE || "https://api.ditto.pics"}/api/v1/users/social-login/${provider}`;
+    console.log(`[social-login] → redirect ${provider}:`, url);
+    window.location.href = url;
 }
 
 export function handleExternalSocialCallback(provider: string, code: string): Promise<OAuthCallbackResult> {
