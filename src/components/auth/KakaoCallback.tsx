@@ -20,10 +20,12 @@ function KakaoCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   // 백엔드가 OAuth 전 과정을 처리한 뒤 이 경로로 리다이렉트한다.
-  // - accessToken/refreshToken 파라미터가 있으면 기존 회원 → 로그인
-  // - 파라미터가 없으면 신규 회원 → 회원가입(Tutorial)
+  // 신규/기존 회원 모두 accessToken을 발급받아 저장한다.
+  // - signupRequired=true → 신규 회원 → 회원가입(Tutorial)
+  // - 그 외 → 기존 회원 → 로그인(/home)
   const accessToken = searchParams.get("accessToken");
   const refreshToken = searchParams.get("refreshToken");
+  const signupRequired = searchParams.get("signupRequired") === "true";
   const oauthError = searchParams.get("error");
   const oauthErrorDescription = searchParams.get("error_description");
 
@@ -43,18 +45,22 @@ function KakaoCallbackContent() {
 
     isHandled.current = true;
 
+    // 백엔드가 발급한 토큰은 신규/기존 회원 모두 동일하게 저장한다.
     if (accessToken) {
-      // 기존 회원: 백엔드가 발급한 토큰 저장 후 홈으로
       localStorage.setItem("accessToken", accessToken);
       if (refreshToken) {
         localStorage.setItem("refreshToken", refreshToken);
       }
-      router.push("/home");
-    } else {
-      // 신규 회원: 토큰 없이 회원가입 단계 진입
-      setInitialData({});
     }
-  }, [accessToken, refreshToken, oauthError, oauthErrorDescription, router]);
+
+    if (signupRequired) {
+      // 신규 회원: 회원가입(Tutorial) 단계 진입
+      setInitialData({});
+    } else {
+      // 기존 회원: 홈으로
+      router.push("/home");
+    }
+  }, [accessToken, refreshToken, signupRequired, oauthError, oauthErrorDescription, router]);
 
   if (error) {
     return (
