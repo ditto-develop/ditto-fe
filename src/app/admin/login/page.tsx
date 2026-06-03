@@ -18,9 +18,13 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
+      const apiKey = process.env.NEXT_PUBLIC_DITTO_API_KEY;
       const res = await fetch(`${API_BASE}/users/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(apiKey ? { 'X-API-Key': apiKey } : {}),
+        },
         body: JSON.stringify({ username, password }),
       });
 

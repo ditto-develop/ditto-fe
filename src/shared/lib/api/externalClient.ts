@@ -54,9 +54,14 @@ async function tryRefreshExternalAccessToken(): Promise<string | null> {
         try {
             const refreshUrl = `${getExternalApiBase()}${REFRESH_PATH}`;
             console.log(`[externalApiFetch] → POST ${refreshUrl} (token refresh)`);
+            const apiKey = process.env.NEXT_PUBLIC_DITTO_API_KEY;
             const res = await fetch(refreshUrl, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", Accept: "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    ...(apiKey ? { "X-API-Key": apiKey } : {}),
+                },
                 body: JSON.stringify({ refreshToken }),
             });
             type RefreshData = { accessToken?: string; refreshToken?: string };
@@ -82,6 +87,9 @@ async function doFetch<T>(path: string, options: ExternalRequestOptions, token: 
         Accept: "application/json",
         ...options.headers,
     };
+    // 카카오 소셜 로그인(window.location 리다이렉트)을 제외한 모든 API 요청에 X-API-Key를 첨부한다.
+    const apiKey = process.env.NEXT_PUBLIC_DITTO_API_KEY;
+    if (apiKey) headers["X-API-Key"] = apiKey;
     if (token) headers.Authorization = `Bearer ${token}`;
     if (options.body !== undefined) headers["Content-Type"] = "application/json";
 

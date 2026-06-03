@@ -30,6 +30,12 @@ export const OpenAPI: OpenAPIConfig = {
     },
     USERNAME: undefined,
     PASSWORD: undefined,
-    HEADERS: undefined,
+    // 카카오 소셜 로그인(window.location 리다이렉트)을 제외한 모든 API 요청에 X-API-Key를 첨부한다.
+    HEADERS: async () => {
+        const apiKey = process.env.NEXT_PUBLIC_DITTO_API_KEY;
+        const headers: Headers = {};
+        if (apiKey) headers['X-API-Key'] = apiKey;
+        return headers;
+    },
     ENCODE_PATH: undefined,
 };

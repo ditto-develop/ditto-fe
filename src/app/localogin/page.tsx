@@ -153,9 +153,13 @@ export default function LocalLoginPage() {
 
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:10000";
+      const apiKey = process.env.NEXT_PUBLIC_DITTO_API_KEY;
       const res = await fetch(`${apiBase}/api/users/local-login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(apiKey ? { "X-API-Key": apiKey } : {}),
+        },
         credentials: "include",
         body: JSON.stringify({ username, password }),
       });
