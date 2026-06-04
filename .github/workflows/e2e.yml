@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      # Node20 액션 deprecation 대응: 기존 액션 버전 그대로 node24 런타임 사용
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       NEXT_PUBLIC_API_BASE: http://localhost:10000
       NEXT_PUBLIC_DITTO_API_KEY: cypress-dummy-api-key
       NEXT_PUBLIC_KAKAO_JS_KEY: cypress-dummy-kakao-key
