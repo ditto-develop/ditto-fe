@@ -1,4 +1,4 @@
-name: ✈️ DITTO FE S3 DEPLOY
+name: ✈️ DITTO FE S3 STAGING DEPLOY
 
 on:
   push:
@@ -37,8 +37,8 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: S3 Sync
-        run: aws s3 sync ./out s3://${{ secrets.S3_BUCKET }} --delete
+      - name: S3 Sync to staging prefix
+        run: aws s3 sync ./out s3://${{ secrets.S3_BUCKET }}/staging --delete
 
       - name: CloudFront Invalidation
         run: |

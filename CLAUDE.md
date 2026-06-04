@@ -354,14 +354,16 @@ When relevant, manually test:
 
 ### 13.0 How Deployment Works (read this first)
 
-Deployment is triggered **only by pushing commits** to the `feat/s3-migration` branch. There is no other trigger.
+Staging deployment is triggered by pushing commits to the `feat/s3-migration` branch. Production deployment is triggered manually with `workflow_dispatch`, normally from `main` after staging validation.
 
-- The workflow is [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml): on push it runs `npm ci` → `npm run build` (static export to `./out`) → `aws s3 sync ./out s3://<bucket> --delete` → CloudFront `/*` invalidation.
+- The staging workflow is [`.github/workflows/deploy-staging.yml`](.github/workflows/deploy-staging.yml): on `feat/s3-migration` push it runs `npm ci` → `npm run build` (static export to `./out`) → `aws s3 sync ./out s3://<bucket>/staging --delete` → CloudFront `/*` invalidation.
+- The production workflow is [`.github/workflows/deploy-prod.yml`](.github/workflows/deploy-prod.yml): on manual dispatch it runs the same build and syncs to `s3://<bucket>/prod --delete` → CloudFront `/*` invalidation.
+- `test.ditto.pics` is routed to the `/staging` S3 prefix. `ditto.pics` and `www.ditto.pics` are routed to the `/prod` S3 prefix.
 - **Uncommitted or unpushed changes are NEVER deployed.** Working-tree edits and local `npm run build` output (`./out`) have no effect on the live site until they are committed AND pushed. If "deployment isn't happening," first check `git status` and `git log origin/feat/s3-migration..feat/s3-migration` for unpushed work — that is the most common cause.
 
 ### 13.1 When the User Says "Push" / "Deploy"
 
-A push/deploy instruction means: commit ALL relevant changes, push to `feat/s3-migration`, and watch the run until it succeeds. Do not stop at "validation passed" — the user expects the code to actually reach the remote and deploy. Run `npm run lint && npm run build && npx tsc --noEmit` first, then commit and push.
+A staging push/deploy instruction means: commit ALL relevant changes, push to `feat/s3-migration`, and watch the staging run until it succeeds. A production deploy instruction means: merge or fast-forward the validated changes to `main`, manually dispatch `deploy-prod.yml`, and watch that run until it succeeds. Do not stop at "validation passed" — the user expects the code to actually reach the remote and deploy. Run `npm run lint && npm run build && npx tsc --noEmit` first, then commit and push.
 
 ### 13.2 Deployment Infrastructure (AWS, account `247842832483`)
 
@@ -371,6 +373,11 @@ A push/deploy instruction means: commit ALL relevant changes, push to `feat/s3-m
 | S3 bucket | `ditto-pics-247842832483-ap-northeast-2` (region `ap-northeast-2`) |
 | CloudFront distribution | `E2IAN5BWR5D33B` |
 | Domains | `ditto.pics`, `www.ditto.pics`, `test.ditto.pics` (`d28wm0h79feewt.cloudfront.net`) |
+
+S3 prefixes:
+
+- `staging/`: `test.ditto.pics`
+- `prod/`: `ditto.pics`, `www.ditto.pics`
 
 To compare deployed vs local content directly: `aws s3 ls s3://ditto-pics-247842832483-ap-northeast-2/ --recursive`, or `aws s3 cp <key> -` to inspect a file. Note that `_next/static/chunks/*` filenames are content-hashed and the build ID differs on every build, so chunk-name diffs are expected noise — compare route/HTML structure and normalized content, not raw filenames.
 
