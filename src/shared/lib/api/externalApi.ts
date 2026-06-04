@@ -15,7 +15,9 @@ import type {
     GetMatchCandidatesResponse,
     GetMatchingStatusResponse,
     GroupJoinResult,
+    MatchCandidateDto,
     MatchRequestDto,
+    ScoreBreakdownDto,
 } from "@/features/matching/api/matchingApi";
 
 type ExternalId = string | number;
@@ -32,9 +34,24 @@ type ExternalMatchRequest = {
 
 type ExternalPersonalMatch = ExternalMatchRequest | null;
 
+type ExternalMatchCandidate = {
+    userId: ExternalId;
+    nickname: string;
+    gender: string;
+    age: number;
+    introduction?: string | null;
+    location?: string;
+    profileImageUrl?: string | null;
+    matchRate?: number;
+    scoreBreakdown: ScoreBreakdownDto;
+};
+
 type ExternalMatchList = {
     sent: ExternalMatchRequest[];
     received: ExternalMatchRequest[];
+    quizSetId?: ExternalId;
+    matchingType?: GetMatchCandidatesResponse["matchingType"];
+    candidates?: ExternalMatchCandidate[];
 };
 
 type ExternalMatchingStatus = {
@@ -76,6 +93,18 @@ const toMatchRequest = (request: ExternalMatchRequest): MatchRequestDto => ({
     fromUserId: toId(request.requesterId),
     toUserId: toId(request.receiverId),
     status: request.status,
+});
+
+const toMatchCandidate = (candidate: ExternalMatchCandidate): MatchCandidateDto => ({
+    userId: toId(candidate.userId),
+    nickname: candidate.nickname,
+    gender: candidate.gender,
+    age: candidate.age,
+    introduction: candidate.introduction ?? null,
+    location: candidate.location,
+    profileImageUrl: candidate.profileImageUrl ?? null,
+    matchRate: candidate.matchRate ?? candidate.scoreBreakdown.quizMatchRate,
+    scoreBreakdown: candidate.scoreBreakdown,
 });
 
 function getStoredQuizSetId(): string {
@@ -144,7 +173,14 @@ export async function getExternalQuizSetWithProgress(id: string): Promise<GetQui
     };
 }
 
-export function createExternalUser(requestBody: CreateUserDto): Promise<UserDto> {
+// generated CreateUserDto는 email/birthDate를 optional string으로만 정의하지만,
+// BE는 값이 없을 때 null을 허용한다. 해당 두 필드만 nullable로 넓힌다.
+export type CreateExternalUserBody = Omit<CreateUserDto, "email" | "birthDate"> & {
+    email: string | null;
+    birthDate: string | null;
+};
+
+export function createExternalUser(requestBody: CreateExternalUserBody): Promise<UserDto> {
     return externalApiFetch<UserDto>("/api/v1/users", {
         method: "POST",
         body: {
@@ -188,13 +224,13 @@ export function startExternalSocialLogin(provider: string): void {
 
 export async function getExternalMatchCandidates(): Promise<GetMatchCandidatesResponse> {
     const data = await externalApiFetch<ExternalMatchList>("/api/v1/matches/1on1");
-    const quizSetId = pickQuizSetId(data);
+    const quizSetId = toId(data.quizSetId) || pickQuizSetId(data);
     if (quizSetId) setStoredQuizSetId(quizSetId);
 
     return {
         quizSetId,
-        matchingType: "ONE_TO_ONE",
-        candidates: [],
+        matchingType: data.matchingType ?? "ONE_TO_ONE",
+        candidates: (data.candidates ?? []).map(toMatchCandidate),
     };
 }
 

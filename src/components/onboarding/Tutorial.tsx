@@ -8,8 +8,8 @@ import {
 
 } from "@/context/ToastContext";
 
-import type { CreateUserDto } from "@/shared/lib/api/generated";
 import { createExternalUser, startExternalSocialLogin } from "@/shared/lib/api/externalApi";
+import type { CreateExternalUserBody } from "@/shared/lib/api/externalApi";
 
 import type {
 
@@ -192,23 +192,28 @@ export function Tutorial({ initialData }: TutorialProps) {
         if (parsedGender === "woman") parsedGender = "FEMALE";
 
         // 3. DTO 생성
-        const createUserDto: CreateUserDto = {
+        const accessToken =
+          typeof window !== "undefined" ? localStorage.getItem("accessToken") ?? "" : "";
+
+        const createUserDto: CreateExternalUserBody = {
           name: formData.name,
           nickname: formData.nickname,
           phoneNumber: formData.phone,
-          
-          email: formData.email || "",
+
+          // 값이 없으면 null로 전송
+          email: formData.email || null,
 
           gender: parsedGender,
           age: parsedAge,
 
+          // 값이 없으면 null로 전송
           birthDate: formData.birthDate
                 ? new Date(formData.birthDate).toISOString()
-                : new Date().toISOString(),
+                : null,
 
           provider: "kakao",
-          // 신규 회원은 kakaoId 없이 가입 — 재로그인 시 BE가 실제 kakaoId를 연결
-          providerUserId: formData.kakaoId ? String(formData.kakaoId) : "register-user",
+          // BE 콜백에서 발급받아 저장한 accessToken을 providerUserId로 전달
+          providerUserId: accessToken,
         };
 
         await createExternalUser(createUserDto);
