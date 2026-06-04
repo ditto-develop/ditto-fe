@@ -1,0 +1,4 @@
+{
+  "accessToken": "eyJhbGciOiJub25lIn0.eyJzdWIiOiJ1c2VyLWUxZSIsInVzZXJJZCI6InVzZXItZTFlIn0.signature",
+  "refreshToken": "cypress-refresh-token"
+}

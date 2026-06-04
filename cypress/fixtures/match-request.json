@@ -1,0 +1,9 @@
+{
+  "id": 9001,
+  "quizSetId": 101,
+  "requesterId": "user-e1e",
+  "receiverId": "candidate-1",
+  "status": "PENDING",
+  "createdAt": "2026-06-03T00:00:00.000Z",
+  "respondedAt": null
+}

@@ -1,0 +1,62 @@
+{
+  "year": 2026,
+  "month": 6,
+  "week": 1,
+  "quizSets": [
+    {
+      "id": "101",
+      "year": 2026,
+      "month": 6,
+      "week": 1,
+      "category": "relationship",
+      "title": "이번 주 1:1 매칭 퀴즈",
+      "description": "서로의 취향을 알아보는 테스트 퀴즈",
+      "startDate": "2026-06-01T00:00:00.000Z",
+      "endDate": "2026-06-07T23:59:59.000Z",
+      "isActive": true,
+      "matchingType": "ONE_TO_ONE",
+      "quizzes": [
+        {
+          "id": "1001",
+          "question": "처음 만난 사람과 가장 편한 대화 주제는?",
+          "quizSetId": "101",
+          "choices": [
+            {
+              "id": "2001",
+              "content": "가볍게 취미 이야기",
+              "order": 1
+            },
+            {
+              "id": "2002",
+              "content": "최근 인상 깊었던 일",
+              "order": 2
+            }
+          ],
+          "order": 1,
+          "createdAt": "2026-06-01T00:00:00.000Z",
+          "updatedAt": "2026-06-01T00:00:00.000Z"
+        },
+        {
+          "id": "1002",
+          "question": "주말 약속은 어떤 방식이 좋아요?",
+          "quizSetId": "101",
+          "choices": [
+            {
+              "id": "2003",
+              "content": "미리 계획 세우기",
+              "order": 1
+            },
+            {
+              "id": "2004",
+              "content": "그날 기분에 맞추기",
+              "order": 2
+            }
+          ],
+          "order": 2,
+          "createdAt": "2026-06-01T00:00:00.000Z",
+          "updatedAt": "2026-06-01T00:00:00.000Z"
+        }
+      ]
+    }
+  ]
+}

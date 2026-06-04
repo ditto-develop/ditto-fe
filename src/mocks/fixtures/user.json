@@ -1,0 +1,15 @@
+{
+  "id": "user-e1e",
+  "name": "E2E User",
+  "nickname": "테스트유저",
+  "phoneNumber": "010-0000-0000",
+  "email": "e2e@example.com",
+  "gender": "MALE",
+  "age": 29,
+  "birthDate": "1997-01-01T00:00:00.000Z",
+  "provider": "KAKAO",
+  "providerUserId": "user-e1e",
+  "status": "ACTIVE",
+  "createdAt": "2026-06-01T00:00:00.000Z",
+  "updatedAt": "2026-06-01T00:00:00.000Z"
+}

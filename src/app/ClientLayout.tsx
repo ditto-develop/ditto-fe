@@ -2,6 +2,7 @@
 
 import { Splash } from "@/components/splash/Splash";
 import { useHomeReady } from "@/context/HomeReadyContext";
+import { MswProvider } from "@/mocks/MswProvider";
 import { usePathname, useRouter } from "next/navigation";
 import Script from "next/script";
 import { useEffect, useState } from "react";
@@ -78,7 +79,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         onLoad={kakaoInit}
       />
       {/* children은 항상 마운트 — Splash가 오버레이로 덮음 */}
-      {children}
+      <MswProvider>{children}</MswProvider>
       {showSplash && <Splash />}
     </>
   );

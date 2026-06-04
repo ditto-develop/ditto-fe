@@ -1,0 +1,24 @@
+{
+  "quizSetId": 101,
+  "matchingType": "ONE_TO_ONE",
+  "sent": [],
+  "received": [],
+  "candidates": [
+    {
+      "userId": 501,
+      "nickname": "수민",
+      "gender": "FEMALE",
+      "age": 27,
+      "introduction": "여행과 커피를 좋아해요.",
+      "location": "seoul",
+      "profileImageUrl": "/assets/avatar/f1.png",
+      "matchRate": 92,
+      "scoreBreakdown": {
+        "quizMatchRate": 92,
+        "matchedQuestions": 11,
+        "totalQuestions": 12,
+        "reasons": []
+      }
+    }
+  ]
+}

@@ -4,15 +4,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:e2e": "next dev -p 3100",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "playwright test",
     "cypress:open": "env -u ELECTRON_RUN_AS_NODE cypress open",
     "cypress:run": "env -u ELECTRON_RUN_AS_NODE cypress run",
-    "test:e2e:cypress": "start-server-and-test dev http://localhost:3000 cypress:run",
+    "cypress:run:e2e": "env -u ELECTRON_RUN_AS_NODE cypress run --config baseUrl=http://localhost:3100",
+    "test:e2e:cypress": "start-server-and-test dev:e2e http://localhost:3100 cypress:run:e2e",
     "verify": "npm run lint && npm run typecheck && npm run test",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
@@ -45,12 +46,17 @@
     "eslint-config-next": "16.0.5",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-storybook": "^0.11.0",
+    "msw": "^2.14.6",
     "openapi-typescript-codegen": "^0.30.0",
-    "playwright": "^1.57.0",
     "start-server-and-test": "^3.0.5",
     "storybook": "^8.4.7",
     "typescript": "^5",
     "vite": "^6.0.0",
     "vitest": "^2.1.0"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }

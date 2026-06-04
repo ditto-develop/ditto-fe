@@ -1,0 +1,26 @@
+{
+  "quizzes": [
+    {
+      "id": "1001",
+      "question": "처음 만난 사람과 가장 편한 대화 주제는?",
+      "quizSetId": "101",
+      "choices": [
+        {
+          "id": "2001",
+          "content": "가볍게 취미 이야기",
+          "order": 1
+        },
+        {
+          "id": "2002",
+          "content": "최근 인상 깊었던 일",
+          "order": 2
+        }
+      ],
+      "order": 1,
+      "createdAt": "2026-06-01T00:00:00.000Z",
+      "updatedAt": "2026-06-01T00:00:00.000Z",
+      "userAnswer": null
+    }
+  ],
+  "totalCount": 1
+}

@@ -1,0 +1,12 @@
+{
+  "userId": "501",
+  "nickname": "수민",
+  "gender": "FEMALE",
+  "age": 27,
+  "introduction": "여행과 커피를 좋아해요.",
+  "profileImageUrl": "/assets/avatar/f1.png",
+  "location": "seoul",
+  "interests": ["travel", "music", "reading"],
+  "rating": 4.8,
+  "occupation": "design"
+}
