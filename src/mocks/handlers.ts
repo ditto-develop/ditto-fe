@@ -17,6 +17,17 @@ import quizProgressCurrent from "@/mocks/fixtures/quiz-progress-current.json";
 import quizSetWithProgress from "@/mocks/fixtures/quiz-set-with-progress.json";
 import systemState from "@/mocks/fixtures/system-state.json";
 import user from "@/mocks/fixtures/user.json";
+import {
+  adminActiveQuizSets,
+  adminDummyMatchResult,
+  adminLoginResult,
+  adminMatchCandidateList,
+  adminMatchList,
+  adminQuizProgress,
+  adminSeedResult,
+  adminStats,
+  adminUsers,
+} from "@/mocks/adminData";
 
 type SuccessEnvelope = {
   success: true;
@@ -58,8 +69,12 @@ export const handlers = [
 
   http.get(apiPath("/system/state"), () => HttpResponse.json(success(systemState))),
   http.post(apiPath("/users/local-login"), () => HttpResponse.json(success(localLogin))),
+  // admin 로그인: /admin/login → POST /api/users/login → data.accessToken 저장
+  http.post(apiPath("/users/login"), () => HttpResponse.json(success(adminLoginResult))),
   http.post(apiPath("/users/auth/refresh"), () => HttpResponse.json(success(localLogin))),
   http.post(apiPath("/users/auth/logout"), () => HttpResponse.json(success(null))),
+  // admin 사용자 목록(GET) — POST /users(가입)와 메서드로 구분
+  http.get(apiPath("/users"), () => HttpResponse.json(success(adminUsers))),
   http.post(apiPath("/users"), () => HttpResponse.json(success(user))),
   http.get(apiPath("/users/nickname/[^/]+/availability"), () => HttpResponse.json(success({ available: true }))),
   http.get(apiPath("/users/[^/]+/profile"), () => HttpResponse.json(success(publicProfile))),
@@ -93,16 +108,16 @@ export const handlers = [
   http.post(apiPath("/chat/group-rooms/[^/]+/votes/[^/]+/options"), () => HttpResponse.json(success(null))),
   http.post(apiPath("/chat/group-rooms/[^/]+/votes/[^/]+/close"), () => HttpResponse.json(success(null))),
 
-  http.get(apiPath("/admin/stats"), () => HttpResponse.json(success({}))),
-  http.get(apiPath("/admin/matches"), () => HttpResponse.json(success(emptyList))),
-  http.get(apiPath("/admin/quiz-progress"), () => HttpResponse.json(success(emptyList))),
-  http.get(apiPath("/admin/users/[^/]+/match-candidates"), () => HttpResponse.json(success([]))),
-  http.get(apiPath("/admin/quiz-sets/active"), () => HttpResponse.json(success(quizCurrent))),
+  http.get(apiPath("/admin/stats"), () => HttpResponse.json(success(adminStats))),
+  http.get(apiPath("/admin/matches"), () => HttpResponse.json(success(adminMatchList))),
+  http.get(apiPath("/admin/quiz-progress"), () => HttpResponse.json(success(adminQuizProgress))),
+  http.get(apiPath("/admin/users/[^/]+/match-candidates"), () => HttpResponse.json(success(adminMatchCandidateList))),
+  http.get(apiPath("/admin/quiz-sets/active"), () => HttpResponse.json(success(adminActiveQuizSets))),
   http.post(apiPath("/admin/system/override"), () => HttpResponse.json(success(null))),
   http.delete(apiPath("/admin/system/override"), () => HttpResponse.json(success(null))),
   http.post(apiPath("/admin/quiz-progress/reset"), () => HttpResponse.json(success(null))),
-  http.post(apiPath("/admin/seed-dummy"), () => HttpResponse.json(success(null))),
-  http.post(apiPath("/admin/match-requests/dummy-request"), () => HttpResponse.json(success(matchRequest))),
+  http.post(apiPath("/admin/seed-dummy"), () => HttpResponse.json(success(adminSeedResult))),
+  http.post(apiPath("/admin/match-requests/dummy-request"), () => HttpResponse.json(success(adminDummyMatchResult))),
   http.get(apiPath("/quizzes"), () => HttpResponse.json(success(emptyList))),
   http.post(apiPath("/quizzes"), () => HttpResponse.json(success(null))),
   http.get(apiPath("/quizzes/[^/]+"), () => HttpResponse.json(success(null))),
