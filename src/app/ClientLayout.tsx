@@ -5,17 +5,21 @@ import { useHomeReady } from "@/context/HomeReadyContext";
 import { MswProvider } from "@/mocks/MswProvider";
 import {
   ACCESS_TOKEN_KEY,
+  clearTokens,
   hasValidSession,
 } from "@/shared/lib/auth";
+import { tryRefreshToken } from "@/shared/lib/api/client";
 import { usePathname, useRouter } from "next/navigation";
 import Script from "next/script";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [splashDone, setSplashDone] = useState(false); // 비로그인 3초 타이머용
   const [homeSplashExpired, setHomeSplashExpired] = useState(false);
+  const [isVerifyingSession, setIsVerifyingSession] = useState(false);
+  const verifiedPaths = useRef(new Set<string>());
   const router = useRouter();
   const pathname = usePathname();
   const { isHomeReady } = useHomeReady();
@@ -52,6 +56,24 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     };
   }, [isHydrated, syncAuthState]);
 
+  // /home 진입 시 refresh로 세션 유효성 검증 (이미 검증한 경로는 건너뜀)
+  useEffect(() => {
+    if (!isHydrated || pathname !== "/home" || !isLoggedIn) return;
+    if (verifiedPaths.current.has(pathname)) return;
+
+    setIsVerifyingSession(true);
+    tryRefreshToken().then((token) => {
+      if (token) {
+        verifiedPaths.current.add(pathname);
+      } else {
+        clearTokens();
+        setIsLoggedIn(false);
+        router.push("/");
+      }
+      setIsVerifyingSession(false);
+    });
+  }, [isHydrated, pathname, isLoggedIn, router]);
+
   useEffect(() => {
     if (!isHydrated || pathname !== "/home" || !isLoggedIn) {
       setHomeSplashExpired(false);
@@ -86,7 +108,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     if (isAdminPath) return false;                  // 관리자 경로: 스플래시 없음
     if (!isHydrated) return true;                   // SSR / hydration 전
     if (!isLoggedIn) return !splashDone;            // 비로그인: 3초 타이머
-    if (pathname === '/home') return !isHomeReady && !homeSplashExpired;
+    if (pathname === '/home') return isVerifyingSession || (!isHomeReady && !homeSplashExpired);
     return false;                                   // 로그인 + 다른 페이지
   })();
 
