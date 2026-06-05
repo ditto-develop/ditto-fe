@@ -1,5 +1,5 @@
 import styled from "styled-components"
-import { Heading1Bold } from "@/shared/ui";
+import { Headline2Bold } from "@/shared/ui";
 
 // TypeScript 사용 시 Interface 정의 (필요 없으시면 삭제 가능)
 interface NavProps {
@@ -22,9 +22,9 @@ export function Nav({ prev, close, label }: NavProps) {
       </IconBox>
 
       {/* 중앙 라벨 */}
-      <Heading1Bold>
+      <Headline2Bold $color="var(--color-semantic-label-strong)">
         {label}
-      </Heading1Bold>
+      </Headline2Bold>
 
       {/* close 함수 유무에 따른 처리 */}
       <IconBox

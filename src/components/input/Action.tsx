@@ -90,7 +90,9 @@ const StyledButton = styled.button<ActionButtonProps>`
   min-height: 52px;
   border-radius: 12px;
   font-size: var(--typography-body-1-normal-font-size);
-  font-weight: 700;
+  font-weight: 600;
+  line-height: var(--typography-body-1-normal-line-height);
+  letter-spacing: var(--typography-body-1-normal-letter-spacing);
   cursor: pointer;
 
   width: 100%;
@@ -106,7 +108,7 @@ const StyledButton = styled.button<ActionButtonProps>`
       case "primary":
         return css`
           background: var(--color-semantic-primary-normal);
-          color: white;
+          color: var(--color-semantic-static-white);
           border: none;
         `;
       case "secondary":

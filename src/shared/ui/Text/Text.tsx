@@ -96,6 +96,10 @@ export const Headline2 = styled(BaseText)`
   letter-spacing: var(--typography-headline-2-letter-spacing);
 `;
 
+export const Headline2Bold = styled(Headline2)`
+  font-weight: ${({ $weight }) => getWeight($weight, "bold")};
+`;
+
 export const Body1Normal = styled(BaseText)`
   font-size: var(--typography-body-1-normal-font-size);
   font-weight: ${({ $weight }) => getWeight($weight, "regular")};
