@@ -107,11 +107,11 @@ function parseAgeMedian(age: string | null): number {
 }
 
 /**
- * 생년월일 문자열을 BE의 LocalDateTime 형식(`YYYY-MM-DDTHH:mm:ss`)으로 변환한다.
- * toISOString()의 밀리초·`Z`(오프셋) 접미사는 LocalDateTime 파싱에 실패하므로 잘라낸다.
+ * 생년월일 문자열을 BE의 LocalDateTime 형식(`yyyy-MM-dd HH:mm:ss`)으로 변환한다.
+ * 날짜 입력값의 날짜 부분을 그대로 보존한다.
  */
 function toLocalDateTime(birthDate: string): string {
-  return new Date(birthDate).toISOString().slice(0, 19);
+  return `${birthDate.slice(0, 10)} 00:00:00`;
 }
 
 export function Tutorial({ initialData }: TutorialProps) {
@@ -225,8 +225,6 @@ export function Tutorial({ initialData }: TutorialProps) {
           // 생년월일은 LocalDateTime 형식으로 변환, 값이 없으면 null로 전송
           birthDate: formData.birthDate ? toLocalDateTime(formData.birthDate) : null,
         };
-
-        console.log("[Tutorial] 회원가입 요청 payload →", createUserDto);
 
         await createExternalUser(createUserDto);
 
