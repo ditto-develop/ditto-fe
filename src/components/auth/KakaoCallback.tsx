@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Body1Normal } from "@/shared/ui";
 import styled from "styled-components";
 import { Tutorial } from "@/components/onboarding/Tutorial";
+import { clearTokens, setTokens } from "@/shared/lib/auth";
 import type { KakaoLoginResult } from "@/types/kakao";
 
 const LoadingContainer = styled.div`
@@ -46,11 +47,10 @@ function KakaoCallbackContent() {
     isHandled.current = true;
 
     // 백엔드가 발급한 토큰은 신규/기존 회원 모두 동일하게 저장한다.
+    // 직전 계정의 잔여 토큰이 섞이지 않도록 먼저 비우고 저장한다.
     if (accessToken) {
-      localStorage.setItem("accessToken", accessToken);
-      if (refreshToken) {
-        localStorage.setItem("refreshToken", refreshToken);
-      }
+      clearTokens();
+      setTokens(accessToken, refreshToken);
     }
 
     if (signupRequired) {

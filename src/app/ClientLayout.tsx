@@ -3,9 +3,15 @@
 import { Splash } from "@/components/splash/Splash";
 import { useHomeReady } from "@/context/HomeReadyContext";
 import { MswProvider } from "@/mocks/MswProvider";
+import {
+  ACCESS_TOKEN_KEY,
+  REFRESH_TOKEN_KEY,
+  hasValidSession,
+  purgeStaleTokens,
+} from "@/shared/lib/auth";
 import { usePathname, useRouter } from "next/navigation";
 import Script from "next/script";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
@@ -22,10 +28,32 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   // 관리자 경로: ClientLayout 리다이렉트/스플래시 완전 제외
   const isAdminPath = pathname.startsWith('/admin');
 
+  // 만료된 임시 토큰(refresh 없는 access)을 제거하고 로그인 상태를 동기화한다.
+  const syncAuthState = useCallback(() => {
+    purgeStaleTokens();
+    setIsLoggedIn(hasValidSession());
+  }, []);
+
   useEffect(() => {
     setIsHydrated(true);
-    setIsLoggedIn(!!localStorage.getItem("accessToken"));
-  }, [pathname]);
+    syncAuthState();
+  }, [pathname, syncAuthState]);
+
+  // 쓰레기 토큰 감시: 주기적 + 탭 간 storage 변경 시 제거·동기화
+  useEffect(() => {
+    if (!isHydrated) return;
+    const interval = setInterval(syncAuthState, 30_000);
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === ACCESS_TOKEN_KEY || event.key === REFRESH_TOKEN_KEY) {
+        syncAuthState();
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [isHydrated, syncAuthState]);
 
   useEffect(() => {
     if (!isHydrated || pathname !== "/home" || !isLoggedIn) {
