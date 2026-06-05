@@ -131,7 +131,8 @@ export function Tutorial({ initialData }: TutorialProps) {
   // --- Form Data ---
   const [formData, setFormData] = useState<FormData>({
     name: initialData?.name || "",
-    phone: "",
+    // TODO(phone): 추후 /api/v1/users/me에서 phoneNumber를 받아 채운다. 그 전까지 임시 기본값.
+    phone: "010-1234-1234",
     code: "",
     email: initialData?.email || "",
     pic: initialData?.profileImage || "m1",
