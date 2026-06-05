@@ -1,12 +1,31 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import styled from "styled-components";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
+import { tryRefreshToken } from "@/shared/lib/api/client";
+import { useToast } from "@/context/ToastContext";
 
 export default function OnboardingCompletePage() {
   const router = useRouter();
+  const { showToast } = useToast();
+  const [isStarting, setIsStarting] = useState(false);
+
+  // 회원가입 직후 보유한 토큰을 refresh로 정식 로그인 세션으로 교체한 뒤 홈으로 이동한다.
+  // (홈 진입 시 ClientLayout이 세션을 재검증하므로, 여기서 미리 세션을 확립해 튕김을 방지)
+  const handleStart = async () => {
+    if (isStarting) return;
+    setIsStarting(true);
+    const token = await tryRefreshToken();
+    if (token) {
+      router.push("/home");
+    } else {
+      setIsStarting(false);
+      showToast("로그인에 실패했어요. 잠시 후 다시 시도해주세요.", "error");
+    }
+  };
 
   return (
     <PageContainer>
@@ -33,7 +52,11 @@ export default function OnboardingCompletePage() {
         <ActionArea>
           <GradientFade />
           <ActionSheet>
-            <ActionButton variant="primary" onClick={() => router.push("/home")}>
+            <ActionButton
+              variant={isStarting ? "disabled" : "primary"}
+              disabled={isStarting}
+              onClick={handleStart}
+            >
               시작하기
             </ActionButton>
           </ActionSheet>
@@ -68,7 +91,7 @@ const Content = styled.div`
   gap: 16px;
   flex: 1 0 0;
   min-height: 0;
-  padding: 0 16px;
+  padding: 0;
   width: 100%;
 `;
 
