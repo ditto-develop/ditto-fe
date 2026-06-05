@@ -177,9 +177,14 @@ export async function getExternalQuizSetWithProgress(id: string): Promise<GetQui
     };
 }
 
+// 회원가입 payload: name/nickname/phoneNumber/gender/age + nullable email/birthDate.
+// provider/providerUserId는 더 이상 body로 보내지 않는다(인증은 Authorization 헤더로 처리).
 // generated CreateUserDto는 email/birthDate를 optional string으로만 정의하지만,
-// BE는 값이 없을 때 null을 허용한다. 해당 두 필드만 nullable로 넓힌다.
-export type CreateExternalUserBody = Omit<CreateUserDto, "email" | "birthDate"> & {
+// BE는 값이 없을 때 null을 허용하므로 해당 두 필드만 nullable로 넓힌다.
+export type CreateExternalUserBody = Omit<
+    CreateUserDto,
+    "email" | "birthDate" | "provider" | "providerUserId"
+> & {
     email: string | null;
     birthDate: string | null;
 };
@@ -202,10 +207,7 @@ export async function getExternalCurrentUser(): Promise<CurrentUserInfo> {
 export function createExternalUser(requestBody: CreateExternalUserBody): Promise<UserDto> {
     return externalApiFetch<UserDto>("/api/v1/users", {
         method: "POST",
-        body: {
-            ...requestBody,
-            provider: requestBody.provider.toUpperCase(),
-        },
+        body: requestBody,
     });
 }
 

@@ -95,6 +95,25 @@ interface TutorialProps {
   initialData?: KakaoLoginResult;
 }
 
+/** "25-29" → 27, "40-45" → 43, "60+" → 60 처럼 나이 범위 문자열을 중앙값 정수로 변환한다. */
+function parseAgeMedian(age: string | null): number {
+  if (!age) return 0;
+  const range = age.match(/^(\d+)\s*-\s*(\d+)$/);
+  if (range) {
+    return Math.round((Number(range[1]) + Number(range[2])) / 2);
+  }
+  const open = age.match(/^(\d+)\+?$/);
+  return open ? Number(open[1]) : 0;
+}
+
+/**
+ * 생년월일 문자열을 BE의 LocalDateTime 형식(`YYYY-MM-DDTHH:mm:ss`)으로 변환한다.
+ * toISOString()의 밀리초·`Z`(오프셋) 접미사는 LocalDateTime 파싱에 실패하므로 잘라낸다.
+ */
+function toLocalDateTime(birthDate: string): string {
+  return new Date(birthDate).toISOString().slice(0, 19);
+}
+
 export function Tutorial({ initialData }: TutorialProps) {
   const { showToast, removeToast } = useToast();
   const router = useRouter();
@@ -180,42 +199,37 @@ export function Tutorial({ initialData }: TutorialProps) {
     // Step 3: 최종 회원가입 요청
     else {
       try {
-        // 1. 나이 처리: "40-45" -> 40 (숫자로 변환)
-        const parsedAge = formData.age ? parseInt(formData.age, 10) : 0;
+        // 1. 나이 처리: "25-29" 같은 범위 문자열을 중앙값 정수로 변환
+        const parsedAge = parseAgeMedian(formData.age);
 
         // 2. 성별 처리: 백엔드 스펙(MALE/FEMALE)에 맞춰 대문자 변환
         let parsedGender = formData.gender || "";
         if (parsedGender === "man") parsedGender = "MALE";
         if (parsedGender === "woman") parsedGender = "FEMALE";
 
-        // 3. DTO 생성
-        const accessToken =
-          typeof window !== "undefined" ? localStorage.getItem("accessToken") ?? "" : "";
-
+        // 3. 회원가입 payload 생성 (인증은 Authorization 헤더로 처리되므로 provider 정보는 보내지 않는다)
         const createUserDto: CreateExternalUserBody = {
           name: formData.name,
           nickname: formData.nickname,
+
+          // BE는 "010-1234-5678" 형태(하이픈 2개)를 검증한다. Step1의 포맷 결과를 그대로 전송.
           phoneNumber: formData.phone,
 
-          // 값이 없으면 null로 전송
-          email: formData.email || null,
+          // 이메일은 유효한 문자열만 보내고, 비어 있으면 null로 전송
+          email: formData.email.trim() || null,
 
           gender: parsedGender,
           age: parsedAge,
 
-          // 값이 없으면 null로 전송
-          birthDate: formData.birthDate
-                ? new Date(formData.birthDate).toISOString()
-                : null,
-
-          provider: "kakao",
-          // BE 콜백에서 발급받아 저장한 accessToken을 providerUserId로 전달
-          providerUserId: accessToken,
+          // 생년월일은 LocalDateTime 형식으로 변환, 값이 없으면 null로 전송
+          birthDate: formData.birthDate ? toLocalDateTime(formData.birthDate) : null,
         };
+
+        console.log("[Tutorial] 회원가입 요청 payload →", createUserDto);
 
         await createExternalUser(createUserDto);
 
-        // BE 작업 대기: 아래 프로필/소개노트 PATCH·PUT 엔드포인트 추가 후 저장 복구 필요
+        // TODO(소개노트): BE 엔드포인트 추가 후 프로필/소개노트 저장 복구 필요
         //   - profileImageUrl: `/assets/avatar/${formData.pic}.png`
         //   - location, occupation, interests, introduce
         router.push("/onboarding/complete");
