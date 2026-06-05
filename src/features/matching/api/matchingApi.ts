@@ -50,6 +50,7 @@ export interface GetMatchCandidatesResponse {
     quizSetId: string;
     matchingType: 'ONE_TO_ONE' | 'GROUP';
     candidates: MatchCandidateDto[];
+    receivedRequests: MatchRequestDto[];
 }
 
 export interface GetMatchingStatusResponse {
@@ -63,6 +64,17 @@ export interface GetMatchingStatusResponse {
 }
 
 // --- API functions ---
+
+function createEmptyMatchingStatus(): GetMatchingStatusResponse {
+    return {
+        sentRequests: [],
+        receivedRequests: [],
+        hasAcceptedMatch: false,
+        groupDeclined: false,
+        groupJoined: false,
+        groupJoinPending: false,
+    };
+}
 
 export function getMatchCandidates(): Promise<GetMatchCandidatesResponse> {
     return getExternalMatchCandidates();
@@ -81,6 +93,7 @@ export function rejectMatchRequest(matchRequestId: string): Promise<MatchRequest
 }
 
 export function getMatchingStatus(quizSetId: string): Promise<GetMatchingStatusResponse> {
+    if (!quizSetId) return Promise.resolve(createEmptyMatchingStatus());
     return getExternalMatchingStatus(quizSetId);
 }
 

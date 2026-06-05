@@ -328,6 +328,7 @@ export function Select<T extends Primitive = string>(
       </div>}
       <SelectTrigger
         type="button"
+        aria-label={label ?? bottomSheetTitle}
         onClick={() => !disabled && setOpen(true)}
         $error={error}
         $disabled={disabled}

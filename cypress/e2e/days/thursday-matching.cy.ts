@@ -1,30 +1,12 @@
-function mockFixtureData(method: "GET" | "POST", urls: string[], fixtureName: string, alias: string) {
-  cy.fixture(fixtureName).then((data: unknown) => {
-    urls.forEach((url, index) => {
-      cy.intercept(method, url, {
-        statusCode: 200,
-        body: {
-          success: true,
-          data,
-        },
-      }).as(index === 0 ? alias : `${alias}${index + 1}`);
-    });
-  });
-}
-
-function mockPopulatedMatches() {
-  mockFixtureData("GET", ["**/api/v1/matches/1on1", "**/api/matches/1on1"], "matches-1on1-populated.json", "getPopulatedMatches");
-}
-
-function mockAcceptedStatus() {
-  mockFixtureData("GET", ["**/api/v1/matching/status/**", "**/api/matching/status/**"], "matching-status-accepted.json", "getAcceptedMatchingStatus");
-}
-
 describe("thursday matching day", () => {
-  beforeEach(() => {
-    cy.mockApi();
+  beforeEach(function () {
+    cy.mockApi({
+      matchesFixture: "matches-1on1-populated.json",
+      matchingStatusFixture: this.currentTest?.title.includes("accepted")
+        ? "matching-status-accepted.json"
+        : "matching-status.json",
+    });
     cy.login();
-    mockPopulatedMatches();
   });
 
   it("renders the home matching card", () => {
@@ -58,8 +40,6 @@ describe("thursday matching day", () => {
   });
 
   it("renders the accepted matching card on home", () => {
-    mockAcceptedStatus();
-
     cy.visit("/home");
 
     cy.contains("이번주 매칭", { timeout: 6000 }).should("be.visible");

@@ -16,6 +16,6 @@ describe("quiz to matching flow", () => {
 
     cy.visit("/matching");
     cy.contains("이번 주 매칭 결과", { timeout: 6000 }).should("be.visible");
-    cy.contains("이번 주 매칭 결과가 없어요.").should("be.visible");
+    cy.contains("요청할 수 있는 후보가 없어요").should("be.visible");
   });
 });

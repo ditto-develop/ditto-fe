@@ -3,6 +3,11 @@ type LoginOptions = {
   refreshToken?: string;
 };
 
+type MockApiOptions = {
+  matchesFixture?: string;
+  matchingStatusFixture?: string;
+};
+
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 const TEST_ACCESS_TOKEN =
@@ -47,15 +52,24 @@ Cypress.Commands.add("login", (options: LoginOptions = {}) => {
   });
 });
 
-Cypress.Commands.add("mockApi", () => {
+Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
+  cy.intercept("OPTIONS", "**/api/**", {
+    statusCode: 204,
+    headers: {
+      "access-control-allow-origin": "*",
+      "access-control-allow-methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+      "access-control-allow-headers": "authorization,content-type,x-api-key,accept",
+    },
+  }).as("apiPreflight");
+
   mockFixture("GET", ["**/api/v1/quiz-sets/current-week", "**/api/quiz-sets/current-week"], "quiz-current.json", "getCurrentWeekQuiz");
   mockFixture("GET", ["**/api/v1/quiz-progress/current", "**/api/quiz-progress/current"], "quiz-progress-current.json", "getQuizProgress");
   mockFixture("GET", ["**/api/v1/quiz-progress/quiz-sets/*", "**/api/quiz-progress/quiz-sets/*"], "quiz-set-with-progress.json", "getQuizSetWithProgress");
-  mockStatic("POST", ["**/api/v1/quiz-progress/answers", "**/api/quiz-progress/answers"], null, "submitAnswer");
+  mockStatic("POST", ["**/api/v1/quiz-progress/answers*", "**/api/quiz-progress/answers*"], null, "submitAnswer");
 
-  mockFixture("GET", ["**/api/v1/matches/1on1", "**/api/matches/1on1"], "matches-one-on-one.json", "getMatchesOneOnOne");
-  mockFixture("GET", ["**/api/v1/matching/status/**", "**/api/matching/status/**"], "matching-status.json", "getMatchingStatus");
-  mockFixture("POST", ["**/api/v1/matches/request", "**/api/matches/request"], "match-request.json", "sendMatchRequest");
+  mockFixture("GET", ["**/api/v1/matches/1on1*", "**/api/matches/1on1*"], options.matchesFixture ?? "matches-one-on-one.json", "getMatchesOneOnOne");
+  mockFixture("GET", ["**/api/v1/matching/status/**", "**/api/matching/status/**"], options.matchingStatusFixture ?? "matching-status.json", "getMatchingStatus");
+  mockFixture("POST", ["**/api/v1/matches/request*", "**/api/matches/request*"], "match-request.json", "sendMatchRequest");
   mockFixture("POST", ["**/api/v1/matches/group/join", "**/api/matches/group/join"], "group-join.json", "joinGroupMatch");
   cy.intercept("POST", "**/api/**/matches/group/decline", emptySuccessResponse()).as("declineGroupMatch");
 

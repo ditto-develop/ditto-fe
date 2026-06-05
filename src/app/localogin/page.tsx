@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
+import { setTokens } from "@/shared/lib/auth";
 
 const Container = styled.div`
   display: flex;
@@ -167,7 +168,7 @@ export default function LocalLoginPage() {
       const data = await res.json();
 
       if (data.success && data.data?.accessToken) {
-        localStorage.setItem("accessToken", data.data.accessToken);
+        setTokens(data.data.accessToken, data.data.refreshToken);
         router.push("/home");
       } else {
         setError(data.error || "로그인에 실패했습니다.");

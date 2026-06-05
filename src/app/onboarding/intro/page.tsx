@@ -38,14 +38,14 @@ export default function IntroNotePage() {
     if (!step3Ref.current?.handleSubmit()) return;
     setSaving(true);
     try {
-      router.push("/home");
+      router.push("/onboarding/complete");
     } finally {
       setSaving(false);
     }
   };
 
   const handleSkip = async () => {
-    router.push("/home");
+    router.push("/onboarding/complete");
   };
 
   if (loading) return null;

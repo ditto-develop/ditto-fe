@@ -8,13 +8,22 @@ type MswProviderProps = {
   children: ReactNode;
 };
 
-const shouldEnableMocking = process.env.NEXT_PUBLIC_API_MOCKING === "enabled";
+function isCypressRuntime(): boolean {
+  return typeof window !== "undefined" && "Cypress" in window;
+}
+
+const isMockingConfigured = process.env.NEXT_PUBLIC_API_MOCKING === "enabled";
 
 export function MswProvider({ children }: MswProviderProps) {
-  const [mockReady, setMockReady] = useState(!shouldEnableMocking);
+  const [mockReady, setMockReady] = useState(!isMockingConfigured);
 
   useEffect(() => {
-    if (!shouldEnableMocking) return;
+    if (!isMockingConfigured) return;
+
+    if (isCypressRuntime()) {
+      setMockReady(true);
+      return;
+    }
 
     let cancelled = false;
 

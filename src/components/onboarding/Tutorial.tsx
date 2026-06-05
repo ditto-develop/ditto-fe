@@ -8,7 +8,7 @@ import {
 
 } from "@/context/ToastContext";
 
-import { createExternalUser, startExternalSocialLogin } from "@/shared/lib/api/externalApi";
+import { createExternalUser } from "@/shared/lib/api/externalApi";
 import type { CreateExternalUserBody } from "@/shared/lib/api/externalApi";
 
 import type {
@@ -65,11 +65,9 @@ import type {
 } from "./step/Step_1";
 import {
 
-  Step1Final,
-
   Step1Identity
 
-} from "./step/Step_1"; // Step1Final용 타입이 따로 있다면 import 필요
+} from "./step/Step_1";
 
 import type {
 
@@ -107,11 +105,9 @@ export function Tutorial({ initialData }: TutorialProps) {
   const [controlButton, setControlButton] = useState<ControlButtonVariant>("disabled");
 
   // --- Refs ---
-  // ✅ Step별 Ref를 명확히 분리 (Step1Final의 타입이 Step1Ref와 같다면 그대로 써도 되지만, 분리가 안전함)
   const step1Ref = useRef<Step1Ref>(null);      // Step 1: 본인인증 1
-  const step1FinalRef = useRef<Step1Ref>(null); // Step 2: 본인인증 2 (타입 확인 필요)
-  const step2Ref = useRef<Step2Ref>(null);      // Step 3: 프로필
-  const step3Ref = useRef<Step3Ref>(null);      // Step 4: 소개
+  const step2Ref = useRef<Step2Ref>(null);      // Step 2: 프로필
+  const step3Ref = useRef<Step3Ref>(null);      // Step 3: 소개
 
   // --- Form Data ---
   const [formData, setFormData] = useState<FormData>({
@@ -124,7 +120,7 @@ export function Tutorial({ initialData }: TutorialProps) {
     gender: initialData?.gender === "male" ? "man" : initialData?.gender === "female" ? "woman" : null,
     age: null,
     interest: [],
-    birthDate: "",
+    birthDate: initialData?.birthDate || "",
     place: null,
     job: null,
     introduce: Array.from({ length: 10 }, () => ""),
@@ -141,6 +137,7 @@ export function Tutorial({ initialData }: TutorialProps) {
       setFormData((prev) => ({
         ...prev,
         email: initialData.email || prev.email,
+        birthDate: initialData.birthDate || prev.birthDate,
         pic: initialData.profileImage || prev.pic,
         nickname: initialData.nickname || prev.nickname,
         gender: initialData.gender === "male" ? "man" : initialData.gender === "female" ? "woman" : prev.gender,
@@ -176,11 +173,11 @@ export function Tutorial({ initialData }: TutorialProps) {
   // --- 페이지 이동 로직 ---
   const goNextStep = async () => {
     // Step 1~3: 단순 페이지 이동
-    if (step < 4) {
+    if (step < 3) {
       setControlButton("disabled");
       setStep((prev) => prev + 1);
     } 
-    // Step 4: 최종 회원가입 요청
+    // Step 3: 최종 회원가입 요청
     else {
       try {
         // 1. 나이 처리: "40-45" -> 40 (숫자로 변환)
@@ -218,14 +215,10 @@ export function Tutorial({ initialData }: TutorialProps) {
 
         await createExternalUser(createUserDto);
 
-        // BE 작업 대기: 회원가입 직후 토큰을 함께 발급하는 엔드포인트가 없어,
-        //   OAuth 흐름을 재시작해 callback에서 토큰을 받아온다.
-        //   (카카오 세션이 살아있으면 추가 인증 없이 즉시 callback으로 돌아옴)
         // BE 작업 대기: 아래 프로필/소개노트 PATCH·PUT 엔드포인트 추가 후 저장 복구 필요
         //   - profileImageUrl: `/assets/avatar/${formData.pic}.png`
         //   - location, occupation, interests, introduce
-        showToast("회원가입이 완료되었습니다!", "success");
-        startExternalSocialLogin("KAKAO");
+        router.push("/onboarding/complete");
       } catch (error) {
         console.error("Signup failed:", error);
         // 에러 메시지를 사용자에게 보여줄 때, 너무 기술적인 내용보다는 부드럽게 표현
@@ -248,18 +241,15 @@ export function Tutorial({ initialData }: TutorialProps) {
     if (step === 1) {
       if (step1Ref.current && !step1Ref.current.handleSubmit()) return;
     } else if (step === 2) {
-      // Step1Final용 ref 사용
-      if (step1FinalRef.current && !step1FinalRef.current.handleSubmit()) return;
-    } else if (step === 3) {
       if (step2Ref.current && !step2Ref.current.handleSubmit()) return;
-    } else if (step === 4) {
+    } else if (step === 3) {
       if (step3Ref.current && !step3Ref.current.handleSubmit()) return;
     }
     goNextStep();
   };
 
   const handleSkip = () => {
-    if (step === 4) {
+    if (step === 3) {
       showToast(
         <div>
            <Body2Normal $color="white" style={{ fontSize: "14px" }}>매칭 신청을 위해 프로필이 필요해요.</Body2Normal>
@@ -312,32 +302,6 @@ export function Tutorial({ initialData }: TutorialProps) {
       case 2:
         return (
           <OnboardingLayout
-            step={1}
-            totalSteps={3}
-            title={
-              <>
-                안전한 대화를 위해
-                <br />
-                본인 인증이 필요해요
-              </>
-            }
-            buttonText="인증했어요"
-            variant={controlButton}
-            onNext={handleNext}
-            onPrev={goPrevStep}
-            description={
-              <Label1Normal>
-                안전한 이용을 위해 최초 1회 본인인증이 필요해요.
-              </Label1Normal>
-            }
-          >
-            {/* ✅ Step1Final에는 step1FinalRef 연결 */}
-            <Step1Final ref={step1FinalRef} data={formData} onChange={handleInputChange} setControlButton={setControlButton} />
-          </OnboardingLayout>
-        );
-      case 3:
-        return (
-          <OnboardingLayout
             step={2}
             totalSteps={3}
             title="프로필 작성하기"
@@ -359,7 +323,7 @@ export function Tutorial({ initialData }: TutorialProps) {
             <Step2Profile ref={step2Ref} data={formData} onChange={handleInputChange} setControlButton={setControlButton} />
           </OnboardingLayout>
         );
-      case 4:
+      case 3:
         return (
           <OnboardingLayout
             step={3}

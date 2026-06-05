@@ -6,6 +6,7 @@ import { Body1Normal } from "@/shared/ui";
 import styled from "styled-components";
 import { Tutorial } from "@/components/onboarding/Tutorial";
 import { clearTokens, setTokens } from "@/shared/lib/auth";
+import { getExternalCurrentUser } from "@/shared/lib/api/externalApi";
 import type { KakaoLoginResult } from "@/types/kakao";
 
 const LoadingContainer = styled.div`
@@ -54,8 +55,20 @@ function KakaoCallbackContent() {
     }
 
     if (signupRequired) {
-      // 신규 회원: 회원가입(Tutorial) 단계 진입
-      setInitialData({});
+      // 신규 회원: 카카오 정보 기반 현재 사용자 정보(이메일/생년월일)를 받아와
+      // 회원가입(Tutorial) 단계로 넘긴다. 실패해도 빈 값으로 진입은 가능하게 한다.
+      getExternalCurrentUser()
+        .then((me) => {
+          console.log("[KakaoCallback] /api/v1/users/me →", me);
+          setInitialData({
+            email: me.email ?? undefined,
+            birthDate: me.birthDate ?? undefined,
+          });
+        })
+        .catch((err) => {
+          console.error("[KakaoCallback] /api/v1/users/me 조회 실패:", err);
+          setInitialData({});
+        });
     } else {
       // 기존 회원: 홈으로
       router.push("/home");

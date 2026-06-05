@@ -1,15 +1,24 @@
 "use client";
 
+import { useState } from "react";
 import styled from "styled-components";
 import { TopNavigation } from "@/shared/ui";
 import { SectionHeader } from "@/shared/ui";
 import { ContentBadge } from "@/shared/ui";
 import { Avatar } from "@/shared/ui";
 import { SurfaceCard } from "@/shared/ui";
+import { SegmentedControl } from "@/shared/ui";
 import { getMatchBadgeInfo, type MatchProfile } from "@/features/matching";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import { useMatchCandidates } from "@/features/matching/hooks/useMatchCandidates";
 import type { IntroNoteState } from "@/features/profile";
+
+type MatchTab = "request" | "accept";
+
+const TABS: { value: MatchTab; label: string }[] = [
+    { value: "request", label: "요청하기" },
+    { value: "accept", label: "수락하기" },
+];
 
 export interface ProfileClickInfo {
     userId: string;
@@ -53,8 +62,12 @@ export function MatchingResultContainer({
     onProfileClick: (info: ProfileClickInfo) => void;
 }) {
     const { quizSetId, candidates, hasAcceptedMatch, acceptedMatchUserId, loading, error } = useMatchCandidates();
+    const [activeTab, setActiveTab] = useState<MatchTab>("request");
 
     const sorted = [...candidates].sort((a, b) => b.matchRate - a.matchRate);
+    const requestCandidates = sorted.filter((m) => !m.hasReceivedRequest);
+    const acceptCandidates = sorted.filter((m) => m.hasReceivedRequest);
+    const displayCandidates = activeTab === "request" ? requestCandidates : acceptCandidates;
 
     return (
         <PageContainer>
@@ -70,16 +83,21 @@ export function MatchingResultContainer({
                     나와 가장 비슷한 답을 한 사람들을 찾았어요.{"\n"}
                     서로를 선택한 단 한사람과 대화를 나눌 수 있어요.
                 </HeaderDescription>
+                <SegmentedControl
+                    tabs={TABS}
+                    value={activeTab}
+                    onChange={setActiveTab}
+                />
             </Header>
 
             <Body>
                 {loading && <StateText>매칭 결과를 불러오는 중...</StateText>}
                 {error && <StateText>매칭 결과를 불러오지 못했어요.</StateText>}
-                {!loading && !error && sorted.length === 0 && (
-                    <StateText>이번 주 매칭 결과가 없어요.</StateText>
+                {!loading && !error && displayCandidates.length === 0 && (
+                    <EmptyState tab={activeTab} />
                 )}
 
-                {sorted.map((match) => {
+                {displayCandidates.map((match) => {
                     const badge = getMatchBadgeInfo(match.matchRate);
                     return (
                         <MatchGroup key={match.profile.id}>
@@ -124,6 +142,36 @@ export function MatchingResultContainer({
                 })}
             </Body>
         </PageContainer>
+    );
+}
+
+// --- Empty State ---
+const EMPTY_STATE_CONFIG: Record<MatchTab, { title: string; description: string }> = {
+    request: {
+        title: "요청할 수 있는 후보가 없어요",
+        description: "이번 주 매칭된 후보가 모두 나에게 먼저 연락했어요.",
+    },
+    accept: {
+        title: "아직 받은 요청이 없어요",
+        description: "나와 닮은 누군가가 용기를 내고 있을지도 몰라요.\n먼저 대화를 건네보는 건 어떨까요?",
+    },
+};
+
+function EmptyState({ tab }: { tab: MatchTab }) {
+    const { title, description } = EMPTY_STATE_CONFIG[tab];
+    return (
+        <EmptyStateWrapper>
+            <EmptyContents>
+                <EmptyIconSection>
+                    <EmptyIconBg />
+                    <EmptyIcon />
+                </EmptyIconSection>
+                <EmptyContent>
+                    <EmptyTitle>{title}</EmptyTitle>
+                    <EmptyDescription>{description}</EmptyDescription>
+                </EmptyContent>
+            </EmptyContents>
+        </EmptyStateWrapper>
     );
 }
 
@@ -282,4 +330,78 @@ const StateText = styled.p`
   color: var(--color-semantic-label-alternative);
   text-align: center;
   padding: 32px 0;
+`;
+
+const EmptyStateWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  width: 100%;
+`;
+
+const EmptyContents = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+`;
+
+const EmptyIconSection = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+`;
+
+const EmptyIconBg = styled.span`
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background-color: var(--color-semantic-fill-normal);
+`;
+
+const EmptyIcon = styled.span`
+  position: relative;
+  display: block;
+  width: 40px;
+  height: 40px;
+  background-color: var(--color-semantic-label-assistive);
+  -webkit-mask: url(/icons/action/send.svg) no-repeat center;
+  mask: url(/icons/action/send.svg) no-repeat center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+`;
+
+const EmptyContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  width: 100%;
+  text-align: center;
+`;
+
+const EmptyTitle = styled.p`
+  margin: 0;
+  font-size: var(--typography-headline-1-font-size);
+  font-weight: var(--typography-headline-1-font-weight);
+  line-height: var(--typography-headline-1-line-height);
+  letter-spacing: var(--typography-headline-1-letter-spacing);
+  color: var(--color-semantic-label-normal);
+`;
+
+const EmptyDescription = styled.p`
+  margin: 0;
+  font-size: var(--typography-body-2-reading-font-size);
+  font-weight: var(--typography-body-2-reading-font-weight);
+  line-height: var(--typography-body-2-reading-line-height);
+  letter-spacing: var(--typography-body-2-reading-letter-spacing);
+  color: var(--color-semantic-label-alternative);
+  white-space: pre-line;
 `;

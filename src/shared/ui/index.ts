@@ -1,4 +1,5 @@
 // Shared UI barrel exports
+export { SegmentedControl } from "./SegmentedControl/SegmentedControl";
 export { TopNavigation } from "./TopNavigation/TopNavigation";
 export { SectionHeader } from "./SectionHeader/SectionHeader";
 export { Avatar } from "./Avatar/Avatar";

@@ -65,17 +65,19 @@ export function useMatchCandidates() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
     const rawCandidatesRef = useRef<MatchCandidateDto[]>([]);
+    const receivedRequestsRef = useRef<MatchRequestDto[]>([]);
 
     useEffect(() => {
         async function load() {
             try {
-                const { quizSetId: qid, candidates: raw } = await getMatchCandidates();
-                const { sentRequests, receivedRequests, hasAcceptedMatch: accepted, acceptedMatchUserId: acceptedId } = await getMatchingStatus(qid);
+                const { quizSetId: qid, candidates: raw, receivedRequests: receivedFromList } = await getMatchCandidates();
+                const { sentRequests, hasAcceptedMatch: accepted, acceptedMatchUserId: acceptedId } = await getMatchingStatus(qid);
                 rawCandidatesRef.current = raw;
+                receivedRequestsRef.current = receivedFromList;
                 setQuizSetId(qid);
                 setHasAcceptedMatch(accepted);
                 setAcceptedMatchUserId(acceptedId);
-                setCandidates(mergeWithStatus(raw, sentRequests, receivedRequests));
+                setCandidates(mergeWithStatus(raw, sentRequests, receivedFromList));
             } catch (e) {
                 setError(e as Error);
             } finally {
@@ -90,10 +92,10 @@ export function useMatchCandidates() {
 
         const poll = async () => {
             try {
-                const { sentRequests, receivedRequests, hasAcceptedMatch: accepted, acceptedMatchUserId: acceptedId } = await getMatchingStatus(quizSetId);
+                const { sentRequests, hasAcceptedMatch: accepted, acceptedMatchUserId: acceptedId } = await getMatchingStatus(quizSetId);
                 setHasAcceptedMatch(accepted);
                 setAcceptedMatchUserId(acceptedId);
-                setCandidates(mergeWithStatus(rawCandidatesRef.current, sentRequests, receivedRequests));
+                setCandidates(mergeWithStatus(rawCandidatesRef.current, sentRequests, receivedRequestsRef.current));
             } catch {
                 // 폴링 실패는 무시
             }

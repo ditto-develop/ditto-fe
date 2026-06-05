@@ -7,7 +7,10 @@ declare global {
         accessToken?: string;
         refreshToken?: string;
       }): Chainable<void>;
-      mockApi(): Chainable<void>;
+      mockApi(options?: {
+        matchesFixture?: string;
+        matchingStatusFixture?: string;
+      }): Chainable<void>;
     }
   }
 }

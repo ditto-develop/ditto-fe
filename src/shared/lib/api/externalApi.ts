@@ -117,6 +117,10 @@ function setStoredQuizSetId(quizSetId: string): void {
     sessionStorage.setItem("currentQuizSetId", quizSetId);
 }
 
+function isCypressRuntime(): boolean {
+    return typeof window !== "undefined" && "Cypress" in window;
+}
+
 function pickQuizSetId(list: ExternalMatchList): string {
     const first = list.sent[0] || list.received[0];
     return toId(first?.quizSetId) || getStoredQuizSetId();
@@ -180,6 +184,21 @@ export type CreateExternalUserBody = Omit<CreateUserDto, "email" | "birthDate"> 
     birthDate: string | null;
 };
 
+// 카카오 로그인 직후 BE가 카카오 정보를 바탕으로 채워둔 현재 사용자 정보.
+// 회원가입 단계에서 이메일/생년월일만 받아와 보관했다가 최종 /api/v1/users 생성에 사용한다.
+export type CurrentUserInfo = {
+    email: string | null;
+    birthDate: string | null;
+};
+
+export async function getExternalCurrentUser(): Promise<CurrentUserInfo> {
+    const data = await externalApiFetch<Partial<CurrentUserInfo>>("/api/v1/users/me");
+    return {
+        email: data?.email ?? null,
+        birthDate: data?.birthDate ?? null,
+    };
+}
+
 export function createExternalUser(requestBody: CreateExternalUserBody): Promise<UserDto> {
     return externalApiFetch<UserDto>("/api/v1/users", {
         method: "POST",
@@ -218,7 +237,7 @@ export function checkExternalNicknameAvailability(nickname: string): Promise<Nic
 
 export function startExternalSocialLogin(provider: string): void {
     const url = `${process.env.NEXT_PUBLIC_API_BASE || "https://api.ditto.pics"}/api/v1/users/social-login/${provider}`;
-    console.log(`[social-login] → redirect ${provider}:`, url);
+    if (isCypressRuntime()) return;
     window.location.href = url;
 }
 
@@ -231,6 +250,7 @@ export async function getExternalMatchCandidates(): Promise<GetMatchCandidatesRe
         quizSetId,
         matchingType: data.matchingType ?? "ONE_TO_ONE",
         candidates: (data.candidates ?? []).map(toMatchCandidate),
+        receivedRequests: (data.received ?? []).map(toMatchRequest),
     };
 }
 
