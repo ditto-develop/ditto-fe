@@ -194,9 +194,12 @@ export function Tutorial({ initialData }: TutorialProps) {
       setFormData((prev) => ({
         ...prev,
         kakaoId: loginResult.kakaoId,
+        name: loginResult.name || prev.name,
+        phone: loginResult.phoneNumber || prev.phone,
         nickname: loginResult.nickname || prev.nickname,
         pic: loginResult.profileImage || prev.pic,
         email: loginResult.email || prev.email,
+        birthDate: loginResult.birthDate || prev.birthDate,
         gender: toFormGender(loginResult.gender, prev.gender),
       }));
       setStep(1);

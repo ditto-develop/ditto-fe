@@ -76,8 +76,14 @@ export const handlers = [
   // admin 사용자 목록(GET) — POST /users(가입)와 메서드로 구분
   http.get(apiPath("/users"), () => HttpResponse.json(success(adminUsers))),
   http.post(apiPath("/users"), () => HttpResponse.json(success(user))),
-  // 카카오 로그인 직후 회원가입 단계에서 받아오는 현재 사용자 정보(이메일/생년월일)
-  http.get(apiPath("/users/me"), () => HttpResponse.json(success({ email: "user@kakao.com", birthDate: "1995-03-15" }))),
+  // 카카오 로그인 직후 회원가입 단계에서 받아오는 현재 사용자 정보
+  http.get(apiPath("/users/me"), () => HttpResponse.json(success({
+    email: "user@kakao.com",
+    birthDate: "1995-03-15",
+    name: "홍길동",
+    phoneNumber: "010-1234-5678",
+    gender: "MALE",
+  }))),
   http.get(apiPath("/users/nickname/[^/]+/availability"), () => HttpResponse.json(success({ available: true }))),
   http.get(apiPath("/users/[^/]+/profile"), () => HttpResponse.json(success(publicProfile))),
   http.get(apiPath("/users/me/profile"), () => HttpResponse.json(success(publicProfile))),

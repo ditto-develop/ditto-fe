@@ -58,7 +58,6 @@ function KakaoCallbackContent() {
       // 회원가입(Tutorial) 단계로 넘긴다. 실패해도 빈 값으로 진입은 가능하게 한다.
       getExternalCurrentUser()
         .then((me) => {
-          console.log("[KakaoCallback] /api/v1/users/me →", me);
           setInitialData({
             name: me.name ?? undefined,
             phoneNumber: me.phoneNumber ?? undefined,
