@@ -86,7 +86,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isHydrated || isAdminPath) return;
-    if (!isLoggedIn) {
+    // isLoggedIn state는 pathname 변경 시 별도 effect에서 동기화되어 이 렌더에서는
+    // 아직 stale일 수 있다(예: 회원가입 중 토큰 세팅 후 보호 경로로 첫 진입).
+    // stale 값으로 잘못 리다이렉트하지 않도록 세션을 즉시 재계산해서 사용한다.
+    const loggedIn = hasValidSession();
+    if (!loggedIn) {
       if (isPublicPath) {
         // 비로그인 + 공개 경로: 3초 후 스플래시 숨김
         const timer = setTimeout(() => setSplashDone(true), 3000);
