@@ -60,6 +60,9 @@ function KakaoCallbackContent() {
         .then((me) => {
           console.log("[KakaoCallback] /api/v1/users/me →", me);
           setInitialData({
+            name: me.name ?? undefined,
+            phoneNumber: me.phoneNumber ?? undefined,
+            gender: me.gender ?? undefined,
             email: me.email ?? undefined,
             birthDate: me.birthDate ?? undefined,
           });

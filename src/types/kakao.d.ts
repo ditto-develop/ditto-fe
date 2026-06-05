@@ -4,6 +4,7 @@ export interface KakaoLoginResult {
   email?: string;
   birthDate?: string;
   gender?: string;
+  phoneNumber?: string;
   kakaoId?: number;
   providerUserId?: number | string;
   nickname?: string;

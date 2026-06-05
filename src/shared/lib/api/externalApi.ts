@@ -177,21 +177,31 @@ export async function getExternalQuizSetWithProgress(id: string): Promise<GetQui
     };
 }
 
-// 회원가입 payload: name/nickname/phoneNumber/gender/age + nullable email/birthDate.
+// 회원가입 payload: name/nickname/phoneNumber/gender/age + nullable email/birthDate
+// + interests/location/job/caricature(프로필).
 // provider/providerUserId는 더 이상 body로 보내지 않는다(인증은 Authorization 헤더로 처리).
 // generated CreateUserDto는 email/birthDate를 optional string으로만 정의하지만,
 // BE는 값이 없을 때 null을 허용하므로 해당 두 필드만 nullable로 넓힌다.
+// interests/location/job/caricature는 BE 스펙(ditto-api.json)에 아직 반영되지 않아 generated
+// DTO에 없으므로 여기서 수동으로 추가한다. 스펙 갱신 후 generate-client 재실행 시 정리한다.
 export type CreateExternalUserBody = Omit<
     CreateUserDto,
     "email" | "birthDate" | "provider" | "providerUserId"
 > & {
     email: string | null;
     birthDate: string | null;
+    interests: string[];
+    location: string;
+    job: string;
+    caricature: string;
 };
 
 // 카카오 로그인 직후 BE가 카카오 정보를 바탕으로 채워둔 현재 사용자 정보.
-// 회원가입 단계에서 이메일/생년월일만 받아와 보관했다가 최종 /api/v1/users 생성에 사용한다.
+// 회원가입 단계에서 이름/전화번호/성별/이메일/생년월일을 받아와 폼을 미리 채운다.
 export type CurrentUserInfo = {
+    name: string | null;
+    phoneNumber: string | null;
+    gender: string | null;
     email: string | null;
     birthDate: string | null;
 };
@@ -199,6 +209,9 @@ export type CurrentUserInfo = {
 export async function getExternalCurrentUser(): Promise<CurrentUserInfo> {
     const data = await externalApiFetch<Partial<CurrentUserInfo>>("/api/v1/users/me");
     return {
+        name: data?.name ?? null,
+        phoneNumber: data?.phoneNumber ?? null,
+        gender: data?.gender ?? null,
         email: data?.email ?? null,
         birthDate: data?.birthDate ?? null,
     };

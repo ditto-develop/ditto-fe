@@ -114,6 +114,17 @@ function toLocalDateTime(birthDate: string): string {
   return `${birthDate.slice(0, 10)} 00:00:00`;
 }
 
+/**
+ * 외부 성별 표현("MALE"/"male"/"FEMALE"/"female")을 폼 내부 값("man"/"woman")으로 변환한다.
+ * 매칭되지 않으면 fallback을 그대로 반환한다.
+ */
+function toFormGender(gender: string | undefined, fallback: FormData["gender"]): FormData["gender"] {
+  const normalized = gender?.toLowerCase();
+  if (normalized === "male") return "man";
+  if (normalized === "female") return "woman";
+  return fallback;
+}
+
 export function Tutorial({ initialData }: TutorialProps) {
   const { showToast, removeToast } = useToast();
   const router = useRouter();
@@ -131,13 +142,13 @@ export function Tutorial({ initialData }: TutorialProps) {
   // --- Form Data ---
   const [formData, setFormData] = useState<FormData>({
     name: initialData?.name || "",
-    // TODO(phone): 추후 /api/v1/users/me에서 phoneNumber를 받아 채운다. 그 전까지 임시 기본값.
-    phone: "010-1234-1234",
+    // /api/v1/users/me에서 받아온 전화번호로 채운다. 없으면 빈 값으로 직접 입력받는다.
+    phone: initialData?.phoneNumber || "",
     code: "",
     email: initialData?.email || "",
     pic: initialData?.profileImage || "m1",
     nickname: initialData?.nickname || "",
-    gender: initialData?.gender === "male" ? "man" : initialData?.gender === "female" ? "woman" : null,
+    gender: toFormGender(initialData?.gender, null),
     age: null,
     interest: [],
     birthDate: initialData?.birthDate || "",
@@ -156,11 +167,13 @@ export function Tutorial({ initialData }: TutorialProps) {
     if (initialData) {
       setFormData((prev) => ({
         ...prev,
+        name: initialData.name || prev.name,
+        phone: initialData.phoneNumber || prev.phone,
         email: initialData.email || prev.email,
         birthDate: initialData.birthDate || prev.birthDate,
         pic: initialData.profileImage || prev.pic,
         nickname: initialData.nickname || prev.nickname,
-        gender: initialData.gender === "male" ? "man" : initialData.gender === "female" ? "woman" : prev.gender,
+        gender: toFormGender(initialData.gender, prev.gender),
         kakaoId: initialData.kakaoId || prev.kakaoId,
       }));
     }
@@ -184,7 +197,7 @@ export function Tutorial({ initialData }: TutorialProps) {
         nickname: loginResult.nickname || prev.nickname,
         pic: loginResult.profileImage || prev.pic,
         email: loginResult.email || prev.email,
-        gender: loginResult.gender === "male" ? "man" : loginResult.gender === "female" ? "woman" : null,
+        gender: toFormGender(loginResult.gender, prev.gender),
       }));
       setStep(1);
     }
@@ -224,13 +237,21 @@ export function Tutorial({ initialData }: TutorialProps) {
 
           // 생년월일은 LocalDateTime 형식으로 변환, 값이 없으면 null로 전송
           birthDate: formData.birthDate ? toLocalDateTime(formData.birthDate) : null,
+
+          // 프로필 정보(Step2 코드 값). Step2 검증에서 필수 입력이 보장된다.
+          interests: formData.interest,
+          location: formData.place ?? "",
+          job: formData.job ?? "",
+
+          // 사용자가 선택한 아바타(formData.pic: "m1"/"f4" 등)를 svg 경로로 전송한다.
+          caricature: `/onboarding/profileimg/avatar/${formData.pic}.svg`,
         };
 
         await createExternalUser(createUserDto);
 
-        // TODO(소개노트): BE 엔드포인트 추가 후 프로필/소개노트 저장 복구 필요
+        // TODO(소개노트): BE 엔드포인트 추가 후 아래 항목 저장 복구 필요
         //   - profileImageUrl: `/assets/avatar/${formData.pic}.png`
-        //   - location, occupation, interests, introduce
+        //   - introduce(소개노트)
         router.push("/onboarding/complete");
       } catch (error) {
         console.error("Signup failed:", error);
