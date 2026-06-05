@@ -10,6 +10,7 @@ type ExternalRequestOptions = {
     method?: HttpMethod;
     body?: unknown;
     headers?: Record<string, string>;
+    credentials?: RequestCredentials;
 };
 
 const REFRESH_PATH = "/api/v1/users/auth/refresh";
@@ -25,11 +26,6 @@ const getAccessToken = (): string => {
     return localStorage.getItem("accessToken") || "";
 };
 
-function getRefreshToken(): string {
-    if (typeof window === "undefined") return "";
-    return localStorage.getItem("refreshToken") || "";
-}
-
 function getErrorMessage(error: ExternalResponse<unknown>["error"], fallback: string): string {
     if (!error) return fallback;
     if (typeof error === "string") return error;
@@ -39,7 +35,6 @@ function getErrorMessage(error: ExternalResponse<unknown>["error"], fallback: st
 function clearStoredTokens(): void {
     if (typeof window === "undefined") return;
     localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
 }
 
 // 동시에 여러 401이 발생해도 refresh 요청은 1회만 발생
@@ -49,8 +44,6 @@ async function tryRefreshExternalAccessToken(): Promise<string | null> {
     if (refreshPromise) return refreshPromise;
 
     refreshPromise = (async () => {
-        const refreshToken = getRefreshToken();
-        if (!refreshToken) return null;
         try {
             const refreshUrl = `${getExternalApiBase()}${REFRESH_PATH}`;
             console.log(`[externalApiFetch] → POST ${refreshUrl} (token refresh)`);
@@ -62,15 +55,14 @@ async function tryRefreshExternalAccessToken(): Promise<string | null> {
                     Accept: "application/json",
                     ...(apiKey ? { "X-API-Key": apiKey } : {}),
                 },
-                body: JSON.stringify({ refreshToken }),
+                credentials: "include",
             });
-            type RefreshData = { accessToken?: string; refreshToken?: string };
+            type RefreshData = { accessToken?: string };
             const json = (await res.json().catch(() => null)) as ExternalResponse<RefreshData> | null;
             console.log(`[externalApiFetch] ← ${res.status} POST ${refreshUrl} (token refresh)`, json);
             const newToken = json?.data?.accessToken;
             if (!res.ok || !json?.success || !newToken) return null;
             localStorage.setItem("accessToken", newToken);
-            if (json.data?.refreshToken) localStorage.setItem("refreshToken", json.data.refreshToken);
             return newToken;
         } catch {
             return null;
@@ -105,6 +97,7 @@ async function doFetch<T>(path: string, options: ExternalRequestOptions, token: 
         method,
         headers,
         body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+        credentials: options.credentials,
     });
 
     const json = (await response.json().catch(() => null)) as ExternalResponse<T> | null;
@@ -155,6 +148,3 @@ export async function externalApiFetch<T>(
     }
 }
 
-export function readExternalRefreshToken(): string {
-    return getRefreshToken();
-}

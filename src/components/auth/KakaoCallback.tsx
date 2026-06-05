@@ -26,7 +26,6 @@ function KakaoCallbackContent() {
   // - signupRequired=true → 신규 회원 → 회원가입(Tutorial)
   // - 그 외 → 기존 회원 → 로그인(/home)
   const accessToken = searchParams.get("accessToken");
-  const refreshToken = searchParams.get("refreshToken");
   const signupRequired = searchParams.get("signupRequired") === "true";
   const oauthError = searchParams.get("error");
   const oauthErrorDescription = searchParams.get("error_description");
@@ -51,7 +50,7 @@ function KakaoCallbackContent() {
     // 직전 계정의 잔여 토큰이 섞이지 않도록 먼저 비우고 저장한다.
     if (accessToken) {
       clearTokens();
-      setTokens(accessToken, refreshToken);
+      setTokens(accessToken);
     }
 
     if (signupRequired) {
@@ -73,7 +72,7 @@ function KakaoCallbackContent() {
       // 기존 회원: 홈으로
       router.push("/home");
     }
-  }, [accessToken, refreshToken, signupRequired, oauthError, oauthErrorDescription, router]);
+  }, [accessToken, signupRequired, oauthError, oauthErrorDescription, router]);
 
   if (error) {
     return (

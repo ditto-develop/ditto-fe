@@ -5,9 +5,7 @@ import { useHomeReady } from "@/context/HomeReadyContext";
 import { MswProvider } from "@/mocks/MswProvider";
 import {
   ACCESS_TOKEN_KEY,
-  REFRESH_TOKEN_KEY,
   hasValidSession,
-  purgeStaleTokens,
 } from "@/shared/lib/auth";
 import { usePathname, useRouter } from "next/navigation";
 import Script from "next/script";
@@ -30,7 +28,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   // 만료된 임시 토큰(refresh 없는 access)을 제거하고 로그인 상태를 동기화한다.
   const syncAuthState = useCallback(() => {
-    purgeStaleTokens();
     setIsLoggedIn(hasValidSession());
   }, []);
 
@@ -44,7 +41,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     if (!isHydrated) return;
     const interval = setInterval(syncAuthState, 30_000);
     const onStorage = (event: StorageEvent) => {
-      if (event.key === ACCESS_TOKEN_KEY || event.key === REFRESH_TOKEN_KEY) {
+      if (event.key === ACCESS_TOKEN_KEY) {
         syncAuthState();
       }
     };

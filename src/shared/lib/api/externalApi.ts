@@ -10,7 +10,7 @@ import type {
     QuizWithAnswerDto,
     UserDto,
 } from "@/shared/lib/api/generated";
-import { externalApiFetch, readExternalRefreshToken } from "@/shared/lib/api/externalClient";
+import { externalApiFetch } from "@/shared/lib/api/externalClient";
 import type {
     GetMatchCandidatesResponse,
     GetMatchingStatusResponse,
@@ -218,7 +218,7 @@ export function leaveExternalUser(id: string): Promise<UserDto> {
 export function refreshExternalToken(): Promise<LoginResponseDto> {
     return externalApiFetch<LoginResponseDto>("/api/v1/users/auth/refresh", {
         method: "POST",
-        body: { refreshToken: readExternalRefreshToken() },
+        credentials: "include",
     });
 }
 
@@ -228,7 +228,6 @@ export async function logoutExternal(): Promise<null> {
     } finally {
         if (typeof window !== "undefined") {
             localStorage.removeItem("accessToken");
-            localStorage.removeItem("refreshToken");
         }
     }
 }

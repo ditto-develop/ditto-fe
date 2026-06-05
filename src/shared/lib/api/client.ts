@@ -43,9 +43,6 @@ export async function tryRefreshToken(): Promise<string | null> {
         const newToken = tokenResponse.accessToken;
         if (newToken && typeof window !== "undefined") {
             localStorage.setItem("accessToken", newToken);
-            if (tokenResponse.refreshToken) {
-                localStorage.setItem("refreshToken", tokenResponse.refreshToken);
-            }
             return newToken;
         }
         return null;

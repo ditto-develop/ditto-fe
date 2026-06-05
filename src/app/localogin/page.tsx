@@ -168,7 +168,7 @@ export default function LocalLoginPage() {
       const data = await res.json();
 
       if (data.success && data.data?.accessToken) {
-        setTokens(data.data.accessToken, data.data.refreshToken);
+        setTokens(data.data.accessToken);
         router.push("/home");
       } else {
         setError(data.error || "로그인에 실패했습니다.");
