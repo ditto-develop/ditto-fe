@@ -2,16 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+
 import { OnboardingLayout } from "@/components/onboarding/OnboardingLayout";
 import type { Step3Ref } from "@/components/onboarding/step/Step_3";
 import { Step3Intro } from "@/components/onboarding/step/Step_3";
-import type { ControlButtonVariant, FormData } from "@/types/type";
+import { useToast } from "@/context/ToastContext";
+import { getMyIntroNoteAnswersByIndex } from "@/features/profile/api/profileApi";
+import type { IntroNoteCode } from "@/features/profile/model/introNotes";
+import { saveExternalIntroNote } from "@/shared/lib/api/externalApi";
 import { Label1Normal } from "@/shared/ui";
+import type { ControlButtonVariant, FormData } from "@/types/type";
 
 const EMPTY_INTRO: FormData["introduce"] = Array.from({ length: 10 }, () => "");
 
 export default function IntroNotePage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const step3Ref = useRef<Step3Ref>(null);
   const [controlButton, setControlButton] = useState<ControlButtonVariant>("disabled");
   const [loading, setLoading] = useState(true);
@@ -25,14 +31,40 @@ export default function IntroNotePage() {
     kakaoId: undefined,
   });
 
-  // BE 작업 대기: GET/PUT /api/v1/users/me/intro-notes 엔드포인트가 api.ditto.pics에 추가될 때까지
-  //   - GET: 빈 상태로 시작 (저장된 답변 불러오기 불가)
-  //   - PUT: 저장 호출 생략 (router.push만 수행)
-  //   엔드포인트 추가 후 externalApi 패턴으로 호출 복구 필요.
-
   useEffect(() => {
-    setLoading(false);
+    let ignore = false;
+
+    const loadIntroNotes = async () => {
+      try {
+        const introduce = await getMyIntroNoteAnswersByIndex();
+        if (!ignore) {
+          setFormData((prev) => ({ ...prev, introduce }));
+        }
+      } catch {
+        if (!ignore) {
+          setFormData((prev) => ({ ...prev, introduce: EMPTY_INTRO }));
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadIntroNotes();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
+
+  const handlePersistAnswer = async (code: IntroNoteCode, value: string) => {
+    try {
+      await saveExternalIntroNote(code, value);
+    } catch {
+      showToast("저장에 실패했어요. 다시 시도해 주세요.", "error");
+    }
+  };
 
   const handleSave = async () => {
     if (!step3Ref.current?.handleSubmit()) return;
@@ -75,6 +107,7 @@ export default function IntroNotePage() {
           setFormData((prev) => ({ ...prev, [key]: value }))
         }
         setControlButton={setControlButton}
+        onPersist={handlePersistAnswer}
       />
     </OnboardingLayout>
   );

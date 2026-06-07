@@ -65,6 +65,17 @@ type NicknameAvailability = {
     available?: boolean;
 };
 
+type IntroNoteItem = {
+    questionCode: string;
+    question: string;
+    answer: string;
+};
+
+export type IntroNotesData = {
+    answers: IntroNoteItem[];
+    completedCount: number;
+};
+
 const toId = (value: ExternalId | null | undefined): string => String(value ?? "");
 
 const normalizeChoice = (choice: QuizChoiceDto): QuizChoiceDto => ({
@@ -247,6 +258,21 @@ export async function logoutExternal(): Promise<null> {
 
 export function checkExternalNicknameAvailability(nickname: string): Promise<NicknameAvailability> {
     return externalApiFetch<NicknameAvailability>(`/api/v1/users/nickname/${encodeURIComponent(nickname)}/availability`);
+}
+
+export function saveExternalIntroNote(questionCode: string, answer: string): Promise<IntroNotesData> {
+    return externalApiFetch<IntroNotesData>(`/api/v1/users/me/intro-notes/${questionCode}`, {
+        method: "PUT",
+        body: { answer },
+    });
+}
+
+export function getExternalMyIntroNotes(): Promise<IntroNotesData> {
+    return externalApiFetch<IntroNotesData>("/api/v1/users/me/intro-notes");
+}
+
+export function getExternalUserIntroNotes(id: string): Promise<IntroNotesData> {
+    return externalApiFetch<IntroNotesData>(`/api/v1/users/${id}/intro-notes`);
 }
 
 export function startExternalSocialLogin(provider: string): void {
