@@ -9,6 +9,11 @@
  * - 매칭 실패: "진행 중인 매칭이 없어요." 빈 상태
  */
 describe("진입 — 홈 매칭 카드", () => {
+  // /home은 현재 KST 요일로 기간을 계산한다(getPeriodFromServerTime). 매칭 기간으로 고정.
+  beforeEach(() => {
+    cy.clockPeriod("MATCHING");
+  });
+
   describe("1:1 매칭 결과 진입", () => {
     beforeEach(() => {
       cy.mockApi({ matchesFixture: "matches-1on1-populated.json" });

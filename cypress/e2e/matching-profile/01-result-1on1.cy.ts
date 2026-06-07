@@ -12,6 +12,7 @@
  */
 describe("3.1 매칭 결과 - 1:1 매칭 (WF-06)", () => {
   beforeEach(() => {
+    cy.clockPeriod("MATCHING");
     cy.login();
   });
 

@@ -1,14 +1,55 @@
 {
   "answers": [
-    "짐은 단출하게 챙기는 편이에요.",
-    "느긋하게 산책하고 커피를 마셔요.",
-    "잘 웃는다는 말을 자주 들어요.",
-    "좋아하는 음악을 들으며 쉬어요.",
-    "이직을 결심한 일이 가장 잘한 선택이에요.",
-    "바다를 볼 때 가장 행복해요.",
-    "지도, 메모, 카메라를 자주 써요.",
-    "아침 7시에 마시는 커피가 좋아요.",
-    "약속 시간은 꼭 지키고 싶어요.",
-    "따뜻함"
-  ]
+    {
+      "questionCode": "travel-items",
+      "question": "Q1. 여행갈 때 꼭 챙겨야 하는 3가지는?",
+      "answer": "짐은 단출하게 챙기는 편이에요."
+    },
+    {
+      "questionCode": "weekend-morning",
+      "question": "Q2. 주말 아침 10시, 나는 주로 뭐하고 있을까?",
+      "answer": "느긋하게 산책하고 커피를 마셔요."
+    },
+    {
+      "questionCode": "friends-say",
+      "question": "Q3. 친구들이 나한테 제일 많이 하는 말은?",
+      "answer": "잘 웃는다는 말을 자주 들어요."
+    },
+    {
+      "questionCode": "stress-relief",
+      "question": "Q4. 스트레스 받을 때 나만의 해소법은?",
+      "answer": "좋아하는 음악을 들으며 쉬어요."
+    },
+    {
+      "questionCode": "best-choice",
+      "question": "Q5. 최근 1년 내 가장 잘한 선택은?",
+      "answer": "이직을 결심한 일이 가장 잘한 선택이에요."
+    },
+    {
+      "questionCode": "happiest-moment",
+      "question": "Q6. 나를 가장 행복하게 만드는 순간은?",
+      "answer": "바다를 볼 때 가장 행복해요."
+    },
+    {
+      "questionCode": "most-used-apps",
+      "question": "Q7. 요즘 내가 가장 많이 쓰는 앱 3개는?",
+      "answer": "지도, 메모, 카메라를 자주 써요."
+    },
+    {
+      "questionCode": "favorite-time",
+      "question": "Q8. 하루 중 가장 좋아하는 시간대는? 그때 주로 뭐해?",
+      "answer": "아침 7시에 마시는 커피가 좋아요."
+    },
+    {
+      "questionCode": "non-negotiable",
+      "question": "Q9. 내가 절대 양보 못하는 것은?",
+      "answer": "약속 시간은 꼭 지키고 싶어요."
+    },
+    {
+      "questionCode": "one-word",
+      "question": "Q10. 나를 한 단어로 표현한다면?",
+      "answer": "따뜻함"
+    }
+  ],
+  "completedCount": 10
 }

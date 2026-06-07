@@ -9,6 +9,7 @@
  */
 describe("3.2 소개노트", () => {
   beforeEach(() => {
+    cy.clockPeriod("MATCHING");
     cy.mockApi();
     cy.login();
   });
@@ -22,8 +23,13 @@ describe("3.2 소개노트", () => {
 
     it("프로필 정보와 소개노트 미리보기가 노출된다", () => {
       cy.contains("수민", { timeout: 6000 }).should("be.visible");
-      cy.contains("Q1. 여행갈 때 꼭 챙겨야 하는 3가지는?").should("be.visible");
+      cy.get("[data-testid='intro-note-preview-item']").should("have.length", 3);
+      cy.get("[data-testid='intro-note-preview-item']").last().should("contain", "Q10.");
+      cy.contains("Q10. 나를 한 단어로 표현한다면?").should("be.visible");
       cy.contains("대화가 시작되면 더 많은 질문과 답변을 볼 수 있어요").should("be.visible");
+      cy.contains("받은 평가").should("be.visible");
+      cy.contains("4.7").should("be.visible");
+      cy.contains("(30)").should("be.visible");
       cy.contains("대화 신청하기").should("be.visible");
     });
   });

@@ -1,5 +1,6 @@
 describe("onboarding flow", () => {
   it("skips intro note onboarding, confirms completion, and returns home", () => {
+    cy.clockPeriod("QUIZ");
     cy.mockApi();
     cy.login();
     cy.visit("/onboarding/intro");

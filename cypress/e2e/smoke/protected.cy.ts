@@ -1,5 +1,6 @@
 describe("protected routes", () => {
   beforeEach(() => {
+    cy.clockPeriod("MATCHING");
     cy.mockApi();
     cy.login();
   });

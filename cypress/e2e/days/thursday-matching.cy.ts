@@ -1,5 +1,6 @@
 describe("thursday matching day", () => {
   beforeEach(function () {
+    cy.clockPeriod("MATCHING");
     cy.mockApi({
       matchesFixture: "matches-1on1-populated.json",
       matchingStatusFixture: this.currentTest?.title.includes("accepted")

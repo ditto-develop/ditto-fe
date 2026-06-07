@@ -9,7 +9,9 @@
  * - 거절하기 → 확인 모달 → 매칭 실패
  */
 describe("3.1 매칭 결과 - 그룹 매칭 (WF-07)", () => {
+  // 그룹 매칭 진입은 매칭 기간(/home)에서만 노출 → 시계를 매칭 기간으로 고정.
   beforeEach(() => {
+    cy.clockPeriod("MATCHING");
     cy.mockApi({ matchesFixture: "matches-group.json" });
     cy.login();
   });
@@ -45,7 +47,8 @@ describe("3.1 매칭 결과 - 그룹 매칭 (WF-07)", () => {
       cy.contains("겜돌이").should("be.visible");
 
       cy.contains("겜돌이").click();
-      cy.contains("대화가 시작되면 더 많은 질문과 답변을 볼 수 있어요", { timeout: 6000 }).should("be.visible");
+      // 멤버 상세(소개노트) 모달 진입 — 모달 상단 Q&A 질문으로 검증
+      cy.contains("Q10. 나를 한 단어로 표현한다면?", { timeout: 6000 }).should("be.visible");
     });
   });
 

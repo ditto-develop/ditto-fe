@@ -1,4 +1,8 @@
 describe("public routes", () => {
+  beforeEach(() => {
+    cy.clockPeriod("QUIZ");
+  });
+
   it("renders the landing screen", () => {
     cy.visit("/");
 

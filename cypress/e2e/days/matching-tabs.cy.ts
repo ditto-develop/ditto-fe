@@ -1,5 +1,6 @@
 describe("매칭 결과 탭 분리 - 요청하기 / 수락하기", () => {
   beforeEach(() => {
+    cy.clockPeriod("MATCHING");
     cy.mockApi();
     cy.login();
   });

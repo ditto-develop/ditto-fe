@@ -1,27 +1,14 @@
 describe("local quiz test flow", () => {
   beforeEach(() => {
+    // 기간은 더 이상 system/state API가 아니라 KST 요일로 결정됨 → 시계를 퀴즈 기간으로 고정
+    cy.clockPeriod("QUIZ");
     cy.mockApi();
-    const quizPeriodSystemState = {
-      statusCode: 200,
-      body: {
-        success: true,
-        data: {
-          year: 2026,
-          month: 6,
-          week: 1,
-          period: "QUIZ_PERIOD",
-        },
-      },
-    };
-    cy.intercept("GET", "**/api/system/state", quizPeriodSystemState).as("getQuizPeriodSystemState");
-    cy.intercept("GET", "**/api/v1/system/state", quizPeriodSystemState).as("getQuizPeriodSystemStateV1");
   });
 
   it("opens the quiz-period home state and completes the current quiz", () => {
     cy.login();
     cy.visit("/home");
 
-    cy.wait("@getQuizPeriodSystemState");
     cy.contains("이번주 퀴즈", { timeout: 6000 }).should("be.visible");
     cy.contains("참여 가능").should("be.visible");
 

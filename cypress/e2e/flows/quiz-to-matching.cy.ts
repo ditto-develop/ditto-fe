@@ -1,5 +1,6 @@
 describe("quiz to matching flow", () => {
   beforeEach(() => {
+    cy.clockPeriod("QUIZ");
     cy.mockApi();
     cy.login();
   });

@@ -11,6 +11,8 @@
  */
 describe("프로필 상세 (WF-16)", () => {
   beforeEach(() => {
+    // 답변 비교(chat_started)는 매칭 성사 후 화면 — 매칭 기간으로 고정
+    cy.clockPeriod("MATCHING");
     cy.mockApi();
     cy.login();
   });

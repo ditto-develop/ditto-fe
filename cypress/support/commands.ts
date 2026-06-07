@@ -28,6 +28,17 @@ function emptySuccessResponse() {
   return successResponse(null);
 }
 
+// /home(MainSection)은 getPeriodFromServerTime()으로 현재 KST 요일에 따라 기간을 정한다.
+//   월~수: QUIZ / 목: MATCHING / 금~일: CHATTING
+// 화면이 속한 기간을 결정적으로 고정하기 위해 시계(Date만)를 해당 요일로 맞춘다.
+type PeriodName = "QUIZ" | "MATCHING" | "CHATTING";
+
+const PERIOD_KST_TIMESTAMP: Record<PeriodName, number> = {
+  QUIZ: Date.parse("2026-06-02T03:00:00Z"), // KST 화요일
+  MATCHING: Date.parse("2026-06-04T03:00:00Z"), // KST 목요일
+  CHATTING: Date.parse("2026-06-06T03:00:00Z"), // KST 토요일
+};
+
 function mockFixture(method: HttpMethod, urls: string[], fixtureName: string, alias: string) {
   cy.fixture(fixtureName).then((data: unknown) => {
     urls.forEach((url, index) => {
@@ -41,6 +52,11 @@ function mockStatic(method: HttpMethod, urls: string[], data: unknown, alias: st
     cy.intercept(method, url, successResponse(data)).as(index === 0 ? alias : `${alias}${index + 1}`);
   });
 }
+
+Cypress.Commands.add("clockPeriod", (period: PeriodName) => {
+  // Date만 오버라이드 → setTimeout/rAF(토스트 duration, 애니메이션)는 정상 동작
+  cy.clock(PERIOD_KST_TIMESTAMP[period], ["Date"]);
+});
 
 Cypress.Commands.add("login", (options: LoginOptions = {}) => {
   const accessToken = options.accessToken ?? TEST_ACCESS_TOKEN;

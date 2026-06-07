@@ -46,6 +46,7 @@ function clickNavigationButton(buttonText: string) {
 
 describe("signup flow", () => {
   beforeEach(() => {
+    cy.clockPeriod("QUIZ");
     cy.mockApi();
     cy.on("uncaught:exception", () => false);
   });
