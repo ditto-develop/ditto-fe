@@ -8,6 +8,7 @@ import { AlertModal } from "@/shared/ui";
 import { ProfileIntroView } from '@/features/profile/ui/ProfileIntroView';
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import { getUserProfile, getUserIntroNotes, type IntroNoteAnswer } from '@/features/profile/api/profileApi';
+import { ProfileDetailService, type UserRatingSummaryDto } from "@/shared/lib/api/generated";
 import { toLocationLabel, toOccupationLabel, toInterestLabel } from '@/shared/lib/profileLabels';
 import { useToast } from '@/context/ToastContext';
 
@@ -32,6 +33,7 @@ interface ProfileDetailData {
   introNotes: IntroNoteAnswer[];
   interests: string[];
   rating?: number;
+  ratingSummary?: UserRatingSummaryDto | null;
   occupation?: string;
 }
 
@@ -71,13 +73,17 @@ export function ProfileDetailModal({
     Promise.all([
       getUserProfile(profileId).catch(() => null),
       getUserIntroNotes(profileId).catch(() => []),
-    ]).then(([dto, notes]) => {
+      ProfileDetailService.ratingControllerGetUserRatings(profileId)
+        .then((res) => res.success ? res.data ?? null : null)
+        .catch(() => null),
+    ]).then(([dto, notes, ratingSummary]) => {
       if (cancelled) return;
       setDetailData({
         profileId,
         introNotes: notes,
         interests: (dto?.interests ?? []).map(toInterestLabel),
         rating: dto?.rating,
+        ratingSummary,
         occupation: dto?.occupation ? toOccupationLabel(dto.occupation) : undefined,
       });
     });
@@ -107,6 +113,7 @@ export function ProfileDetailModal({
             metaText={metaText}
             interests={currentDetailData?.interests ?? []}
             introNotes={currentDetailData?.introNotes ?? []}
+            ratingSummary={currentDetailData?.ratingSummary}
           />
         </ContentBody>
 

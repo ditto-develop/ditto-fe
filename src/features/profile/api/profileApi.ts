@@ -29,6 +29,7 @@ export interface PublicProfileDto {
 }
 
 export interface IntroNoteAnswer {
+    questionCode?: string;
     question: string;
     answer: string;
 }
@@ -44,6 +45,7 @@ export async function getUserIntroNotes(userId: string): Promise<IntroNoteAnswer
     return data.answers
         .filter((item) => item.answer.trim().length > 0)
         .map((item) => ({
+            questionCode: item.questionCode,
             question: item.question,
             answer: item.answer,
         }));

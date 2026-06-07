@@ -1,6 +1,21 @@
 "use client";
 
+import { useMemo } from "react";
 import styled from "styled-components";
+
+type IntroNotePreviewItem = {
+    questionCode?: string;
+    question: string;
+    answer: string;
+};
+
+type RatingSummary = {
+    averageScore: number;
+    totalCount: number;
+    isPublic: boolean;
+    publicThreshold: number;
+    ratings?: Array<{ comment?: string }>;
+};
 
 export interface ProfileIntroViewProps {
     avatarUrl: string;
@@ -8,7 +23,8 @@ export interface ProfileIntroViewProps {
     rating?: number | string;
     metaText: string; // e.g. "30-34세 · 여성 · 서울 · 유통/판매"
     interests: string[];
-    introNotes: Array<{ question: string; answer: string }>;
+    introNotes: IntroNotePreviewItem[];
+    ratingSummary?: RatingSummary | null;
 }
 
 export function ProfileIntroView({
@@ -18,7 +34,20 @@ export function ProfileIntroView({
     metaText,
     interests,
     introNotes,
+    ratingSummary,
 }: ProfileIntroViewProps) {
+    const previewNotes = useMemo(() => selectIntroNotePreview(introNotes), [introNotes]);
+    const publicRatingSummary = ratingSummary?.isPublic && ratingSummary.totalCount >= ratingSummary.publicThreshold
+        ? ratingSummary
+        : null;
+    const ratingComments = publicRatingSummary?.ratings
+        ?.map((item) => item.comment?.trim())
+        .filter((comment): comment is string => Boolean(comment))
+        .slice(0, 3) ?? [];
+    const hiddenRatingCount = publicRatingSummary
+        ? Math.max(publicRatingSummary.totalCount - ratingComments.length, 0)
+        : 0;
+
     return (
         <>
             <ProfileSection>
@@ -49,17 +78,18 @@ export function ProfileIntroView({
                 )}
             </ProfileSection>
 
-            <QnACard>
+            <QnACard $compact={Boolean(publicRatingSummary)}>
                 <TicketDeco src="/assets/decoration/deco.svg" alt="" />
-                <QnABody>
-                    {introNotes.slice(0, 3).map((item, i) => (
-                        <IntroQAItem key={i}>
+                <QnABody $compact={Boolean(publicRatingSummary)}>
+                    {previewNotes.map((item, i) => (
+                        <IntroQAItem key={item.questionCode ?? item.question} data-testid="intro-note-preview-item">
                             <IntroQAQuestion>{item.question}</IntroQAQuestion>
                             <IntroQAAnswer>{item.answer}</IntroQAAnswer>
-                            <QnADivider />
+                            {i < previewNotes.length - 1 && <QnADivider $compact={Boolean(publicRatingSummary)} />}
                         </IntroQAItem>
                     ))}
-                    <MoreIndicator>
+                    {previewNotes.length > 0 && <QnADivider $compact={Boolean(publicRatingSummary)} />}
+                    <MoreIndicator $compact={Boolean(publicRatingSummary)}>
                         <Dot /><Dot /><Dot />
                     </MoreIndicator>
                     <MoreText>
@@ -67,8 +97,52 @@ export function ProfileIntroView({
                     </MoreText>
                 </QnABody>
             </QnACard>
+
+            {publicRatingSummary && (
+                <RatingSummaryCard>
+                    <RatingSummaryTitle>받은 평가</RatingSummaryTitle>
+                    <RatingScoreRow>
+                        <RatingStars aria-hidden="true">
+                            {Array.from({ length: 5 }).map((_, index) => (
+                                <RatingStarIcon key={index}>★</RatingStarIcon>
+                            ))}
+                        </RatingStars>
+                        <RatingScoreText>{publicRatingSummary.averageScore.toFixed(1)}</RatingScoreText>
+                        <RatingCountText>({publicRatingSummary.totalCount})</RatingCountText>
+                    </RatingScoreRow>
+                    {ratingComments.length > 0 && (
+                        <RatingChipRow>
+                            {ratingComments.map((comment) => (
+                                <RatingChip key={comment}>{comment}</RatingChip>
+                            ))}
+                            {hiddenRatingCount > 0 && <RatingMoreChip>+{hiddenRatingCount}</RatingMoreChip>}
+                        </RatingChipRow>
+                    )}
+                </RatingSummaryCard>
+            )}
         </>
     );
+}
+
+function selectIntroNotePreview(introNotes: IntroNotePreviewItem[]): IntroNotePreviewItem[] {
+    const oneWordNote = introNotes.find((item) => item.questionCode === "one-word" || item.question.startsWith("Q10."));
+    const candidates = introNotes.filter((item) => item !== oneWordNote);
+    const shuffled = shuffleIntroNotes(candidates);
+
+    return oneWordNote
+        ? [...shuffled.slice(0, 2), oneWordNote]
+        : shuffled.slice(0, 3);
+}
+
+function shuffleIntroNotes(introNotes: IntroNotePreviewItem[]): IntroNotePreviewItem[] {
+    const shuffled = [...introNotes];
+
+    for (let i = shuffled.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    return shuffled;
 }
 
 const ProfileSection = styled.div`
@@ -158,11 +232,11 @@ const InterestBadge = styled.div`
   color: var(--color-semantic-label-alternative);
 `;
 
-export const QnACard = styled.div`
-  flex: 1;
-  min-height: 0;
+export const QnACard = styled.div<{ $compact?: boolean }>`
+  flex: ${({ $compact }) => ($compact ? "0 0 auto" : "1")};
+  min-height: ${({ $compact }) => ($compact ? "auto" : "0")};
   width: calc(100% - 32px);
-  margin: 32px 16px 0;
+  margin: ${({ $compact }) => ($compact ? "var(--space-5) var(--space-4) 0" : "32px 16px 0")};
   background-color: var(--color-semantic-background-elevated-alternative);
   border-radius: 12px;
   overflow: visible;
@@ -179,12 +253,15 @@ const TicketDeco = styled.img`
   margin-bottom: -14px;
 `;
 
-export const QnABody = styled.div`
-  flex: 1;
-  min-height: 0;
+export const QnABody = styled.div<{ $compact?: boolean }>`
+  flex: ${({ $compact }) => ($compact ? "0 0 auto" : "1")};
+  min-height: ${({ $compact }) => ($compact ? "auto" : "0")};
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 32px 16px calc(96px + env(safe-area-inset-bottom, 0px));
+  padding: ${({ $compact }) =>
+    $compact
+      ? "var(--space-5) var(--space-4)"
+      : "32px 16px calc(96px + env(safe-area-inset-bottom, 0px))"};
   display: flex;
   flex-direction: column;
   scrollbar-width: none;
@@ -214,19 +291,19 @@ const IntroQAAnswer = styled.p`
   padding: 0 16px;
 `;
 
-const QnADivider = styled.hr`
-  margin: 24px 0;
+const QnADivider = styled.hr<{ $compact?: boolean }>`
+  margin: ${({ $compact }) => ($compact ? "var(--space-4) 0" : "24px 0")};
   border: none;
   border-top: 1px dashed var(--color-semantic-line-normal-neutral);
   width: 100%;
 `;
 
-const MoreIndicator = styled.div`
+const MoreIndicator = styled.div<{ $compact?: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 24px 0 16px;
+  padding: ${({ $compact }) => ($compact ? "var(--space-3) 0 var(--space-2)" : "24px 0 16px")};
 `;
 
 const Dot = styled.div`
@@ -242,4 +319,79 @@ const MoreText = styled.span`
   color: var(--color-semantic-label-alternative);
   text-align: center;
   width: 100%;
+`;
+
+const RatingSummaryCard = styled.section`
+  width: calc(100% - 32px);
+  margin: var(--space-4) var(--space-4) 0;
+  padding: var(--space-4);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background-color: var(--color-semantic-background-elevated-alternative);
+  border-radius: 8px;
+`;
+
+const RatingSummaryTitle = styled.h2`
+  margin: 0;
+  font-size: var(--typography-label-1-normal-font-size);
+  font-weight: var(--typography-label-1-normal-font-weight);
+  line-height: var(--typography-label-1-normal-line-height);
+  color: var(--color-semantic-label-alternative);
+`;
+
+const RatingScoreRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+`;
+
+const RatingStars = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-\[2px\]);
+  margin-right: var(--space-2);
+`;
+
+const RatingStarIcon = styled.span`
+  font-size: var(--typography-heading-1-font-size);
+  line-height: var(--typography-heading-1-line-height);
+  color: var(--color-semantic-status-positive);
+`;
+
+const RatingScoreText = styled.span`
+  font-size: var(--typography-headline-2-font-size);
+  font-weight: var(--typography-headline-2-font-weight);
+  line-height: var(--typography-headline-2-line-height);
+  color: var(--color-semantic-label-neutral);
+`;
+
+const RatingCountText = styled.span`
+  font-size: var(--typography-caption-1-font-size);
+  font-weight: var(--typography-caption-1-font-weight);
+  line-height: var(--typography-caption-1-line-height);
+  color: var(--color-semantic-label-alternative);
+`;
+
+const RatingChipRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+`;
+
+const RatingChip = styled.span`
+  padding: var(--space-\[6px\]) var(--space-2);
+  border-radius: 8px;
+  background-color: var(--color-semantic-line-solid-alternative);
+  font-size: var(--typography-label-1-normal-font-size);
+  font-weight: var(--typography-label-1-normal-font-weight);
+  line-height: var(--typography-label-1-normal-line-height);
+  color: var(--color-semantic-label-neutral);
+`;
+
+const RatingMoreChip = styled(RatingChip)`
+  font-size: var(--typography-label-2-font-size);
+  line-height: var(--typography-label-2-line-height);
+  color: var(--color-semantic-label-alternative);
 `;

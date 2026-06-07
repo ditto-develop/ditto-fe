@@ -13,7 +13,7 @@ import {
     acceptMatchRequest,
     rejectMatchRequest,
 } from "@/features/matching/api/matchingApi";
-import { ProfileDetailService, type AnswerComparisonItemDto } from "@/shared/lib/api/generated";
+import { ProfileDetailService, type AnswerComparisonItemDto, type UserRatingSummaryDto } from "@/shared/lib/api/generated";
 import { getUserIntroNotes, type IntroNoteAnswer } from "@/features/profile/api/profileApi";
 import { useToast } from "@/context/ToastContext";
 import { ProfileIntroView, QnACard } from "@/features/profile/ui/ProfileIntroView";
@@ -43,6 +43,7 @@ export function IntroNoteContainer({
     const [showModal, setShowModal] = useState<"request" | "accept" | "reject" | null>(null);
     const [comparisons, setComparisons] = useState<AnswerComparisonItemDto[]>([]);
     const [introNotes, setIntroNotes] = useState<IntroNoteAnswer[]>([]);
+    const [ratingSummary, setRatingSummary] = useState<UserRatingSummaryDto | null>(null);
 
     // userId가 바뀔 때(다른 프로필로 이동) 상태 초기화
     useEffect(() => {
@@ -64,8 +65,16 @@ export function IntroNoteContainer({
     // before_request / after_acceptance / completed: 소개노트 답변 미리보기 로드
     useEffect(() => {
         if (state === "chat_started") return;
-        getUserIntroNotes(userId)
-            .then(setIntroNotes)
+        Promise.all([
+            getUserIntroNotes(userId).catch(() => []),
+            ProfileDetailService.ratingControllerGetUserRatings(userId)
+                .then((res) => res.success ? res.data ?? null : null)
+                .catch(() => null),
+        ])
+            .then(([notes, ratings]) => {
+                setIntroNotes(notes);
+                setRatingSummary(ratings);
+            })
             .catch(() => {/* 무시 */});
     }, [userId, state]);
 
@@ -160,19 +169,22 @@ export function IntroNoteContainer({
                         </QnACard>
                     </>
                 ) : (
-                    <ProfileIntroView
-                        avatarUrl={profile.avatarUrl}
-                        name={profile.nickname}
-                        rating={profile.rating}
-                        metaText={[
-                            formatAgeRange(profile.age),
-                            profile.gender,
-                            profile.location,
-                            profile.occupation,
-                        ].filter(Boolean).join(" · ")}
-                        interests={profile.interests}
-                        introNotes={introNotes}
-                    />
+                    <IntroPreviewScroll>
+                        <ProfileIntroView
+                            avatarUrl={profile.avatarUrl}
+                            name={profile.nickname}
+                            rating={profile.rating}
+                            metaText={[
+                                formatAgeRange(profile.age),
+                                profile.gender,
+                                profile.location,
+                                profile.occupation,
+                            ].filter(Boolean).join(" · ")}
+                            interests={profile.interests}
+                            introNotes={introNotes}
+                            ratingSummary={ratingSummary}
+                        />
+                    </IntroPreviewScroll>
                 )
             )}
 
@@ -278,6 +290,20 @@ const StateText = styled.p`
   color: var(--color-semantic-label-alternative);
   text-align: center;
   padding: 32px 0;
+`;
+
+const IntroPreviewScroll = styled.div`
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: calc(var(--space-30) + env(safe-area-inset-bottom, 0px));
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 `;
 
 // chat_started: profile hero (interests excluded)
