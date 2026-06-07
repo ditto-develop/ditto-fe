@@ -6,7 +6,7 @@ import { TimeLine } from "@/components/home/Timeline";
 import type { MatchingCardType } from "@/components/home/MatchingDay";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { ChatService, QuizProgressDto, SystemService, SystemStateDto } from "@/shared/lib/api/generated";
+import { ChatService, QuizProgressDto } from "@/shared/lib/api/generated";
 import type { ChatRoomItemDto } from "@/shared/lib/api/generated";
 import type { MatchCandidateDto } from "@/features/matching/api/matchingApi";
 import { getMatchCandidates, getMatchingStatus } from "@/features/matching/api/matchingApi";
@@ -31,12 +31,12 @@ function getKstDayIndex(): number {
   return kstDate.getDay(); // 0: Sun, 1: Mon, ..., 6: Sat
 }
 
-function mapPeriod(apiPeriod: SystemStateDto.period): Period {
-  switch (apiPeriod) {
-    case SystemStateDto.period.QUIZ_PERIOD: return "QUIZ";
-    case SystemStateDto.period.MATCHING_PERIOD: return "MATCHING";
-    case SystemStateDto.period.CHATTING_PERIOD: return "CHATTING";
-  }
+function getPeriodFromServerTime(): Period {
+  const dayIndex = getKstDayIndex();
+
+  if (dayIndex >= 1 && dayIndex <= 3) return "QUIZ";
+  if (dayIndex === 4) return "MATCHING";
+  return "CHATTING";
 }
 
 async function getLatestChatRoom(): Promise<ChatRoomItemDto | undefined> {
@@ -82,14 +82,10 @@ export function MainSection() {
       try {
         // BE 작업 대기: IntroNotes(GET /api/v1/users/me/intro-notes) 엔드포인트가 api.ditto.pics에 추가될 때까지
         //   isIntroComplete는 false로 유지된다. 엔드포인트 추가 후 externalApi 패턴으로 호출 복구 필요.
-        const [stateRes, introRes] = await Promise.all([
-          SystemService.systemControllerGetSystemState(),
-          Promise.resolve(null as { success: boolean; data?: { completedCount: number; answers: string[] } } | null),
-        ]);
-
-        if (!stateRes.success || !stateRes.data) return;
-
-        const fetchedPeriod = mapPeriod(stateRes.data.period);
+        // 임시 비활성화: API 오버라이드 상태 대신 현재 KST 요일로 기간을 계산한다.
+        // const stateRes = await SystemService.systemControllerGetSystemState();
+        const introRes = await Promise.resolve(null as { success: boolean; data?: { completedCount: number; answers: string[] } } | null);
+        const fetchedPeriod = getPeriodFromServerTime();
         setPeriod(fetchedPeriod);
 
         if (introRes?.success && introRes.data) {

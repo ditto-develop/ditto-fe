@@ -70,6 +70,18 @@ Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
   mockFixture("GET", ["**/api/v1/matches/1on1*", "**/api/matches/1on1*"], options.matchesFixture ?? "matches-one-on-one.json", "getMatchesOneOnOne");
   mockFixture("GET", ["**/api/v1/matching/status/**", "**/api/matching/status/**"], options.matchingStatusFixture ?? "matching-status.json", "getMatchingStatus");
   mockFixture("POST", ["**/api/v1/matches/request*", "**/api/matches/request*"], "match-request.json", "sendMatchRequest");
+  mockStatic(
+    "POST",
+    ["**/api/v1/matches/request/*/accept", "**/api/matches/request/*/accept"],
+    { id: 9001, quizSetId: 101, requesterId: 501, receiverId: "user-e1e", status: "ACCEPTED" },
+    "acceptMatchRequest",
+  );
+  mockStatic(
+    "POST",
+    ["**/api/v1/matches/request/*/reject", "**/api/matches/request/*/reject"],
+    { id: 9001, quizSetId: 101, requesterId: 501, receiverId: "user-e1e", status: "REJECTED" },
+    "rejectMatchRequest",
+  );
   mockFixture("POST", ["**/api/v1/matches/group/join", "**/api/matches/group/join"], "group-join.json", "joinGroupMatch");
   cy.intercept("POST", "**/api/**/matches/group/decline", emptySuccessResponse()).as("declineGroupMatch");
 
@@ -80,6 +92,8 @@ Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
   mockFixture("POST", ["**/api/v1/users", "**/api/users"], "user.json", "createUser");
   mockFixture("GET", ["**/api/users/*/profile", "**/api/v1/users/*/profile"], "public-profile.json", "getUserProfile");
   mockFixture("GET", ["**/api/users/*/intro-notes", "**/api/v1/users/*/intro-notes"], "intro-notes.json", "getUserIntroNotes");
+  mockFixture("GET", ["**/api/users/*/answers", "**/api/v1/users/*/answers"], "answers-comparison.json", "getUserAnswers");
+  mockFixture("GET", ["**/api/users/*/ratings", "**/api/v1/users/*/ratings"], "user-ratings.json", "getUserRatings");
 
   mockFixture("GET", ["**/api/chat/rooms", "**/api/v1/chat/rooms"], "chat-rooms.json", "getChatRooms");
   mockFixture("POST", ["**/api/chat/rooms", "**/api/v1/chat/rooms"], "chat-room-item.json", "createChatRoom");

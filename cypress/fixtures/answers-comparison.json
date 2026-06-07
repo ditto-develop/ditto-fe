@@ -1,0 +1,30 @@
+{
+  "targetUserId": "501",
+  "quizSetId": "101",
+  "matchRate": 75,
+  "matchedCount": 9,
+  "totalCount": 12,
+  "comparisons": [
+    {
+      "quizId": "1",
+      "question": "Q1. 여행갈 때 꼭 챙겨야 하는 3가지는?",
+      "myChoice": "카메라, 충전기, 플레이리스트",
+      "theirChoice": "카메라, 충전기, 플레이리스트",
+      "isMatch": true
+    },
+    {
+      "quizId": "2",
+      "question": "Q2. 주말 아침 10시, 나는 주로 뭐하고 있을까?",
+      "myChoice": "느긋하게 산책",
+      "theirChoice": "이불 속 늦잠",
+      "isMatch": false
+    },
+    {
+      "quizId": "10",
+      "question": "Q10. 나를 한 단어로 표현한다면?",
+      "myChoice": "따뜻함",
+      "theirChoice": "따뜻함",
+      "isMatch": true
+    }
+  ]
+}

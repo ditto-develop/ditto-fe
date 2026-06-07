@@ -1,0 +1,21 @@
+{
+  "userId": "501",
+  "totalCount": 30,
+  "averageScore": 4.7,
+  "isPublic": true,
+  "publicThreshold": 3,
+  "ratings": [
+    {
+      "id": "r1",
+      "score": 5,
+      "comment": "대화가 편안하고 즐거웠어요.",
+      "createdAt": "2026-06-01T00:00:00.000Z"
+    },
+    {
+      "id": "r2",
+      "score": 4,
+      "comment": "답장이 빠르고 친절했어요.",
+      "createdAt": "2026-06-02T00:00:00.000Z"
+    }
+  ]
+}

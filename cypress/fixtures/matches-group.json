@@ -1,0 +1,72 @@
+{
+  "quizSetId": 101,
+  "matchingType": "GROUP",
+  "sent": [],
+  "received": [],
+  "candidates": [
+    {
+      "userId": 601,
+      "nickname": "댕이누나",
+      "gender": "FEMALE",
+      "age": 28,
+      "introduction": "느긋한 집순이",
+      "location": "seoul",
+      "profileImageUrl": "/assets/avatar/f3.png",
+      "matchRate": 67,
+      "scoreBreakdown": {
+        "quizMatchRate": 67,
+        "matchedQuestions": 8,
+        "totalQuestions": 12,
+        "reasons": []
+      }
+    },
+    {
+      "userId": 602,
+      "nickname": "겜돌이",
+      "gender": "MALE",
+      "age": 23,
+      "introduction": "디코 좋아하는 겜돌이",
+      "location": "seoul",
+      "profileImageUrl": "/assets/avatar/m1.png",
+      "matchRate": 75,
+      "scoreBreakdown": {
+        "quizMatchRate": 75,
+        "matchedQuestions": 9,
+        "totalQuestions": 12,
+        "reasons": []
+      }
+    },
+    {
+      "userId": 603,
+      "nickname": "카페탐방러",
+      "gender": "FEMALE",
+      "age": 31,
+      "introduction": "조용한 카페 탐방러",
+      "location": "seoul",
+      "profileImageUrl": "/assets/avatar/f4.png",
+      "matchRate": 58,
+      "scoreBreakdown": {
+        "quizMatchRate": 58,
+        "matchedQuestions": 7,
+        "totalQuestions": 12,
+        "reasons": []
+      }
+    },
+    {
+      "userId": 604,
+      "nickname": "삼대천하",
+      "gender": "MALE",
+      "age": 33,
+      "introduction": "3대 1000의 남자",
+      "location": "seoul",
+      "profileImageUrl": "/assets/avatar/m2.png",
+      "matchRate": 67,
+      "scoreBreakdown": {
+        "quizMatchRate": 67,
+        "matchedQuestions": 8,
+        "totalQuestions": 12,
+        "reasons": []
+      }
+    }
+  ]
+}
