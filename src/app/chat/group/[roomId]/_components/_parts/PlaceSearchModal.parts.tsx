@@ -76,7 +76,7 @@ export const SearchSection = styled.div`
 export const SearchField = styled.label<{ $focused: boolean }>`
   display: flex;
   align-items: center;
-  gap: var(--space-\[6px\]);
+  gap: var(--spacing-6px);
   width: 100%;
   min-height: var(--space-12);
   padding: var(--space-3);
@@ -179,7 +179,7 @@ export const ResultContent = styled.span`
   flex: 1;
   min-width: var(--space-0);
   flex-direction: column;
-  gap: var(--space-\[2px\]);
+  gap: var(--spacing-2px);
 `;
 
 export const ResultTitle = styled.span`

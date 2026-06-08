@@ -41,6 +41,7 @@ export const OCCUPATION_LABELS: Record<string, string> = {
 export const INTEREST_LABELS: Record<string, string> = {
     workout: "💪 운동",
     "movie-drama": "🍿 영화/드라마",
+    exhibition: "🖼️ 전시",
     performance: "💃 공연",
     photography: "📷 사진",
     reading: "📚 독서",

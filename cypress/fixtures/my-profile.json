@@ -1,0 +1,15 @@
+{
+  "userId": "user-me",
+  "nickname": "개굴개굴렌",
+  "gender": "MALE",
+  "age": 27,
+  "introduction": "주말마다 한강 산책하는 걸 좋아해요!",
+  "profileImageUrl": "/assets/avatar/m3.png",
+  "location": "seoul",
+  "occupation": "it-tech",
+  "interests": [
+    "workout",
+    "movie-drama",
+    "exhibition"
+  ]
+}

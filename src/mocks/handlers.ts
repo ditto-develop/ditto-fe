@@ -11,6 +11,9 @@ import localLogin from "@/mocks/fixtures/local-login.json";
 import matchRequest from "@/mocks/fixtures/match-request.json";
 import matchesOneOnOne from "@/mocks/fixtures/matches-one-on-one.json";
 import matchingStatus from "@/mocks/fixtures/matching-status.json";
+import myProfile from "@/mocks/fixtures/my-profile.json";
+import myRatings from "@/mocks/fixtures/my-ratings.json";
+import myStats from "@/mocks/fixtures/my-stats.json";
 import publicProfile from "@/mocks/fixtures/public-profile.json";
 import quizCurrent from "@/mocks/fixtures/quiz-current.json";
 import quizProgressCurrent from "@/mocks/fixtures/quiz-progress-current.json";
@@ -85,9 +88,15 @@ export const handlers = [
     gender: "MALE",
   }))),
   http.get(apiPath("/users/nickname/[^/]+/availability"), () => HttpResponse.json(success({ available: true }))),
+  http.get(apiPath("/users/me/profile"), () => HttpResponse.json(success(myProfile))),
+  http.patch(apiPath("/users/me/profile"), async ({ request }) => {
+    const body = await request.json().catch(() => ({}));
+    const profilePatch = body && typeof body === "object" ? body : {};
+    return HttpResponse.json(success({ ...myProfile, ...profilePatch }));
+  }),
+  http.get(apiPath("/users/me/stats"), () => HttpResponse.json(success(myStats))),
+  http.get(apiPath("/users/me/ratings"), () => HttpResponse.json(success(myRatings))),
   http.get(apiPath("/users/[^/]+/profile"), () => HttpResponse.json(success(publicProfile))),
-  http.get(apiPath("/users/me/profile"), () => HttpResponse.json(success(publicProfile))),
-  http.patch(apiPath("/users/me/profile"), () => HttpResponse.json(success(publicProfile))),
   http.get(apiPath("/users/[^/]+/intro-notes"), () => HttpResponse.json(success(introNotes))),
   http.get(apiPath("/users/me/intro-notes"), () => HttpResponse.json(success(introNotes))),
   http.put(apiPath("/users/me/intro-notes/[^/]+"), () => HttpResponse.json(success(introNotes))),

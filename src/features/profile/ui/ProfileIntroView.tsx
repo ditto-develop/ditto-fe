@@ -25,6 +25,7 @@ export interface ProfileIntroViewProps {
     interests: string[];
     introNotes: IntroNotePreviewItem[];
     ratingSummary?: RatingSummary | null;
+    hasBottomButton?: boolean;
 }
 
 export function ProfileIntroView({
@@ -35,6 +36,7 @@ export function ProfileIntroView({
     interests,
     introNotes,
     ratingSummary,
+    hasBottomButton = true,
 }: ProfileIntroViewProps) {
     const previewNotes = useMemo(() => selectIntroNotePreview(introNotes), [introNotes]);
     const publicRatingSummary = ratingSummary?.isPublic && ratingSummary.totalCount >= ratingSummary.publicThreshold
@@ -80,7 +82,7 @@ export function ProfileIntroView({
 
             <QnACard $compact={Boolean(publicRatingSummary)}>
                 <TicketDeco src="/assets/decoration/deco.svg" alt="" />
-                <QnABody $compact={Boolean(publicRatingSummary)}>
+                <QnABody $compact={Boolean(publicRatingSummary)} $hasBottomButton={hasBottomButton}>
                     {previewNotes.map((item, i) => (
                         <IntroQAItem key={item.questionCode ?? item.question} data-testid="intro-note-preview-item">
                             <IntroQAQuestion>{item.question}</IntroQAQuestion>
@@ -253,15 +255,16 @@ const TicketDeco = styled.img`
   margin-bottom: -14px;
 `;
 
-export const QnABody = styled.div<{ $compact?: boolean }>`
+export const QnABody = styled.div<{ $compact?: boolean; $hasBottomButton?: boolean }>`
   flex: ${({ $compact }) => ($compact ? "0 0 auto" : "1")};
   min-height: ${({ $compact }) => ($compact ? "auto" : "0")};
   overflow-y: auto;
   overflow-x: hidden;
-  padding: ${({ $compact }) =>
-    $compact
-      ? "var(--space-5) var(--space-4)"
-      : "32px 16px calc(96px + env(safe-area-inset-bottom, 0px))"};
+  padding: ${({ $compact, $hasBottomButton }) => {
+    if ($compact) return "var(--space-5) var(--space-4)";
+    if ($hasBottomButton === false) return "32px 16px";
+    return "32px 16px calc(96px + env(safe-area-inset-bottom, 0px))";
+  }};
   display: flex;
   flex-direction: column;
   scrollbar-width: none;
@@ -350,7 +353,7 @@ const RatingScoreRow = styled.div`
 const RatingStars = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-\[2px\]);
+  gap: var(--spacing-2px);
   margin-right: var(--space-2);
 `;
 
@@ -381,7 +384,7 @@ const RatingChipRow = styled.div`
 `;
 
 const RatingChip = styled.span`
-  padding: var(--space-\[6px\]) var(--space-2);
+  padding: var(--spacing-6px) var(--space-2);
   border-radius: 8px;
   background-color: var(--color-semantic-line-solid-alternative);
   font-size: var(--typography-label-1-normal-font-size);

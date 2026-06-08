@@ -300,6 +300,8 @@
   --spacing-80: var(--space-80);
   --spacing-max: var(--space-max);
 
+  --radius-radi-4: var(--space-2);
+
   /* Typography */
   --typography-font-family: var(--font-pretendard-jp), "Pretendard JP", sans-serif;
 

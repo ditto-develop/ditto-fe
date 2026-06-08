@@ -180,7 +180,7 @@ export const PlaceOptionField = styled.button<{ $error?: boolean }>`
   ${fieldShell};
   display: flex;
   align-items: center;
-  gap: var(--space-\[6px\]);
+  gap: var(--spacing-6px);
   padding: var(--space-3);
   border-color: ${({ $error }) =>
     $error
@@ -196,7 +196,7 @@ export const PlaceOptionContent = styled.span`
   flex: 1;
   min-width: var(--space-0);
   flex-direction: column;
-  gap: var(--space-\[2px\]);
+  gap: var(--spacing-2px);
   padding: var(--space-0) var(--space-1);
 `;
 

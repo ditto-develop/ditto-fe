@@ -1,0 +1,24 @@
+{
+  "averageScore": 4.7,
+  "totalCount": 30,
+  "publicThreshold": 3,
+  "noShowCount": 0,
+  "ratings": [
+    {
+      "comment": "대화가 편하고 좋았어요",
+      "createdAt": "2026-06-05T09:00:00.000Z"
+    },
+    {
+      "comment": "약속 시간 잘 지켜요",
+      "createdAt": "2026-06-04T09:00:00.000Z"
+    },
+    {
+      "comment": "친절하고 배려가 넘쳐서 좋아요",
+      "createdAt": "2026-06-03T09:00:00.000Z"
+    },
+    {
+      "comment": "응답이 빨라서 좋았어요",
+      "createdAt": "2026-06-02T09:00:00.000Z"
+    }
+  ]
+}

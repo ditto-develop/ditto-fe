@@ -218,11 +218,14 @@ export function GroupMatchingResultModal({
                   ) : null}
                 </AvatarGrid>
 
-                <GroupInfo>
-                  <Headline2>{groupName}</Headline2>
-                  <Label2 $color="var(--color-semantic-label-alternative)">
-                    {candidates[0].nickname}님 외 {candidates.length - 1}명
-                  </Label2>
+                <GroupContent>
+                  <GroupInfo>
+                    <Headline2>{groupName}</Headline2>
+                    <Label2 $color="var(--color-semantic-label-alternative)">
+                      {candidates[0].nickname}님 외 {candidates.length - 1}명
+                    </Label2>
+                  </GroupInfo>
+
                   {joinResult && !joinResult.isActive && (
                     <JoinedRow>
                       <img
@@ -236,7 +239,7 @@ export function GroupMatchingResultModal({
                       </Caption1>
                     </JoinedRow>
                   )}
-                </GroupInfo>
+                </GroupContent>
 
                 {!joinResult && (
                   <ChevronIcon
@@ -466,11 +469,19 @@ const GroupCard = styled.div<{ $joined?: boolean }>`
   cursor: ${({ $joined }) => ($joined ? "default" : "pointer")};
 `;
 
+const GroupContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+`;
+
 const JoinedRow = styled.div`
   display: flex;
   align-items: center;
   gap: 3px;
-  margin-top: 4px;
+  align-self: flex-end;
 `;
 
 /* Figma 1310:35608 — 80×80, 2×2 grid, no gap */
@@ -517,7 +528,6 @@ const GroupInfo = styled.div`
   display: flex;
   flex-direction: column;
   gap: 4px;
-  flex: 1;
   min-width: 0;
 `;
 

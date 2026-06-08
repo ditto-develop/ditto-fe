@@ -17,6 +17,23 @@ export interface ProfileInfo {
     interests: string[]; // 관심사 태그 (운동, 영화/드라마 등)
 }
 
+export interface MyStats {
+    participationWeeks: number;
+    matchCount: number;
+    meetingCount: number;
+}
+
+export interface MyRatingSummary {
+    averageScore: number;
+    totalCount: number;
+    publicThreshold: number;
+    noShowCount: number;
+    ratings?: Array<{
+        comment?: string;
+        createdAt?: string;
+    }>;
+}
+
 /** 퀴즈 Q&A 항목 */
 export interface QuizAnswer {
     questionNumber: number;

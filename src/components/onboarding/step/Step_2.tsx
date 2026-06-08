@@ -37,7 +37,7 @@ import {
 } from "@/components/onboarding/OnboardingContainer";
 import { ProfileSelect } from "@/components/onboarding/ProfileSelect";
 
-const interestOptions = [
+export const interestOptions = [
   { label: "💪 운동", value: "workout" },
   { label: "🍿 영화/드라마", value: "movie-drama" },
   { label: "💃 공연", value: "performance" },

@@ -8,6 +8,7 @@ import {
     getExternalUserIntroNotes,
 } from "@/shared/lib/api/externalApi";
 import { INTRO_NOTE_FIELDS } from "@/features/profile/model/introNotes";
+import type { MyRatingSummary, MyStats } from "@/features/profile/model/types";
 
 export { apiFetch, tryRefreshToken } from "@/shared/lib/api/client";
 
@@ -34,10 +35,34 @@ export interface IntroNoteAnswer {
     answer: string;
 }
 
+export type UpdateMyProfileRequest = Pick<
+    PublicProfileDto,
+    "introduction" | "profileImageUrl" | "interests"
+>;
+
 // --- API ---
 
 export function getUserProfile(userId: string): Promise<PublicProfileDto> {
     return apiFetch(`/users/${userId}/profile`);
+}
+
+export function getMyProfile(): Promise<PublicProfileDto> {
+    return apiFetch("/users/me/profile");
+}
+
+export function updateMyProfile(body: UpdateMyProfileRequest): Promise<PublicProfileDto> {
+    return apiFetch("/users/me/profile", {
+        method: "PATCH",
+        body: JSON.stringify(body),
+    });
+}
+
+export function getMyStats(): Promise<MyStats> {
+    return apiFetch("/users/me/stats");
+}
+
+export function getMyRatingSummary(): Promise<MyRatingSummary> {
+    return apiFetch("/users/me/ratings");
 }
 
 export async function getUserIntroNotes(userId: string): Promise<IntroNoteAnswer[]> {

@@ -13,14 +13,15 @@ import {
     acceptMatchRequest,
     rejectMatchRequest,
 } from "@/features/matching/api/matchingApi";
-import { ProfileDetailService, type AnswerComparisonItemDto, type UserRatingSummaryDto } from "@/shared/lib/api/generated";
+import { ProfileDetailService, type UserRatingSummaryDto } from "@/shared/lib/api/generated";
 import { getUserIntroNotes, type IntroNoteAnswer } from "@/features/profile/api/profileApi";
 import { useToast } from "@/context/ToastContext";
-import { ProfileIntroView, QnACard } from "@/features/profile/ui/ProfileIntroView";
+import { ProfileIntroView } from "@/features/profile/ui/ProfileIntroView";
 
 /**
  * IntroNoteContainer — Figma: 3.2 소개노트
  * 실제 API 연결 + 상태별 버튼 (before_request / after_acceptance / completed / chat_started)
+ * chat_started: 매칭 성사 후 프로필 조회 전용 (CTA 버튼 없음)
  */
 export function IntroNoteContainer({
     userId,
@@ -41,30 +42,14 @@ export function IntroNoteContainer({
     const [state, setState] = useState<IntroNoteState>(initialState);
     const [acting, setActing] = useState(false);
     const [showModal, setShowModal] = useState<"request" | "accept" | "reject" | null>(null);
-    const [comparisons, setComparisons] = useState<AnswerComparisonItemDto[]>([]);
     const [introNotes, setIntroNotes] = useState<IntroNoteAnswer[]>([]);
     const [ratingSummary, setRatingSummary] = useState<UserRatingSummaryDto | null>(null);
 
-    // userId가 바뀔 때(다른 프로필로 이동) 상태 초기화
     useEffect(() => {
         setState(initialState);
     }, [userId]);
 
-    // chat_started: 전체 Q&A 비교 데이터 로드
     useEffect(() => {
-        if (state !== "chat_started") return;
-        ProfileDetailService.ratingControllerGetUserAnswers(userId)
-            .then((res) => {
-                if (res.success && res.data?.comparisons) {
-                    setComparisons(res.data.comparisons);
-                }
-            })
-            .catch(() => {/* 무시 */});
-    }, [state, userId]);
-
-    // before_request / after_acceptance / completed: 소개노트 답변 미리보기 로드
-    useEffect(() => {
-        if (state === "chat_started") return;
         Promise.all([
             getUserIntroNotes(userId).catch(() => []),
             ProfileDetailService.ratingControllerGetUserRatings(userId)
@@ -76,9 +61,8 @@ export function IntroNoteContainer({
                 setRatingSummary(ratings);
             })
             .catch(() => {/* 무시 */});
-    }, [userId, state]);
+    }, [userId]);
 
-    // --- 대화 신청 ---
     async function confirmRequest() {
         if (!quizSetId || acting) return;
         setShowModal(null);
@@ -92,7 +76,6 @@ export function IntroNoteContainer({
         }
     }
 
-    // --- 대화 수락 ---
     async function confirmAccept() {
         if (!matchRequestId || acting) return;
         setShowModal(null);
@@ -105,7 +88,6 @@ export function IntroNoteContainer({
         }
     }
 
-    // --- 대화 거절 ---
     async function confirmReject() {
         if (!matchRequestId || acting) return;
         setShowModal(null);
@@ -118,6 +100,8 @@ export function IntroNoteContainer({
         }
     }
 
+    const hasButton = state !== "chat_started";
+
     return (
         <PageContainer>
             <TopNavigation onBack={onBack} />
@@ -126,70 +110,26 @@ export function IntroNoteContainer({
             {error && <StateText>프로필을 불러오지 못했어요.</StateText>}
 
             {profile && (
-                state === "chat_started" ? (
-                    <>
-                        {/* Profile Hero + Q&A comparison (chat_started only) */}
-                        <ChatProfileSection>
-                            <AvatarWrapper>
-                                <AvatarImg src={profile.avatarUrl} alt={profile.nickname} />
-                            </AvatarWrapper>
-                            <NameRow>
-                                <ProfileName>{profile.nickname}</ProfileName>
-                                {profile.rating && (
-                                    <RatingBadge>
-                                        <RatingStar>★</RatingStar>
-                                        <RatingText>{profile.rating}</RatingText>
-                                    </RatingBadge>
-                                )}
-                            </NameRow>
-                            <ProfileMeta>
-                                {formatAgeRange(profile.age)} · {profile.gender}
-                                {profile.location ? ` · ${profile.location}` : ""}
-                                {profile.occupation ? ` · ${profile.occupation}` : ""}
-                            </ProfileMeta>
-                        </ChatProfileSection>
-
-                        <QnACard>
-                            <TicketDeco src="/assets/decoration/deco.svg" alt="" />
-                            <ChatQnABody>
-                                {comparisons.map((item, i) => (
-                                    <QAItem key={item.quizId ?? i}>
-                                        <QAQuestion>{item.question}</QAQuestion>
-                                        <QAAnswerRow>
-                                            <QAAnswerChip $isMatch={item.isMatch} $isMe>
-                                                나 · {item.myChoice}
-                                            </QAAnswerChip>
-                                            <QAAnswerChip $isMatch={item.isMatch}>
-                                                상대 · {item.theirChoice}
-                                            </QAAnswerChip>
-                                        </QAAnswerRow>
-                                    </QAItem>
-                                ))}
-                            </ChatQnABody>
-                        </QnACard>
-                    </>
-                ) : (
-                    <IntroPreviewScroll>
-                        <ProfileIntroView
-                            avatarUrl={profile.avatarUrl}
-                            name={profile.nickname}
-                            rating={profile.rating}
-                            metaText={[
-                                formatAgeRange(profile.age),
-                                profile.gender,
-                                profile.location,
-                                profile.occupation,
-                            ].filter(Boolean).join(" · ")}
-                            interests={profile.interests}
-                            introNotes={introNotes}
-                            ratingSummary={ratingSummary}
-                        />
-                    </IntroPreviewScroll>
-                )
+                <IntroPreviewScroll>
+                    <ProfileIntroView
+                        avatarUrl={profile.avatarUrl}
+                        name={profile.nickname}
+                        rating={profile.rating}
+                        metaText={[
+                            formatAgeRange(profile.age),
+                            profile.gender,
+                            profile.location,
+                            profile.occupation,
+                        ].filter(Boolean).join(" · ")}
+                        interests={profile.interests}
+                        introNotes={introNotes}
+                        ratingSummary={ratingSummary}
+                        hasBottomButton={hasButton}
+                    />
+                </IntroPreviewScroll>
             )}
 
-            {/* Bottom Action Area — state-dependent */}
-            {state !== "chat_started" && (
+            {hasButton && (
                 <BottomSection>
                     <GradientFade />
                     <ButtonArea>
@@ -208,7 +148,6 @@ export function IntroNoteContainer({
                                 대화 신청하기
                             </PrimaryButton>
                         ) : (
-                            /* after_acceptance: 수신자 화면 */
                             <>
                                 <SecondaryButton onClick={() => setShowModal("reject")} disabled={acting}>
                                     거절하기
@@ -222,9 +161,6 @@ export function IntroNoteContainer({
                 </BottomSection>
             )}
 
-            {/* ── Alert Modals ── */}
-
-            {/* 대화 신청 확인 */}
             <AlertModal
                 isOpen={showModal === "request"}
                 title="대화를 신청할까요?"
@@ -240,11 +176,10 @@ export function IntroNoteContainer({
                 onClose={() => setShowModal(null)}
             />
 
-            {/* 대화 수락 확인 */}
             <AlertModal
                 isOpen={showModal === "accept"}
                 title="대화 신청을 수락할까요?"
-                message={`한 번 신청하면 취소할 수 없어요. `}
+                message="한 번 신청하면 취소할 수 없어요."
                 confirmParams={{
                     text: "네, 신청할게요",
                     onClick: confirmAccept,
@@ -256,7 +191,6 @@ export function IntroNoteContainer({
                 onClose={() => setShowModal(null)}
             />
 
-            {/* 대화 거절 확인 */}
             <AlertModal
                 isOpen={showModal === "reject"}
                 title="대화 신청을 거절할까요?"
@@ -275,7 +209,6 @@ export function IntroNoteContainer({
     );
 }
 
-// --- Styled Components ---
 const PageContainer = styled.div`
   width: 100%;
   height: 100dvh;
@@ -304,133 +237,6 @@ const IntroPreviewScroll = styled.div`
   &::-webkit-scrollbar {
     display: none;
   }
-`;
-
-// chat_started: profile hero (interests excluded)
-const ChatProfileSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16px 16px 0;
-  width: 100%;
-`;
-
-const AvatarWrapper = styled.div`
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  overflow: hidden;
-  background-color: var(--color-semantic-background-normal-normal);
-  border: 1px solid rgba(108, 101, 95, 0.08);
-`;
-
-const AvatarImg = styled.img`
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-`;
-
-const NameRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 16px;
-`;
-
-const ProfileName = styled.span`
-  font-size: var(--typography-title-3-font-size);
-  font-weight: 700;
-  color: var(--color-semantic-label-normal);
-`;
-
-const RatingBadge = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-`;
-
-const RatingStar = styled.span`
-  font-size: var(--typography-label-1-normal-font-size);
-  color: var(--color-semantic-status-positive);
-`;
-
-const RatingText = styled.span`
-  font-size: var(--typography-label-1-normal-font-size);
-  font-weight: 600;
-  color: var(--color-semantic-status-positive);
-`;
-
-const ProfileMeta = styled.span`
-  font-size: var(--typography-body-1-normal-font-size);
-  font-weight: 500;
-  color: var(--color-semantic-label-alternative);
-  text-align: center;
-  line-height: 1.5;
-  margin-top: 4px;
-`;
-
-const TicketDeco = styled.img`
-  width: 80%;
-  height: auto;
-  display: block;
-  margin: 0 auto;
-  transform: translateY(-50%);
-  margin-bottom: -14px;
-`;
-
-// chat_started: Q&A comparison body (no bottom button padding needed)
-const ChatQnABody = styled.div`
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 32px 16px;
-  display: flex;
-  flex-direction: column;
-  scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
-`;
-
-// Q&A full view (chat_started)
-const QAItem = styled.div`
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const QAQuestion = styled.p`
-  font-size: var(--typography-label-1-normal-font-size);
-  font-weight: 600;
-  color: var(--color-semantic-label-normal);
-  margin: 0;
-`;
-
-const QAAnswerRow = styled.div`
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-`;
-
-const QAAnswerChip = styled.span<{ $isMatch: boolean; $isMe?: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: var(--typography-label-2-font-size);
-  font-weight: 500;
-  background-color: ${({ $isMatch, $isMe }) =>
-    $isMatch
-      ? "rgba(85, 122, 85, 0.12)"
-      : $isMe
-      ? "rgba(108, 101, 95, 0.08)"
-      : "rgba(179, 53, 40, 0.08)"};
-  color: ${({ $isMatch, $isMe }) =>
-    $isMatch
-      ? "var(--color-semantic-status-positive)"
-      : $isMe
-      ? "var(--color-semantic-label-normal)"
-      : "var(--color-semantic-status-negative)"};
 `;
 
 const BottomSection = styled.div`
