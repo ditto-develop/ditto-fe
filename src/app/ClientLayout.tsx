@@ -26,7 +26,12 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   // 로그인이 필요 없는 공개 경로
   const isAuthCallbackPath = pathname === "/auth/callback" || pathname === "/auth/callback/";
-  const isPublicPath = pathname === "/" || pathname.startsWith('/oauth') || isAuthCallbackPath || pathname === '/localogin' || pathname === '/localogin/';
+  // OAuth 콜백 경로(/oauth/*, /auth/callback)는 KakaoCallback이 로그인 후 라우팅을
+  // 직접 결정한다(신규 회원=signupRequired → 회원가입 Tutorial 유지, 기존 회원 → /home).
+  // ClientLayout이 "로그인 상태 + 공개 경로 → /home" 규칙으로 이 경로를 덮어쓰면
+  // 회원가입 중인 신규 회원이 토큰 세팅 직후 /home으로 튕긴다. 라우팅 권한을 분리한다.
+  const isOAuthFlowPath = pathname.startsWith('/oauth') || isAuthCallbackPath;
+  const isPublicPath = pathname === "/" || isOAuthFlowPath || pathname === '/localogin' || pathname === '/localogin/';
   // 관리자 경로: ClientLayout 리다이렉트/스플래시 완전 제외
   const isAdminPath = pathname.startsWith('/admin');
 
@@ -101,16 +106,27 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       }
       return;
     }
-    // 로그인 상태: 루트·오어스 경로 → 홈으로 리다이렉트 (/localogin 제외)
-    if (isPublicPath && pathname !== '/localogin' && pathname !== '/localogin/') {
+    // 로그인 상태: 루트(/) → 홈으로 리다이렉트.
+    // OAuth 콜백 경로는 KakaoCallback이 라우팅을 담당하므로 제외하고,
+    // /localogin도 제외한다.
+    if (
+      isPublicPath &&
+      !isOAuthFlowPath &&
+      pathname !== '/localogin' &&
+      pathname !== '/localogin/'
+    ) {
       router.push("/home");
     }
-  }, [isHydrated, isLoggedIn, isPublicPath, isAdminPath, pathname, router]);
+  }, [isHydrated, isLoggedIn, isPublicPath, isOAuthFlowPath, isAdminPath, pathname, router]);
 
   // showSplash를 state 없이 순수 파생값으로 계산
   const showSplash = (() => {
     if (isAdminPath) return false;                  // 관리자 경로: 스플래시 없음
     if (!isHydrated) return true;                   // SSR / hydration 전
+    // OAuth 콜백 경로는 KakaoCallback이 자체 로딩 UI를 렌더한다. 또한 토큰 세팅이
+    // Suspense로 지연되면 isLoggedIn state가 stale(false)로 남아 Splash가 회원가입
+    // 폼을 영구히 덮을 수 있으므로, 이 경로에서는 ClientLayout Splash를 띄우지 않는다.
+    if (isOAuthFlowPath) return false;
     if (!isLoggedIn) return !splashDone;            // 비로그인: 3초 타이머
     if (pathname === '/home') return isVerifyingSession || (!isHomeReady && !homeSplashExpired);
     return false;                                   // 로그인 + 다른 페이지

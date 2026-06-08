@@ -69,13 +69,19 @@ Cypress.Commands.add("login", (options: LoginOptions = {}) => {
 });
 
 Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
-  cy.intercept("OPTIONS", "**/api/**", {
-    statusCode: 204,
-    headers: {
-      "access-control-allow-origin": "*",
-      "access-control-allow-methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-      "access-control-allow-headers": "authorization,content-type,x-api-key,accept",
-    },
+  // 자격증명(credentials:'include') 요청(예: 토큰 refresh)은 와일드카드 origin을
+  // 허용하지 않으므로, preflight에서 요청 origin을 그대로 echo하고
+  // access-control-allow-credentials를 true로 응답한다.
+  cy.intercept("OPTIONS", "**/api/**", (req) => {
+    req.reply({
+      statusCode: 204,
+      headers: {
+        "access-control-allow-origin": req.headers.origin ?? "*",
+        "access-control-allow-credentials": "true",
+        "access-control-allow-methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+        "access-control-allow-headers": "authorization,content-type,x-api-key,accept",
+      },
+    });
   }).as("apiPreflight");
 
   mockFixture("GET", ["**/api/v1/quiz-sets/current-week", "**/api/quiz-sets/current-week"], "quiz-current.json", "getCurrentWeekQuiz");
@@ -103,13 +109,34 @@ Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
 
   mockFixture("GET", ["**/api/system/state", "**/api/v1/system/state"], "system-state.json", "getSystemState");
   mockFixture("POST", ["**/api/users/local-login", "**/api/v1/users/local-login"], "local-login.json", "localLogin");
-  mockFixture("POST", ["**/api/v1/users/auth/refresh", "**/api/users/auth/refresh"], "local-login.json", "refreshToken");
+  // 토큰 refresh는 credentials:'include'로 요청되므로 응답에도
+  // access-control-allow-credentials/origin echo 헤더가 필요하다(와일드카드 불가).
+  cy.fixture("local-login.json").then((data: unknown) => {
+    ["**/api/v1/users/auth/refresh", "**/api/users/auth/refresh"].forEach((url, index) => {
+      cy.intercept("POST", url, (req) => {
+        req.reply({
+          statusCode: 200,
+          headers: {
+            "access-control-allow-origin": req.headers.origin ?? "*",
+            "access-control-allow-credentials": "true",
+          },
+          body: { success: true, data },
+        });
+      }).as(index === 0 ? "refreshToken" : `refreshToken${index + 1}`);
+    });
+  });
+  mockStatic("GET", ["**/api/v1/users/me", "**/api/users/me"], {
+    name: null,
+    phoneNumber: null,
+    gender: null,
+    email: null,
+    birthDate: null,
+  }, "getCurrentUser");
   mockStatic("GET", ["**/api/v1/users/nickname/*/availability", "**/api/users/nickname/*/availability"], { available: true }, "checkNickname");
   mockFixture("POST", ["**/api/v1/users", "**/api/users"], "user.json", "createUser");
   mockFixture("GET", ["**/api/users/*/profile", "**/api/v1/users/*/profile"], "public-profile.json", "getUserProfile");
   mockFixture("GET", ["**/api/users/*/intro-notes", "**/api/v1/users/*/intro-notes"], "intro-notes.json", "getUserIntroNotes");
-  mockFixture("GET", ["**/api/users/*/answers", "**/api/v1/users/*/answers"], "answers-comparison.json", "getUserAnswers");
-  mockFixture("GET", ["**/api/users/*/ratings", "**/api/v1/users/*/ratings"], "user-ratings.json", "getUserRatings");
+mockFixture("GET", ["**/api/users/*/ratings", "**/api/v1/users/*/ratings"], "user-ratings.json", "getUserRatings");
 
   mockFixture("GET", ["**/api/chat/rooms", "**/api/v1/chat/rooms"], "chat-rooms.json", "getChatRooms");
   mockFixture("POST", ["**/api/chat/rooms", "**/api/v1/chat/rooms"], "chat-room-item.json", "createChatRoom");
