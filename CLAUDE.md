@@ -350,6 +350,24 @@ When relevant, manually test:
 
 ---
 
+## 12.1 Cypress E2E Tests (Required for New Screens)
+
+Whenever a **new screen/route is developed** (or an existing screen's user-facing flow changes meaningfully), you must add or update the corresponding Cypress E2E test. This is mandatory, not optional.
+
+- Test location: `cypress/e2e/<domain>/` (see existing `matching-profile/`, `days/`, `flows/`, `smoke/`).
+- Cover the primary happy-path flow of the new screen end-to-end (entry → key interactions → expected result).
+- Reuse shared fixtures in `cypress/fixtures/` and existing custom commands instead of duplicating setup.
+- Run the suite before reporting completion:
+
+```bash
+npm run test:e2e:cypress
+```
+
+- A new-screen PR is not complete until its Cypress test exists and passes.
+- If the new screen's flow cannot be expressed as a stable E2E test (e.g. external dependency, unfinished BE), stop and ask the user rather than skipping the test silently.
+
+---
+
 ## 13. Deployment Verification
 
 ### 13.0 How Deployment Works (read this first)
