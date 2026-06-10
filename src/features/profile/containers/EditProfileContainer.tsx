@@ -1,16 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Pencil } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import styled from "styled-components";
+import {
+    ProfileEdit,
+    ProfileImg,
+    ProfileWrapper,
+} from "@/components/onboarding/OnboardingContainer";
 import { ProfileSelect } from "@/components/onboarding/ProfileSelect";
 import { interestOptions } from "@/components/onboarding/step/Step_2";
 import { useToast } from "@/context/ToastContext";
 import { getMyProfile, updateMyProfile } from "@/features/profile/api/profileApi";
 import type { PublicProfileDto } from "@/features/profile/api/profileApi";
 import { toLocationLabel, toOccupationLabel } from "@/shared/lib/profileLabels";
-import { Avatar, BottomActionArea, Button, TopNavigation } from "@/shared/ui";
+import { BottomActionArea, Button, TopNavigation } from "@/shared/ui";
 
 const INTRODUCTION_MAX_LENGTH = 50;
 const MAX_INTEREST_COUNT = 5;
@@ -50,6 +56,14 @@ export function EditProfileContainer() {
         interests.join("|") !== (profile?.interests ?? []).join("|")
     );
     const canSubmit = isDirty && isValid && !submitting;
+
+    const openProfileSelect = () => setIsProfileSelectOpen(true);
+
+    const handleProfileEditKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        openProfileSelect();
+    };
 
     const handleToggleInterest = (value: string) => {
         setInterests((prev) => (
@@ -102,16 +116,16 @@ export function EditProfileContainer() {
             <TopNavigation label="프로필 수정" onBack={() => router.push("/profile")} />
             <FormArea>
                 <AvatarSection>
-                    <AvatarEditButton
-                        type="button"
-                        aria-label="프로필 이미지 수정"
-                        onClick={() => setIsProfileSelectOpen(true)}
-                    >
-                        <Avatar src={avatarUrl} alt={profile?.nickname ?? "프로필"} size="xl" />
-                        <PencilBadge aria-hidden="true">
-                            <PencilIcon />
-                        </PencilBadge>
-                    </AvatarEditButton>
+                    <ProfileWrapper>
+                        <ProfileImg imageUrl={avatarUrl} />
+                        <AvatarEditIcon
+                            role="button"
+                            tabIndex={0}
+                            aria-label="프로필 이미지 수정"
+                            onClick={openProfileSelect}
+                            onKeyDown={handleProfileEditKeyDown}
+                        />
+                    </ProfileWrapper>
                 </AvatarSection>
 
                 <ReadOnlyField label="닉네임" value={profile?.nickname ?? ""} />
@@ -244,33 +258,8 @@ const AvatarSection = styled.section`
   justify-content: center;
 `;
 
-const AvatarEditButton = styled.button`
-  position: relative;
-  display: inline-flex;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
+const AvatarEditIcon = styled(ProfileEdit)`
   cursor: pointer;
-`;
-
-const PencilBadge = styled.span`
-  position: absolute;
-  right: var(--space-1);
-  bottom: var(--space-1);
-  width: var(--space-8);
-  height: var(--space-8);
-  border-radius: 50%;
-  background-color: var(--color-semantic-primary-normal);
-  color: var(--color-semantic-static-white);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const PencilIcon = styled(Pencil)`
-  width: var(--space-5);
-  height: var(--space-5);
 `;
 
 const FieldGroup = styled.section`
