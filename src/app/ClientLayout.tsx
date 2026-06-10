@@ -19,7 +19,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const [splashDone, setSplashDone] = useState(false); // 비로그인 3초 타이머용
   const [homeSplashExpired, setHomeSplashExpired] = useState(false);
   const [isVerifyingSession, setIsVerifyingSession] = useState(false);
-  const verifiedPaths = useRef(new Set<string>());
+  const sessionVerified = useRef(false);
+  const sessionVerifyInFlight = useRef(false);
   const router = useRouter();
   const pathname = usePathname();
   const { isHomeReady } = useHomeReady();
@@ -61,21 +62,23 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     };
   }, [isHydrated, syncAuthState]);
 
-  // /home 진입 시 refresh로 세션 유효성 검증 (이미 검증한 경로는 건너뜀)
+  // /home 진입 시 refresh로 세션 유효성 검증 (이미 검증한 세션은 건너뜀)
   useEffect(() => {
     if (!isHydrated || pathname !== "/home" || !isLoggedIn) return;
-    if (verifiedPaths.current.has(pathname)) return;
+    if (sessionVerified.current || sessionVerifyInFlight.current) return;
 
+    sessionVerifyInFlight.current = true;
     setIsVerifyingSession(true);
     tryRefreshToken().then((token) => {
+      sessionVerifyInFlight.current = false;
+      setIsVerifyingSession(false);
       if (token) {
-        verifiedPaths.current.add(pathname);
+        sessionVerified.current = true;
       } else {
         clearTokens();
         setIsLoggedIn(false);
         router.push("/");
       }
-      setIsVerifyingSession(false);
     });
   }, [isHydrated, pathname, isLoggedIn, router]);
 
@@ -106,23 +109,44 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       }
       return;
     }
-    // 로그인 상태: 루트(/) → 홈으로 리다이렉트.
+    // 로그인 상태: 루트(/) → refresh 검증 성공 후 홈으로 리다이렉트.
     // OAuth 콜백 경로는 KakaoCallback이 라우팅을 담당하므로 제외하고,
     // /localogin도 제외한다.
-    if (
+    const isHomeRedirectCandidate =
       isPublicPath &&
       !isOAuthFlowPath &&
       pathname !== '/localogin' &&
-      pathname !== '/localogin/'
-    ) {
+      pathname !== '/localogin/';
+
+    if (!isHomeRedirectCandidate) return;
+
+    if (sessionVerified.current) {
       router.push("/home");
+      return;
     }
+
+    if (sessionVerifyInFlight.current) return;
+
+    sessionVerifyInFlight.current = true;
+    setIsVerifyingSession(true);
+    tryRefreshToken().then((token) => {
+      sessionVerifyInFlight.current = false;
+      setIsVerifyingSession(false);
+      if (token) {
+        sessionVerified.current = true;
+        router.push("/home");
+      } else {
+        clearTokens();
+        setIsLoggedIn(false);
+      }
+    });
   }, [isHydrated, isLoggedIn, isPublicPath, isOAuthFlowPath, isAdminPath, pathname, router]);
 
   // showSplash를 state 없이 순수 파생값으로 계산
   const showSplash = (() => {
     if (isAdminPath) return false;                  // 관리자 경로: 스플래시 없음
     if (!isHydrated) return true;                   // SSR / hydration 전
+    if (isVerifyingSession) return true;            // refresh 검증 중
     // OAuth 콜백 경로는 KakaoCallback이 자체 로딩 UI를 렌더한다. 또한 토큰 세팅이
     // Suspense로 지연되면 isLoggedIn state가 stale(false)로 남아 Splash가 회원가입
     // 폼을 영구히 덮을 수 있으므로, 이 경로에서는 ClientLayout Splash를 띄우지 않는다.
