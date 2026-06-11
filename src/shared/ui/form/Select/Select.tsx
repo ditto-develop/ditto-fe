@@ -51,6 +51,7 @@ interface SelectTriggerProps {
 
 const SelectWrapper = styled.div`
   width: 100%;
+  box-sizing: border-box;
 `;
 
 const FieldLabel = styled.label`
@@ -64,6 +65,7 @@ const FieldLabel = styled.label`
 const SelectTrigger = styled.button<SelectTriggerProps>`
   width: 100%;
   height: 44px;
+  box-sizing: border-box;
   padding: 0 12px;
   border-radius: 8px;
 
@@ -118,6 +120,7 @@ const ErrorMessage = styled.div`
 const NativeInput = styled.input<{ $error?: boolean }>`
   width: 100%;
   height: 44px;
+  box-sizing: border-box;
   padding: 0 12px;
   border-radius: 8px;
 
@@ -174,6 +177,7 @@ const SheetOverlay = styled.div<{ $closing: boolean }>`
 const Sheet = styled.div<{ $closing: boolean }>`
   width: 100%;
   max-width: 480px;
+  box-sizing: border-box;
   border-radius: 16px 16px 0 0;
   background: var(--Background-Elevated-Normal, var(--color-semantic-background-normal-normal));
   padding-bottom: env(safe-area-inset-bottom);

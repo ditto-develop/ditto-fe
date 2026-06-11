@@ -5,6 +5,8 @@ import chatMessages from "@/mocks/fixtures/chat-messages.json";
 import chatRoomDetail from "@/mocks/fixtures/chat-room-detail.json";
 import chatRoomItem from "@/mocks/fixtures/chat-room-item.json";
 import chatRooms from "@/mocks/fixtures/chat-rooms.json";
+import blockedUsersFixture from "@/mocks/fixtures/blocked-users.json";
+import currentUser from "@/mocks/fixtures/current-user.json";
 import groupJoin from "@/mocks/fixtures/group-join.json";
 import introNotes from "@/mocks/fixtures/intro-notes.json";
 import localLogin from "@/mocks/fixtures/local-login.json";
@@ -14,6 +16,7 @@ import matchingStatus from "@/mocks/fixtures/matching-status.json";
 import myProfile from "@/mocks/fixtures/my-profile.json";
 import myRatings from "@/mocks/fixtures/my-ratings.json";
 import myStats from "@/mocks/fixtures/my-stats.json";
+import notificationSettingsFixture from "@/mocks/fixtures/notification-settings.json";
 import publicProfile from "@/mocks/fixtures/public-profile.json";
 import quizCurrent from "@/mocks/fixtures/quiz-current.json";
 import quizProgressCurrent from "@/mocks/fixtures/quiz-progress-current.json";
@@ -55,6 +58,9 @@ const emptyList = {
   limit: 20,
 };
 
+let notificationSettings = { ...notificationSettingsFixture };
+let blockedUsers = [...blockedUsersFixture];
+
 export const handlers = [
   http.get(apiPath("/quiz-sets/current-week"), () => HttpResponse.json(success(quizCurrent))),
   http.get(apiPath("/quiz-progress/current"), () => HttpResponse.json(success(quizProgressCurrent))),
@@ -79,14 +85,27 @@ export const handlers = [
   // admin 사용자 목록(GET) — POST /users(가입)와 메서드로 구분
   http.get(apiPath("/users"), () => HttpResponse.json(success(adminUsers))),
   http.post(apiPath("/users"), () => HttpResponse.json(success(user))),
-  // 카카오 로그인 직후 회원가입 단계에서 받아오는 현재 사용자 정보
-  http.get(apiPath("/users/me"), () => HttpResponse.json(success({
-    email: "user@kakao.com",
-    birthDate: "1995-03-15",
-    name: "홍길동",
-    phoneNumber: "010-1234-5678",
-    gender: "MALE",
-  }))),
+  // 카카오 로그인 직후 회원가입 단계와 설정 화면에서 받아오는 현재 사용자 정보
+  http.get(apiPath("/users/me"), () => HttpResponse.json(success(currentUser))),
+  http.get(apiPath("/users/me/notification-settings"), () => HttpResponse.json(success(notificationSettings))),
+  http.patch(apiPath("/users/me/notification-settings"), async ({ request }) => {
+    const body = await request.json().catch(() => ({}));
+    const patch = body && typeof body === "object" ? body : {};
+    notificationSettings = { ...notificationSettings, ...patch };
+    return HttpResponse.json(success(notificationSettings));
+  }),
+  http.get(apiPath("/users/me/blocks"), () => {
+    const sorted = [...blockedUsers].sort(
+      (left, right) => new Date(right.blockedAt).getTime() - new Date(left.blockedAt).getTime(),
+    );
+    return HttpResponse.json(success(sorted));
+  }),
+  http.delete(apiPath("/users/me/blocks/[^/]+"), ({ request }) => {
+    const id = request.url.split("/").pop();
+    blockedUsers = blockedUsers.filter((userItem) => userItem.id !== id);
+    return HttpResponse.json(success(null));
+  }),
+  http.post(apiPath("/users/[^/]+/leave"), () => HttpResponse.json(success(user))),
   http.get(apiPath("/users/nickname/[^/]+/availability"), () => HttpResponse.json(success({ available: true }))),
   http.get(apiPath("/users/me/profile"), () => HttpResponse.json(success(myProfile))),
   http.patch(apiPath("/users/me/profile"), async ({ request }) => {

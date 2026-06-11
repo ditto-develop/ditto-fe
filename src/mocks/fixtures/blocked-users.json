@@ -1,0 +1,26 @@
+[
+  {
+    "id": "blocked-1",
+    "nickname": "댕이나나",
+    "profileImageUrl": "/assets/avatar/f1.png",
+    "blockedAt": "2026-01-12T00:00:00.000Z"
+  },
+  {
+    "id": "blocked-2",
+    "nickname": "safdflnk",
+    "profileImageUrl": "/assets/avatar/m1.png",
+    "blockedAt": "2025-10-12T00:00:00.000Z"
+  },
+  {
+    "id": "blocked-3",
+    "nickname": "러너쓰하이",
+    "profileImageUrl": "/assets/avatar/m2.png",
+    "blockedAt": "2025-07-10T00:00:00.000Z"
+  },
+  {
+    "id": "blocked-4",
+    "nickname": "마라탕후루",
+    "profileImageUrl": "/assets/avatar/m3.png",
+    "blockedAt": "2025-06-12T00:00:00.000Z"
+  }
+]

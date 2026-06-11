@@ -235,8 +235,11 @@ export function createExternalUser(requestBody: CreateExternalUserBody): Promise
     });
 }
 
-export function leaveExternalUser(id: string): Promise<UserDto> {
-    return externalApiFetch<UserDto>(`/api/v1/users/${id}/leave`, { method: "POST" });
+export function leaveExternalUser(id: string, reason?: string): Promise<UserDto> {
+    return externalApiFetch<UserDto>(`/api/v1/users/${id}/leave`, {
+        method: "POST",
+        ...(reason ? { body: { reason } } : {}),
+    });
 }
 
 export function refreshExternalToken(): Promise<LoginResponseDto> {

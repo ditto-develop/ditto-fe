@@ -6,6 +6,7 @@ export { Avatar } from "./Avatar/Avatar";
 export { ContentBadge } from "./ContentBadge/ContentBadge";
 export { BottomActionArea } from "./BottomActionArea/BottomActionArea";
 export { SurfaceCard } from "./SurfaceCard/SurfaceCard";
+export { Switch } from "./Switch/Switch";
 export { ActionArea, ActionContent, ActionDescription, ActionExtra, ActionTitle } from "./ActionArea/ActionArea";
 export { AlertModal } from "./AlertModal/AlertModal";
 export { BottomSheet } from "./BottomSheet/BottomSheet";
