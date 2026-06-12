@@ -1,6 +1,10 @@
 {
   "quizSetId": 101,
-  "personalMatch": null,
-  "groupMatchStatus": "JOINED",
-  "groupMatchRoomId": "group-room-1"
+  "sentRequests": [],
+  "receivedRequests": [],
+  "hasAcceptedMatch": false,
+  "acceptedMatchUserId": null,
+  "groupDeclined": false,
+  "groupJoined": true,
+  "groupJoinPending": false
 }

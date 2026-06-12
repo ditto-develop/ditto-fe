@@ -1,6 +1,7 @@
 "use client";
 
 import { MatchingDay } from "@/components/home/MatchingDay";
+import { matchAcceptedNotifKey } from "@/components/home/_parts/MatchingDay.helpers";
 import { ThisWeekQuiz } from "@/components/home/ThisWeekQuiz";
 import { TimeLine } from "@/components/home/Timeline";
 import type { MatchingCardType } from "@/components/home/MatchingDay";
@@ -69,6 +70,9 @@ export function MainSection() {
   // 대화 수락 후 홈으로 돌아왔을 때 스낵바 표시
   useEffect(() => {
     if (searchParams.get("accepted") !== "true") return;
+    // MatchingDay의 매칭 완료 알림과 같은 내용이므로, 본 것으로 마킹해 중복 toast를 막는다
+    const storedQuizSetId = sessionStorage.getItem("currentQuizSetId");
+    if (storedQuizSetId) localStorage.setItem(matchAcceptedNotifKey(storedQuizSetId), "1");
     showToast("상대방이 대화를 수락했어요! 대화는 금요일에 시작돼요.", "success");
     router.replace("/home");
   }, [searchParams, showToast, router]);

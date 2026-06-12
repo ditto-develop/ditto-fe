@@ -57,7 +57,7 @@ describe("3.1 매칭 결과 - 1:1 매칭 (WF-06)", () => {
     });
 
     it("요청할 후보가 없으면 빈 상태가 노출된다", () => {
-      cy.mockApi({ matchesFixture: "matches-1on1-all-received.json" });
+      cy.mockApi({ matchesFixture: "matches-1on1-all-received.json", matchingStatusFixture: "matching-status-all-received.json" });
       cy.visit("/matching");
 
       cy.contains("요청할 수 있는 후보가 없어요", { timeout: 6000 }).should("be.visible");
@@ -67,7 +67,7 @@ describe("3.1 매칭 결과 - 1:1 매칭 (WF-06)", () => {
 
   describe("수락하기 탭", () => {
     it("상대가 신청한 후보가 수락하기 탭에 노출되고 상태 문구가 보인다", () => {
-      cy.mockApi({ matchesFixture: "matches-1on1-received.json" });
+      cy.mockApi({ matchesFixture: "matches-1on1-received.json", matchingStatusFixture: "matching-status-received.json" });
       cy.visit("/matching");
 
       cy.contains("이번 주 매칭 결과", { timeout: 6000 }).should("be.visible");

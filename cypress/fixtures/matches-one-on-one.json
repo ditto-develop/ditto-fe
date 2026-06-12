@@ -1,4 +1,6 @@
 {
-  "sent": [],
-  "received": []
+  "quizSetId": 101,
+  "matchingType": "ONE_TO_ONE",
+  "algorithmVersion": "v1",
+  "candidates": []
 }

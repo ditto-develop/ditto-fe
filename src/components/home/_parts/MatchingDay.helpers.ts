@@ -57,6 +57,12 @@ export const getMatchBadgeInfo = (count: number): { badge: string; color: AlertS
   }
 };
 
+// 매칭 수락 알림 toast를 quizSetId당 1회만 띄우기 위한 localStorage 키.
+// 수락 직후 홈(?accepted=true) toast와 MatchingDay 알림 toast의 중복 방지에 공용으로 사용한다.
+export function matchAcceptedNotifKey(quizSetId: string): string {
+  return `ditto_match_accepted_notif_${quizSetId}`;
+}
+
 export function getAvatarUrl(gender: string, index: number = 0): string {
   if (gender === 'FEMALE') {
     return `/assets/avatar/f${(index % 3) + 1}.png`;

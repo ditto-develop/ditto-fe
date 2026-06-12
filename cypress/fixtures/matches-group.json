@@ -1,8 +1,7 @@
 {
   "quizSetId": 101,
   "matchingType": "GROUP",
-  "sent": [],
-  "received": [],
+  "algorithmVersion": "v1",
   "candidates": [
     {
       "userId": 601,

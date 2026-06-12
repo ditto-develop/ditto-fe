@@ -1,8 +1,7 @@
 {
   "quizSetId": 101,
   "matchingType": "ONE_TO_ONE",
-  "sent": [],
-  "received": [],
+  "algorithmVersion": "v1",
   "candidates": [
     {
       "userId": 501,

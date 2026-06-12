@@ -1,14 +1,20 @@
 {
   "quizSetId": 101,
-  "personalMatch": {
-    "id": 9001,
-    "quizSetId": 101,
-    "requesterId": 1,
-    "receiverId": 501,
-    "status": "ACCEPTED",
-    "createdAt": "2026-06-03T00:00:00.000Z",
-    "respondedAt": "2026-06-03T00:01:00.000Z"
-  },
-  "groupMatchStatus": "NONE",
-  "groupMatchRoomId": null
+  "sentRequests": [
+    {
+      "id": 9001,
+      "quizSetId": 101,
+      "requesterId": 1,
+      "receiverId": 501,
+      "status": "ACCEPTED",
+      "createdAt": "2026-06-03T00:00:00.000Z",
+      "respondedAt": "2026-06-03T00:01:00.000Z"
+    }
+  ],
+  "receivedRequests": [],
+  "hasAcceptedMatch": true,
+  "acceptedMatchUserId": 501,
+  "groupDeclined": false,
+  "groupJoined": false,
+  "groupJoinPending": false
 }

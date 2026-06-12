@@ -167,7 +167,7 @@ export const ChattingView = ({
         <ChatMainContainer>
           <RelativeProfileSlot>
             <ProfileWrapper>
-              <ProfileImg imageUrl={getAvatarUrl(c?.gender ?? 'MALE')} />
+              <ProfileImg imageUrl={c?.profileImageUrl || getAvatarUrl(c?.gender ?? 'MALE')} />
             </ProfileWrapper>
             {hasChat && (chatRoom?.unreadCount ?? 0) > 0 && (
               <NotificationBadge>
@@ -224,7 +224,7 @@ export const ChattingView = ({
               {shown.map((c, i) => (
                 <SmallProfileImg
                   key={c.userId}
-                  imageUrl={getAvatarUrl(c.gender, i)}
+                  imageUrl={c.profileImageUrl || getAvatarUrl(c.gender, i)}
                 />
               ))}
               {extra > 0 && (
@@ -382,7 +382,7 @@ export const GroupJoinedCard = ({ candidates, onCardClick }: { candidates: Match
             {shown.map((c, i) => (
               <SmallProfileImg
                 key={c.userId}
-                imageUrl={getAvatarUrl(c.gender, i)}
+                imageUrl={c.profileImageUrl || getAvatarUrl(c.gender, i)}
               />
             ))}
             {extra > 0 && (

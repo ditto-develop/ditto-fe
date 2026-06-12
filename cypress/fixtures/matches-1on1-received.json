@@ -1,16 +1,7 @@
 {
   "quizSetId": 101,
   "matchingType": "ONE_TO_ONE",
-  "sent": [],
-  "received": [
-    {
-      "id": 201,
-      "quizSetId": 101,
-      "requesterId": 501,
-      "receiverId": "user-e1e",
-      "status": "PENDING"
-    }
-  ],
+  "algorithmVersion": "v1",
   "candidates": [
     {
       "userId": 501,

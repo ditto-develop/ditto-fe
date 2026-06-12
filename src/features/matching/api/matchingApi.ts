@@ -50,7 +50,6 @@ export interface GetMatchCandidatesResponse {
     quizSetId: string;
     matchingType: 'ONE_TO_ONE' | 'GROUP';
     candidates: MatchCandidateDto[];
-    receivedRequests: MatchRequestDto[];
 }
 
 export interface GetMatchingStatusResponse {

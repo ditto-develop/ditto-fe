@@ -32,8 +32,6 @@ type ExternalMatchRequest = {
     respondedAt?: string | null;
 };
 
-type ExternalPersonalMatch = ExternalMatchRequest | null;
-
 type ExternalMatchCandidate = {
     userId: ExternalId;
     nickname: string;
@@ -46,19 +44,24 @@ type ExternalMatchCandidate = {
     scoreBreakdown: ScoreBreakdownDto;
 };
 
-type ExternalMatchList = {
-    sent: ExternalMatchRequest[];
-    received: ExternalMatchRequest[];
-    quizSetId?: ExternalId;
-    matchingType?: GetMatchCandidatesResponse["matchingType"];
+// GET /api/v1/matches/1on1 응답 (MatchCandidateResponse)
+type ExternalMatchCandidateList = {
+    quizSetId: ExternalId;
+    matchingType: GetMatchCandidatesResponse["matchingType"];
+    algorithmVersion?: string;
     candidates?: ExternalMatchCandidate[];
 };
 
+// GET /api/v1/matching/status/{quizSetId} 응답 (MatchingStatusResponse)
 type ExternalMatchingStatus = {
     quizSetId: ExternalId;
-    personalMatch?: ExternalPersonalMatch;
-    groupMatchStatus: "NONE" | "JOINED" | "DECLINED";
-    groupMatchRoomId?: ExternalId | null;
+    sentRequests?: ExternalMatchRequest[];
+    receivedRequests?: ExternalMatchRequest[];
+    hasAcceptedMatch: boolean;
+    acceptedMatchUserId?: ExternalId | null;
+    groupDeclined: boolean;
+    groupJoined: boolean;
+    groupJoinPending: boolean;
 };
 
 type NicknameAvailability = {
@@ -130,11 +133,6 @@ function setStoredQuizSetId(quizSetId: string): void {
 
 function isCypressRuntime(): boolean {
     return typeof window !== "undefined" && "Cypress" in window;
-}
-
-function pickQuizSetId(list: ExternalMatchList): string {
-    const first = list.sent[0] || list.received[0];
-    return toId(first?.quizSetId) || getStoredQuizSetId();
 }
 
 export async function getExternalCurrentWeekQuizSets(): Promise<CurrentWeekQuizSetsResponseDto> {
@@ -285,15 +283,14 @@ export function startExternalSocialLogin(provider: string): void {
 }
 
 export async function getExternalMatchCandidates(): Promise<GetMatchCandidatesResponse> {
-    const data = await externalApiFetch<ExternalMatchList>("/api/v1/matches/1on1");
-    const quizSetId = toId(data.quizSetId) || pickQuizSetId(data);
+    const data = await externalApiFetch<ExternalMatchCandidateList>("/api/v1/matches/1on1");
+    const quizSetId = toId(data.quizSetId) || getStoredQuizSetId();
     if (quizSetId) setStoredQuizSetId(quizSetId);
 
     return {
         quizSetId,
         matchingType: data.matchingType ?? "ONE_TO_ONE",
         candidates: (data.candidates ?? []).map(toMatchCandidate),
-        receivedRequests: (data.received ?? []).map(toMatchRequest),
     };
 }
 
@@ -321,15 +318,14 @@ export function rejectExternalMatchRequest(matchRequestId: string): Promise<Matc
 
 export async function getExternalMatchingStatus(quizSetId: string): Promise<GetMatchingStatusResponse> {
     const data = await externalApiFetch<ExternalMatchingStatus>(`/api/v1/matching/status/${quizSetId}`);
-    const personalMatch = data.personalMatch ? toMatchRequest(data.personalMatch) : undefined;
     return {
-        sentRequests: personalMatch ? [personalMatch] : [],
-        receivedRequests: [],
-        hasAcceptedMatch: personalMatch?.status === "ACCEPTED",
-        acceptedMatchUserId: personalMatch?.status === "ACCEPTED" ? personalMatch.toUserId : undefined,
-        groupDeclined: data.groupMatchStatus === "DECLINED",
-        groupJoined: data.groupMatchStatus === "JOINED",
-        groupJoinPending: data.groupMatchStatus === "NONE" && Boolean(data.groupMatchRoomId),
+        sentRequests: (data.sentRequests ?? []).map(toMatchRequest),
+        receivedRequests: (data.receivedRequests ?? []).map(toMatchRequest),
+        hasAcceptedMatch: data.hasAcceptedMatch,
+        acceptedMatchUserId: data.acceptedMatchUserId != null ? toId(data.acceptedMatchUserId) : undefined,
+        groupDeclined: data.groupDeclined,
+        groupJoined: data.groupJoined,
+        groupJoinPending: data.groupJoinPending,
     };
 }
 

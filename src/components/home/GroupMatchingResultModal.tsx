@@ -19,27 +19,13 @@ import type { AlertStatus } from "@/components/display/Card";
 import type { MatchCandidateDto} from "@/features/matching/api/matchingApi";
 import { joinGroupMatch, declineGroupMatch } from "@/features/matching/api/matchingApi";
 import { formatAgeRange } from "@/shared/lib/formatAge";
+import { toLocationLabel } from "@/shared/lib/profileLabels";
 import { ProfileImg, ProfileWrapper } from "@/components/onboarding/OnboardingContainer";
 import { ActionButton } from "@/components/input/Action";
 import { useToast } from "@/context/ToastContext";
+import { formatGender, getAvatarUrl, getMatchBadgeInfo } from "@/components/home/_parts/MatchingDay.helpers";
 
 // ---- Helpers ----
-
-function getAvatarUrl(gender: string, index: number = 0): string {
-  if (gender === "FEMALE") return `/assets/avatar/f${(index % 3) + 1}.png`;
-  return `/assets/avatar/m${(index % 3) + 1}.png`;
-}
-
-function formatGender(gender: string): string {
-  return gender === "FEMALE" ? "여성" : "남성";
-}
-
-function getMatchBadgeInfo(count: number): { badge: string; color: AlertStatus } {
-  if (count >= 11) return { badge: "🌟 당신과 가장 비슷해요", color: "destructive" };
-  if (count >= 8) return { badge: "😊 대부분 비슷하게 생각해요", color: "destructive" };
-  if (count >= 6) return { badge: "🙂 비슷하지만 새로운 관점도 있어요", color: "cautionary" };
-  return { badge: "👀 다르게 생각하는 편이에요", color: "navy" };
-}
 
 function getBadgeTextColor(status: AlertStatus): string {
   switch (status) {
@@ -66,11 +52,11 @@ function toProfileDetail(c: MatchCandidateDto, index: number) {
     name: c.nickname,
     ageRange: formatAgeRange(c.age),
     gender: formatGender(c.gender),
-    location: c.location ?? "",
+    location: c.location ? toLocationLabel(c.location) : "",
     bio: c.introduction ?? "",
     matchCount: c.scoreBreakdown?.matchedQuestions ?? 0,
     totalQuestions: c.scoreBreakdown?.totalQuestions ?? 12,
-    avatarUrl: getAvatarUrl(c.gender, index),
+    avatarUrl: c.profileImageUrl || getAvatarUrl(c.gender, index),
     badgeText: badge.badge,
     badgeColor: badge.color,
   };
@@ -205,7 +191,7 @@ export function GroupMatchingResultModal({
                   {shown.map((c, i) => (
                     <AvatarSlot key={c.userId}>
                       <FullSizeProfileImg
-                        imageUrl={getAvatarUrl(c.gender, i)}
+                        imageUrl={c.profileImageUrl || getAvatarUrl(c.gender, i)}
                       />
                     </AvatarSlot>
                   ))}
@@ -305,12 +291,12 @@ export function GroupMatchingResultModal({
                     </MemberBadgeRow>
                     <MemberCard>
                       <ProfileWrapper>
-                        <ProfileImg imageUrl={getAvatarUrl(c.gender, i)} />
+                        <ProfileImg imageUrl={c.profileImageUrl || getAvatarUrl(c.gender, i)} />
                       </ProfileWrapper>
                       <MemberTextInfo>
                         <Headline2>{c.nickname}</Headline2>
                         <Label2 $color="var(--color-semantic-label-alternative)">
-                          {formatAgeRange(c.age)} · {formatGender(c.gender)}{c.location ? ` · ${c.location}` : ""}
+                          {formatAgeRange(c.age)} · {formatGender(c.gender)}{c.location ? ` · ${toLocationLabel(c.location)}` : ""}
                         </Label2>
                         {c.introduction && (
                           <Label2 $color="var(--color-semantic-label-alternative)">

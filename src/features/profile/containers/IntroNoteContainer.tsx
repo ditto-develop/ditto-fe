@@ -71,6 +71,8 @@ export function IntroNoteContainer({
             await sendMatchRequest(userId, quizSetId);
             setState("completed");
             showToast("대화 신청을 완료했어요.", "success");
+        } catch {
+            showToast("대화 신청에 실패했어요. 잠시 후 다시 시도해주세요.", "error");
         } finally {
             setActing(false);
         }
@@ -83,6 +85,8 @@ export function IntroNoteContainer({
         try {
             await acceptMatchRequest(matchRequestId);
             router.push("/home?accepted=true");
+        } catch {
+            showToast("대화 수락에 실패했어요. 잠시 후 다시 시도해주세요.", "error");
         } finally {
             setActing(false);
         }
@@ -95,6 +99,8 @@ export function IntroNoteContainer({
         try {
             await rejectMatchRequest(matchRequestId);
             router.push("/home");
+        } catch {
+            showToast("대화 거절에 실패했어요. 잠시 후 다시 시도해주세요.", "error");
         } finally {
             setActing(false);
         }

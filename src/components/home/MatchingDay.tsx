@@ -32,6 +32,7 @@ import {
   formatGender,
   getAvatarUrl,
   getMatchBadgeInfo,
+  matchAcceptedNotifKey,
   type ButtonStateType,
   type MatchingCardType,
 } from "./_parts/MatchingDay.helpers";
@@ -76,7 +77,7 @@ export function MatchingDay({
   const [selectedProfile, setSelectedProfile] = useState<ProfileDetailProfile | null>(null);
 
   const { showToast } = useToast();
-  const notifKey = quizSetId ? `ditto_match_accepted_notif_${quizSetId}` : null;
+  const notifKey = quizSetId ? matchAcceptedNotifKey(quizSetId) : null;
 
   // 매칭 수락 알림: quizSetId 확정 후 localStorage 확인
   useEffect(() => {
@@ -135,7 +136,7 @@ export function MatchingDay({
                     gender: formatGender(c.gender),
                     location: c.location ? toLocationLabel(c.location) : "",
                     bio: c.introduction ?? "",
-                    avatarUrl: getAvatarUrl(c.gender, i),
+                    avatarUrl: c.profileImageUrl || getAvatarUrl(c.gender, i),
                     matchCount: c.scoreBreakdown?.matchedQuestions,
                   };
                   return (
@@ -308,7 +309,7 @@ export function MatchingDay({
                     gender: formatGender(c.gender),
                     location: c.location ? toLocationLabel(c.location) : "",
                     bio: c.introduction ?? "",
-                    avatarUrl: getAvatarUrl(c.gender, i),
+                    avatarUrl: c.profileImageUrl || getAvatarUrl(c.gender, i),
                     matchCount: c.scoreBreakdown?.matchedQuestions,
                   }}
                 />
