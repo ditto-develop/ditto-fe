@@ -1,0 +1,15 @@
+{
+  "messages": [
+    {
+      "id": "gmessage-1",
+      "type": "CHAT",
+      "senderId": "partner-1",
+      "senderNickname": "민지",
+      "senderAvatarUrl": "/assets/avatar/f1.png",
+      "content": "다들 안녕하세요!",
+      "createdAt": "2026-06-06T01:00:00.000Z",
+      "unreadCount": 2
+    }
+  ],
+  "nextCursor": null
+}

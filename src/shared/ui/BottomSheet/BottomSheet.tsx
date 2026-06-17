@@ -80,7 +80,7 @@ const Overlay = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: var(--color-semantic-material-dimmer);
   z-index: 2000;
   display: flex;
   align-items: flex-end;
@@ -129,21 +129,6 @@ const TextGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
-`;
-
-const Title = styled.h2`
-  font-size: var(--typography-heading-2-font-size);
-  font-weight: 700;
-  color: var(--color-semantic-label-strong);
-  margin: 0;
-  line-height: 1.4;
-`;
-
-const SubTitle = styled.p`
-  font-size: var(--typography-label-1-normal-font-size);
-  font-weight: 400;
-  color: var(--color-semantic-label-neutral);
-  margin: 0;
 `;
 
 const CloseButton = styled.button`

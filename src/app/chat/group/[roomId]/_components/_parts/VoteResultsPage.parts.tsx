@@ -84,7 +84,7 @@ export function ClockIconSmall() {
 
 /* ── Styled Components ── */
 
-export const fontBase = css`
+const fontBase = css`
   font-family: "Pretendard JP", sans-serif;
   font-feature-settings: "ss10" 1;
 `;
@@ -444,26 +444,6 @@ export const NewTimeRow = styled.div`
   width: 100%;
 `;
 
-export const NewInput = styled.input`
-  ${fontBase}
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid
-    var(--color-semantic-line-normal-neutral);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--color-semantic-label-normal);
-  font-size: var(--typography-body-2-normal-font-size);
-  font-weight: 500;
-  line-height: 1.467;
-  outline: none;
-  box-sizing: border-box;
-
-  &::placeholder {
-    color: var(--color-semantic-label-assistive);
-  }
-`;
-
 export const NewTimeFieldGroup = styled.div`
   display: flex;
   flex-direction: column;
@@ -526,24 +506,4 @@ export const PickerDisplay = styled.span<{ $empty?: boolean }>`
   letter-spacing: 0.091px;
   text-overflow: ellipsis;
   white-space: nowrap;
-`;
-
-export const NewInputActions = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 4px;
-`;
-
-export const TextButton = styled.button<{ $primary?: boolean }>`
-  ${fontBase}
-  padding: 6px 10px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: var(--typography-label-1-normal-font-size);
-  font-weight: 500;
-  color: ${({ $primary }) =>
-    $primary
-      ? "var(--color-semantic-primary-normal)"
-      : "var(--color-semantic-label-alternative)"};
 `;

@@ -269,10 +269,6 @@ export function Tutorial({ initialData }: TutorialProps) {
     }
   };
 
-  const handleClose = () => {
-    router.push('/home');
-  };
-
   const handleNext = () => {
     // ✅ 각 단계별 Ref 검증 로직 분리
     if (step === 1) {

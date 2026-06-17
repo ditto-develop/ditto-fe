@@ -10,11 +10,7 @@ import {
 import { ProfileDetailService } from "@/shared/lib/api/generated";
 import type { UserAnswersComparisonDto } from "@/shared/lib/api/generated";
 import { formatAgeRange } from "@/shared/lib/formatAge";
-import {
-  toLocationLabel,
-  toOccupationLabel,
-  toInterestLabel,
-} from "@/shared/lib/profileLabels";
+import { toLocationLabel } from "@/shared/lib/profileLabels";
 import { TopNavigation } from "@/shared/ui";
 
 interface MemberData {

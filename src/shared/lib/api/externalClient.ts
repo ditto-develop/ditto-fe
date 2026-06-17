@@ -1,3 +1,5 @@
+import { clearTokens, getAccessToken, setTokens } from "@/shared/lib/auth";
+
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 type ExternalResponse<T> = {
@@ -21,26 +23,17 @@ export function getExternalApiBase(): string {
     return trimTrailingSlash(process.env.NEXT_PUBLIC_API_BASE || "https://api.ditto.pics");
 }
 
-const getAccessToken = (): string => {
-    if (typeof window === "undefined") return "";
-    return localStorage.getItem("accessToken") || "";
-};
-
 function getErrorMessage(error: ExternalResponse<unknown>["error"], fallback: string): string {
     if (!error) return fallback;
     if (typeof error === "string") return error;
     return error.message || error.code || fallback;
 }
 
-function clearStoredTokens(): void {
-    if (typeof window === "undefined") return;
-    localStorage.removeItem("accessToken");
-}
-
-// 동시에 여러 401이 발생해도 refresh 요청은 1회만 발생
+// 토큰 refresh 정본: 동시에 여러 401이 발생해도 refresh 요청은 1회만 발생(single-flight).
+// generated client(client.ts)의 tryRefreshToken도 이 함수로 위임된다.
 let refreshPromise: Promise<string | null> | null = null;
 
-async function tryRefreshExternalAccessToken(): Promise<string | null> {
+export async function refreshAccessToken(): Promise<string | null> {
     if (refreshPromise) return refreshPromise;
 
     refreshPromise = (async () => {
@@ -62,7 +55,7 @@ async function tryRefreshExternalAccessToken(): Promise<string | null> {
             console.log(`[externalApiFetch] ← ${res.status} POST ${refreshUrl} (token refresh)`, json);
             const newToken = json?.data?.accessToken;
             if (!res.ok || !json?.success || !newToken) return null;
-            localStorage.setItem("accessToken", newToken);
+            setTokens(newToken);
             return newToken;
         } catch {
             return null;
@@ -134,15 +127,15 @@ export async function externalApiFetch<T>(
         const status = (err as Error & { status?: number }).status;
         // refresh 경로 자체가 401이면 재시도 없이 토큰 제거
         if (status === 401 && path === REFRESH_PATH) {
-            clearStoredTokens();
+            clearTokens();
             throw err;
         }
         if (status === 401) {
-            const newToken = await tryRefreshExternalAccessToken();
+            const newToken = await refreshAccessToken();
             if (newToken) {
                 return doFetch<T>(path, options, newToken);
             }
-            clearStoredTokens();
+            clearTokens();
         }
         throw err;
     }

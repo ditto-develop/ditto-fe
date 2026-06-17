@@ -47,7 +47,6 @@ import {
   ProfileNameRow,
   RandomImg,
   RelativeProfileSlot,
-  SelectableListItemContainer,
   SmallProfileImg,
   TimeIcon,
   TimeLabelRow,
@@ -287,7 +286,6 @@ const AnimatedChatPreview = ({ text }: { text: string }) => (
 );
 
 export const MatchingButton = ({
-  cardType,
   buttonState,
   isChatTime,
   hasChat = false,

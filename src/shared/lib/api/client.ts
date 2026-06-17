@@ -2,16 +2,13 @@ import { ApiError as GeneratedApiError } from "./generated/core/ApiError";
 import type { ApiRequestOptions } from "./generated/core/ApiRequestOptions";
 import { OpenAPI, type OpenAPIConfig } from "./generated/core/OpenAPI";
 import { request } from "./generated/core/request";
-import { refreshExternalToken } from "./externalApi";
+import { refreshAccessToken } from "./externalClient";
+import { getAccessToken } from "@/shared/lib/auth";
 
 /** API BASE URL 가져오기 */
 export function getApiBase(): string {
     return process.env.NEXT_PUBLIC_API_BASE || "https://api.ditto.pics";
 }
-
-const getAccessToken = (): string => {
-    return typeof window !== "undefined" ? localStorage.getItem("accessToken") || "" : "";
-};
 
 const apiConfig: OpenAPIConfig = {
     ...OpenAPI,
@@ -21,34 +18,15 @@ const apiConfig: OpenAPIConfig = {
     TOKEN: async () => getAccessToken(),
 };
 
-/** OpenAPI 클라이언트 BASE를 환경에 맞게 설정 */
-export function configureApiClient(): void {
-    OpenAPI.BASE = getApiBase();
-    apiConfig.BASE = `${getApiBase()}/api`;
-}
-
-/** Token 설정 */
-export function setToken(token: string): void {
-    OpenAPI.TOKEN = token;
-}
-
 /** Token 초기화 */
 export function clearToken(): void {
     OpenAPI.TOKEN = undefined;
 }
 
-export async function tryRefreshToken(): Promise<string | null> {
-    try {
-        const tokenResponse = await refreshExternalToken();
-        const newToken = tokenResponse.accessToken;
-        if (newToken && typeof window !== "undefined") {
-            localStorage.setItem("accessToken", newToken);
-            return newToken;
-        }
-        return null;
-    } catch {
-        return null;
-    }
+// 토큰 refresh 정본은 externalClient의 single-flight refreshAccessToken.
+// (generated client 제거 시 이 래퍼도 함께 사라지고 호출부가 refreshAccessToken으로 이동)
+export function tryRefreshToken(): Promise<string | null> {
+    return refreshAccessToken();
 }
 
 const normalizeHeaders = (headers: RequestInit["headers"]): Record<string, string> => {
@@ -142,6 +120,3 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
         throw error;
     }
 }
-
-// Re-export generated types and services for convenience
-export { OpenAPI } from "./generated/core/OpenAPI";

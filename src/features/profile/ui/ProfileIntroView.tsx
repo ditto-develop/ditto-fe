@@ -234,7 +234,7 @@ const InterestBadge = styled.div`
   color: var(--color-semantic-label-alternative);
 `;
 
-export const QnACard = styled.div<{ $compact?: boolean }>`
+const QnACard = styled.div<{ $compact?: boolean }>`
   flex: ${({ $compact }) => ($compact ? "0 0 auto" : "1")};
   min-height: ${({ $compact }) => ($compact ? "auto" : "0")};
   width: calc(100% - 32px);
@@ -255,7 +255,7 @@ const TicketDeco = styled.img`
   margin-bottom: -14px;
 `;
 
-export const QnABody = styled.div<{ $compact?: boolean; $hasBottomButton?: boolean }>`
+const QnABody = styled.div<{ $compact?: boolean; $hasBottomButton?: boolean }>`
   flex: ${({ $compact }) => ($compact ? "0 0 auto" : "1")};
   min-height: ${({ $compact }) => ($compact ? "auto" : "0")};
   overflow-y: auto;

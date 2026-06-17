@@ -3,11 +3,9 @@ import type {
     CurrentWeekQuizSetDto,
     CurrentWeekQuizSetsResponseDto,
     GetQuizSetWithProgressResponseDto,
-    LoginResponseDto,
     QuizChoiceDto,
     QuizProgressDto,
     SystemStateDto,
-    QuizSetDto,
     QuizWithAnswerDto,
     UserDto,
 } from "@/shared/lib/api/generated";
@@ -147,14 +145,6 @@ export async function getExternalCurrentWeekQuizSets(): Promise<CurrentWeekQuizS
     return normalized;
 }
 
-export async function getExternalQuizSet(id: string): Promise<QuizSetDto> {
-    const data = await externalApiFetch<QuizSetDto>(`/api/v1/quiz-sets/${id}`);
-    return {
-        ...data,
-        id: toId(data.id),
-    };
-}
-
 export function submitExternalQuizAnswer(quizId: string, choiceId: string): Promise<null> {
     return externalApiFetch<null>("/api/v1/quiz-progress/answers", {
         method: "POST",
@@ -172,10 +162,6 @@ export async function getExternalQuizProgress(): Promise<QuizProgressDto> {
         ...data,
         quizSetId: data.quizSetId ? toId(data.quizSetId) : data.quizSetId,
     };
-}
-
-export function resetExternalQuizProgress(): Promise<null> {
-    return externalApiFetch<null>("/api/v1/quiz-progress/reset", { method: "POST" });
 }
 
 export async function getExternalQuizSetWithProgress(id: string): Promise<GetQuizSetWithProgressResponseDto> {
@@ -242,13 +228,6 @@ export function leaveExternalUser(id: string, reason?: string): Promise<UserDto>
     return externalApiFetch<UserDto>(`/api/v1/users/${id}/leave`, {
         method: "POST",
         ...(reason ? { body: { reason } } : {}),
-    });
-}
-
-export function refreshExternalToken(): Promise<LoginResponseDto> {
-    return externalApiFetch<LoginResponseDto>("/api/v1/users/auth/refresh", {
-        method: "POST",
-        credentials: "include",
     });
 }
 

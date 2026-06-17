@@ -33,7 +33,7 @@ describe("3.1 매칭 결과 - 그룹 매칭 (WF-07)", () => {
       cy.contains("같은 취미, 취향 그룹").should("be.visible");
       cy.contains("댕이누나님 외 3명").should("be.visible");
       cy.contains("거절하기").should("be.visible");
-      cy.contains("참여하기").should("be.visible");
+      cy.contains("button", "참여하기").should("exist").and("not.be.disabled");
     });
   });
 

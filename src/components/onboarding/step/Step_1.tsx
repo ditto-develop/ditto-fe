@@ -1,6 +1,6 @@
 import { TextField } from "@/shared/ui";
 import type { FormData, ControlButtonVariant, OnChange } from "@/types/type";
-import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
+import { useEffect, forwardRef, useImperativeHandle } from "react";
 
 // ✅ 부모에서 사용할 Ref 타입 정의
 export interface Step1Ref {
@@ -75,24 +75,3 @@ export const Step1Identity = forwardRef<Step1Ref, Step1Props>(({ data, onChange,
   );
 });
 Step1Identity.displayName = "Step1Identity";
-
-
-// ----------------------------------------------------------------------
-// 2. Step1Final (인증 완료 화면 / 개발 예정)
-// ----------------------------------------------------------------------
-export const Step1Final = forwardRef<Step1Ref, Step1Props>(({ setControlButton }, ref) => {
-  
-  // 현재는 특별한 로직이 없으므로 무조건 통과하도록 설정
-  useImperativeHandle(ref, () => ({
-    handleSubmit: () => {
-      return true;
-    }
-  }));
-
-  useEffect(() => {
-    setControlButton("primary");
-  }, [setControlButton]);
-
-  return <>인증화면 개발예정</>;
-});
-Step1Final.displayName = "Step1Final";

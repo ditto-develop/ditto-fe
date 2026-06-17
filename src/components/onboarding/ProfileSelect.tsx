@@ -132,25 +132,6 @@ const CheckIcon = styled.img`
   filter: brightness(0) invert(1);
 `;
 
-const BottomButton = styled.button`
-  margin-top: auto;
-  width: 100%;
-  height: 44px;
-  border-radius: 999px;
-  border: none;
-  background: var(--color-semantic-primary-normal);
-  color: var(--color-semantic-static-white);
-  font-size: var(--typography-body-1-normal-font-size);
-  font-weight: 600;
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.3;
-    cursor: default;
-  }
-`;
-
-
 interface CaricatureSelectProps {
   profile: string | null;                       // 현재 선택된 아바타 id
   setProfile: (profile: string) => void;       // 아바타 선택

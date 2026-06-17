@@ -135,7 +135,7 @@ const ChipButton = styled.button<{
   background-color: ${({ $selected }) =>
     $selected
       ? "var(--color-semantic-primary-hover)"
-      : "var(--Fill-Alternative, rgba(108, 101, 95, 0.05))"};
+      : "var(--color-semantic-fill-alternative)"};
 
   color: ${({ $selected }) =>
     $selected

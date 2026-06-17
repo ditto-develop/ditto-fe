@@ -1,7 +1,7 @@
 import type React from "react";
 import styled, { css } from "styled-components";
 
-export const textStyle = css`
+const textStyle = css`
   font-family: "Pretendard JP", sans-serif;
   font-feature-settings: "ss10" 1;
 `;
@@ -154,7 +154,7 @@ export const OptionFieldGroup = styled.div`
   gap: 8px;
 `;
 
-export const fieldShell = css<{ $error?: boolean }>`
+const fieldShell = css<{ $error?: boolean }>`
   width: 100%;
   min-height: 48px;
   box-sizing: border-box;
@@ -166,14 +166,6 @@ export const fieldShell = css<{ $error?: boolean }>`
   border-radius: 12px;
   background-color: transparent;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-`;
-
-export const TextOptionField = styled.div<{ $error?: boolean }>`
-  ${fieldShell};
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 12px;
 `;
 
 export const PlaceOptionField = styled.button<{ $error?: boolean }>`
@@ -301,27 +293,6 @@ export const HiddenPickerInput = styled.input`
   }
 `;
 
-export const OptionInput = styled.input`
-  ${textStyle};
-  flex: 1;
-  min-width: 0;
-  width: 100%;
-  padding: 0 4px;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: var(--color-semantic-label-normal);
-  font-size: var(--typography-body-1-normal-font-size);
-  font-weight: 400;
-  line-height: 1.5;
-  letter-spacing: 0.091px;
-
-  &::placeholder {
-    color: var(--color-semantic-label-assistive);
-    opacity: 1;
-  }
-`;
-
 export const ErrorMessage = styled.p`
   ${textStyle};
   width: 100%;
@@ -441,37 +412,12 @@ export const PrimaryButton = styled.button<{ $active: boolean }>`
   }
 `;
 
-export const IconSvg = styled.svg`
+const IconSvg = styled.svg`
   width: 22px;
   height: 22px;
   flex-shrink: 0;
   color: var(--color-semantic-label-assistive);
 `;
-
-export function LinkIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <IconSvg viewBox="0 0 24 24" fill="none" {...props}>
-      <path
-        d="M10 13.5L14 9.5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <path
-        d="M8.8 10.7L7.4 12.1C5.9 13.6 5.9 16.1 7.4 17.6C8.9 19.1 11.4 19.1 12.9 17.6L14.3 16.2"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <path
-        d="M15.2 13.3L16.6 11.9C18.1 10.4 18.1 7.9 16.6 6.4C15.1 4.9 12.6 4.9 11.1 6.4L9.7 7.8"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </IconSvg>
-  );
-}
 
 export function LocationIcon(props: React.SVGProps<SVGSVGElement>) {
   return (

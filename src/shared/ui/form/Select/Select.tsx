@@ -164,7 +164,7 @@ const overlayFadeOut = keyframes`
 const SheetOverlay = styled.div<{ $closing: boolean }>`
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--color-semantic-material-dimmer);
   z-index: 1000;
 
   display: flex;
@@ -195,7 +195,7 @@ const SheetHandle = styled.div`
     width: 44px;
     height: 4px;
     border-radius: 999px;
-    background: var(--Fill-Strong, rgba(108, 101, 95, 0.16));
+    background: var(--color-semantic-fill-strong);
   }
 `;
 

@@ -13,8 +13,6 @@ import {
     sendExternalMatchRequest,
 } from "@/shared/lib/api/externalApi";
 
-export { apiFetch, tryRefreshToken } from "@/shared/lib/api/client";
-
 // --- BE DTO types ---
 
 export interface ScoreBreakdownDto {

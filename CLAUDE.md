@@ -1,3 +1,5 @@
+IMPORTANT: For Figma design-to-code work, use only the `figma-cost-optimizer-bridge` MCP server. Do not use or fall back to the official Figma MCP / `figma-mcp` directly.
+
 # ditto-fe-migration FE Rules
 
 This document defines the rules for all coding agents working inside `ditto-fe-migration/`, including Claude Code and Codex.
@@ -73,7 +75,8 @@ When asked to review, Claude must inspect the diff and identify:
 
 | Area | Canonical Path | Rule |
 |---|---|---|
-| API client | `src/shared/lib/api/generated/` | Use generated services for all API calls. Legacy `src/lib/api` is being removed gradually. |
+| API client (live, `/api/v1`) | `src/shared/lib/api/externalApi.ts` (+ `externalClient.ts`) | Forward-canonical client for the live BE. Matching/profile/settings/auth run here. Add new endpoints following the existing pattern. |
+| API client (generated, `/api`) | `src/shared/lib/api/generated/` (via `client.ts`) | OpenAPI codegen services still used for chat/quiz/home. Migrated to `/api/v1` incrementally. Legacy `src/lib/api` already removed. |
 | Fetch wrapper | `src/shared/lib/api/client.ts` | Consolidate duplicated `apiFetch` logic. Admin-only logic may live in `adminClient.ts`. |
 | Design system UI | `src/shared/ui/` | Button, Text, Avatar, Modal, Toast, and other reusable UI components. |
 | Page-specific components | `src/components/<domain>/` | home/onboarding/quiz-specific components. Promote only truly reusable components to `shared/ui`. |
@@ -85,20 +88,18 @@ When asked to review, Claude must inspect the diff and identify:
 
 ---
 
-## 3. API Layer Rules
+`externalApi.ts` (`/api/v1`) is the **main, surviving client**. The generated client is being phased out: as the live `/api/v1` BE is built out, the generated services (and `client.ts`) will be deleted. Do not deepen the generated client — route new work through `externalApi`.
 
-- Components and hooks must call service methods from `src/shared/lib/api/generated`.
-- Do not call `fetch` or `axios` directly.
-- All API requests must go through the shared client.
-- General user tokens are handled through the `OpenAPI.TOKEN` resolver.
-- Admin token handling must stay separate.
-- Request and response types must reuse generated DTOs.
-- Do not manually duplicate generated DTOs.
-- Do not make response fields optional just to silence type errors.
-- If an endpoint is missing from generated API, do not create a manual service file.
-- Instead, ask for the BE spec to be updated and rerun `npm run generate-client`.
-- React Query is outside the current cleanup scope.
-- Do not introduce React Query.
+The project currently uses two shared API clients. Every request goes through one of them — never call `fetch` or `axios` directly outside the client modules themselves.
+
+- `src/shared/lib/api/externalApi.ts` (+ `externalClient.ts`): the canonical client for the live `/api/v1` BE. Matching, profile, settings, and auth already run through it. Add newly-migrated endpoints here following the existing function pattern, and reuse the DTO types defined alongside them.
+- `src/shared/lib/api/generated/` (via `client.ts`): OpenAPI codegen services for the `/api` endpoints not yet migrated (chat, quiz, parts of home). Regenerate with `npm run generate-client` against `ditto-api.json`; never hand-edit generated files. These migrate to `/api/v1` incrementally and the generated layer is removed once empty.
+- Token access for both clients goes through the single entry point `src/shared/lib/auth.ts` (`getAccessToken` / `setTokens` / `clearTokens`). Do not re-read `localStorage` for `accessToken` directly in client code.
+- Legacy `src/lib/api` has been removed. Do not reintroduce it.
+- Admin token handling stays separate in `adminClient.ts`.
+- Reuse generated / externalApi DTOs. Do not manually duplicate them, and do not make response fields optional just to silence type errors.
+- React Query is outside the current cleanup scope. Do not introduce React Query.
+- When generated and live (`/api/v1`) specs disagree, stop and ask (§15) — do not guess.
 
 ---
 
@@ -113,7 +114,7 @@ When asked to review, Claude must inspect the diff and identify:
 - Use PascalCase filenames.
   - Good: `MatchingDay.tsx`
   - Bad: `Step_0.tsx`
-- Rename `Step_0.tsx` style files to `Step0.tsx` during relevant refactors.
+- Rename `Step_N.tsx` style files to `StepN.tsx` during relevant refactors (`Step_1.tsx`/`Step_2.tsx`/`Step_3.tsx` still pending; `Step0.tsx` already renamed).
 - Rename typo files when in scope.
   - Example: `Carousle.tsx` → `Carousel.tsx`
 - Prefer named exports.
@@ -215,6 +216,18 @@ Forbidden examples:
 
 ---
 
+### 5.3 Admin Pages Exception
+
+`src/app/admin/**` is internal operator tooling, not a user-facing product surface. It is **exempt** from the strict styling rules in §5.1–§5.2:
+
+- Inline styles and ad-hoc simplified styling are allowed.
+- Hardcoded colors/spacing are tolerated (no design-token requirement).
+- Raw `alert()` / `confirm()` are allowed in place of `useToast()` / modal components.
+
+Do not spend cleanup effort converting admin pages to styled-components or tokens unless explicitly asked. All token / styled-components / `useToast` rules in §4–§5 apply to **every non-admin surface**.
+
+---
+
 ## 6. TypeScript Rules
 
 - Do not add new `any`.
@@ -277,7 +290,8 @@ catch (err: any) {
 
 ## 9. Mock and Dead Code Rules
 
-- `src/lib/mock/chatMockData.ts` and component-level mock branches should be removed only after BE integration is confirmed.
+- Mock data lives in MSW handlers under `src/mocks/` (`handlers.ts` + `fixtures/`), gated by `NEXT_PUBLIC_API_MOCKING=enabled` via `MswProvider`. The old `src/lib/mock/chatMockData.ts` has already been removed.
+- Component-level mock branches should be removed only after BE integration is confirmed.
 - If BE integration is incomplete, isolate mock code with:
 
 ```ts
@@ -301,10 +315,13 @@ Components over 500 lines are refactor candidates.
 
 Known examples:
 
-- `src/components/home/MatchingDay.tsx`
-- `src/app/chat/group/[roomId]/_components/GroupVoteCreateModal.tsx`
-- `src/app/chat/group/[roomId]/_components/VoteResultsPage.tsx`
-- `src/app/chat/group/[roomId]/_components/VoteSubmissionPage.tsx`
+- `src/components/home/GroupMatchingResultModal.tsx` (~620)
+- `src/app/admin/matches/page.tsx` (~590, admin — exempt from styling rules but still a split candidate)
+- `src/app/chat/group/[roomId]/_components/_parts/VoteResultsPage.parts.tsx` (~550)
+- `src/app/chat/group/[roomId]/_components/_parts/GroupVoteCreateModal.parts.tsx` (~540)
+- `src/app/chat/one-on-one/[roomId]/_components/MessageList.tsx` (~480)
+
+(The previously-listed `GroupVoteCreateModal.tsx` / `VoteResultsPage.tsx` / `VoteSubmissionPage.tsx` and `home/MatchingDay.tsx` have already been split into `_parts/`.)
 
 When splitting large components:
 

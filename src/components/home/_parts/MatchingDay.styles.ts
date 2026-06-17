@@ -1,6 +1,6 @@
 import styled from "styled-components";
 import { motion } from "framer-motion";
-import { Body1Bold, Caption1, Headline2, Label2 } from "@/shared/ui";
+import { Body1Bold, Headline2, Label2 } from "@/shared/ui";
 import type { AlertStatus } from "@/components/display/Card";
 import { ProfileImg } from "@/components/onboarding/OnboardingContainer";
 

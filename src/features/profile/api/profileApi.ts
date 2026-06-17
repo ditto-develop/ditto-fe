@@ -10,8 +10,6 @@ import {
 import { INTRO_NOTE_FIELDS } from "@/features/profile/model/introNotes";
 import type { MyRatingSummary, MyStats } from "@/features/profile/model/types";
 
-export { apiFetch, tryRefreshToken } from "@/shared/lib/api/client";
-
 // --- BE DTO ---
 
 export interface PublicProfileDto {

@@ -1,6 +1,6 @@
 import styled, { css } from "styled-components";
 
-export const textStyle = css`
+const textStyle = css`
   font-family: "Pretendard JP", sans-serif;
   font-feature-settings: "ss10" 1;
 `;

@@ -53,7 +53,7 @@ const TabButton = styled.button<{ $active: boolean }>`
     background-color: ${({ $active }) =>
         $active ? "var(--color-semantic-background-elevated-normal)" : "transparent"};
     box-shadow: ${({ $active }) =>
-        $active ? "0px 0px 4px 0px rgba(0,0,0,0.08)" : "none"};
+        $active ? "0px 0px 4px 0px rgb(from var(--color-semantic-static-black) r g b / var(--color-atomic-opacity-8))" : "none"};
     color: ${({ $active }) =>
         $active
             ? "var(--color-semantic-label-normal)"

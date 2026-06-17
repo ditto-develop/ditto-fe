@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
 
 interface FullScreenModalProps {
     isOpen: boolean;
@@ -62,17 +62,6 @@ export function FullScreenModal({
         </Overlay>
     );
 }
-
-// --- Animations ---
-
-const slideUp = keyframes`
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-`;
 
 // --- Styled Components ---
 

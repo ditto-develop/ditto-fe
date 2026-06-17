@@ -17,7 +17,6 @@ interface TopNavigationProps {
  * back(←) 또는 close(×) 아이콘, 중앙 라벨을 선택적으로 사용.
  */
 export function TopNavigation({ onBack, onClose, label, className, trailingElement }: TopNavigationProps) {
-    const hasTrailing = !!onClose || !!trailingElement;
     return (
         <NavContainer className={className}>
             <IconBox onClick={onBack} $isVisible={!!onBack}>

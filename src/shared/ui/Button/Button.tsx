@@ -95,7 +95,7 @@ export const Button = styled.button<ButtonProps>`
     `}
 
   /* Outlined */
-  ${({ $variant = "outlined", $theme = "primary" }) =>
+  ${({ $variant = "outlined" }) =>
         $variant === "outlined" &&
         css`
       background-color: transparent;

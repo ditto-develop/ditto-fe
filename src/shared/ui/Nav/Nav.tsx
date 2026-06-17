@@ -74,16 +74,3 @@ const IconImg = styled.img`
   height: 100%;
   display: block;
 `;
-
-const NavLabel = styled.div`
-  font-size: var(--typography-body-1-normal-font-size); // 디자인에 맞춰 조절
-  font-weight: 700;
-  color: var(--color-semantic-label-strong); // 토큰 적용
-  text-align: center;
-  flex: 1; // 양쪽 아이콘 사이의 남은 공간을 모두 차지
-  
-  // 긴 텍스트 말줄임 처리
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;

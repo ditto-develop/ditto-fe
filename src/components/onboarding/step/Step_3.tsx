@@ -145,7 +145,7 @@ interface QuestionProgressCardProps {
   helperText?: string;
 }
 
-export const QuestionProgressCard: React.FC<QuestionProgressCardProps> = ({
+const QuestionProgressCard: React.FC<QuestionProgressCardProps> = ({
   current,
   total,
   helperText = "최소 3개 이상 작성해주세요",

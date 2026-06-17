@@ -87,7 +87,7 @@ const NumberCircle = styled.div`
 
 // --- Component ---
 
-export function Timeline({ currentStep }: TimelineProps) {
+function Timeline({ currentStep }: TimelineProps) {
   const steps = [
     { id: 1, label: "월~수 : 퀴즈 기간" },
     { id: 2, label: "목 : 매칭 기간" },

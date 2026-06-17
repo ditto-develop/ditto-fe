@@ -1,6 +1,6 @@
 import styled, { css } from "styled-components";
 
-export const textStyle = css`
+const textStyle = css`
   font-family: "Pretendard JP", sans-serif;
   font-feature-settings: "ss10" 1;
 `;
@@ -153,17 +153,6 @@ export const Radio = styled.span<{ $checked: boolean }>`
   color: var(--color-semantic-static-white);
 `;
 
-export const LocationBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  border-radius: 8px;
-  background-color: var(--color-semantic-fill-normal);
-`;
-
 export const MapPinButton = styled.button`
   display: inline-flex;
   align-items: center;
@@ -252,24 +241,6 @@ export const NewPlaceIcon = styled.span`
   color: var(--color-semantic-label-assistive);
 `;
 
-export const NewInput = styled.input`
-  ${textStyle};
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--color-semantic-line-normal-neutral);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--color-semantic-label-normal);
-  font-size: var(--typography-body-2-normal-font-size);
-  font-weight: 500;
-  line-height: 1.467;
-  outline: none;
-
-  &::placeholder {
-    color: var(--color-semantic-label-assistive);
-  }
-`;
-
 export const NewTimeRow = styled.div`
   display: flex;
   flex-direction: column;
@@ -339,26 +310,6 @@ export const PickerDisplay = styled.span<{ $empty?: boolean }>`
   white-space: nowrap;
 `;
 
-export const NewInputActions = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 4px;
-`;
-
-export const TextButton = styled.button<{ $primary?: boolean }>`
-  ${textStyle};
-  padding: 6px 10px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: var(--typography-label-1-normal-font-size);
-  font-weight: 500;
-  color: ${({ $primary }) =>
-    $primary
-      ? "var(--color-semantic-primary-normal)"
-      : "var(--color-semantic-label-alternative)"};
-`;
-
 export const ActionArea = styled.footer`
   position: fixed;
   left: 0;
@@ -398,13 +349,13 @@ export const PrimaryButton = styled.button<{ $active: boolean }>`
   letter-spacing: 0.091px;
 `;
 
-export const IconSvg = styled.svg`
+const IconSvg = styled.svg`
   width: 22px;
   height: 22px;
   flex-shrink: 0;
 `;
 
-export const IconSvgSmall = styled.svg`
+const IconSvgSmall = styled.svg`
   width: 18px;
   height: 18px;
   flex-shrink: 0;

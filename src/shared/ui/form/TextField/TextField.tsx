@@ -3,7 +3,6 @@
 import React from "react";
 import styled, { css } from "styled-components";
 import {
-  Headline1,
   Body1Normal,
   Caption1,
   Label1Normal,
@@ -163,7 +162,7 @@ const InputWrapper = styled.div<{
   box-sizing: border-box;
   gap: 8px;
 
-  border: 1px solid var(--Border-Normal, rgba(26, 24, 21, 0.16));
+  border: 1px solid var(--color-semantic-line-normal-normal);
 
   /* 기본 배경: variant 에 따라 */
   background: transparent;
@@ -185,13 +184,13 @@ const InputWrapper = styled.div<{
   ${({ $disabled }) =>
     $disabled &&
     css`
-      border-color: rgba(26, 24, 21, 0.12);
+      border-color: rgb(from var(--color-atomic-neutral-20) r g b / var(--color-atomic-opacity-12));
     `}
 
   /* focus-within: 외곽선, 그림자, 오른쪽 구분선 진하게 */
   &:focus-within {
     border-color: var(--color-semantic-primary-normal);
-    box-shadow: 0 0 0 1px rgba(26, 24, 21, 0.06);
+    box-shadow: 0 0 0 1px rgb(from var(--color-atomic-neutral-20) r g b / var(--color-atomic-opacity-5));
 
     ${RightArea}::before {
       background: var(--color-semantic-primary-normal);
@@ -212,14 +211,11 @@ const StyledInput = styled(Body1Normal).attrs({ as: "input" })<{
   color: var(--Semantic-Label-Normal, var(--color-semantic-label-normal));
 
   &::placeholder {
-    color: var(
-      --Semantic-Label-Alternative,
-      rgba(47, 43, 39, 0.35)
-    );
+    color: rgb(from var(--color-atomic-neutral-30) r g b / var(--color-atomic-opacity-35));
   }
 
   &:disabled {
-    color: rgba(47, 43, 39, 0.35);
+    color: rgb(from var(--color-atomic-neutral-30) r g b / var(--color-atomic-opacity-35));
     cursor: not-allowed;
   }
 `;
@@ -250,7 +246,7 @@ const HelperText = styled(Caption1)<{ $status: InputStatus }>`
       case "error":
         return "var(--color-semantic-status-negative)";
       case "disabled":
-        return "rgba(47, 43, 39, 0.35)";
+        return "rgb(from var(--color-atomic-neutral-30) r g b / var(--color-atomic-opacity-35))";
       default:
         return "var(--color-semantic-label-alternative)";
     }

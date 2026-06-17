@@ -13,7 +13,6 @@ interface ChatRoomHeaderProps {
 }
 
 export function ChatRoomHeader({
-  roomId,
   partnerNickname,
   expiresAt,
   onMenuClick,
