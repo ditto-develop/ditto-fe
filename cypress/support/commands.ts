@@ -28,15 +28,20 @@ function emptySuccessResponse() {
   return successResponse(null);
 }
 
-// /home(MainSection)은 getPeriodFromServerTime()으로 현재 KST 요일에 따라 기간을 정한다.
-//   월~수: QUIZ / 목: MATCHING / 금~일: CHATTING
-// 화면이 속한 기간을 결정적으로 고정하기 위해 시계(Date만)를 해당 요일로 맞춘다.
+// /home(MainSection)은 /system/state API 응답으로 기간을 정한다.
+// Date도 같은 기간의 KST 요일로 맞춰 카운트다운/타임라인 표시를 결정적으로 고정한다.
 type PeriodName = "QUIZ" | "MATCHING" | "CHATTING";
 
 const PERIOD_KST_TIMESTAMP: Record<PeriodName, number> = {
   QUIZ: Date.parse("2026-06-02T03:00:00Z"), // KST 화요일
   MATCHING: Date.parse("2026-06-04T03:00:00Z"), // KST 목요일
   CHATTING: Date.parse("2026-06-06T03:00:00Z"), // KST 토요일
+};
+
+const API_PERIOD_BY_NAME: Record<PeriodName, string> = {
+  QUIZ: "QUIZ_PERIOD",
+  MATCHING: "MATCHING_PERIOD",
+  CHATTING: "CHATTING_PERIOD",
 };
 
 function mockFixture(method: HttpMethod, urls: string[], fixtureName: string, alias: string) {
@@ -55,6 +60,7 @@ function mockStatic(method: HttpMethod, urls: string[], data: unknown, alias: st
 
 Cypress.Commands.add("clockPeriod", (period: PeriodName) => {
   // Date만 오버라이드 → setTimeout/rAF(토스트 duration, 애니메이션)는 정상 동작
+  Cypress.env("systemPeriod", period);
   cy.clock(PERIOD_KST_TIMESTAMP[period], ["Date"]);
 });
 
@@ -107,7 +113,13 @@ Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
   mockFixture("POST", ["**/api/v1/matches/group/join", "**/api/matches/group/join"], "group-join.json", "joinGroupMatch");
   cy.intercept("POST", "**/api/**/matches/group/decline", emptySuccessResponse()).as("declineGroupMatch");
 
-  mockFixture("GET", ["**/api/system/state", "**/api/v1/system/state"], "system-state.json", "getSystemState");
+  const systemPeriod = (Cypress.env("systemPeriod") as PeriodName | undefined) ?? "QUIZ";
+  mockStatic("GET", ["**/api/system/state", "**/api/v1/system/state"], {
+    year: 2026,
+    month: 6,
+    week: 1,
+    period: API_PERIOD_BY_NAME[systemPeriod],
+  }, "getSystemState");
   mockFixture("POST", ["**/api/users/local-login", "**/api/v1/users/local-login"], "local-login.json", "localLogin");
   // 토큰 refresh는 credentials:'include'로 요청되므로 응답에도
   // access-control-allow-credentials/origin echo 헤더가 필요하다(와일드카드 불가).

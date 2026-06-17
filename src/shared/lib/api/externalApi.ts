@@ -6,6 +6,7 @@ import type {
     LoginResponseDto,
     QuizChoiceDto,
     QuizProgressDto,
+    SystemStateDto,
     QuizSetDto,
     QuizWithAnswerDto,
     UserDto,
@@ -184,6 +185,10 @@ export async function getExternalQuizSetWithProgress(id: string): Promise<GetQui
         ...data,
         quizzes: data.quizzes.map(normalizeQuizWithAnswer),
     };
+}
+
+export function getExternalSystemState(): Promise<SystemStateDto> {
+    return externalApiFetch<SystemStateDto>("/api/v1/system/state");
 }
 
 // 회원가입 payload: name/nickname/phoneNumber/gender/age + nullable email/birthDate

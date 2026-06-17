@@ -1,6 +1,6 @@
 describe("local quiz test flow", () => {
   beforeEach(() => {
-    // 기간은 더 이상 system/state API가 아니라 KST 요일로 결정됨 → 시계를 퀴즈 기간으로 고정
+    // system/state mock과 Date를 퀴즈 기간으로 고정
     cy.clockPeriod("QUIZ");
     cy.mockApi();
   });

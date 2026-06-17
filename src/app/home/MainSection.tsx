@@ -8,10 +8,10 @@ import type { MatchingCardType } from "@/components/home/MatchingDay";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { ChatService, QuizProgressDto } from "@/shared/lib/api/generated";
-import type { ChatRoomItemDto } from "@/shared/lib/api/generated";
+import type { ChatRoomItemDto, SystemStateDto } from "@/shared/lib/api/generated";
 import type { MatchCandidateDto } from "@/features/matching/api/matchingApi";
 import { getMatchCandidates, getMatchingStatus } from "@/features/matching/api/matchingApi";
-import { getExternalQuizProgress } from "@/shared/lib/api/externalApi";
+import { getExternalQuizProgress, getExternalSystemState } from "@/shared/lib/api/externalApi";
 import { useHomeReady } from "@/context/HomeReadyContext";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useToast } from "@/context/ToastContext";
@@ -32,12 +32,17 @@ function getKstDayIndex(): number {
   return kstDate.getDay(); // 0: Sun, 1: Mon, ..., 6: Sat
 }
 
-function getPeriodFromServerTime(): Period {
-  const dayIndex = getKstDayIndex();
-
-  if (dayIndex >= 1 && dayIndex <= 3) return "QUIZ";
-  if (dayIndex === 4) return "MATCHING";
-  return "CHATTING";
+function mapSystemPeriod(apiPeriod: SystemStateDto["period"]): Period {
+  switch (apiPeriod) {
+    case "QUIZ_PERIOD":
+      return "QUIZ";
+    case "MATCHING_PERIOD":
+      return "MATCHING";
+    case "CHATTING_PERIOD":
+      return "CHATTING";
+    default:
+      throw new Error(`Unsupported system period: ${String(apiPeriod)}`);
+  }
 }
 
 async function getLatestChatRoom(): Promise<ChatRoomItemDto | undefined> {
@@ -86,10 +91,9 @@ export function MainSection() {
       try {
         // BE 작업 대기: IntroNotes(GET /api/v1/users/me/intro-notes) 엔드포인트가 api.ditto.pics에 추가될 때까지
         //   isIntroComplete는 false로 유지된다. 엔드포인트 추가 후 externalApi 패턴으로 호출 복구 필요.
-        // 임시 비활성화: API 오버라이드 상태 대신 현재 KST 요일로 기간을 계산한다.
-        // const stateRes = await SystemService.systemControllerGetSystemState();
         const introRes = await Promise.resolve(null as { success: boolean; data?: { completedCount: number; answers: string[] } } | null);
-        const fetchedPeriod = getPeriodFromServerTime();
+        const systemState = await getExternalSystemState();
+        const fetchedPeriod = mapSystemPeriod(systemState.period);
         setPeriod(fetchedPeriod);
 
         if (introRes?.success && introRes.data) {
