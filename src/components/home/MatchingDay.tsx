@@ -138,6 +138,7 @@ export function MatchingDay({
                     bio: c.introduction ?? "",
                     avatarUrl: c.profileImageUrl || getAvatarUrl(c.gender, i),
                     matchCount: c.scoreBreakdown?.matchedQuestions,
+                    totalQuestions: c.scoreBreakdown?.totalQuestions,
                   };
                   return (
                     <SelectableListItemContainer
@@ -166,7 +167,10 @@ export function MatchingDay({
 
   // 매칭 확정 상태: "매칭 완료" 카드 (MATCHING 기간에만 — CHATTING 기간엔 대화 화면으로)
   if (hasAcceptedMatch && acceptedCandidate && !isChatTime) {
-    const acceptedBadge = getMatchBadgeInfo(acceptedCandidate.scoreBreakdown?.matchedQuestions ?? 0);
+    const acceptedBadge = getMatchBadgeInfo(
+      acceptedCandidate.scoreBreakdown?.matchedQuestions ?? 0,
+      acceptedCandidate.scoreBreakdown?.totalQuestions ?? 12
+    );
     return (
       <>
         <Card

@@ -12,7 +12,9 @@ import { toLocationLabel } from "@/shared/lib/profileLabels";
 
 export interface MatchItem {
     profile: MatchProfile;
-    matchRate: number;
+    matchRate: number; // 정렬용 일치율 퍼센트 (quizMatchRate)
+    matchedQuestions: number;
+    totalQuestions: number;
     hasRequested: boolean;
     hasReceivedRequest: boolean;
     matchRequestId?: string;
@@ -46,8 +48,11 @@ function mergeWithStatus(
         const received = receivedRequests.find((r) => r.fromUserId === c.userId);
         return {
             profile: toMatchProfile(c),
-            // getMatchBadgeInfo은 0~12 개수 기준 → matchedQuestions 사용
-            matchRate: c.scoreBreakdown?.matchedQuestions ?? 0,
+            // 뱃지 등급/문구는 일치 개수·전체 문항 수 기준 (getMatchBadgeInfo)
+            matchedQuestions: c.scoreBreakdown?.matchedQuestions ?? 0,
+            totalQuestions: c.scoreBreakdown?.totalQuestions ?? 0,
+            // 정렬용 퍼센트 (가변 total에서도 일관)
+            matchRate: c.scoreBreakdown?.quizMatchRate ?? c.matchRate ?? 0,
             hasRequested: !!sent,
             hasReceivedRequest: !!received,
             matchRequestId: sent?.id ?? received?.id,

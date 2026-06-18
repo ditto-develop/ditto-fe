@@ -321,7 +321,9 @@ export const MatchingButton = ({
 };
 
 export const BottomSheetProfile = ({ profile }: { profile: Profile }) => {
-  const badgeInfo = profile.matchCount ? getMatchBadgeInfo(profile.matchCount) : null;
+  const badgeInfo = profile.matchCount
+    ? getMatchBadgeInfo(profile.matchCount, profile.totalQuestions ?? 12)
+    : null;
 
   return (
     <ListItemContainer>

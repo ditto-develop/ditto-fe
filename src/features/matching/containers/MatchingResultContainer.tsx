@@ -98,7 +98,7 @@ export function MatchingResultContainer({
                 )}
 
                 {displayCandidates.map((match) => {
-                    const badge = getMatchBadgeInfo(match.matchRate);
+                    const badge = getMatchBadgeInfo(match.matchedQuestions, match.totalQuestions);
                     return (
                         <MatchGroup key={match.profile.id}>
                             <BadgeRow>

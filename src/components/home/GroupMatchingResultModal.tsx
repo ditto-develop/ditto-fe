@@ -46,7 +46,10 @@ function getBadgeBgColor(status: AlertStatus): string {
 }
 
 function toProfileDetail(c: MatchCandidateDto, index: number) {
-  const badge = getMatchBadgeInfo(c.scoreBreakdown?.matchedQuestions ?? 0);
+  const badge = getMatchBadgeInfo(
+    c.scoreBreakdown?.matchedQuestions ?? 0,
+    c.scoreBreakdown?.totalQuestions ?? 12
+  );
   return {
     id: c.userId,
     name: c.nickname,
@@ -104,7 +107,7 @@ export function GroupMatchingResultModal({
     ? Math.round(candidates.reduce((s, c) => s + (c.scoreBreakdown?.matchedQuestions ?? 0), 0) / candidates.length)
     : 0;
   const totalQ = candidates[0]?.scoreBreakdown?.totalQuestions ?? 12;
-  const topBadge = getMatchBadgeInfo(candidates[0]?.scoreBreakdown?.matchedQuestions ?? 0);
+  const topBadge = getMatchBadgeInfo(candidates[0]?.scoreBreakdown?.matchedQuestions ?? 0, totalQ);
 
   const shown = candidates.slice(0, 3);
   const extra = candidates.length - 3;
@@ -273,9 +276,9 @@ export function GroupMatchingResultModal({
           detail={
             <MemberListScroll>
               {candidates.map((c, i) => {
-                const badge = getMatchBadgeInfo(c.scoreBreakdown?.matchedQuestions ?? 0);
                 const total = c.scoreBreakdown?.totalQuestions ?? 12;
                 const matched = c.scoreBreakdown?.matchedQuestions ?? 0;
+                const badge = getMatchBadgeInfo(matched, total);
                 return (
                   <MemberItem
                     key={c.userId}

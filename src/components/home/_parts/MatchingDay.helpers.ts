@@ -26,33 +26,42 @@ export interface Profile {
 
   isMe?: boolean;
   matchCount?: number;
+  totalQuestions?: number;
 }
 
 
-export const getMatchBadgeInfo = (count: number): { badge: string; color: AlertStatus; description: string } => {
-  if (count >= 11) {
+// 등급은 일치 비율(matchedQuestions / totalQuestions) 기준이며,
+// 기존 12문항 기준 컷(11/12, 8/12, 6/12)을 비율로 환산해 동작을 보존한다.
+export const getMatchBadgeInfo = (
+  matchedQuestions: number,
+  totalQuestions: number
+): { badge: string; color: AlertStatus; description: string } => {
+  const rate = totalQuestions > 0 ? (matchedQuestions / totalQuestions) * 100 : 0;
+  const description = `${totalQuestions}개중 ${matchedQuestions}개 일치`;
+
+  if (rate >= (11 / 12) * 100) {
     return {
       badge: "🌟 당신과 가장 비슷해요",
       color: "destructive", // Semantic/Status/Negative
-      description: `12개중 ${count}개 일치`
+      description
     };
-  } else if (count >= 8) {
+  } else if (rate >= (8 / 12) * 100) {
     return {
       badge: "😊 대부분 비슷하게 생각해요",
       color: "destructive", // Semantic/Status/Negative
-      description: `12개중 ${count}개 일치`
+      description
     };
-  } else if (count >= 6) {
+  } else if (rate >= (6 / 12) * 100) {
     return {
       badge: "🙂 비슷하지만 새로운 관점도 있어요",
       color: "cautionary", // Semantic/Status/Cautionary
-      description: `12개중 ${count}개 일치`
+      description
     };
   } else {
     return {
       badge: "👀 다르게 생각하는 편이에요",
       color: "navy", // Semantic/Accent/Foreground/Navy
-      description: `12개중 ${count}개 일치`
+      description
     };
   }
 };

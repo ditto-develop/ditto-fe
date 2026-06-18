@@ -43,31 +43,38 @@ export interface MatchBadgeInfo {
     matchDescription: string;
 }
 
-/** match rate에 따른 badge 변환 */
-export function getMatchBadgeInfo(matchCount: number): MatchBadgeInfo {
-    if (matchCount >= 11) {
+/**
+ * match rate에 따른 badge 변환.
+ * 등급은 일치 비율(matchedQuestions / totalQuestions) 기준이며,
+ * 기존 12문항 기준 컷(11/12, 8/12, 6/12)을 비율로 환산해 동작을 보존한다.
+ */
+export function getMatchBadgeInfo(matchedQuestions: number, totalQuestions: number): MatchBadgeInfo {
+    const rate = totalQuestions > 0 ? (matchedQuestions / totalQuestions) * 100 : 0;
+    const matchDescription = `${totalQuestions}개중 ${matchedQuestions}개 일치`;
+
+    if (rate >= (11 / 12) * 100) {
         return {
             label: "🌟 당신과 가장 비슷해요",
             variant: "destructive",
-            matchDescription: `12개중 ${matchCount}개 일치`,
+            matchDescription,
         };
-    } else if (matchCount >= 8) {
+    } else if (rate >= (8 / 12) * 100) {
         return {
             label: "😊 대부분 비슷하게 생각해요",
             variant: "destructive",
-            matchDescription: `12개중 ${matchCount}개 일치`,
+            matchDescription,
         };
-    } else if (matchCount >= 6) {
+    } else if (rate >= (6 / 12) * 100) {
         return {
             label: "🙂 비슷하지만 새로운 관점도 있어요",
             variant: "cautionary",
-            matchDescription: `12개중 ${matchCount}개 일치`,
+            matchDescription,
         };
     } else {
         return {
             label: "👀 다르게 생각하는 편이에요",
             variant: "navy",
-            matchDescription: `12개중 ${matchCount}개 일치`,
+            matchDescription,
         };
     }
 }
