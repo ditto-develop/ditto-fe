@@ -1,17 +1,34 @@
 [
   {
-    "roomId": "room-1",
-    "partnerNickname": "민지",
-    "partnerAvatarUrl": "/assets/avatar/f1.png",
-    "lastMessageContent": "안녕하세요, 반가워요!",
-    "lastMessageAt": "2026-06-03T08:00:00.000Z",
+    "roomId": 1,
+    "roomType": "PERSONAL",
+    "counterpartMemberIds": [2],
+    "lastMessage": {
+      "id": 30,
+      "roomId": 1,
+      "senderId": 2,
+      "messageType": "TEXT",
+      "content": "안녕하세요, 반가워요!",
+      "imageUrl": null,
+      "createdAt": "2026-06-03 17:00:00"
+    },
     "unreadCount": 1,
-    "expiresAt": "2026-06-06T08:00:00.000Z",
-    "isGroup": false,
-    "status": "ACTIVE",
-    "canSendMessage": true,
-    "isEnded": false,
-    "isPartnerLeft": false,
-    "partnerLastReadMessageId": "message-1"
+    "createdAt": "2026-06-03 11:00:00"
+  },
+  {
+    "roomId": 2,
+    "roomType": "PERSONAL",
+    "counterpartMemberIds": [3],
+    "lastMessage": {
+      "id": 12,
+      "roomId": 2,
+      "senderId": 3,
+      "messageType": "IMAGE",
+      "content": "chat/2/mock-object-key",
+      "imageUrl": "/assets/avatar/f2.png",
+      "createdAt": "2026-06-02 18:20:00"
+    },
+    "unreadCount": 0,
+    "createdAt": "2026-06-02 10:00:00"
   }
 ]

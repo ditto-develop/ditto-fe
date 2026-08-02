@@ -30,7 +30,8 @@ describe("protected routes", () => {
     cy.visit("/chat");
 
     cy.contains("대화방", { timeout: 6000 }).should("be.visible");
-    cy.contains("민지").should("be.visible");
+    // 상대 닉네임은 방 목록의 counterpartMemberIds로 프로필을 조회해 채운다.
+    cy.contains("수민", { timeout: 8000 }).should("be.visible");
     cy.contains("안녕하세요, 반가워요!").should("be.visible");
   });
 });

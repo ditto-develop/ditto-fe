@@ -75,13 +75,13 @@ const StarButton = styled.button<{ $selected: boolean }>`
     height: 100%;
     fill: ${({ $selected }) => ($selected ? "currentColor" : "none")};
     stroke: currentColor;
-    stroke-width: var(--space-\[2px\]);
+    stroke-width: var(--spacing-2px);
     stroke-linejoin: round;
   }
 
   &:focus-visible {
-    outline: var(--space-\[2px\]) solid var(--color-semantic-line-normal-strong);
-    outline-offset: var(--space-\[2px\]);
+    outline: var(--spacing-2px) solid var(--color-semantic-line-normal-strong);
+    outline-offset: var(--spacing-2px);
     border-radius: var(--space-1);
   }
 `;

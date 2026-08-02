@@ -1,11 +1,7 @@
+"use client";
 
-/**
- * 26/01/09 Todo : 
- * MainHeader Nav bar 개발
- */
-
-import styled from "styled-components"
-
+import { useRouter } from "next/navigation";
+import styled from "styled-components";
 
 const Header = styled.div`
     display: flex;
@@ -14,23 +10,40 @@ const Header = styled.div`
     align-items: flex-start;
 `;
 
-const AlarmIcon = styled.img`
+const AlarmButton = styled.button`
     padding-top: 4px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+`;
+
+const AlarmIcon = styled.img`
+    display: block;
 `;
 
 export function MainHeader(){
+    const router = useRouter();
+
     return(
         <Header>
-            <img 
+            <img
                 height={32}
                 src="/assets/logo/ditto.svg"
                 alt="Ditto"
             />
-            
-            <AlarmIcon
-                src='/icons/navigation/alarm.svg'
-                alt="알림"
-            />
+
+            <AlarmButton
+                type="button"
+                aria-label="알림"
+                onClick={() => router.push("/notifications")}
+            >
+                <AlarmIcon
+                    src='/icons/navigation/alarm.svg'
+                    alt=""
+                />
+            </AlarmButton>
         </Header>
     )
 }

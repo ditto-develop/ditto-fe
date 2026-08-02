@@ -52,16 +52,16 @@ const Label = styled.label<{ $disabled: boolean }>`
 
 const HiddenInput = styled.input`
   position: absolute;
-  width: var(--space-\[1px\]);
-  height: var(--space-\[1px\]);
+  width: var(--spacing-1px);
+  height: var(--spacing-1px);
   overflow: hidden;
   clip: rect(0 0 0 0);
   clip-path: inset(50%);
   white-space: nowrap;
 
   &:focus-visible + span {
-    outline: var(--space-\[2px\]) solid var(--color-semantic-line-normal-strong);
-    outline-offset: var(--space-\[2px\]);
+    outline: var(--spacing-2px) solid var(--color-semantic-line-normal-strong);
+    outline-offset: var(--spacing-2px);
   }
 `;
 
@@ -69,7 +69,7 @@ const Box = styled.span<{ $checked: boolean }>`
   width: var(--space-5);
   height: var(--space-5);
   flex-shrink: 0;
-  border: var(--space-\[2px\]) solid
+  border: var(--spacing-2px) solid
     ${({ $checked }) =>
       $checked
         ? "var(--color-semantic-primary-normal)"
@@ -90,7 +90,7 @@ const Box = styled.span<{ $checked: boolean }>`
     height: var(--space-4);
     fill: none;
     stroke: currentColor;
-    stroke-width: var(--space-\[2px\]);
+    stroke-width: var(--spacing-2px);
     stroke-linecap: round;
     stroke-linejoin: round;
   }
@@ -99,7 +99,7 @@ const Box = styled.span<{ $checked: boolean }>`
 const TextGroup = styled.span`
   display: flex;
   flex-direction: column;
-  gap: var(--space-\[2px\]);
+  gap: var(--spacing-2px);
 `;
 
 const LabelText = styled.span`

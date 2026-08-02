@@ -1,3 +1,4 @@
+import { ApiError, notifySanctionedIfBlocked } from "@/shared/lib/api/apiError";
 import { clearTokens, getAccessToken, setTokens } from "@/shared/lib/auth";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -27,6 +28,27 @@ function getErrorMessage(error: ExternalResponse<unknown>["error"], fallback: st
     if (!error) return fallback;
     if (typeof error === "string") return error;
     return error.message || error.code || fallback;
+}
+
+function getErrorCode(error: ExternalResponse<unknown>["error"]): string {
+    if (!error || typeof error === "string") return "";
+    return error.code ?? "";
+}
+
+function toApiError(
+    json: ExternalResponse<unknown> | null,
+    httpStatus: number,
+    fallback: string,
+): ApiError {
+    const code = getErrorCode(json?.error);
+    const statusCode =
+        json?.error && typeof json.error !== "string" && json.error.statusCode
+            ? json.error.statusCode
+            : httpStatus;
+
+    notifySanctionedIfBlocked(code);
+
+    return new ApiError(getErrorMessage(json?.error, fallback), code, statusCode);
 }
 
 // 토큰 refresh 정본: 동시에 여러 401이 발생해도 refresh 요청은 1회만 발생(single-flight).
@@ -100,18 +122,22 @@ async function doFetch<T>(path: string, options: ExternalRequestOptions, token: 
     console.log("response json:", json);
     console.groupEnd();
 
+    // 실제 HTTP 401만 토큰 refresh 재시도 대상이다. body의 statusCode는 신뢰하지 않는다.
     if (response.status === 401) {
-        const err = new Error(getErrorMessage(json?.error, `External API 401: ${path}`));
-        (err as Error & { status: number }).status = 401;
-        throw err;
+        throw new ApiError(
+            getErrorMessage(json?.error, `External API 401: ${path}`),
+            getErrorCode(json?.error),
+            401,
+        );
     }
 
     if (!response.ok) {
-        throw new Error(getErrorMessage(json?.error, `External API ${response.status}: ${path}`));
+        throw toApiError(json, response.status, `External API ${response.status}: ${path}`);
     }
 
+    // HTTP 200이어도 컨트롤러 검증/비즈니스 오류는 success:false로 내려온다.
     if (!json?.success) {
-        throw new Error(getErrorMessage(json?.error, `External API error: ${path}`));
+        throw toApiError(json, response.status, `External API error: ${path}`);
     }
 
     return json.data as T;

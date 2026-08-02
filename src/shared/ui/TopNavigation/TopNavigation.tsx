@@ -66,12 +66,14 @@ const IconImg = styled.img`
   display: block;
 `;
 
+/* 아이콘 버튼(24px)뿐 아니라 '모두 읽음' 같은 텍스트 버튼도 들어오므로 폭은 최소값만 잡는다. */
 const TrailingBox = styled.div`
-  width: 24px;
+  min-width: 24px;
   height: 24px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
 `;
 
 const NavLabel = styled.div`

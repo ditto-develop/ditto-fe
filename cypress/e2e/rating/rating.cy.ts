@@ -1,20 +1,3 @@
-function mockEndedOneOnOneRoom() {
-  cy.fixture("chat-room-detail.json").then((room) => {
-    cy.intercept("GET", "**/api/**/chat/rooms/*", {
-      statusCode: 200,
-      body: {
-        success: true,
-        data: {
-          ...room,
-          status: "ENDED",
-          canSendMessage: false,
-          isEnded: true,
-        },
-      },
-    }).as("getEndedChatRoomDetail");
-  });
-}
-
 function mockGroupRoom(ended: boolean) {
   cy.fixture("group-chat-detail.json").then((room) => {
     cy.intercept("GET", "**/api/**/chat/group-rooms/*", {
@@ -67,14 +50,13 @@ describe("rating system", () => {
     }).as("requestRematch");
   });
 
-  it("opens from an ended 1:1 chat and submits a rating", () => {
-    mockEndedOneOnOneRoom();
-    cy.visit("/chat/one-on-one/room-1");
-    cy.wait(["@getEndedChatRoomDetail", "@getChatMessages"]);
+  // 라이브 채팅 계약에는 방 종료 상태가 없어 채팅방의 '평가하기' 진입점이 없다.
+  // 평가 화면 자체는 그대로라 라우트로 직접 진입해 검증한다.
+  it("submits a 1:1 rating", () => {
+    cy.visit("/chat/one-on-one/1/rate");
+    cy.wait("@getChatRooms");
 
-    cy.contains("button", "평가하기").click();
-    cy.location("pathname").should("include", "/chat/one-on-one/room-1/rate");
-    cy.contains("민지님 평가").should("be.visible");
+    cy.contains("수민님 평가", { timeout: 8000 }).should("be.visible");
     cy.contains("button", "평가 제출하기").should("be.disabled");
 
     cy.contains("button", "채팅만 했어요").click();

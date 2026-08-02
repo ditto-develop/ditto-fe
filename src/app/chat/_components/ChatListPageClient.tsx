@@ -1,66 +1,42 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { MainBottomNav } from "@/app/home/MainBottomNav";
 import { ChatRoomListItem, type ChatRoomListItemData } from "./ChatRoomListItem";
-import { ChatService } from "@/shared/lib/api/generated";
+import { useChatRooms } from "@/features/chat";
+import type { ChatRoomWithCounterpart } from "@/features/chat";
 import { getChatRoomEndState } from "@/app/chat/_utils/chatRoomStatus";
 
 type FilterType = "전체" | "진행중" | "종료";
 const FILTERS: FilterType[] = ["전체", "진행중", "종료"];
 
+/** 목록 미리보기 문구. IMAGE는 objectKey가 아니라 안내 문구를 보여준다. */
+function toPreview(room: ChatRoomWithCounterpart): string | undefined {
+  const last = room.lastMessage;
+  if (!last) return undefined;
+  if (last.messageType === "IMAGE") return "사진을 보냈어요.";
+  return last.content;
+}
+
+function toListItem(room: ChatRoomWithCounterpart): ChatRoomListItemData {
+  return {
+    roomId: room.roomId,
+    partnerNickname: room.counterpartNickname,
+    partnerAvatarUrl: room.counterpartProfileImageUrl,
+    lastMessageContent: toPreview(room),
+    lastMessageAt: room.lastMessage?.createdAt,
+    unreadCount: room.unreadCount,
+    // 라이브 채팅 계약에는 방 종료/만료 정보가 없다. 상태 없는 방은 진행중으로 본다.
+    isGroup: room.roomType === "GROUP",
+  };
+}
+
 export function ChatListPageClient() {
   const [filter, setFilter] = useState<FilterType>("전체");
-  const [rooms, setRooms] = useState<ChatRoomListItemData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { rooms: chatRooms, loading } = useChatRooms();
 
-  useEffect(() => {
-    let isMounted = true;
-    let isFetching = false;
-
-    const fetchRooms = async (showLoading = false) => {
-      if (isFetching) return;
-      isFetching = true;
-      if (showLoading) setLoading(true);
-
-      try {
-        const listRes = await ChatService.chatControllerGetChatRooms();
-        if (!listRes.success || !listRes.data) return;
-
-        const merged: ChatRoomListItemData[] = listRes.data.map((item) => ({
-          roomId: item.roomId,
-          partnerNickname: item.partnerNickname ?? "알 수 없음",
-          partnerAvatarUrl: item.partnerAvatarUrl ?? null,
-          lastMessageContent: item.lastMessageContent,
-          lastMessageAt: item.lastMessageAt,
-          unreadCount: item.unreadCount,
-          expiresAt: item.expiresAt ?? null,
-          isEnded: getChatRoomEndState(item).isEnded,
-          isGroup: item.isGroup,
-          coParticipantAvatarUrl: item.coParticipantAvatarUrl,
-        }));
-
-        if (isMounted) setRooms(merged);
-      } catch {
-        // ignore
-      } finally {
-        isFetching = false;
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    fetchRooms(true);
-    const intervalId = window.setInterval(() => {
-      if (document.hidden) return;
-      fetchRooms();
-    }, 3000);
-
-    return () => {
-      isMounted = false;
-      window.clearInterval(intervalId);
-    };
-  }, []);
+  const rooms = useMemo(() => chatRooms.map(toListItem), [chatRooms]);
 
   const filteredRooms = rooms.filter((room) => {
     if (filter === "전체") return true;

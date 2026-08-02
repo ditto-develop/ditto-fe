@@ -2,8 +2,6 @@ import { http, HttpResponse } from "msw";
 
 import chatMessageSent from "@/mocks/fixtures/chat-message-sent.json";
 import chatMessages from "@/mocks/fixtures/chat-messages.json";
-import chatRoomDetail from "@/mocks/fixtures/chat-room-detail.json";
-import chatRoomItem from "@/mocks/fixtures/chat-room-item.json";
 import chatRooms from "@/mocks/fixtures/chat-rooms.json";
 import blockedUsersFixture from "@/mocks/fixtures/blocked-users.json";
 import currentUser from "@/mocks/fixtures/current-user.json";
@@ -18,6 +16,7 @@ import myProfile from "@/mocks/fixtures/my-profile.json";
 import myRatings from "@/mocks/fixtures/my-ratings.json";
 import myStats from "@/mocks/fixtures/my-stats.json";
 import notificationSettingsFixture from "@/mocks/fixtures/notification-settings.json";
+import notificationsFixture from "@/mocks/fixtures/notifications.json";
 import oneOnOneRating from "@/mocks/fixtures/one-on-one-rating.json";
 import publicProfile from "@/mocks/fixtures/public-profile.json";
 import quizCurrent from "@/mocks/fixtures/quiz-current.json";
@@ -27,6 +26,7 @@ import systemState from "@/mocks/fixtures/system-state.json";
 import user from "@/mocks/fixtures/user.json";
 import groupRating from "@/mocks/fixtures/group-rating.json";
 import rematchStatus from "@/mocks/fixtures/rematch-status.json";
+import mySanction from "@/mocks/fixtures/my-sanction.json";
 import {
   adminActiveQuizSets,
   adminDummyMatchResult,
@@ -64,6 +64,22 @@ const emptyList = {
 
 let notificationSettings = { ...notificationSettingsFixture };
 let blockedUsers = [...blockedUsersFixture];
+
+// 알림 목록은 '오늘 / 지난 소식' 구간과 상대 시간 표기가 항상 의미를 갖도록
+// 고정 시각 대신 요청 시점 기준 상대 오프셋(minutesAgo)으로 만들어 준다.
+type NotificationFixture = (typeof notificationsFixture)[number];
+let readNotificationIds = new Set<string>(
+  notificationsFixture.filter((item) => item.read).map((item) => item.id),
+);
+
+function toNotification(item: NotificationFixture, now: number) {
+  const { minutesAgo, ...rest } = item;
+  return {
+    ...rest,
+    createdAt: new Date(now - minutesAgo * 60 * 1000).toISOString(),
+    read: readNotificationIds.has(item.id),
+  };
+}
 
 export const handlers = [
   http.get(apiPath("/quiz-sets/current-week"), () => HttpResponse.json(success(quizCurrent))),
@@ -114,6 +130,39 @@ export const handlers = [
     blockedUsers = blockedUsers.filter((userItem) => userItem.id !== id);
     return HttpResponse.json(success(null));
   }),
+  http.get(apiPath("/notifications"), () => {
+    const now = Date.now();
+    return HttpResponse.json(success(notificationsFixture.map((item) => toNotification(item, now))));
+  }),
+  http.post(apiPath("/notifications/read-all"), () => {
+    readNotificationIds = new Set(notificationsFixture.map((item) => item.id));
+    return HttpResponse.json(success(null));
+  }),
+  http.post(apiPath("/notifications/[^/]+/read"), ({ request }) => {
+    const id = request.url.split("/").filter(Boolean).at(-2);
+    if (id) readNotificationIds.add(id);
+    return HttpResponse.json(success(null));
+  }),
+
+  // 신고(PR #97): presigned URL 발급 → S3 PUT → 접수.
+  // 목업에서는 uploadUrl로 아래 /mock-s3-upload 핸들러를 돌려준다.
+  http.post(apiPath("/user-reports/image-upload-urls"), async ({ request }) => {
+    const body = (await request.json().catch(() => null)) as { files?: unknown[] } | null;
+    const files = Array.isArray(body?.files) ? body.files : [];
+    return HttpResponse.json(
+      success({
+        uploads: files.map((_, index) => ({
+          objectKey: `pending/user-reports/1/mock-object-key-${index}`,
+          uploadUrl: `${new URL(request.url).origin}/mock-s3-upload/${index}`,
+        })),
+      }),
+    );
+  }),
+  http.put("*/mock-s3-upload/*", () => new HttpResponse(null, { status: 200 })),
+  http.post(apiPath("/user-reports"), () => HttpResponse.json(success({ id: 321 }))),
+
+  http.get(apiPath("/users/me/sanction"), () => HttpResponse.json(success(mySanction))),
+
   http.post(apiPath("/users/[^/]+/leave"), () => HttpResponse.json(success(user))),
   http.get(apiPath("/users/nickname/[^/]+/availability"), () => HttpResponse.json(success({ available: true }))),
   http.get(apiPath("/users/me/profile"), () => HttpResponse.json(success(myProfile))),
@@ -133,13 +182,29 @@ export const handlers = [
   http.post(apiPath("/users/[^/]+/ratings"), () => HttpResponse.json(success(null))),
   http.post(apiPath("/auth/kakao/callback"), () => HttpResponse.json(success(localLogin))),
 
+  // 1:1 채팅(PR #103/#105 계약). 메시지 전송은 REST가 아니라 STOMP라 여기엔 없다.
   http.get(apiPath("/chat/rooms"), () => HttpResponse.json(success(chatRooms))),
-  http.post(apiPath("/chat/rooms"), () => HttpResponse.json(success(chatRoomItem))),
-  http.get(apiPath("/chat/rooms/[^/]+"), () => HttpResponse.json(success(chatRoomDetail))),
-  http.get(apiPath("/chat/rooms/[^/]+/messages"), () => HttpResponse.json(success(chatMessages))),
-  http.post(apiPath("/chat/rooms/[^/]+/messages"), () => HttpResponse.json(success(chatMessageSent))),
-  http.patch(apiPath("/chat/rooms/[^/]+/read"), () => HttpResponse.json(success(null))),
-  http.delete(apiPath("/chat/rooms/[^/]+/leave"), () => HttpResponse.json(success(null))),
+  http.get(apiPath("/chat/rooms/[^/]+/messages"), ({ request }) => {
+    // cursor가 오면 그보다 과거 구간을 돌려주고, 더 없으면 nextCursor를 null로 끝낸다.
+    const cursor = new URL(request.url).searchParams.get("cursor");
+    if (!cursor) return HttpResponse.json(success(chatMessages));
+
+    const older = chatMessages.messages.filter((message) => message.id < Number(cursor));
+    return HttpResponse.json(success({ messages: older, nextCursor: null }));
+  }),
+  http.post(apiPath("/chat/rooms/[^/]+/read"), () => HttpResponse.json(success(null))),
+  http.post(apiPath("/chat/rooms/[^/]+/image-upload-urls"), async ({ request }) => {
+    const body = (await request.json().catch(() => null)) as { files?: unknown[] } | null;
+    const files = Array.isArray(body?.files) ? body.files : [];
+    return HttpResponse.json(
+      success({
+        uploads: files.map((_, index) => ({
+          objectKey: `chat/1/mock-object-key-${index}`,
+          uploadUrl: `${new URL(request.url).origin}/mock-s3-upload/chat-${index}`,
+        })),
+      }),
+    );
+  }),
   http.get(apiPath("/chat/group-rooms/[^/]+"), () => HttpResponse.json(success(groupChatRoomDetail))),
   http.get(apiPath("/chat/group-rooms/[^/]+/messages"), () => HttpResponse.json(success(chatMessages))),
   http.post(apiPath("/chat/group-rooms/[^/]+/messages"), () => HttpResponse.json(success(chatMessageSent))),

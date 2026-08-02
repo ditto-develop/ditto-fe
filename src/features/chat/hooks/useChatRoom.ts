@@ -1,0 +1,220 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import {
+  getChatMessages,
+  markChatRoomRead,
+  uploadChatImages,
+} from "@/features/chat/api/chatApi";
+import { createChatSocket, type ChatSocket } from "@/features/chat/lib/chatSocket";
+import { CHAT_TEXT_MAX_LENGTH } from "@/features/chat/model/constants";
+import type { ChatConnectionStatus, ChatMessage } from "@/features/chat/model/types";
+
+/** 리줌 시 과거로 되짚을 최대 페이지 수. 공백이 이보다 크면 사용자가 위로 스크롤해 채운다. */
+const MAX_RESUME_PAGES = 5;
+
+type UseChatRoomResult = {
+  /** 오래된 → 최신 순. 화면에 그대로 쌓으면 된다. */
+  messages: ChatMessage[];
+  loading: boolean;
+  error: string | null;
+  hasMore: boolean;
+  loadingOlder: boolean;
+  loadOlder: () => Promise<void>;
+  status: ChatConnectionStatus;
+  sending: boolean;
+  sendText: (content: string) => Promise<void>;
+  sendImages: (files: File[]) => Promise<void>;
+};
+
+/** id 기준 중복 제거 후 오름차순 정렬. STOMP 수신과 REST 리줌이 겹칠 수 있다. */
+export function mergeAscending(current: ChatMessage[], incoming: ChatMessage[]): ChatMessage[] {
+  if (incoming.length === 0) return current;
+
+  const byId = new Map<number, ChatMessage>();
+  current.forEach((message) => byId.set(message.id, message));
+  incoming.forEach((message) => byId.set(message.id, message));
+
+  return [...byId.values()].sort((left, right) => left.id - right.id);
+}
+
+/**
+ * 채팅방 하나의 메시지 상태를 관리한다.
+ * 내가 보낸 메시지도 서버 브로드캐스트로 되돌아오므로 낙관적 추가는 하지 않는다.
+ */
+export function useChatRoom(roomId: number): UseChatRoomResult {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<number | null>(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [status, setStatus] = useState<ChatConnectionStatus>("idle");
+  const [sending, setSending] = useState(false);
+
+  const socketRef = useRef<ChatSocket | null>(null);
+  const latestIdRef = useRef<number>(0);
+  const lastReadSentRef = useRef<number>(0);
+
+  const applyIncoming = useCallback((incoming: ChatMessage[]) => {
+    if (incoming.length === 0) return;
+    setMessages((previous) => {
+      const merged = mergeAscending(previous, incoming);
+      latestIdRef.current = merged.length > 0 ? merged[merged.length - 1].id : 0;
+      return merged;
+    });
+  }, []);
+
+  /**
+   * 재연결 직후 공백 메우기.
+   * REST 커서는 과거 방향만 지원하므로, 최신 페이지부터 되짚어 내려가며
+   * 마지막으로 받은 id에 도달할 때까지 모은다.
+   */
+  const resumeFrom = useCallback(
+    async (lastSeenId: number) => {
+      const collected: ChatMessage[] = [];
+      let cursor: number | null | undefined = undefined;
+
+      for (let page = 0; page < MAX_RESUME_PAGES; page += 1) {
+        const result = await getChatMessages(roomId, cursor);
+        collected.push(...result.messages);
+
+        const oldestInPage = result.messages[result.messages.length - 1]?.id;
+        // 이미 알고 있는 구간까지 내려왔거나 더 볼 게 없으면 멈춘다.
+        if (!result.nextCursor || oldestInPage === undefined || oldestInPage <= lastSeenId) break;
+        cursor = result.nextCursor;
+      }
+
+      applyIncoming(collected.filter((message) => message.id > lastSeenId));
+    },
+    [applyIncoming, roomId],
+  );
+
+  // 최초 로드
+  useEffect(() => {
+    if (!Number.isFinite(roomId)) {
+      setLoading(false);
+      setError("잘못된 채팅방이에요.");
+      return undefined;
+    }
+
+    let active = true;
+    setLoading(true);
+    setError(null);
+
+    getChatMessages(roomId)
+      .then((page) => {
+        if (!active) return;
+        // 응답은 최신 먼저라 역순으로 뒤집어 오름차순으로 만든다.
+        const ascending = [...page.messages].reverse();
+        setMessages(ascending);
+        setNextCursor(page.nextCursor);
+        latestIdRef.current = ascending.length > 0 ? ascending[ascending.length - 1].id : 0;
+      })
+      .catch(() => {
+        if (active) setError("메시지를 불러오지 못했어요.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [roomId]);
+
+  // 실시간 연결
+  useEffect(() => {
+    if (!Number.isFinite(roomId)) return undefined;
+
+    setStatus("connecting");
+    const socket = createChatSocket(roomId, {
+      onMessage: (message) => applyIncoming([message]),
+      onConnect: () => {
+        setStatus("connected");
+        // 끊겨 있는 동안 쌓인 메시지를 REST로 메운다. 메시지는 DB에 영속돼 유실이 아니다.
+        if (latestIdRef.current > 0) {
+          void resumeFrom(latestIdRef.current).catch(() => undefined);
+        }
+      },
+      onDisconnect: () => setStatus("disconnected"),
+    });
+
+    socketRef.current = socket;
+    socket.activate();
+
+    return () => {
+      socketRef.current = null;
+      void socket.deactivate();
+      setStatus("idle");
+    };
+  }, [applyIncoming, resumeFrom, roomId]);
+
+  // 읽음 처리 — 새 메시지가 들어올 때마다 마지막 id를 올린다.
+  useEffect(() => {
+    const latest = messages[messages.length - 1];
+    if (!latest || latest.id <= lastReadSentRef.current) return;
+
+    lastReadSentRef.current = latest.id;
+    void markChatRoomRead(roomId, latest.id).catch(() => undefined);
+  }, [messages, roomId]);
+
+  const loadOlder = useCallback(async () => {
+    if (nextCursor == null || loadingOlder) return;
+
+    setLoadingOlder(true);
+    try {
+      const page = await getChatMessages(roomId, nextCursor);
+      setMessages((previous) => mergeAscending(previous, page.messages));
+      setNextCursor(page.nextCursor);
+    } catch {
+      // 위로 스크롤 실패는 조용히 넘긴다. 다음 스크롤에서 다시 시도된다.
+    } finally {
+      setLoadingOlder(false);
+    }
+  }, [loadingOlder, nextCursor, roomId]);
+
+  const sendText = useCallback(async (content: string) => {
+    const trimmed = content.trim();
+    if (!trimmed) return;
+
+    const socket = socketRef.current;
+    // 전송 실패를 조용히 삼키면 사용자는 보낸 줄 안다. 명시적으로 알린다.
+    if (!socket?.publish({ content: trimmed.slice(0, CHAT_TEXT_MAX_LENGTH), messageType: "TEXT" })) {
+      throw new Error("연결이 끊겨 메시지를 보내지 못했어요.");
+    }
+  }, []);
+
+  const sendImages = useCallback(
+    async (files: File[]) => {
+      if (files.length === 0) return;
+
+      setSending(true);
+      try {
+        // 업로드 URL 발급 → S3 직접 PUT → objectKey만 STOMP로 전송.
+        const objectKeys = await uploadChatImages(roomId, files);
+        const socket = socketRef.current;
+
+        objectKeys.forEach((objectKey) => {
+          socket?.publish({ content: objectKey, messageType: "IMAGE" });
+        });
+      } finally {
+        setSending(false);
+      }
+    },
+    [roomId],
+  );
+
+  return {
+    messages,
+    loading,
+    error,
+    hasMore: nextCursor != null,
+    loadingOlder,
+    loadOlder,
+    status,
+    sending,
+    sendText,
+    sendImages,
+  };
+}

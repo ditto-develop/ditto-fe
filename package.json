@@ -20,6 +20,7 @@
     "generate-client": "openapi --input ./ditto-api.json --output ./src/shared/lib/api/generated --client fetch"
   },
   "dependencies": {
+    "@stomp/stompjs": "^7.3.0",
     "framer-motion": "^12.23.26",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.562.0",

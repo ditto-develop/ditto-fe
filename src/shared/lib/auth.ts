@@ -43,6 +43,26 @@ function getTokenExpiryMs(token: string): number | null {
     }
 }
 
+/**
+ * accessToken의 sub(또는 userId)에서 내 회원 ID를 읽는다.
+ * 채팅 senderId 등 BE가 int64로 주는 값과 비교하기 위해 숫자로 돌려준다.
+ * 숫자가 아니면(로컬 더미 토큰 등) null.
+ */
+export function getMyMemberId(): number | null {
+    const parts = getAccessToken().split(".");
+    if (parts.length !== 3) return null;
+
+    try {
+        const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        const decoded = JSON.parse(atob(payload)) as { sub?: string | number; userId?: string | number };
+        const raw = decoded.userId ?? decoded.sub;
+        const parsed = Number(raw);
+        return Number.isFinite(parsed) ? parsed : null;
+    } catch {
+        return null;
+    }
+}
+
 /** accessToken이 만료됐는지 판단한다. 판단 불가(JWT 아님/exp 없음)면 false. */
 export function isAccessTokenExpired(): boolean {
     const expiry = getTokenExpiryMs(getAccessToken());

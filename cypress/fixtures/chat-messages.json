@@ -1,18 +1,41 @@
 {
   "messages": [
     {
-      "id": "message-1",
-      "senderId": "partner-1",
+      "id": 30,
+      "roomId": 1,
+      "senderId": 2,
+      "messageType": "TEXT",
       "content": "안녕하세요, 반가워요!",
-      "createdAt": "2026-06-03T08:00:00.000Z"
+      "imageUrl": null,
+      "createdAt": "2026-06-03 17:00:00"
+    },
+    {
+      "id": 29,
+      "roomId": 1,
+      "senderId": 1,
+      "messageType": "IMAGE",
+      "content": "chat/1/mock-object-key",
+      "imageUrl": "/assets/avatar/m3.png",
+      "createdAt": "2026-06-03 16:58:00"
+    },
+    {
+      "id": 28,
+      "roomId": 1,
+      "senderId": 1,
+      "messageType": "TEXT",
+      "content": "반갑습니다! 주말에 시간 괜찮으세요?",
+      "imageUrl": null,
+      "createdAt": "2026-06-03 16:55:00"
+    },
+    {
+      "id": 27,
+      "roomId": 1,
+      "senderId": 2,
+      "messageType": "SYSTEM",
+      "content": "대화가 시작되었어요.",
+      "imageUrl": null,
+      "createdAt": "2026-06-03 11:00:00"
     }
   ],
-  "partnerLastReadMessageId": "message-1",
-  "readReceipts": [
-    {
-      "userId": "partner-1",
-      "lastReadMessageId": "message-1",
-      "readAt": "2026-06-03T08:00:00.000Z"
-    }
-  ]
+  "nextCursor": 27
 }

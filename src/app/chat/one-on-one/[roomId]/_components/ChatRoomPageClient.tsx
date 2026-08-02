@@ -1,141 +1,61 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import styled from "styled-components";
-import { ChatService, type ChatRoomDetailDto } from "@/shared/lib/api/generated";
+
+import { getCounterpartProfile, getChatRooms, useChatRoom } from "@/features/chat";
+import type { CounterpartProfile } from "@/features/chat";
+import { getMyMemberId } from "@/shared/lib/auth";
+import { resolveStaticRouteParam } from "@/shared/lib/staticRouteParam";
 import { ChatRoomHeader } from "./ChatRoomHeader";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
 import { ChatLeaveModal } from "./ChatLeaveModal";
 import { ChatMenuBottomSheet } from "./ChatMenuBottomSheet";
-import type { MessageItem } from "./MessageBubble";
-import { getChatRoomEndState } from "@/app/chat/_utils/chatRoomStatus";
-import { BottomActionArea, Button } from "@/shared/ui";
-
-function getUserIdFromToken(): string | null {
-  try {
-    const token = localStorage.getItem("accessToken");
-    if (!token) return null;
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.sub || payload.userId || null;
-  } catch {
-    return null;
-  }
-}
 
 export function ChatRoomPageClient() {
-  const params = useParams<{ roomId: string }>();
-  const roomId = params.roomId;
+  const params = useParams();
   const router = useRouter();
 
-  const [myUserId, setMyUserId] = useState<string | null>(null);
-  const [roomDetail, setRoomDetail] = useState<ChatRoomDetailDto | null>(null);
-  const [messages, setMessages] = useState<MessageItem[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const [partnerLastReadMessageId, setPartnerLastReadMessageId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [roomId] = useState(() =>
+    Number(resolveStaticRouteParam("one-on-one", String(params.roomId))),
+  );
+  const [myUserId, setMyUserId] = useState<number | null>(null);
+  const [counterpart, setCounterpart] = useState<CounterpartProfile | null>(null);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const hasRoomDetail = roomDetail !== null;
+
+  const { messages, loading, error, hasMore, loadingOlder, loadOlder, status, sendText, sendImages } =
+    useChatRoom(roomId);
 
   useEffect(() => {
-    const userId = getUserIdFromToken();
-    setMyUserId(userId);
+    setMyUserId(getMyMemberId());
+  }, []);
 
-    const init = async () => {
-      try {
-        const [detailRes, msgRes] = await Promise.all([
-          ChatService.chatControllerGetChatRoomDetail(roomId),
-          ChatService.chatControllerGetMessages(roomId, undefined, 30),
-        ]);
-
-        if (detailRes.success && detailRes.data) {
-          setRoomDetail(detailRes.data);
-        }
-
-        if (msgRes.success && msgRes.data) {
-          const msgs = (msgRes.data.messages as MessageItem[]).slice().reverse();
-          setMessages(msgs);
-          setNextCursor(msgRes.data.nextCursor ?? null);
-          setHasMore(!!msgRes.data.nextCursor);
-          setPartnerLastReadMessageId(msgRes.data.partnerLastReadMessageId ?? null);
-        }
-
-        ChatService.chatControllerMarkAsRead(roomId).catch(() => {});
-      } catch {
-        // ignore
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    init();
-  }, [roomId]);
-
+  // 방 상세 API가 없어졌다. 상대 정보는 방 목록의 counterpartMemberIds로 찾아 프로필을 조회한다.
   useEffect(() => {
-    if (!hasRoomDetail) return;
+    if (!Number.isFinite(roomId)) return undefined;
 
-    let isMounted = true;
-    let isFetching = false;
+    let active = true;
+    getChatRooms()
+      .then(async (rooms) => {
+        const room = rooms.find((item) => item.roomId === roomId);
+        const counterpartId = room?.counterpartMemberIds[0];
+        if (counterpartId === undefined) return;
 
-    const refreshRoomDetail = async () => {
-      if (isFetching || document.hidden) return;
-      isFetching = true;
-
-      try {
-        const detailRes = await ChatService.chatControllerGetChatRoomDetail(roomId);
-        if (isMounted && detailRes.success && detailRes.data) {
-          setRoomDetail(detailRes.data);
-          if (detailRes.data.partnerLastReadMessageId !== undefined) {
-            setPartnerLastReadMessageId(detailRes.data.partnerLastReadMessageId ?? null);
-          }
-        }
-      } catch {
-        // ignore
-      } finally {
-        isFetching = false;
-      }
-    };
-
-    const intervalId = window.setInterval(refreshRoomDetail, 3000);
+        const profile = await getCounterpartProfile(counterpartId);
+        if (active) setCounterpart(profile);
+      })
+      .catch(() => undefined);
 
     return () => {
-      isMounted = false;
-      window.clearInterval(intervalId);
+      active = false;
     };
-  }, [roomId, hasRoomDetail]);
+  }, [roomId]);
 
-  const handleMessagesUpdate = useCallback(
-    (newMessages: MessageItem[], cursor: string | null, newPartnerLastReadMessageId?: string | null) => {
-      setMessages(newMessages);
-      setNextCursor(cursor);
-      setHasMore(!!cursor);
-      if (newPartnerLastReadMessageId !== undefined) {
-        setPartnerLastReadMessageId(newPartnerLastReadMessageId);
-      }
-    },
-    []
-  );
-
-  const handleSend = async (content: string) => {
-    try {
-      const res = await ChatService.chatControllerSendMessage(roomId, { content });
-      if (res.success && res.data) {
-        setMessages((prev) => [...prev, res.data as MessageItem]);
-      }
-    } catch {
-      // ignore — MessageList polling will pick it up
-    }
-  };
-
-  const handleLeave = async () => {
-    try {
-      await ChatService.chatControllerLeaveChatRoom(roomId, { reason: "USER_LEFT" });
-    } catch {
-      // ignore
-    }
+  const handleLeave = () => {
+    // 라이브 BE에 나가기 엔드포인트가 없다. 목록으로 돌아가기만 한다.
     router.replace("/chat");
   };
 
@@ -147,59 +67,47 @@ export function ChatRoomPageClient() {
     );
   }
 
-  if (!roomDetail) {
+  if (error) {
     return (
       <PageContainer>
-        <EmptyMessage>채팅방을 찾을 수 없어요.</EmptyMessage>
+        <EmptyMessage>{error}</EmptyMessage>
       </PageContainer>
     );
   }
 
-  const expiresAt = roomDetail.expiresAt ? new Date(roomDetail.expiresAt) : null;
-  const endState = getChatRoomEndState(roomDetail, myUserId);
-  const isEnded = endState.isEnded;
+  const partnerNickname = counterpart?.nickname ?? "상대방";
 
   return (
     <PageContainer>
       <ChatRoomHeader
-        roomId={roomId}
-        partnerNickname={roomDetail.partner.nickname}
-        expiresAt={expiresAt}
+        roomId={String(roomId)}
+        partnerNickname={partnerNickname}
+        expiresAt={null}
         onMenuClick={() => setIsMenuOpen(true)}
       />
 
       <MessageList
-        roomId={roomId}
         messages={messages}
-        currentUserId={myUserId ?? ""}
-        partnerAvatarUrl={roomDetail.partner.profileImageUrl ?? null}
-        partnerNickname={roomDetail.partner.nickname}
-        partnerLastReadMessageId={partnerLastReadMessageId}
-        onMessagesUpdate={handleMessagesUpdate}
-        nextCursor={nextCursor}
+        myUserId={myUserId}
+        partnerAvatarUrl={counterpart?.profileImageUrl ?? null}
+        partnerNickname={partnerNickname}
         hasMore={hasMore}
-        isEnded={isEnded}
-        endedMessage={endState.message}
+        loadingOlder={loadingOlder}
+        onLoadOlder={loadOlder}
+        notice={
+          status === "disconnected"
+            ? "연결이 끊겼어요. 다시 연결되면 놓친 메시지를 불러올게요."
+            : null
+        }
       />
 
-      {!isEnded && <ChatInput onSend={handleSend} />}
-
-      {isEnded && (
-        <BottomActionArea>
-          <RateButton
-            type="button"
-            $size="large"
-            onClick={() => router.push(`/chat/one-on-one/${encodeURIComponent(roomId)}/rate`)}
-          >
-            평가하기
-          </RateButton>
-        </BottomActionArea>
-      )}
+      <ChatInput onSend={sendText} onSendImages={sendImages} />
 
       {isMenuOpen && (
         <ChatMenuBottomSheet
           onClose={() => setIsMenuOpen(false)}
           onLeave={() => setIsLeaveModalOpen(true)}
+          onReport={() => counterpart && router.push(`/report/${counterpart.userId}`)}
         />
       )}
 
@@ -229,8 +137,4 @@ const EmptyMessage = styled.div`
   font-family: "Pretendard JP", sans-serif;
   font-size: var(--typography-label-1-normal-font-size);
   color: var(--color-semantic-label-alternative);
-`;
-
-const RateButton = styled(Button)`
-  width: 100%;
 `;

@@ -6,11 +6,13 @@ import styled, { keyframes } from "styled-components";
 interface ChatMenuBottomSheetProps {
   onClose: () => void;
   onLeave: () => void;
+  onReport: () => void;
 }
 
 export function ChatMenuBottomSheet({
   onClose,
   onLeave,
+  onReport,
 }: ChatMenuBottomSheetProps) {
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -28,8 +30,8 @@ export function ChatMenuBottomSheet({
         <Contents>
           <MenuItem
             onClick={() => {
-              // 신고하기 — 추후 추가 예정
               onClose();
+              onReport();
             }}
           >
             <MenuText>신고하기</MenuText>

@@ -150,15 +150,28 @@ Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
   mockFixture("GET", ["**/api/users/*/intro-notes", "**/api/v1/users/*/intro-notes"], "intro-notes.json", "getUserIntroNotes");
 mockFixture("GET", ["**/api/users/*/ratings", "**/api/v1/users/*/ratings"], "user-ratings.json", "getUserRatings");
 
-  mockFixture("GET", ["**/api/chat/rooms", "**/api/v1/chat/rooms"], "chat-rooms.json", "getChatRooms");
-  mockFixture("POST", ["**/api/chat/rooms", "**/api/v1/chat/rooms"], "chat-room-item.json", "createChatRoom");
-  mockFixture("GET", ["**/api/chat/rooms/*", "**/api/v1/chat/rooms/*"], "chat-room-detail.json", "getChatRoomDetail");
-  mockFixture("GET", ["**/api/chat/rooms/*/messages*", "**/api/v1/chat/rooms/*/messages*"], "chat-messages.json", "getChatMessages");
-  mockFixture("POST", ["**/api/chat/rooms/*/messages", "**/api/v1/chat/rooms/*/messages"], "chat-message-sent.json", "sendChatMessage");
-  cy.intercept("PATCH", "**/api/**/chat/rooms/*/read", {
-    statusCode: 200,
-    body: { success: true },
-  }).as("markChatAsRead");
+  // 1:1 채팅(PR #103/#105). 방 생성·상세·나가기 엔드포인트는 사라졌고,
+  // 메시지 전송은 REST가 아니라 STOMP라 여기서 목킹하지 않는다.
+  mockFixture("GET", ["**/api/v1/chat/rooms", "**/api/chat/rooms"], "chat-rooms.json", "getChatRooms");
+  mockFixture(
+    "GET",
+    ["**/api/v1/chat/rooms/*/messages*", "**/api/chat/rooms/*/messages*"],
+    "chat-messages.json",
+    "getChatMessages",
+  );
+  cy.intercept("POST", "**/api/**/chat/rooms/*/read", emptySuccessResponse()).as("markChatAsRead");
+  cy.intercept("POST", "**/api/**/chat/rooms/*/image-upload-urls", (req) => {
+    const body = req.body as { files?: { contentType: string }[] };
+    req.reply(
+      successResponse({
+        uploads: (body.files ?? []).map((_, index) => ({
+          objectKey: `chat/1/cy-key-${index}`,
+          uploadUrl: `http://localhost:3100/mock-chat-s3/${index}`,
+        })),
+      }),
+    );
+  }).as("chatImageUploadUrls");
+  cy.intercept("PUT", "**/mock-chat-s3/*", { statusCode: 200, body: "" }).as("chatImagePut");
 
   return cy.wrap(undefined, { log: false });
 });

@@ -2,28 +2,23 @@
 
 import styled from "styled-components";
 
-export interface MessageItem {
-  id: string;
-  senderId: string;
-  content: string;
-  createdAt: string | Date;
-}
+import type { ChatMessage } from "@/features/chat";
 
 interface MessageBubbleProps {
-  message: MessageItem;
+  message: ChatMessage;
   isMine: boolean;
   isFirstInGroup: boolean;
   isLastInGroup: boolean;
-  showReadReceipt: boolean;
   partnerAvatarUrl: string | null;
   partnerNickname: string;
+  onImageClick?: (imageUrl: string) => void;
 }
 
-function formatTime(date: string | Date): string {
-  const d = new Date(date);
-  const h = d.getHours().toString().padStart(2, "0");
-  const m = d.getMinutes().toString().padStart(2, "0");
-  return `${h}:${m}`;
+function formatTime(date: string): string {
+  // BE는 `yyyy-MM-dd HH:mm:ss`로 내려준다. Safari에서 파싱되도록 T로 바꾼다.
+  const d = new Date(date.includes("T") ? date : date.replace(" ", "T"));
+  if (Number.isNaN(d.getTime())) return "";
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
 export function MessageBubble({
@@ -31,26 +26,46 @@ export function MessageBubble({
   isMine,
   isFirstInGroup,
   isLastInGroup,
-  showReadReceipt,
   partnerAvatarUrl,
   partnerNickname,
+  onImageClick,
 }: MessageBubbleProps) {
+  // SYSTEM 메시지는 좌우 구분 없이 가운데 안내로 표시한다.
+  if (message.messageType === "SYSTEM") {
+    return (
+      <SystemRow>
+        <SystemText>{message.content}</SystemText>
+      </SystemRow>
+    );
+  }
+
+  const body =
+    message.messageType === "IMAGE" ? (
+      <ImageButton
+        type="button"
+        onClick={() => message.imageUrl && onImageClick?.(message.imageUrl)}
+        disabled={!message.imageUrl}
+      >
+        {message.imageUrl ? (
+          <SentImage src={message.imageUrl} alt="보낸 이미지" loading="lazy" />
+        ) : (
+          <ImageFallback>이미지를 불러오지 못했어요</ImageFallback>
+        )}
+      </ImageButton>
+    ) : (
+      <BubbleText>{message.content}</BubbleText>
+    );
+
   if (isMine) {
     return (
       <SentRow>
         {isLastInGroup && (
           <SentMeta>
-            {showReadReceipt && (
-              <ReadIcon
-                src="/icons/status/circle-check-fill.svg"
-                alt="읽음"
-              />
-            )}
             <TimeLabel>{formatTime(message.createdAt)}</TimeLabel>
           </SentMeta>
         )}
-        <SentBubble $isFirstInGroup={isFirstInGroup}>
-          <BubbleText>{message.content}</BubbleText>
+        <SentBubble $isFirstInGroup={isFirstInGroup} $isImage={message.messageType === "IMAGE"}>
+          {body}
         </SentBubble>
       </SentRow>
     );
@@ -60,17 +75,17 @@ export function MessageBubble({
     <ReceivedRow $isFirstInGroup={isFirstInGroup}>
       {isFirstInGroup && (
         <AvatarSlot>
-          <Avatar
-            src={partnerAvatarUrl ?? "/assets/avatar/f1.png"}
-            alt={partnerNickname}
-          />
+          <Avatar src={partnerAvatarUrl ?? "/assets/avatar/f1.png"} alt={partnerNickname} />
         </AvatarSlot>
       )}
       <ReceivedContainer>
         {isFirstInGroup && <NicknameLabel>{partnerNickname}</NicknameLabel>}
         <ReceivedBubbleRow>
-          <ReceivedBubble $isFirstInGroup={isFirstInGroup}>
-            <BubbleText>{message.content}</BubbleText>
+          <ReceivedBubble
+            $isFirstInGroup={isFirstInGroup}
+            $isImage={message.messageType === "IMAGE"}
+          >
+            {body}
           </ReceivedBubble>
           {isLastInGroup && (
             <ReceivedMeta>
@@ -98,6 +113,21 @@ const ReceivedRow = styled.div<{ $isFirstInGroup: boolean }>`
   gap: 12px;
   margin-bottom: 2px;
   padding-left: ${({ $isFirstInGroup }) => ($isFirstInGroup ? "0" : "52px")};
+`;
+
+const SystemRow = styled.div`
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+`;
+
+const SystemText = styled.span`
+  font-family: "Pretendard JP", sans-serif;
+  font-size: var(--typography-label-2-font-size);
+  font-weight: 500;
+  line-height: var(--typography-label-2-line-height);
+  color: var(--color-semantic-label-alternative);
+  text-align: center;
 `;
 
 const AvatarSlot = styled.div`
@@ -135,21 +165,23 @@ const ReceivedBubbleRow = styled.div`
   gap: 8px;
 `;
 
-const SentBubble = styled.div<{ $isFirstInGroup: boolean }>`
+const SentBubble = styled.div<{ $isFirstInGroup: boolean; $isImage: boolean }>`
   max-width: 255px;
-  background-color: var(--color-semantic-fill-strong);
-  border-radius: ${({ $isFirstInGroup }) =>
-    $isFirstInGroup ? "12px 0 12px 12px" : "12px"};
-  padding: 8px;
+  background-color: ${({ $isImage }) =>
+    $isImage ? "transparent" : "var(--color-semantic-fill-strong)"};
+  border-radius: ${({ $isFirstInGroup }) => ($isFirstInGroup ? "12px 0 12px 12px" : "12px")};
+  padding: ${({ $isImage }) => ($isImage ? "0" : "8px")};
+  overflow: hidden;
   word-break: break-word;
 `;
 
-const ReceivedBubble = styled.div<{ $isFirstInGroup: boolean }>`
+const ReceivedBubble = styled.div<{ $isFirstInGroup: boolean; $isImage: boolean }>`
   max-width: 255px;
-  background-color: var(--color-semantic-static-white);
-  border-radius: ${({ $isFirstInGroup }) =>
-    $isFirstInGroup ? "0 12px 12px 12px" : "12px"};
-  padding: 8px;
+  background-color: ${({ $isImage }) =>
+    $isImage ? "transparent" : "var(--color-semantic-static-white)"};
+  border-radius: ${({ $isFirstInGroup }) => ($isFirstInGroup ? "0 12px 12px 12px" : "12px")};
+  padding: ${({ $isImage }) => ($isImage ? "0" : "8px")};
+  overflow: hidden;
   word-break: break-word;
 `;
 
@@ -161,6 +193,36 @@ const BubbleText = styled.p`
   letter-spacing: 0.144px;
   color: var(--color-semantic-label-normal);
   margin: 0;
+  white-space: pre-wrap;
+`;
+
+const ImageButton = styled.button`
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: ${({ disabled }) => (disabled ? "default" : "zoom-in")};
+  line-height: 0;
+`;
+
+const SentImage = styled.img`
+  display: block;
+  max-width: 255px;
+  max-height: 320px;
+  width: auto;
+  height: auto;
+  border-radius: 12px;
+  object-fit: cover;
+`;
+
+const ImageFallback = styled.span`
+  display: inline-block;
+  padding: 24px 16px;
+  border-radius: 12px;
+  background-color: var(--color-semantic-fill-normal);
+  font-family: "Pretendard JP", sans-serif;
+  font-size: var(--typography-label-2-font-size);
+  color: var(--color-semantic-label-alternative);
 `;
 
 const SentMeta = styled.div`
@@ -170,11 +232,6 @@ const SentMeta = styled.div`
   justify-content: flex-end;
   gap: 2px;
   flex-shrink: 0;
-`;
-
-const ReadIcon = styled.img`
-  width: 16px;
-  height: 16px;
 `;
 
 const ReceivedMeta = styled.div`

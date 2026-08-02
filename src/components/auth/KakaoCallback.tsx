@@ -29,6 +29,10 @@ function KakaoCallbackContent() {
   const signupRequired = searchParams.get("signupRequired") === "true";
   const oauthError = searchParams.get("error");
   const oauthErrorDescription = searchParams.get("error_description");
+  // 제재 회원은 토큰이 발급되지 않고 sanctioned=true로 리다이렉트된다.
+  // 토큰 저장/회원가입 분기보다 먼저 확인해야 한다.
+  const sanctioned = searchParams.get("sanctioned") === "true";
+  const sanctionQuery = searchParams.toString();
 
   // 신규 회원 진입 시 빈 initialData({})로 Tutorial step 1에서 시작
   const [initialData, setInitialData] = useState<KakaoLoginResult | null>(null);
@@ -41,6 +45,14 @@ function KakaoCallbackContent() {
     if (oauthError) {
       isHandled.current = true;
       setError(oauthErrorDescription || `카카오 로그인이 취소되었거나 실패했습니다. (${oauthError})`);
+      return;
+    }
+
+    // 제재 회원: 토큰이 없으므로 저장/조회를 시도하지 않고 콜백 쿼리를 그대로 넘긴다.
+    if (sanctioned) {
+      isHandled.current = true;
+      clearTokens();
+      router.replace(`/sanction?${sanctionQuery}`);
       return;
     }
 
@@ -74,7 +86,15 @@ function KakaoCallbackContent() {
       // 기존 회원: 홈으로
       router.push("/home");
     }
-  }, [accessToken, signupRequired, oauthError, oauthErrorDescription, router]);
+  }, [
+    accessToken,
+    signupRequired,
+    oauthError,
+    oauthErrorDescription,
+    sanctioned,
+    sanctionQuery,
+    router,
+  ]);
 
   if (error) {
     return (

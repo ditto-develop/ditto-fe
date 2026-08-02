@@ -1,0 +1,74 @@
+[
+  {
+    "id": "noti-1",
+    "type": "MATCH_RESULT",
+    "title": "이번 주 매칭 결과가 나왔어요",
+    "body": "나와 답변이 비슷한 사람들을 찾았어요. 지금 확인해 보세요.",
+    "minutesAgo": 0,
+    "read": false,
+    "linkTo": "/matching"
+  },
+  {
+    "id": "noti-2",
+    "type": "NEW_MESSAGE",
+    "title": "산책러버님의 새 메시지",
+    "body": "주말에 시간 괜찮으세요? 아직 우리가 알게 된 지 오래 되진 않았지만, 뭔가 님은 꼭 만나보고 싶어져요. 부담 갖지 마시고, 시간 맞춰서 주말에 볼까요?",
+    "minutesAgo": 15,
+    "read": false,
+    "linkTo": "/chat/one-on-one/room-1"
+  },
+  {
+    "id": "noti-3",
+    "type": "GROUP_FORMED",
+    "title": "그룹이 구성됐어요",
+    "body": "같은 취미, 취향 그룹에 5명이 모였어요. 지금 바로 멤버를 확인해 보세요.",
+    "minutesAgo": 60,
+    "read": false,
+    "linkTo": "/chat/group/group-1"
+  },
+  {
+    "id": "noti-4",
+    "type": "VOTE_RESULT",
+    "title": "투표 결과가 확정됐어요",
+    "body": "“만남 장소 투표”가 종료됐어요. 결과를 확인해 보세요.",
+    "minutesAgo": 180,
+    "read": true,
+    "linkTo": "/chat/group/group-1"
+  },
+  {
+    "id": "noti-5",
+    "type": "RATING_REQUEST",
+    "title": "이번 만남은 어떠셨나요?",
+    "body": "댕이누나님과의 만남을 평가해주세요.",
+    "minutesAgo": 720,
+    "read": true,
+    "linkTo": "/chat/one-on-one/room-1/rate"
+  },
+  {
+    "id": "noti-6",
+    "type": "REMATCH_SUCCESS",
+    "title": "재매칭이 성사됐어요",
+    "body": "“디자이너산책” 님과의 채팅방이 다시 열렸어요.",
+    "minutesAgo": 7200,
+    "read": true,
+    "linkTo": "/chat/one-on-one/room-2"
+  },
+  {
+    "id": "noti-7",
+    "type": "CHAT_CLOSING",
+    "title": "채팅이 6시간 후 종료돼요",
+    "body": "아직 나누고 싶은 이야기가 있다면 지금 해보는 건 어때요?",
+    "minutesAgo": 10080,
+    "read": true,
+    "linkTo": "/chat/one-on-one/room-2"
+  },
+  {
+    "id": "noti-8",
+    "type": "APP_UPDATE",
+    "title": "ditto 버전이 업데이트됐어요!",
+    "body": "더 나아진 ditto를 만나보세요.",
+    "minutesAgo": 30240,
+    "read": true,
+    "linkTo": null
+  }
+]

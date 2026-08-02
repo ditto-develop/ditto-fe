@@ -3,6 +3,7 @@ import type { ApiRequestOptions } from "./generated/core/ApiRequestOptions";
 import { OpenAPI, type OpenAPIConfig } from "./generated/core/OpenAPI";
 import { request } from "./generated/core/request";
 import { refreshAccessToken } from "./externalClient";
+import { ApiError, notifySanctionedIfBlocked } from "@/shared/lib/api/apiError";
 import { getAccessToken } from "@/shared/lib/auth";
 
 /** API BASE URL 가져오기 */
@@ -76,8 +77,35 @@ const toRequestOptions = (path: string, options: RequestInit): ApiRequestOptions
 type WrappedResponse<T> = {
     success: boolean;
     data?: T;
-    error?: string;
+    error?: string | { message?: string; code?: string; statusCode?: number };
 };
+
+function readError(error: WrappedResponse<unknown>["error"]): { message: string; code: string } {
+    if (!error) return { message: "", code: "" };
+    if (typeof error === "string") return { message: error, code: "" };
+    return { message: error.message ?? "", code: error.code ?? "" };
+}
+
+/**
+ * generated client도 externalClient와 같은 에러 계약을 따른다.
+ * - HTTP 200 + success:false 든 실제 4xx든 ApiError(code 포함)로 정규화한다.
+ * - 제재(6006/6007)는 전역 이벤트로 알려 SanctionGate가 처리하게 한다.
+ */
+function toApiError(
+    envelope: WrappedResponse<unknown> | null,
+    httpStatus: number,
+    fallback: string,
+): ApiError {
+    const { message, code } = readError(envelope?.error);
+    notifySanctionedIfBlocked(code);
+    return new ApiError(message || fallback, code, httpStatus);
+}
+
+/** GeneratedApiError.body는 BE 래핑 응답을 그대로 담고 있다. */
+function toEnvelope(error: GeneratedApiError): WrappedResponse<unknown> | null {
+    const body = error.body as WrappedResponse<unknown> | undefined;
+    return body && typeof body === "object" ? body : null;
+}
 
 // BE는 { success, data?, error? } 래핑 구조로 응답
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -86,7 +114,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     try {
         const json = await request<WrappedResponse<T>>(apiConfig, requestOptions);
         if (!json.success) {
-            throw new Error(json.error || `API error: ${path}`);
+            throw toApiError(json, 200, `API error: ${path}`);
         }
         return json.data as T;
     } catch (error) {
@@ -102,12 +130,16 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
                         requestOptions,
                     );
                     if (!json.success) {
-                        throw new Error(json.error || `API error: ${path}`);
+                        throw toApiError(json, 200, `API error: ${path}`);
                     }
                     return json.data as T;
                 } catch (retryError) {
                     if (retryError instanceof GeneratedApiError) {
-                        throw new Error(`API ${retryError.status}: ${path}`);
+                        throw toApiError(
+                            toEnvelope(retryError),
+                            retryError.status,
+                            `API ${retryError.status}: ${path}`,
+                        );
                     }
                     throw retryError;
                 }
@@ -115,7 +147,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
         }
 
         if (error instanceof GeneratedApiError) {
-            throw new Error(`API ${error.status}: ${path}`);
+            throw toApiError(toEnvelope(error), error.status, `API ${error.status}: ${path}`);
         }
         throw error;
     }

@@ -7,7 +7,7 @@ import { formatChatMessagePreview } from "@/app/chat/_utils/messagePreview";
 
 // Extended type to support optional status fields the BE may return
 export interface ChatRoomListItemData {
-  roomId: string;
+  roomId: number;
   partnerNickname: string;
   partnerAvatarUrl: string | null;
   lastMessageContent?: string;

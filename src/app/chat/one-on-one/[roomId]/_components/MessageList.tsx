@@ -1,37 +1,38 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import styled from "styled-components";
-import { ChatService } from "@/shared/lib/api/generated";
-import type { MessageItem } from "./MessageBubble";
+
+import type { ChatMessage } from "@/features/chat";
 import { MessageBubble } from "./MessageBubble";
 
 interface MessageListProps {
-  roomId: string;
-  messages: MessageItem[];
-  currentUserId: string;
+  messages: ChatMessage[];
+  myUserId: number | null;
   partnerAvatarUrl: string | null;
   partnerNickname: string;
-  partnerLastReadMessageId: string | null | undefined;
-  onMessagesUpdate: (messages: MessageItem[], nextCursor: string | null, partnerLastReadMessageId?: string | null) => void;
-  nextCursor: string | null;
   hasMore: boolean;
-  isEnded: boolean;
-  endedMessage?: string;
+  loadingOlder: boolean;
+  onLoadOlder: () => void;
+  /** 연결이 끊겼을 때 상단에 띄우는 안내. */
+  notice?: string | null;
+  onImageClick?: (imageUrl: string) => void;
 }
 
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
-const URL_PATTERN = /((https?:\/\/|www\.)[^\s]+|[a-zA-Z0-9-]+\.(com|net|org|io|co|me|kr|app|dev|gg|tv|ly|to|ai|so|xyz|site|info|link)(\/[^\s]*)?)/i;
+const URL_PATTERN =
+  /((https?:\/\/|www\.)[^\s]+|[a-zA-Z0-9-]+\.(com|net|org|io|co|me|kr|app|dev|gg|tv|ly|to|ai|so|xyz|site|info|link)(\/[^\s]*)?)/i;
 const ACCOUNT_PATTERN = /\b\d{2,6}-\d{2,6}-\d{2,10}\b/;
 const MONEY_REQUEST_PATTERN =
   /(입금|송금|계좌|계좌번호|보내주|보내 주세요|보내주세요|입금해|입금해 주세요|입금해주세요|수수료|선입금|착불|돈\s*보내|금액|만원|원\b|페이|송금해|이체)/;
 
+/** BE는 `yyyy-MM-dd HH:mm:ss`로 내려준다. Safari 파싱을 위해 T로 바꾼다. */
+function toDate(value: string): Date {
+  return new Date(value.includes("T") ? value : value.replace(" ", "T"));
+}
+
 function formatDateLabel(date: Date): string {
-  const y = date.getFullYear();
-  const m = date.getMonth() + 1;
-  const d = date.getDate();
-  const day = DAYS[date.getDay()];
-  return `${y}년 ${m}월 ${d}일 ${day}요일`;
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 ${DAYS[date.getDay()]}요일`;
 }
 
 function isSameDay(a: Date, b: Date): boolean {
@@ -42,50 +43,45 @@ function isSameDay(a: Date, b: Date): boolean {
   );
 }
 
-function containsExternalLink(content: string): boolean {
-  return URL_PATTERN.test(content);
-}
-
-function containsMoneyRequest(content: string): boolean {
-  return ACCOUNT_PATTERN.test(content) || MONEY_REQUEST_PATTERN.test(content);
+/** 경고 배너는 사용자가 직접 쓴 TEXT에만 적용한다(IMAGE의 objectKey는 대상이 아니다). */
+function isTextMessage(message: ChatMessage): boolean {
+  return message.messageType === "TEXT";
 }
 
 export function MessageList({
-  roomId,
   messages,
-  currentUserId,
+  myUserId,
   partnerAvatarUrl,
   partnerNickname,
-  partnerLastReadMessageId,
-  onMessagesUpdate,
-  nextCursor,
   hasMore,
-  isEnded,
-  endedMessage,
+  loadingOlder,
+  onLoadOlder,
+  notice,
+  onImageClick,
 }: MessageListProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const isLoadingMore = useRef(false);
-  const latestMessageId = useRef<string | null>(null);
   const isInitialLoad = useRef(true);
-  const renderedLatestMessageId = useRef<string | null>(null);
+  const renderedLatestId = useRef<number | null>(null);
+  // 위로 스크롤로 과거를 붙이면 스크롤 위치를 보정해야 하므로 자동 스크롤을 한 번 건너뛴다.
   const skipNextAutoScroll = useRef(false);
+  const previousScrollHeight = useRef(0);
 
-  // Keep the newest message visible after initial load, sends, and polling updates.
   useEffect(() => {
     const latest = messages[messages.length - 1];
     if (!latest) return;
 
-    if (renderedLatestMessageId.current === latest.id) {
-      skipNextAutoScroll.current = false;
-      return;
-    }
-
-    renderedLatestMessageId.current = latest.id;
-    latestMessageId.current = latest.id;
+    if (renderedLatestId.current === latest.id) return;
+    renderedLatestId.current = latest.id;
 
     if (skipNextAutoScroll.current) {
       skipNextAutoScroll.current = false;
+      const el = listRef.current;
+      if (el) {
+        requestAnimationFrame(() => {
+          el.scrollTop = el.scrollHeight - previousScrollHeight.current;
+        });
+      }
       return;
     }
 
@@ -93,87 +89,23 @@ export function MessageList({
     isInitialLoad.current = false;
 
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        bottomRef.current?.scrollIntoView({ behavior });
-      });
+      requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ behavior }));
     });
   }, [messages]);
 
-  // Polling — skip for ended rooms
-  useEffect(() => {
-    if (isEnded) return;
-
-    if (messages.length > 0) {
-      latestMessageId.current = messages[messages.length - 1].id;
-    }
-
-    const poll = async () => {
-      try {
-        const res = await ChatService.chatControllerGetMessages(roomId, undefined, 30);
-        if (!res.success || !res.data) return;
-
-        const polled = (res.data.messages as MessageItem[]).slice().reverse();
-        if (!polled.length) return;
-
-        const latestNew = polled[polled.length - 1].id;
-        if (latestNew === latestMessageId.current) return;
-
-        const knownId = latestMessageId.current;
-        const knownIdx = polled.findIndex((m) => m.id === knownId);
-        const genuinelyNew = knownIdx >= 0 ? polled.slice(knownIdx + 1) : polled;
-
-        if (!genuinelyNew.length) return;
-
-        latestMessageId.current = latestNew;
-        onMessagesUpdate(
-          [...messages, ...genuinelyNew],
-          res.data.nextCursor ?? null,
-          res.data.partnerLastReadMessageId ?? null,
-        );
-
-        ChatService.chatControllerMarkAsRead(roomId).catch(() => {});
-      } catch {
-        // ignore
-      }
-    };
-
-    const id = setInterval(poll, 3000);
-    return () => clearInterval(id);
-  }, [roomId, messages, onMessagesUpdate, isEnded]);
-
-  // Upward infinite scroll
-  const handleScroll = useCallback(async () => {
+  const handleScroll = useCallback(() => {
     const el = listRef.current;
-    if (!el || !hasMore || isLoadingMore.current) return;
+    if (!el || !hasMore || loadingOlder) return;
     if (el.scrollTop > 60) return;
 
-    isLoadingMore.current = true;
-    const prevScrollHeight = el.scrollHeight;
-
-    try {
-      const res = await ChatService.chatControllerGetMessages(roomId, nextCursor ?? undefined, 30);
-      if (!res.success || !res.data) return;
-
-      const older = (res.data.messages as MessageItem[]).slice().reverse();
-      const merged = [...older, ...messages];
-      skipNextAutoScroll.current = true;
-      onMessagesUpdate(merged, res.data.nextCursor ?? null);
-
-      requestAnimationFrame(() => {
-        if (listRef.current) {
-          listRef.current.scrollTop = listRef.current.scrollHeight - prevScrollHeight;
-        }
-      });
-    } catch {
-      // ignore
-    } finally {
-      isLoadingMore.current = false;
-    }
-  }, [roomId, hasMore, nextCursor, messages, onMessagesUpdate]);
+    skipNextAutoScroll.current = true;
+    previousScrollHeight.current = el.scrollHeight;
+    onLoadOlder();
+  }, [hasMore, loadingOlder, onLoadOlder]);
 
   useEffect(() => {
     const el = listRef.current;
-    if (!el) return;
+    if (!el) return undefined;
     el.addEventListener("scroll", handleScroll);
     return () => el.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
@@ -182,99 +114,89 @@ export function MessageList({
     const items: React.ReactNode[] = [];
     let prevDate: Date | null = null;
 
-    // partnerLastReadMessageId: 상대가 읽은 마지막 메시지 ID
-    // 그 ID 이하에 있는 내 메시지 중 가장 마지막에만 읽음 표시
-    const readReceiptMessageId = (() => {
-      if (!partnerLastReadMessageId) return null;
-      const idx = messages.findIndex((m) => m.id === partnerLastReadMessageId);
-      const searchUpTo = idx >= 0 ? idx : messages.length - 1;
-      for (let i = searchUpTo; i >= 0; i--) {
-        if (messages[i].senderId === currentUserId) return messages[i].id;
-      }
-      return null;
-    })();
+    messages.forEach((message, index) => {
+      const messageDate = toDate(message.createdAt);
 
-    for (let i = 0; i < messages.length; i++) {
-      const msg = messages[i];
-      const msgDate = new Date(msg.createdAt);
-
-      // Date separator
-      if (!prevDate || !isSameDay(prevDate, msgDate)) {
+      if (!prevDate || !isSameDay(prevDate, messageDate)) {
         items.push(
-          <DateSeparator key={`date-${msg.id}`}>
-            <DateChip>{formatDateLabel(msgDate)}</DateChip>
-          </DateSeparator>
+          <DateSeparator key={`date-${message.id}`}>
+            <DateChip>{formatDateLabel(messageDate)}</DateChip>
+          </DateSeparator>,
         );
-        prevDate = msgDate;
+        prevDate = messageDate;
       }
 
-      const isMine = msg.senderId === currentUserId;
-      const prevMsg = i > 0 ? messages[i - 1] : null;
-      const nextMsg = messages[i + 1] ?? null;
+      const previous = index > 0 ? messages[index - 1] : null;
+      const next = messages[index + 1] ?? null;
+      const isSystem = message.messageType === "SYSTEM";
 
       const isFirstInGroup =
-        !prevMsg ||
-        prevMsg.senderId !== msg.senderId ||
-        !isSameDay(new Date(prevMsg.createdAt), msgDate);
+        isSystem ||
+        !previous ||
+        previous.senderId !== message.senderId ||
+        previous.messageType === "SYSTEM" ||
+        !isSameDay(toDate(previous.createdAt), messageDate);
 
       const isLastInGroup =
-        !nextMsg ||
-        nextMsg.senderId !== msg.senderId ||
-        !isSameDay(new Date(nextMsg.createdAt), msgDate);
+        isSystem ||
+        !next ||
+        next.senderId !== message.senderId ||
+        next.messageType === "SYSTEM" ||
+        !isSameDay(toDate(next.createdAt), messageDate);
 
       items.push(
         <MessageBubble
-          key={msg.id}
-          message={msg}
-          isMine={isMine}
+          key={message.id}
+          message={message}
+          isMine={myUserId !== null && message.senderId === myUserId}
           isFirstInGroup={isFirstInGroup}
           isLastInGroup={isLastInGroup}
-          showReadReceipt={msg.id === readReceiptMessageId}
           partnerAvatarUrl={partnerAvatarUrl}
           partnerNickname={partnerNickname}
-        />
+          onImageClick={onImageClick}
+        />,
       );
 
-      if (containsExternalLink(msg.content)) {
+      if (isTextMessage(message) && URL_PATTERN.test(message.content)) {
         items.push(
           <SectionWarning
-            key={`link-warning-${msg.id}`}
+            key={`link-warning-${message.id}`}
             message="출처 불명의 링크는 악성코드 또는 피싱 사이트로 연결될 수 있습니다. 클릭에 주의하세요!"
-          />
+          />,
         );
       }
 
-      if (containsMoneyRequest(msg.content)) {
+      if (
+        isTextMessage(message) &&
+        (ACCOUNT_PATTERN.test(message.content) || MONEY_REQUEST_PATTERN.test(message.content))
+      ) {
         items.push(
           <SectionWarning
-            key={`money-warning-${msg.id}`}
+            key={`money-warning-${message.id}`}
             message="금전 요구는 100% 사기입니다. 피해 위험이 있으니 주의하세요!"
-          />
+          />,
         );
       }
-    }
+    });
 
     return items;
   };
 
   return (
-    <ListContainer ref={listRef}>
-      {!isEnded && (
-        <WarningText>
-          안전한 만남을 위해 가급적 ditto 에서 대화를 나눠주세요.{"\n"}
-          불건전한 행위 발견 시 신고해 주세요.
-        </WarningText>
-      )}
+    <ListContainer ref={listRef} data-cy="message-list">
+      <WarningText>
+        안전한 만남을 위해 가급적 ditto 에서 대화를 나눠주세요.{"\n"}
+        불건전한 행위 발견 시 신고해 주세요.
+      </WarningText>
+      {loadingOlder && <LoadingOlder>이전 메시지를 불러오는 중...</LoadingOlder>}
       {renderMessages()}
-      {isEnded && (
-        <EndedNoticeCard>
-          <EndedNoticeContent>
-            <EndedNoticeIcon aria-hidden="true">i</EndedNoticeIcon>
-            <EndedNoticeMessage>
-              {endedMessage ?? "대화가 종료되어 메시지를 보낼 수 없어요."}
-            </EndedNoticeMessage>
-          </EndedNoticeContent>
-        </EndedNoticeCard>
+      {notice && (
+        <NoticeCard>
+          <NoticeContent>
+            <NoticeIcon aria-hidden="true">i</NoticeIcon>
+            <NoticeMessage>{notice}</NoticeMessage>
+          </NoticeContent>
+        </NoticeCard>
       )}
       <div ref={bottomRef} />
     </ListContainer>
@@ -303,6 +225,14 @@ const WarningText = styled.p`
   margin: 4px 0 8px;
 `;
 
+const LoadingOlder = styled.p`
+  margin: 0;
+  text-align: center;
+  font-family: "Pretendard JP", sans-serif;
+  font-size: var(--typography-label-2-font-size);
+  color: var(--color-semantic-label-alternative);
+`;
+
 const DateSeparator = styled.div`
   display: flex;
   justify-content: center;
@@ -326,12 +256,7 @@ function SectionWarning({ message }: { message: string }) {
       <WarningCardContent>
         <WarningIconWrap>
           <WarningIconBackdrop />
-          <WarningIcon
-            src="/icons/status/warning.svg"
-            alt="주의"
-            width={20}
-            height={20}
-          />
+          <WarningIcon src="/icons/status/warning.svg" alt="주의" width={20} height={20} />
         </WarningIconWrap>
         <WarningMessage>{message}</WarningMessage>
       </WarningCardContent>
@@ -413,7 +338,7 @@ const WarningMessage = styled.p`
   font-feature-settings: "ss10" on;
 `;
 
-const EndedNoticeCard = styled.div`
+const NoticeCard = styled.div`
   position: relative;
   overflow: clip;
   border-radius: 12px;
@@ -437,7 +362,7 @@ const EndedNoticeCard = styled.div`
   }
 `;
 
-const EndedNoticeContent = styled.div`
+const NoticeContent = styled.div`
   position: relative;
   z-index: 1;
   display: flex;
@@ -448,7 +373,7 @@ const EndedNoticeContent = styled.div`
   box-sizing: border-box;
 `;
 
-const EndedNoticeIcon = styled.span`
+const NoticeIcon = styled.span`
   width: 20px;
   height: 20px;
   flex-shrink: 0;
@@ -465,7 +390,7 @@ const EndedNoticeIcon = styled.span`
   line-height: 1;
 `;
 
-const EndedNoticeMessage = styled.p`
+const NoticeMessage = styled.p`
   flex: 1;
   margin: 0;
   font-family: "Pretendard JP", sans-serif;

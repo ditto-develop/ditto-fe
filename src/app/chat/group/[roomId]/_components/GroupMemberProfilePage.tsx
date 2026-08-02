@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import styled, { keyframes } from "styled-components";
 import {
   getUserProfile,
@@ -30,6 +31,7 @@ export function GroupMemberProfilePage({
   profileImageUrl,
   onClose,
 }: GroupMemberProfilePageProps) {
+  const router = useRouter();
   const [profile, setProfile] = useState<PublicProfileDto | null>(null);
   const [introNotes, setIntroNotes] = useState<IntroNoteAnswer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,8 +141,8 @@ export function GroupMemberProfilePage({
         <GroupMemberMoreModal
           onClose={() => setIsMoreModalOpen(false)}
           onReport={() => {
-            // TODO: 신고하기 기능 추후 개발
             setIsMoreModalOpen(false);
+            router.push(`/report/${userId}`);
           }}
         />
       )}

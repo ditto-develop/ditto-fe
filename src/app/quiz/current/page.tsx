@@ -8,6 +8,8 @@ import { ActionButton, ActionSheet } from "@/components/input/Action";
 import { useRouter, useSearchParams } from "next/navigation";
 import { QuizModal } from "@/components/quiz/QuizModal";
 import { getExternalCurrentWeekQuizSets, submitExternalQuizAnswer } from "@/shared/lib/api/externalApi";
+import { getQuizSanctionMessage } from "@/features/sanction";
+import { useToast } from "@/context/ToastContext";
 import type { CurrentWeekQuizSetsResponseDto, QuizDto } from "@/shared/lib/api/generated";
 
 // --- Types ---
@@ -24,6 +26,7 @@ export default function Quiz() {
 function QuizContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { showToast } = useToast();
   const matchingType = searchParams.get("type"); // 'ONE_TO_ONE' | 'GROUP' | null
 
   // --- State for API data, loading, and error ---
@@ -70,7 +73,11 @@ function QuizContent() {
     setSelectedChoiceId(choiceId);
 
     // 서버에 답변 제출 (비동기, 실패해도 UI 진행)
-    submitExternalQuizAnswer(currentQuiz.id, choiceId).catch(() => {});
+    // 단, 제재(6008)는 답변이 저장되지 않으므로 사용자에게 알린다.
+    submitExternalQuizAnswer(currentQuiz.id, choiceId).catch((err: unknown) => {
+      const sanctionMessage = getQuizSanctionMessage(err);
+      if (sanctionMessage) showToast(sanctionMessage, "error");
+    });
 
     setTimeout(() => {
       setIsFadingOut(true);

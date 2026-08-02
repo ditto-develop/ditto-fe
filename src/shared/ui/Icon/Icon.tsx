@@ -4,6 +4,7 @@ import React from "react";
 import styled from "styled-components";
 
 export const ICON_PATHS = {
+  "action.camera": "/icons/action/camera.svg",
   "action.edit": "/icons/action/edit.svg",
   "action.lock": "/icons/action/lock.svg",
   "action.message": "/icons/action/message.svg",
@@ -19,8 +20,19 @@ export const ICON_PATHS = {
   "navigation.chevronRight": "/icons/navigation/chevron-right.svg",
   "navigation.close": "/icons/navigation/close.svg",
   "navigation.textfieldArrow": "/icons/navigation/textfield-arrow.svg",
+  "notification.bell": "/icons/notification/bell.svg",
+  "notification.bellLarge": "/icons/notification/bell-large.svg",
+  "notification.clock": "/icons/notification/clock.svg",
+  "notification.heart": "/icons/notification/heart.svg",
+  "notification.message": "/icons/notification/message.svg",
+  "notification.people": "/icons/notification/people.svg",
+  "notification.pin": "/icons/notification/pin.svg",
+  "notification.rematch": "/icons/notification/rematch.svg",
+  "notification.star": "/icons/notification/star.svg",
   "status.check": "/icons/status/check.svg",
+  "status.circleBlock": "/icons/status/circle-block.svg",
   "status.circleCheckFill": "/icons/status/circle-check-fill.svg",
+  "status.circleExclamation": "/icons/status/circle-exclamation.svg",
   "status.clockYellow": "/icons/status/clock-yellow.svg",
   "status.error": "/icons/status/error.svg",
   "status.profileCheck": "/icons/status/profile-check.svg",

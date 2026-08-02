@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
-import { ChatService } from "@/shared/lib/api/generated";
+import { getChatRooms, getCounterpartProfile } from "@/features/chat";
 import { Avatar, BottomActionArea, Button, Checkbox } from "@/shared/ui";
 import { useToast } from "@/context/ToastContext";
 import { useOneOnOneRating } from "@/features/rating/hooks/useOneOnOneRating";
@@ -25,14 +25,18 @@ export function OneOnOneRatingContainer({ roomId }: OneOnOneRatingContainerProps
   const [loading, setLoading] = useState(true);
   const rating = useOneOnOneRating(roomId);
 
+  // 방 상세 API가 없어져 상대 정보는 방 목록의 counterpartMemberIds로 찾아 프로필을 조회한다.
   useEffect(() => {
     let active = true;
 
-    ChatService.chatControllerGetChatRoomDetail(roomId)
-      .then((response) => {
-        if (active && response.success && response.data) {
-          setPartner(response.data.partner);
-        }
+    getChatRooms()
+      .then(async (rooms) => {
+        const room = rooms.find((item) => String(item.roomId) === String(roomId));
+        const counterpartId = room?.counterpartMemberIds[0];
+        if (counterpartId === undefined) return;
+
+        const profile = await getCounterpartProfile(counterpartId);
+        if (active) setPartner(profile);
       })
       .catch(() => {
         if (active) showToast("평가 정보를 불러오지 못했어요.", "error");

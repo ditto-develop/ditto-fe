@@ -1,21 +1,31 @@
 "use client";
 
-import type { KeyboardEvent } from "react";
+import type { ChangeEvent, KeyboardEvent } from "react";
 import { useState, useRef } from "react";
 import styled from "styled-components";
 
+import { CHAT_IMAGE_MAX_COUNT, CHAT_IMAGE_MAX_SIZE_BYTES, CHAT_TEXT_MAX_LENGTH } from "@/features/chat";
+import { useToast } from "@/context/ToastContext";
+import { Icon } from "@/shared/ui";
+
 interface ChatInputProps {
   onSend: (content: string) => Promise<void>;
+  /** 이미지 첨부. 미지정 시 첨부 버튼을 숨긴다. */
+  onSendImages?: (files: File[]) => Promise<void>;
   disabled?: boolean;
 }
 
-const MAX_MESSAGE_LENGTH = 500;
+/** BE가 code 0001로 거절하는 상한과 동일하게 맞춘다. */
+const MAX_MESSAGE_LENGTH = CHAT_TEXT_MAX_LENGTH;
 const TEXTAREA_MAX_HEIGHT = 190;
 
-export function ChatInput({ onSend, disabled }: ChatInputProps) {
+export function ChatInput({ onSend, onSendImages, disabled }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [sending, setSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { showToast } = useToast();
 
   const handleSend = async () => {
     const trimmed = value.trim();
@@ -29,6 +39,33 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         textareaRef.current.style.height = "auto";
         textareaRef.current.style.overflowY = "hidden";
       }
+    } catch (err: unknown) {
+      // 소켓이 끊긴 상태의 전송 실패는 입력값을 지우지 않고 그대로 알린다.
+      showToast(err instanceof Error ? err.message : "메시지를 보내지 못했어요.", "error");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(event.target.files ?? []);
+    // 같은 파일을 연속으로 고를 수 있도록 값을 비운다.
+    event.target.value = "";
+    if (selected.length === 0 || !onSendImages) return;
+
+    const oversized = selected.filter((file) => file.size > CHAT_IMAGE_MAX_SIZE_BYTES);
+    if (oversized.length > 0) showToast("이미지는 10MB 이하만 보낼 수 있어요.", "error");
+
+    const accepted = selected
+      .filter((file) => file.size <= CHAT_IMAGE_MAX_SIZE_BYTES)
+      .slice(0, CHAT_IMAGE_MAX_COUNT);
+    if (accepted.length === 0) return;
+
+    setSending(true);
+    try {
+      await onSendImages(accepted);
+    } catch {
+      showToast("이미지를 보내지 못했어요.", "error");
     } finally {
       setSending(false);
     }
@@ -54,6 +91,25 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   return (
     <Outer>
       <FieldWrapper>
+        {onSendImages && (
+          <>
+            <AttachButton
+              type="button"
+              aria-label="이미지 첨부"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={sending || disabled}
+            >
+              <Icon name="action.camera" size={20} />
+            </AttachButton>
+            <HiddenFileInput
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileChange}
+            />
+          </>
+        )}
         <TextArea
           ref={textareaRef}
           value={value}
@@ -91,6 +147,29 @@ const FieldWrapper = styled.div`
   box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.03);
   background: transparent;
   box-sizing: border-box;
+`;
+
+const AttachButton = styled.button`
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.6;
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.3;
+  }
+`;
+
+const HiddenFileInput = styled.input`
+  display: none;
 `;
 
 const TextArea = styled.textarea`
