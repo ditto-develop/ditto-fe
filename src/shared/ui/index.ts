@@ -11,11 +11,13 @@ export { ActionArea, ActionContent, ActionDescription, ActionExtra, ActionTitle 
 export { AlertModal } from "./AlertModal/AlertModal";
 export { BottomSheet } from "./BottomSheet/BottomSheet";
 export { Button } from "./Button/Button";
+export { Checkbox } from "./Checkbox/Checkbox";
 export { Divider } from "./Divider/Divider";
 export { FullScreenModal } from "./FullScreenModal/FullScreenModal";
 export { Icon, ICON_PATHS } from "./Icon/Icon";
 export type { IconName, IconProps } from "./Icon/Icon";
 export { Nav } from "./Nav/Nav";
+export { RatingStarInput } from "./RatingStarInput/RatingStarInput";
 export * from "./Text/Text";
 export { MultiSelectChip } from "./form/Multiselect/Multiselect";
 export type { ChipOption, MultiSelectChipProps, SizeConfig } from "./form/Multiselect/Multiselect";

@@ -11,6 +11,7 @@ import { ChatLeaveModal } from "./ChatLeaveModal";
 import { ChatMenuBottomSheet } from "./ChatMenuBottomSheet";
 import type { MessageItem } from "./MessageBubble";
 import { getChatRoomEndState } from "@/app/chat/_utils/chatRoomStatus";
+import { BottomActionArea, Button } from "@/shared/ui";
 
 function getUserIdFromToken(): string | null {
   try {
@@ -183,6 +184,18 @@ export function ChatRoomPageClient() {
 
       {!isEnded && <ChatInput onSend={handleSend} />}
 
+      {isEnded && (
+        <BottomActionArea>
+          <RateButton
+            type="button"
+            $size="large"
+            onClick={() => router.push(`/chat/one-on-one/${encodeURIComponent(roomId)}/rate`)}
+          >
+            평가하기
+          </RateButton>
+        </BottomActionArea>
+      )}
+
       {isMenuOpen && (
         <ChatMenuBottomSheet
           onClose={() => setIsMenuOpen(false)}
@@ -216,4 +229,8 @@ const EmptyMessage = styled.div`
   font-family: "Pretendard JP", sans-serif;
   font-size: var(--typography-label-1-normal-font-size);
   color: var(--color-semantic-label-alternative);
+`;
+
+const RateButton = styled(Button)`
+  width: 100%;
 `;

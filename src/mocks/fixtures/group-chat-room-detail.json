@@ -1,0 +1,14 @@
+{
+  "roomId": "group-room-1",
+  "members": [
+    { "userId": "partner-1", "nickname": "댕이누나", "avatarUrl": "/assets/avatar/f1.png" },
+    { "userId": "partner-2", "nickname": "민지", "avatarUrl": "/assets/avatar/f2.png" },
+    { "userId": "partner-3", "nickname": "수현", "avatarUrl": "/assets/avatar/f3.png" },
+    { "userId": "partner-4", "nickname": "지우", "avatarUrl": "/assets/avatar/f4.png" },
+    { "userId": "user-e1e", "nickname": "나", "avatarUrl": "/assets/avatar/m1.png" }
+  ],
+  "totalMembers": 5,
+  "vote": null,
+  "expiresAt": "2026-06-06T08:00:00.000Z",
+  "isEnded": true
+}

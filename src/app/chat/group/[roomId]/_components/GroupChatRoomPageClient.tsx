@@ -21,6 +21,8 @@ import { VoteSubmissionPage } from "./VoteSubmissionPage";
 import { VoteBanner } from "./VoteBanner";
 import { ChatInput } from "@/app/chat/one-on-one/[roomId]/_components/ChatInput";
 import { ChatLeaveModal } from "@/app/chat/one-on-one/[roomId]/_components/ChatLeaveModal";
+import { getChatRoomEndState } from "@/app/chat/_utils/chatRoomStatus";
+import { BottomActionArea, Button } from "@/shared/ui";
 
 function getUserIdFromToken(): string | null {
   try {
@@ -188,7 +190,7 @@ export function GroupChatRoomPageClient() {
   }
 
   const expiresAt = roomDetail.expiresAt ? new Date(roomDetail.expiresAt) : null;
-  const isEnded = roomDetail.isEnded === true;
+  const isEnded = getChatRoomEndState(roomDetail, myUserId).isEnded;
   const memberNames = roomDetail.members.map((m) => m.nickname);
   const hasVote = roomDetail.vote !== null || activeVote !== null;
   const voteLabel = activeVote?.title ?? roomDetail.vote?.title ?? "만남 투표 진행 중";
@@ -227,6 +229,18 @@ export function GroupChatRoomPageClient() {
       />
 
       {!isEnded && <ChatInput onSend={handleSend} />}
+
+      {isEnded && (
+        <BottomActionArea>
+          <RateButton
+            type="button"
+            $size="large"
+            onClick={() => router.push(`/chat/group/${encodeURIComponent(roomId)}/rate`)}
+          >
+            평가하기
+          </RateButton>
+        </BottomActionArea>
+      )}
 
       {isMenuOpen && (
         <GroupChatMenuBottomSheet
@@ -345,4 +359,8 @@ const EmptyMessage = styled.div`
   font-family: "Pretendard JP", sans-serif;
   font-size: var(--typography-label-1-normal-font-size);
   color: var(--color-semantic-label-alternative);
+`;
+
+const RateButton = styled(Button)`
+  width: 100%;
 `;

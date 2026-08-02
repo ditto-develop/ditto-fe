@@ -7,6 +7,7 @@ import chatRoomItem from "@/mocks/fixtures/chat-room-item.json";
 import chatRooms from "@/mocks/fixtures/chat-rooms.json";
 import blockedUsersFixture from "@/mocks/fixtures/blocked-users.json";
 import currentUser from "@/mocks/fixtures/current-user.json";
+import groupChatRoomDetail from "@/mocks/fixtures/group-chat-room-detail.json";
 import groupJoin from "@/mocks/fixtures/group-join.json";
 import introNotes from "@/mocks/fixtures/intro-notes.json";
 import localLogin from "@/mocks/fixtures/local-login.json";
@@ -17,12 +18,15 @@ import myProfile from "@/mocks/fixtures/my-profile.json";
 import myRatings from "@/mocks/fixtures/my-ratings.json";
 import myStats from "@/mocks/fixtures/my-stats.json";
 import notificationSettingsFixture from "@/mocks/fixtures/notification-settings.json";
+import oneOnOneRating from "@/mocks/fixtures/one-on-one-rating.json";
 import publicProfile from "@/mocks/fixtures/public-profile.json";
 import quizCurrent from "@/mocks/fixtures/quiz-current.json";
 import quizProgressCurrent from "@/mocks/fixtures/quiz-progress-current.json";
 import quizSetWithProgress from "@/mocks/fixtures/quiz-set-with-progress.json";
 import systemState from "@/mocks/fixtures/system-state.json";
 import user from "@/mocks/fixtures/user.json";
+import groupRating from "@/mocks/fixtures/group-rating.json";
+import rematchStatus from "@/mocks/fixtures/rematch-status.json";
 import {
   adminActiveQuizSets,
   adminDummyMatchResult,
@@ -75,6 +79,11 @@ export const handlers = [
   http.post(apiPath("/matches/request/[^/]+/reject"), () => HttpResponse.json(success(matchRequest))),
   http.post(apiPath("/matches/group/join"), () => HttpResponse.json(success(groupJoin))),
   http.post(apiPath("/matches/group/decline"), () => HttpResponse.json(success(null))),
+
+  http.post(apiPath("/ratings"), () => HttpResponse.json(success(oneOnOneRating))),
+  http.post(apiPath("/group-ratings"), () => HttpResponse.json(success(groupRating))),
+  http.post(apiPath("/rematches/request"), () => HttpResponse.json(success(rematchStatus))),
+  http.get(apiPath("/rematches/status"), () => HttpResponse.json(success(rematchStatus))),
 
   http.get(apiPath("/system/state"), () => HttpResponse.json(success(systemState))),
   http.post(apiPath("/users/local-login"), () => HttpResponse.json(success(localLogin))),
@@ -131,7 +140,7 @@ export const handlers = [
   http.post(apiPath("/chat/rooms/[^/]+/messages"), () => HttpResponse.json(success(chatMessageSent))),
   http.patch(apiPath("/chat/rooms/[^/]+/read"), () => HttpResponse.json(success(null))),
   http.delete(apiPath("/chat/rooms/[^/]+/leave"), () => HttpResponse.json(success(null))),
-  http.get(apiPath("/chat/group-rooms/[^/]+"), () => HttpResponse.json(success(chatRoomDetail))),
+  http.get(apiPath("/chat/group-rooms/[^/]+"), () => HttpResponse.json(success(groupChatRoomDetail))),
   http.get(apiPath("/chat/group-rooms/[^/]+/messages"), () => HttpResponse.json(success(chatMessages))),
   http.post(apiPath("/chat/group-rooms/[^/]+/messages"), () => HttpResponse.json(success(chatMessageSent))),
   http.patch(apiPath("/chat/group-rooms/[^/]+/read"), () => HttpResponse.json(success(null))),

@@ -7,9 +7,11 @@
     "profileImageUrl": "/assets/avatar/f1.png",
     "matchScore": 82
   },
-  "status": "ACTIVE",
-  "canSendMessage": true,
-  "isEnded": false,
+  "status": "ENDED",
+  "canSendMessage": false,
+  "endedAt": "2026-06-06T08:00:00.000Z",
+  "endedReason": "EXPIRED",
+  "isEnded": true,
   "isPartnerLeft": false,
   "partnerLastReadMessageId": "message-1",
   "readReceipts": [
