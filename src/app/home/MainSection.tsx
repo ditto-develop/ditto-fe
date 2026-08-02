@@ -1,6 +1,7 @@
 "use client";
 
 import { MatchingDay } from "@/components/home/MatchingDay";
+import { MatchingCardSkeleton } from "@/components/home/_parts/MatchingCardSkeleton";
 import { matchAcceptedNotifKey } from "@/components/home/_parts/MatchingDay.helpers";
 import { ThisWeekQuiz } from "@/components/home/ThisWeekQuiz";
 import { TimeLine } from "@/components/home/Timeline";
@@ -21,6 +22,7 @@ const MainSectionContainer = styled.div`
   display: grid;
   gap: 24px;
 `;
+
 
 type Period = "QUIZ" | "MATCHING" | "CHATTING";
 
@@ -92,7 +94,15 @@ export function MainSection() {
         // BE 작업 대기: IntroNotes(GET /api/v1/users/me/intro-notes) 엔드포인트가 api.ditto.pics에 추가될 때까지
         //   isIntroComplete는 false로 유지된다. 엔드포인트 추가 후 externalApi 패턴으로 호출 복구 필요.
         const introRes = await Promise.resolve(null as { success: boolean; data?: { completedCount: number; answers: string[] } } | null);
-        const systemState = await getExternalSystemState();
+
+        // 기간 판정과 매칭 후보 조회는 서로 의존하지 않는다. 순차로 기다리면 홈 카드가
+        // 그만큼 늦게 뜨므로 같이 쏜다. 퀴즈 기간에는 후보 조회 1건이 버려지지만,
+        // 매칭/대화 기간(카드가 무거운 쪽)의 왕복이 한 번 줄어드는 편이 낫다.
+        const [systemState, candidateResult] = await Promise.all([
+          getExternalSystemState(),
+          getMatchCandidates().catch(() => null),
+        ]);
+
         const fetchedPeriod = mapSystemPeriod(systemState.period);
         setPeriod(fetchedPeriod);
 
@@ -108,42 +118,63 @@ export function MainSection() {
             );
             setParticipantCount(progress.participantCount ?? 0);
           }
-        } else {
-          // MATCHING or CHATTING: 매칭 결과로 matchType 결정
-          try {
-            const { quizSetId: fetchedQuizSetId, candidates: fetchedCandidates, matchingType } = await getMatchCandidates();
-            const quizSetId = fetchedQuizSetId;
-            setQuizSetId(fetchedQuizSetId);
-            const { hasAcceptedMatch: accepted, acceptedMatchUserId, groupDeclined, groupJoined: joined, groupJoinPending: joinPending, sentRequests, receivedRequests } = await getMatchingStatus(quizSetId);
-            setCandidates(fetchedCandidates);
-            setHasAcceptedMatch(accepted);
-            setGroupJoined(joined);
-            setGroupJoinPending(joinPending);
-            if (accepted && acceptedMatchUserId) {
-              const found = fetchedCandidates.find(c => c.userId === acceptedMatchUserId);
-              setAcceptedCandidate(found);
-              // 수락된 매칭 요청 ID 찾기 (채팅방 생성에 필요)
-              const acceptedReq = [...sentRequests, ...receivedRequests].find(r => r.status === "ACCEPTED");
-              if (acceptedReq) setAcceptedMatchRequestId(acceptedReq.id);
-            }
-            if (fetchedCandidates.length === 0 || groupDeclined) setMatchType("failmatch");
-            else if (matchingType === 'GROUP') {
-              // 대화 기간에는 그룹에 참여한 경우만 표시
-              if (fetchedPeriod === "CHATTING" && !joined) setMatchType("failmatch");
-              else setMatchType("many");
-            } else {
-              // 대화 기간에는 매칭이 확정된 경우만 표시
-              if (fetchedPeriod === "CHATTING" && !accepted) setMatchType("failmatch");
-              else setMatchType("one");
-            }
-            if (fetchedPeriod === "CHATTING") {
-              const latestChatRoom = await getLatestChatRoom();
-              if (latestChatRoom) setChatRoom(latestChatRoom);
-            }
-          } catch {
-            // 퀴즈를 풀지 않았거나 매칭 후보가 없는 경우 → failmatch
-            setMatchType("failmatch");
+          return;
+        }
+
+        // MATCHING or CHATTING: 매칭 결과로 matchType 결정
+        // 후보 조회가 실패했으면(퀴즈 미응시 등) 더 볼 것 없이 failmatch.
+        if (!candidateResult) {
+          setMatchType("failmatch");
+          return;
+        }
+
+        try {
+          const { quizSetId: fetchedQuizSetId, candidates: fetchedCandidates, matchingType } = candidateResult;
+          setQuizSetId(fetchedQuizSetId);
+          setCandidates(fetchedCandidates);
+
+          // 매칭 상태와 최신 채팅방도 서로 독립이라 함께 기다린다.
+          const [status, latestChatRoom] = await Promise.all([
+            getMatchingStatus(fetchedQuizSetId),
+            fetchedPeriod === "CHATTING"
+              ? getLatestChatRoom().catch(() => undefined)
+              : Promise.resolve(undefined),
+          ]);
+
+          const {
+            hasAcceptedMatch: accepted,
+            acceptedMatchUserId,
+            groupDeclined,
+            groupJoined: joined,
+            groupJoinPending: joinPending,
+            sentRequests,
+            receivedRequests,
+          } = status;
+
+          setHasAcceptedMatch(accepted);
+          setGroupJoined(joined);
+          setGroupJoinPending(joinPending);
+          if (accepted && acceptedMatchUserId) {
+            const found = fetchedCandidates.find(c => c.userId === acceptedMatchUserId);
+            setAcceptedCandidate(found);
+            // 수락된 매칭 요청 ID 찾기 (채팅방 생성에 필요)
+            const acceptedReq = [...sentRequests, ...receivedRequests].find(r => r.status === "ACCEPTED");
+            if (acceptedReq) setAcceptedMatchRequestId(acceptedReq.id);
           }
+          if (fetchedCandidates.length === 0 || groupDeclined) setMatchType("failmatch");
+          else if (matchingType === 'GROUP') {
+            // 대화 기간에는 그룹에 참여한 경우만 표시
+            if (fetchedPeriod === "CHATTING" && !joined) setMatchType("failmatch");
+            else setMatchType("many");
+          } else {
+            // 대화 기간에는 매칭이 확정된 경우만 표시
+            if (fetchedPeriod === "CHATTING" && !accepted) setMatchType("failmatch");
+            else setMatchType("one");
+          }
+          if (latestChatRoom) setChatRoom(latestChatRoom);
+        } catch {
+          // 매칭 상태 조회 실패 → failmatch
+          setMatchType("failmatch");
         }
       } catch {
         // 네트워크 오류 등 — 로딩만 해제
@@ -186,7 +217,19 @@ export function MainSection() {
     };
   }, [period]);
 
-  if (loading || period === null) {
+  // 로딩 중에는 카드 자리를 스켈레톤으로 잡아둔다. 스플래시가 2.5초에 먼저 걷혀도
+  // 타임라인만 덩그러니 남았다가 카드가 뒤늦게 밀고 들어오는 일이 없다.
+  if (loading) {
+    return (
+      <MainSectionContainer>
+        <TimeLine />
+        <MatchingCardSkeleton />
+      </MainSectionContainer>
+    );
+  }
+
+  // 기간 조회 자체가 실패한 경우: 무한 스켈레톤 대신 타임라인만 남긴다.
+  if (period === null) {
     return <MainSectionContainer><TimeLine /></MainSectionContainer>;
   }
 
@@ -255,6 +298,8 @@ export function MainSection() {
   return (
     <MainSectionContainer>
       <TimeLine />
+      {/* 카드를 래퍼로 감싸지 않는다. animation/transform이 걸린 래퍼는 position:fixed
+          자식(그룹 매칭 결과 모달 등)의 컨테이닝 블록이 돼서 모달이 어긋난다. */}
       {ControlSection()}
     </MainSectionContainer>
   );
