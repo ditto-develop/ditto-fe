@@ -169,6 +169,8 @@ export function useReportForm(
         source,
         detail: trimmedDetail ? trimmedDetail : undefined,
         imageKeys,
+        // 체크박스를 켜면 접수와 동시에 서버가 차단까지 처리한다(별도 차단 API 호출 없음).
+        block: blockTarget,
       });
 
       return { reportId: id, targetNickname, blockRequested: blockTarget };

@@ -1,5 +1,5 @@
 {
-  "userId": "user-me",
+  "userId": 1,
   "nickname": "개굴개굴렌",
   "gender": "MALE",
   "age": 27,
@@ -11,5 +11,8 @@
     "workout",
     "movie-drama",
     "exhibition"
-  ]
+  ],
+  "rating": null,
+  "preferredMinAge": null,
+  "preferredMaxAge": null
 }

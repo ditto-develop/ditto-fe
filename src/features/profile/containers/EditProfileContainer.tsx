@@ -21,13 +21,6 @@ import { BottomActionArea, Button, TopNavigation } from "@/shared/ui";
 const INTRODUCTION_MAX_LENGTH = 50;
 const MAX_INTEREST_COUNT = 5;
 
-const profileInterestOptions = [
-    { label: "💪 운동", value: "workout" },
-    { label: "🍿 영화/드라마", value: "movie-drama" },
-    { label: "🖼️ 전시", value: "exhibition" },
-    ...interestOptions.filter((option) => !["workout", "movie-drama"].includes(option.value)),
-];
-
 export function EditProfileContainer() {
     const router = useRouter();
     const { showToast } = useToast();
@@ -164,7 +157,7 @@ export function EditProfileContainer() {
                         <RequiredMark>*</RequiredMark>
                     </InterestHeader>
                     <InterestGrid>
-                        {profileInterestOptions.map((option) => (
+                        {interestOptions.map((option) => (
                             <InterestChip
                                 type="button"
                                 key={option.value}

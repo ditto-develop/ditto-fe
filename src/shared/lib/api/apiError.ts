@@ -25,6 +25,10 @@ export class ApiError extends Error {
 export const API_ERROR_CODE = {
   /** 잘못된 요청값(필수값·파일 규칙·reason/source) */
   INVALID_REQUEST: "0001",
+  /** 권한 없음(차단된 상대의 프로필 조회, 본인이 아닌 회원 탈퇴 등) */
+  FORBIDDEN: "0003",
+  /** 대상 없음 */
+  NOT_FOUND: "0004",
   /** 자기 자신 신고 */
   REPORT_SELF: "6001",
   /** 동일 대상의 검토 대기 신고가 이미 존재 */
@@ -41,6 +45,21 @@ export const API_ERROR_CODE = {
   SANCTION_BANNED: "6007",
   /** 제재로 이번 주 퀴즈 참여 불가 */
   SANCTION_QUIZ_BLOCKED: "6008",
+  /**
+   * 탈퇴 거부. 남은 1:1 매칭 / 끝나지 않은 채팅방 / 재매칭 성사 후 방 미생성 셋 다
+   * 같은 코드·메시지라 서버 응답만으로는 원인을 가릴 수 없다.
+   */
+  LEAVE_BLOCKED: "6011",
+  /** 탈퇴한 회원의 토큰으로 보호 API 접근(토큰 갱신도 동일). 재가입 외 복구 경로는 없다. */
+  MEMBER_LEFT: "6012",
+  /** 평가 대상이 아님 / 그룹인데 재매칭 쌍이 없음(후자는 서버 정합 문제) */
+  REVIEW_INVALID_TARGET: "8001",
+  /** 별점 범위·코멘트 길이·재매칭 의사 누락/금지 위반 — message를 그대로 노출해도 된다 */
+  REVIEW_INVALID_VALUE: "8002",
+  /** 없는 평가 / 남의 평가(존재 여부를 숨기려 403이 아닌 404) */
+  REVIEW_NOT_FOUND: "8004",
+  /** 이미 확정한 답변을 다른 내용으로 재제출 */
+  REVIEW_ALREADY_ANSWERED: "8005",
 } as const;
 
 /** 세션 전체를 막는 제재 코드(전역 인터셉트 대상). 6008은 퀴즈 인라인이라 제외한다. */

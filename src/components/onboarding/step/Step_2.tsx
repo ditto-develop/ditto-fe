@@ -40,6 +40,7 @@ import { ProfileSelect } from "@/components/onboarding/ProfileSelect";
 export const interestOptions = [
   { label: "💪 운동", value: "workout" },
   { label: "🍿 영화/드라마", value: "movie-drama" },
+  { label: "🖼️ 전시", value: "exhibition" },
   { label: "💃 공연", value: "performance" },
   { label: "📷 사진", value: "photography" },
   { label: "📚 독서", value: "reading" },

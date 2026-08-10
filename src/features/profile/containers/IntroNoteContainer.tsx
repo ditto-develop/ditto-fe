@@ -15,8 +15,19 @@ import {
 } from "@/features/matching/api/matchingApi";
 import { ProfileDetailService, type UserRatingSummaryDto } from "@/shared/lib/api/generated";
 import { getUserIntroNotes, type IntroNoteAnswer } from "@/features/profile/api/profileApi";
+import { API_ERROR_CODE, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { useToast } from "@/context/ToastContext";
 import { ProfileIntroView } from "@/features/profile/ui/ProfileIntroView";
+
+/**
+ * 차단 관계(방향 무관)면 서버가 프로필 조회를 0003으로 막는다.
+ * 매칭 이력이 있어도 막히므로 일반 오류와 구분해 안내한다.
+ */
+function toProfileErrorText(error: unknown): string {
+    return hasApiErrorCode(error, API_ERROR_CODE.FORBIDDEN)
+        ? "차단된 사용자의 프로필은 볼 수 없어요."
+        : "프로필을 불러오지 못했어요.";
+}
 
 /**
  * IntroNoteContainer — Figma: 3.2 소개노트
@@ -113,7 +124,7 @@ export function IntroNoteContainer({
             <TopNavigation onBack={onBack} />
 
             {loading && <StateText>프로필을 불러오는 중...</StateText>}
-            {error && <StateText>프로필을 불러오지 못했어요.</StateText>}
+            {error && <StateText>{toProfileErrorText(error)}</StateText>}
 
             {profile && (
                 <IntroPreviewScroll>

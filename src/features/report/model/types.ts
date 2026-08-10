@@ -6,8 +6,8 @@ export type ReportReason =
   | "underage"
   | "etc";
 
-/** 신고 진입 화면. 현재 진입점(그룹 멤버 프로필 / 1:1 채팅 메뉴)은 모두 profile로 보낸다. */
-export type ReportSource = "profile" | "match-result";
+/** 신고 진입 화면. 프로필(그룹 멤버 프로필 포함)은 profile, 1:1 채팅 메뉴는 chat-room. */
+export type ReportSource = "profile" | "match-result" | "chat-room";
 
 export type ReportReasonOption = {
   value: ReportReason;
@@ -48,6 +48,8 @@ export type CreateUserReportRequest = {
   source: ReportSource;
   detail?: string;
   imageKeys: string[];
+  /** '이 사용자 차단하기' 체크박스. BE 필수 필드이며 false면 차단하지 않는다. */
+  block: boolean;
 };
 
 export type CreateUserReportResponse = {
@@ -60,7 +62,7 @@ export type ReportResult = {
   targetNickname: string;
   /**
    * 사용자가 '이 사용자 차단하기'를 선택했는지.
-   * 라이브 BE에 차단 API가 없어 아직 서버로 전송되지 않으며, 완료 화면 안내에만 쓰인다.
+   * 접수 요청의 block 필드로 함께 전송되어 서버가 차단까지 처리한 상태다.
    */
   blockRequested: boolean;
 };

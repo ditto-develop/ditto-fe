@@ -5,23 +5,15 @@ import type {
   ImageUploadUrlsResponse,
   ReportTarget,
 } from "@/features/report/model/types";
+import { getUserProfile } from "@/features/profile/api/profileApi";
 import { externalApiFetch } from "@/shared/lib/api/externalClient";
-
-type PublicProfile = {
-  userId: number;
-  nickname: string;
-  profileImageUrl?: string;
-};
 
 /**
  * 신고 대상의 표시용 정보(닉네임/프로필 이미지).
  * 전용 엔드포인트가 없어 공개 프로필 조회를 재사용한다.
- *
- * profileApi.getUserProfile은 아직 구 prefix(`/api/...`)를 쓰는 generated client 경유라
- * 라이브 BE(`/api/v1`)에 없다. 신규 코드이므로 정본 클라이언트로 직접 호출한다.
  */
 export async function getReportTarget(userId: number): Promise<ReportTarget> {
-  const profile = await externalApiFetch<PublicProfile>(`/api/v1/users/${userId}/profile`);
+  const profile = await getUserProfile(String(userId));
   return {
     userId,
     nickname: profile.nickname,

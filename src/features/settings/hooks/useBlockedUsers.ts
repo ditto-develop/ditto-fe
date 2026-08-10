@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getBlockedUsers, unblockUser } from "@/features/settings/api/settingsApi";
 import type { BlockedUser } from "@/features/settings/model/types";
+import { parseServerDateTime } from "@/shared/lib/serverDateTime";
 
 type UseBlockedUsersResult = {
   blockedUsers: BlockedUser[];
@@ -36,10 +37,13 @@ export function useBlockedUsers(): UseBlockedUsersResult {
     };
   }, []);
 
+  // 서버도 최신순으로 주지만, 해제 후 낙관적 갱신까지 순서를 유지하려면 여기서도 정렬한다.
   const sortedBlockedUsers = useMemo(
     () =>
       [...blockedUsers].sort(
-        (left, right) => new Date(right.blockedAt).getTime() - new Date(left.blockedAt).getTime(),
+        (left, right) =>
+          (parseServerDateTime(right.blockedAt)?.getTime() ?? 0) -
+          (parseServerDateTime(left.blockedAt)?.getTime() ?? 0),
       ),
     [blockedUsers],
   );

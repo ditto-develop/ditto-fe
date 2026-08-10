@@ -1,3 +1,5 @@
+import { parseServerDateTime } from "@/shared/lib/serverDateTime";
+
 export function formatMaskedPhoneNumber(phoneNumber: string | null | undefined): string {
   if (!phoneNumber) return "-";
 
@@ -14,8 +16,8 @@ export function formatMaskedPhoneNumber(phoneNumber: string | null | undefined):
 }
 
 export function formatBlockedDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+  const date = parseServerDateTime(value);
+  if (!date) return value;
 
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 차단`;
 }

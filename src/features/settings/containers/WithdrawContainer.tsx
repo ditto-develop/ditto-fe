@@ -5,12 +5,32 @@ import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { useMyProfile } from "@/features/profile/hooks/useMyProfile";
 import { WITHDRAW_REASONS } from "@/features/settings/model/withdrawReasons";
+import { API_ERROR_CODE, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { clearToken } from "@/shared/lib/api/client";
 import { leaveExternalUser } from "@/shared/lib/api/externalApi";
+import { clearTokens } from "@/shared/lib/auth";
 import { AlertModal, Select, TopNavigation } from "@/shared/ui";
 
 type WithdrawStep = "notice" | "reason";
 type ResultDialog = "success" | "failure" | null;
+
+/**
+ * 탈퇴 실패 문구.
+ *
+ * 6011은 원인이 셋(남은 1:1 매칭 / 끝나지 않은 채팅방 / 재매칭 성사 후 방 미생성)인데
+ * 코드도 메시지도 같아 서버 응답만으로는 가릴 수 없다. 세 번째는 보통 1분 안에 풀리지만
+ * 상대가 좁은 경쟁 구간에서 탈퇴한 쌍이면 스스로 풀리지 않으므로,
+ * 무한 재시도 대신 몇 번 실패하면 문의로 안내한다.
+ */
+const LEAVE_RETRY_LIMIT = 3;
+
+const FAILURE_MESSAGE = {
+  leaveBlocked:
+    "진행 중인 매칭이나 채팅이 있어 탈퇴할 수 없어요. 정리한 뒤 잠시 후 다시 시도해 주세요.",
+  leaveBlockedExhausted:
+    "탈퇴 처리가 계속 막히고 있어요. 진행 중인 매칭·채팅을 정리했는데도 반복된다면 고객센터로 문의해 주세요.",
+  unknown: "탈퇴를 처리하지 못했어요. 잠시 후 다시 시도해 주세요.",
+} as const;
 
 const noticeItems = [
   "진행 중인 매칭이나 채팅이 있으면 탈퇴가 제한됩니다.",
@@ -24,6 +44,8 @@ export function WithdrawContainer() {
   const [step, setStep] = useState<WithdrawStep>("notice");
   const [reason, setReason] = useState<string | null>(null);
   const [dialog, setDialog] = useState<ResultDialog>(null);
+  const [failureMessage, setFailureMessage] = useState<string>(FAILURE_MESSAGE.unknown);
+  const [blockedAttempts, setBlockedAttempts] = useState(0);
 
   const profileReady = Boolean(profile?.nickname && rawProfile?.userId);
   const nickname = profile?.nickname ?? "";
@@ -38,16 +60,26 @@ export function WithdrawContainer() {
     try {
       await leaveExternalUser(rawProfile.userId, reason);
       setDialog("success");
-    } catch {
+    } catch (err: unknown) {
+      if (hasApiErrorCode(err, API_ERROR_CODE.LEAVE_BLOCKED)) {
+        const attempts = blockedAttempts + 1;
+        setBlockedAttempts(attempts);
+        setFailureMessage(
+          attempts >= LEAVE_RETRY_LIMIT
+            ? FAILURE_MESSAGE.leaveBlockedExhausted
+            : FAILURE_MESSAGE.leaveBlocked,
+        );
+      } else {
+        setFailureMessage(FAILURE_MESSAGE.unknown);
+      }
       setDialog("failure");
     }
   };
 
+  // 탈퇴 후에는 보유 토큰이 모두 무효(6012)다. 세션을 지우고 첫 화면으로 보낸다.
   const handleSuccessClose = () => {
     clearToken();
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("accessToken");
-    }
+    clearTokens();
     router.replace("/");
   };
 
@@ -122,7 +154,7 @@ export function WithdrawContainer() {
       <AlertModal
         isOpen={dialog === "failure"}
         title="탈퇴 실패"
-        message="진행 중인 매칭이 있어 탈퇴할 수 없습니다."
+        message={failureMessage}
         onClose={() => setDialog(null)}
         confirmParams={{ text: "확인", onClick: () => setDialog(null) }}
       />

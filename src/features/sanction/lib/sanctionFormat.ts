@@ -1,17 +1,14 @@
 import type { SanctionCallback, SanctionLevel } from "@/features/sanction/model/types";
+import { parseServerDateTime } from "@/shared/lib/serverDateTime";
 
 const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
 /**
- * BE 날짜 문자열을 Date로 변환한다.
- * 일반 JSON 응답은 `yyyy-MM-dd HH:mm:ss`, OAuth 콜백의 suspendedUntil만 ISO-8601이다.
- * 전자는 Safari에서 그대로 파싱되지 않으므로 `T`로 치환한다.
+ * 제재 날짜(일반 JSON 응답은 `yyyy-MM-dd HH:mm:ss`, OAuth 콜백의 suspendedUntil만 ISO-8601)를
+ * Date로 변환한다. 파싱 규칙은 공용 헬퍼와 동일하다.
  */
 export function parseSanctionDate(value: string | null): Date | null {
-  if (!value) return null;
-  const normalized = value.includes("T") ? value : value.replace(" ", "T");
-  const date = new Date(normalized);
-  return Number.isNaN(date.getTime()) ? null : date;
+  return parseServerDateTime(value);
 }
 
 /** "2026.08.02(일) 01:00" 형태로 표시한다. */

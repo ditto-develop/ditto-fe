@@ -107,7 +107,9 @@ export function ChatRoomPageClient() {
         <ChatMenuBottomSheet
           onClose={() => setIsMenuOpen(false)}
           onLeave={() => setIsLeaveModalOpen(true)}
-          onReport={() => counterpart && router.push(`/report/${counterpart.userId}`)}
+          onReport={() =>
+            counterpart && router.push(`/report/${counterpart.userId}?source=chat-room`)
+          }
         />
       )}
 

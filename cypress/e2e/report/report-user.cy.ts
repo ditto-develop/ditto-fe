@@ -15,6 +15,7 @@ type ReportPayload = {
   source: string;
   detail?: string;
   imageKeys: string[];
+  block: boolean;
 };
 
 type UploadUrlsPayload = {
@@ -103,12 +104,14 @@ describe("report a user", () => {
 
     cy.then(() => {
       // BE 계약: reason/source는 kebab code, imageKeys는 비어 있어도 배열로 보낸다.
+      // block은 필수 필드이며, 체크박스를 켜면 접수와 동시에 서버가 차단까지 처리한다.
       expect(lastReport).to.deep.equal({
         reportedMemberId: TARGET_MEMBER_ID,
         reason: "inappropriate-behavior",
         source: "profile",
         detail: "대화 중에 불쾌한 발언을 반복했어요.",
         imageKeys: [],
+        block: true,
       });
     });
   });
@@ -195,9 +198,13 @@ describe("report a user", () => {
 
     cy.contains("신고가 접수됐어요").should("be.visible");
     cy.contains("차단이 적용됐어요").should("not.exist");
+
+    cy.then(() => {
+      expect(lastReport?.block).to.equal(false);
+    });
   });
 
-  it("opens from the 1:1 chat menu", () => {
+  it("opens from the 1:1 chat menu and reports source=chat-room", () => {
     mockReportApi();
     // roomId는 int64다.
     cy.visit("/chat/one-on-one/1");
@@ -207,5 +214,13 @@ describe("report a user", () => {
 
     cy.location("pathname").should("include", "/report/");
     cy.contains("신고 사유 선택").should("be.visible");
+
+    cy.contains("부적절한 행동").click();
+    cy.contains("button", "신고하기").click();
+    cy.wait("@createReport");
+
+    cy.then(() => {
+      expect(lastReport?.source).to.equal("chat-room");
+    });
   });
 });

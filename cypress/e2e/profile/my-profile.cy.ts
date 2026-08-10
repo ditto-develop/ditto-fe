@@ -1,15 +1,12 @@
 function mockMyProfileApi() {
   cy.fixture("my-profile.json").then((profile) => {
-    cy.intercept("GET", "**/api/users/me/profile", { success: true, data: profile }).as("getMyProfile");
-    cy.intercept("GET", "**/api/v1/users/me/profile", { success: true, data: profile }).as("getMyProfileV1");
+    cy.intercept("GET", "**/api/v1/users/me/profile", { success: true, data: profile }).as("getMyProfile");
   });
   cy.fixture("my-stats.json").then((stats) => {
-    cy.intercept("GET", "**/api/users/me/stats", { success: true, data: stats }).as("getMyStats");
-    cy.intercept("GET", "**/api/v1/users/me/stats", { success: true, data: stats }).as("getMyStatsV1");
+    cy.intercept("GET", "**/api/v1/users/me/stats", { success: true, data: stats }).as("getMyStats");
   });
   cy.fixture("my-ratings.json").then((ratings) => {
-    cy.intercept("GET", "**/api/users/me/ratings", { success: true, data: ratings }).as("getMyRatings");
-    cy.intercept("GET", "**/api/v1/users/me/ratings", { success: true, data: ratings }).as("getMyRatingsV1");
+    cy.intercept("GET", "**/api/v1/users/me/ratings", { success: true, data: ratings }).as("getMyRatings");
   });
 }
 
@@ -40,5 +37,25 @@ describe("my profile", () => {
     cy.go("back");
     cy.contains("소개 노트 수정").click();
     cy.location("pathname").should("eq", "/profile/intro-note/");
+  });
+
+  // 비공개 규칙: totalCount < publicThreshold면 평균/노쇼/코멘트가 0·빈 배열로 내려온다.
+  it("hides ratings until the public threshold is reached", () => {
+    cy.intercept("GET", "**/api/v1/users/me/ratings", {
+      success: true,
+      data: {
+        averageScore: 0,
+        totalCount: 2,
+        publicThreshold: 3,
+        noShowCount: 0,
+        ratings: [],
+      },
+    }).as("getMyRatingsPrivate");
+
+    cy.visit("/profile");
+    cy.wait("@getMyRatingsPrivate");
+
+    cy.contains("평가가 충분하지 않아요").should("be.visible");
+    cy.contains("대화가 편하고 좋았어요").should("not.exist");
   });
 });

@@ -4,8 +4,9 @@ type NotificationSettings = {
   marketing: boolean;
 };
 
+/** GET /api/v1/users/me/blocks — id는 차단된 회원 ID(int64), blockedAt은 `yyyy-MM-dd HH:mm:ss`. */
 type BlockedUser = {
-  id: string;
+  id: number;
   nickname: string;
   profileImageUrl: string | null;
   blockedAt: string;
@@ -20,7 +21,7 @@ const currentUser = {
 };
 
 const myProfile = {
-  userId: "user-me",
+  userId: 1,
   nickname: "개굴개굴렌",
   gender: "MALE",
   age: 27,
@@ -39,16 +40,16 @@ const initialNotificationSettings: NotificationSettings = {
 
 const initialBlockedUsers: BlockedUser[] = [
   {
-    id: "blocked-1",
+    id: 42,
     nickname: "댕이나나",
     profileImageUrl: "/assets/avatar/f1.png",
-    blockedAt: "2026-01-12T00:00:00.000Z",
+    blockedAt: "2026-01-12 09:00:00",
   },
   {
-    id: "blocked-2",
+    id: 43,
     nickname: "safdflnk",
     profileImageUrl: "/assets/avatar/m1.png",
-    blockedAt: "2025-10-12T00:00:00.000Z",
+    blockedAt: "2025-10-12 09:00:00",
   },
 ];
 
@@ -83,7 +84,7 @@ function mockSettingsApi() {
 
   cy.intercept("DELETE", "**/api/**/users/me/blocks/*", (req) => {
     const id = req.url.split("/").pop();
-    blockedUsers = blockedUsers.filter((user) => user.id !== id);
+    blockedUsers = blockedUsers.filter((user) => String(user.id) !== id);
     req.reply({ success: true, data: null });
   }).as("deleteBlockedUser");
 
@@ -192,5 +193,28 @@ describe("settings", () => {
     cy.contains("탈퇴 완료").should("be.visible");
     cy.contains("button", "확인").click();
     cy.location("pathname").should("eq", "/");
+  });
+
+  // 6011: 진행 중인 매칭/채팅이 남아 있으면 서버가 탈퇴를 거절한다(HTTP 200 + success:false).
+  it("explains why withdrawal is blocked (6011)", () => {
+    cy.intercept("POST", "**/api/**/users/*/leave", {
+      statusCode: 200,
+      body: {
+        success: false,
+        data: null,
+        error: { statusCode: 409, code: "6011", message: "진행 중인 매칭이 있습니다." },
+      },
+    }).as("leaveBlocked");
+
+    cy.visit("/settings/withdraw");
+    cy.contains("button", "확인").click();
+    cy.contains("사유를 선택해 주세요").click();
+    cy.contains("기타").click();
+    cy.contains("button", "탈퇴하기").click();
+    cy.wait("@leaveBlocked");
+
+    cy.contains("탈퇴 실패").should("be.visible");
+    cy.contains("진행 중인 매칭이나 채팅이 있어 탈퇴할 수 없어요.").should("be.visible");
+    cy.contains("탈퇴 완료").should("not.exist");
   });
 });
