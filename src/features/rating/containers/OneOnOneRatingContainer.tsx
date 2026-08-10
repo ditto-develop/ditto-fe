@@ -3,90 +3,85 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
-import { getChatRooms, getCounterpartProfile } from "@/features/chat";
-import { Avatar, BottomActionArea, Button, Checkbox } from "@/shared/ui";
+import { Avatar, BottomActionArea, Button } from "@/shared/ui";
 import { useToast } from "@/context/ToastContext";
+import { useMemberReview } from "@/features/rating/hooks/useMemberReview";
 import { useOneOnOneRating } from "@/features/rating/hooks/useOneOnOneRating";
 import { RatingFormFields } from "@/features/rating/ui/RatingFormFields";
-
-interface Partner {
-  nickname: string;
-  profileImageUrl?: string | null;
-}
+import { RematchSuccessModal } from "@/features/rating/ui/RematchSuccessModal";
+import { toTargetNickname } from "@/features/rating/model/labels";
+import type { MemberReview } from "@/features/rating/model/types";
 
 interface OneOnOneRatingContainerProps {
   roomId: string;
 }
 
 export function OneOnOneRatingContainer({ roomId }: OneOnOneRatingContainerProps) {
+  const { review, state, reload } = useMemberReview(roomId, "PERSONAL");
+
+  if (state === "loading") return <StateMessage>불러오는 중...</StateMessage>;
+  if (state === "error") return <StateMessage>평가 정보를 불러오지 못했어요.</StateMessage>;
+  // 목록에는 미완료 평가만 담긴다. 없으면 이미 제출했거나 아직 열리지 않은 평가다.
+  if (state === "missing" || !review) return <StateMessage>완료했거나 아직 열리지 않은 평가예요.</StateMessage>;
+
+  return <OneOnOneRatingContent review={review} reload={reload} />;
+}
+
+interface OneOnOneRatingContentProps {
+  review: MemberReview;
+  reload: () => Promise<void>;
+}
+
+function OneOnOneRatingContent({ review, reload }: OneOnOneRatingContentProps) {
   const router = useRouter();
   const { showToast } = useToast();
-  const [partner, setPartner] = useState<Partner | null>(null);
-  const [loading, setLoading] = useState(true);
-  const rating = useOneOnOneRating(roomId);
+  const [completed, setCompleted] = useState(false);
+  const rating = useOneOnOneRating(review, reload);
 
-  // 방 상세 API가 없어져 상대 정보는 방 목록의 counterpartMemberIds로 찾아 프로필을 조회한다.
+  // 성사 축하가 떠 있으면 닫힌 뒤에 이동한다(1:1 rematch는 계약상 항상 null이다).
   useEffect(() => {
-    let active = true;
+    if (completed && !rating.rematch) router.replace("/chat");
+  }, [completed, rating.rematch, router]);
 
-    getChatRooms()
-      .then(async (rooms) => {
-        const room = rooms.find((item) => String(item.roomId) === String(roomId));
-        const counterpartId = room?.counterpartMemberIds[0];
-        if (counterpartId === undefined) return;
+  if (!rating.target) return <StateMessage>평가할 사용자를 찾을 수 없어요.</StateMessage>;
 
-        const profile = await getCounterpartProfile(counterpartId);
-        if (active) setPartner(profile);
-      })
-      .catch(() => {
-        if (active) showToast("평가 정보를 불러오지 못했어요.", "error");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [roomId, showToast]);
+  const nickname = toTargetNickname(rating.target);
 
   const handleSubmit = async () => {
-    try {
-      const result = await rating.submit();
-      if (!result) return;
-      showToast("평가가 제출됐어요.", "success");
-      router.replace("/chat");
-    } catch {
-      showToast("평가를 제출하지 못했어요. 다시 시도해 주세요.", "error");
-    }
+    const result = await rating.submit();
+    if (!result) return;
+    showToast("평가가 제출됐어요.", "success");
+    setCompleted(true);
   };
-
-  if (loading) return <StateMessage>불러오는 중...</StateMessage>;
-  if (!partner) return <StateMessage>평가할 사용자를 찾을 수 없어요.</StateMessage>;
 
   return (
     <Page>
       <ScrollArea>
         <ProfileHeader>
           <Avatar
-            src={partner.profileImageUrl ?? undefined}
-            alt={`${partner.nickname} 프로필`}
+            src={rating.target.profileImageUrl ?? undefined}
+            alt={`${nickname} 프로필`}
             size="xl"
           />
           <HeaderText>
-            <Title>{partner.nickname}님 평가</Title>
+            <Title>{nickname}님 평가</Title>
             <Subtitle>솔직한 피드백이 더 나은 매칭을 만듭니다</Subtitle>
           </HeaderText>
         </ProfileHeader>
 
         <RatingFormFields value={rating.form} onChange={rating.setForm} />
 
-        <Checkbox
-          checked={rating.reportUser}
-          onChange={rating.setReportUser}
-          label="사용자 신고하기"
-          helperText="불쾌하거나 부적절한 행동이 있었나요?"
-        />
+        <FooterActions>
+          <Notice>제출한 평가는 수정할 수 없어요.</Notice>
+          <ReportLink
+            type="button"
+            onClick={() =>
+              router.push(`/report/${rating.target?.memberId}?source=chat-room`)
+            }
+          >
+            사용자 신고하기
+          </ReportLink>
+        </FooterActions>
       </ScrollArea>
 
       <BottomActionArea>
@@ -99,6 +94,10 @@ export function OneOnOneRatingContainer({ roomId }: OneOnOneRatingContainerProps
           {rating.submitting ? "제출 중..." : "평가 제출하기"}
         </SubmitButton>
       </BottomActionArea>
+
+      {rating.rematch && (
+        <RematchSuccessModal nickname={nickname} onClose={rating.clearRematch} />
+      )}
     </Page>
   );
 }
@@ -142,6 +141,35 @@ const Title = styled.h1`
 `;
 
 const Subtitle = styled.p`
+  margin: 0;
+  font-size: var(--typography-label-2-font-size);
+  font-weight: var(--typography-label-2-font-weight);
+  line-height: var(--typography-label-2-line-height);
+  letter-spacing: var(--typography-label-2-letter-spacing);
+  color: var(--color-semantic-label-alternative);
+`;
+
+const FooterActions = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+`;
+
+const ReportLink = styled.button`
+  border: 0;
+  padding: 0;
+  background: transparent;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: var(--typography-label-2-font-size);
+  font-weight: var(--typography-label-2-font-weight);
+  line-height: var(--typography-label-2-line-height);
+  letter-spacing: var(--typography-label-2-letter-spacing);
+  color: var(--color-semantic-label-alternative);
+`;
+
+const Notice = styled.p`
   margin: 0;
   font-size: var(--typography-label-2-font-size);
   font-weight: var(--typography-label-2-font-weight);

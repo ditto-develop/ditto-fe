@@ -1,0 +1,62 @@
+[
+  {
+    "reviewId": 11,
+    "matchType": "PERSONAL",
+    "matchId": 5,
+    "chatRoomId": 1,
+    "availableAt": "2026-06-05 23:59:59",
+    "status": "NOT_STARTED",
+    "answeredTargetCount": 0,
+    "totalTargetCount": 1,
+    "targets": [
+      {
+        "memberId": 2,
+        "nickname": "수민",
+        "gender": "FEMALE",
+        "age": 27,
+        "location": "seoul",
+        "profileImageUrl": "/assets/avatar/f1.png",
+        "meetingStatus": null,
+        "rating": null,
+        "comment": null,
+        "answeredAt": null
+      }
+    ]
+  },
+  {
+    "reviewId": 12,
+    "matchType": "GROUP",
+    "matchId": 7,
+    "chatRoomId": 2,
+    "availableAt": "2026-06-06 23:59:59",
+    "status": "NOT_STARTED",
+    "answeredTargetCount": 0,
+    "totalTargetCount": 2,
+    "targets": [
+      {
+        "memberId": 3,
+        "nickname": "민지",
+        "gender": "FEMALE",
+        "age": 27,
+        "location": "seoul",
+        "profileImageUrl": "/assets/avatar/f1.png",
+        "meetingStatus": null,
+        "rating": null,
+        "comment": null,
+        "answeredAt": null
+      },
+      {
+        "memberId": 4,
+        "nickname": "수현",
+        "gender": "FEMALE",
+        "age": 30,
+        "location": "gyeonggi",
+        "profileImageUrl": "/assets/avatar/f2.png",
+        "meetingStatus": null,
+        "rating": null,
+        "comment": null,
+        "answeredAt": null
+      }
+    ]
+  }
+]

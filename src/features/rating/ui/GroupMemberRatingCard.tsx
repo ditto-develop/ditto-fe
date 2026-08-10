@@ -4,65 +4,49 @@ import styled from "styled-components";
 import { Avatar, Checkbox } from "@/shared/ui";
 import { GroupStepIndicator } from "@/features/rating/ui/GroupStepIndicator";
 import { RatingFormFields } from "@/features/rating/ui/RatingFormFields";
-import type { GroupMemberProfile, GroupMemberRating, OneOnOneRatingForm } from "@/features/rating";
+import { toTargetMetadata, toTargetNickname } from "@/features/rating/model/labels";
+import type {
+  GroupReviewFormValue,
+  ReviewFormValue,
+  ReviewTarget,
+} from "@/features/rating/model/types";
 
 interface GroupMemberRatingCardProps {
-  member: GroupMemberProfile;
-  rating: GroupMemberRating;
+  target: ReviewTarget;
+  form: GroupReviewFormValue;
   current: number;
   total: number;
-  onRatingChange: (form: OneOnOneRatingForm) => void;
+  onFormChange: (form: ReviewFormValue) => void;
   onRematchChange: (checked: boolean) => void;
   onHelpClick: () => void;
 }
 
-function formatAge(age?: number): string {
-  if (!age) return "나이 미공개";
-  const lower = Math.floor(age / 5) * 5;
-  return `${lower}~${lower + 4}세`;
-}
-
-function formatGender(gender?: string): string {
-  if (gender === "FEMALE") return "여성";
-  if (gender === "MALE") return "남성";
-  return "성별 미공개";
-}
-
-function formatLocation(location?: string): string {
-  const locations: Record<string, string> = {
-    seoul: "서울",
-    gyeonggi: "경기",
-    incheon: "인천",
-  };
-  return location ? locations[location.toLowerCase()] ?? location : "지역 미공개";
-}
-
 export function GroupMemberRatingCard({
-  member,
-  rating,
+  target,
+  form,
   current,
   total,
-  onRatingChange,
+  onFormChange,
   onRematchChange,
   onHelpClick,
 }: GroupMemberRatingCardProps) {
+  const nickname = toTargetNickname(target);
+
   return (
     <Card>
       <MemberHeader>
-        <Avatar src={member.avatarUrl} alt={`${member.nickname} 프로필`} size="md" />
+        <Avatar src={target.profileImageUrl ?? undefined} alt={`${nickname} 프로필`} size="md" />
         <MemberText>
-          <Nickname>{member.nickname}</Nickname>
-          <Metadata>
-            {formatAge(member.age)} · {formatGender(member.gender)} · {formatLocation(member.location)}
-          </Metadata>
+          <Nickname>{nickname}</Nickname>
+          <Metadata>{toTargetMetadata(target)}</Metadata>
         </MemberText>
       </MemberHeader>
 
-      <RatingFormFields value={rating} onChange={onRatingChange} />
+      <RatingFormFields value={form} onChange={onFormChange} />
 
       <RematchRow>
         <Checkbox
-          checked={rating.wantRematch}
+          checked={form.wantsOneToOneRematch}
           onChange={onRematchChange}
           label={
             <RematchLabel>
@@ -80,7 +64,7 @@ export function GroupMemberRatingCard({
               </HelpButton>
             </RematchLabel>
           }
-          helperText="상대방도 나를 선택하면 즉시 매칭돼요."
+          helperText="상대방도 나를 선택하면 다음 금요일에 1:1 채팅방이 열려요."
         />
       </RematchRow>
 

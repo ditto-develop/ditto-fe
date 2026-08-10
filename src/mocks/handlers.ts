@@ -1,5 +1,11 @@
 import { http, HttpResponse } from "msw";
 
+import type {
+  MeetingStatus,
+  MemberReview,
+  ReviewSubmitResult,
+} from "@/features/rating";
+
 import chatMessageSent from "@/mocks/fixtures/chat-message-sent.json";
 import chatMessages from "@/mocks/fixtures/chat-messages.json";
 import chatRooms from "@/mocks/fixtures/chat-rooms.json";
@@ -17,15 +23,13 @@ import myRatings from "@/mocks/fixtures/my-ratings.json";
 import myStats from "@/mocks/fixtures/my-stats.json";
 import notificationSettingsFixture from "@/mocks/fixtures/notification-settings.json";
 import notificationsFixture from "@/mocks/fixtures/notifications.json";
-import oneOnOneRating from "@/mocks/fixtures/one-on-one-rating.json";
 import publicProfile from "@/mocks/fixtures/public-profile.json";
 import quizCurrent from "@/mocks/fixtures/quiz-current.json";
 import quizProgressCurrent from "@/mocks/fixtures/quiz-progress-current.json";
 import quizSetWithProgress from "@/mocks/fixtures/quiz-set-with-progress.json";
 import systemState from "@/mocks/fixtures/system-state.json";
 import user from "@/mocks/fixtures/user.json";
-import groupRating from "@/mocks/fixtures/group-rating.json";
-import rematchStatus from "@/mocks/fixtures/rematch-status.json";
+import memberReviews from "@/mocks/fixtures/member-reviews.json";
 import mySanction from "@/mocks/fixtures/my-sanction.json";
 import {
   adminActiveQuizSets,
@@ -65,6 +69,69 @@ const emptyList = {
 let notificationSettings = { ...notificationSettingsFixture };
 let blockedUsers = [...blockedUsersFixture];
 
+/**
+ * 평가 목업 상태(인메모리 — 새로고침하면 초기화된다).
+ *
+ * 실제 BE와 맞춰야 하는 규칙:
+ * - 완료(COMPLETED)된 평가는 목록에서 사라진다.
+ * - 마지막 대상을 제출하면 자동으로 완료된다.
+ * - 그룹에서 양쪽이 재매칭을 원하면 성사되고 rematch가 실린다.
+ *   목업에는 상대가 없으므로 wantsOneToOneRematch=true를 성사로 간주한다.
+ */
+type MockReviewSubmitBody = {
+  meetingStatus: MeetingStatus;
+  rating: number;
+  comment: string | null;
+  wantsOneToOneRematch?: boolean;
+};
+
+const mockReviews: MemberReview[] = JSON.parse(JSON.stringify(memberReviews)) as MemberReview[];
+
+function listOpenReviews(): MemberReview[] {
+  return mockReviews.filter((review) => review.status !== "COMPLETED");
+}
+
+function answerReviewTarget(
+  reviewId: number,
+  memberId: number,
+  body: MockReviewSubmitBody,
+): ReviewSubmitResult {
+  const review = mockReviews.find((item) => item.reviewId === reviewId);
+  if (!review) {
+    return {
+      reviewId,
+      status: "IN_PROGRESS",
+      answeredTargetCount: 0,
+      totalTargetCount: 0,
+      completedAt: null,
+      rematch: null,
+    };
+  }
+
+  const target = review.targets.find((item) => item.memberId === memberId);
+  if (target && target.answeredAt === null) {
+    target.meetingStatus = body.meetingStatus;
+    target.rating = body.rating;
+    target.comment = body.comment;
+    target.answeredAt = "2026-08-03 10:00:00";
+  }
+
+  review.answeredTargetCount = review.targets.filter((item) => item.answeredAt !== null).length;
+  review.status =
+    review.answeredTargetCount >= review.totalTargetCount ? "COMPLETED" : "IN_PROGRESS";
+
+  return {
+    reviewId,
+    status: review.status,
+    answeredTargetCount: review.answeredTargetCount,
+    totalTargetCount: review.totalTargetCount,
+    completedAt: review.status === "COMPLETED" ? "2026-08-03 10:30:00" : null,
+    rematch: body.wantsOneToOneRematch
+      ? { matchedMemberId: memberId, matchedAt: "2026-08-03 10:30:00" }
+      : null,
+  };
+}
+
 // 알림 목록은 '오늘 / 지난 소식' 구간과 상대 시간 표기가 항상 의미를 갖도록
 // 고정 시각 대신 요청 시점 기준 상대 오프셋(minutesAgo)으로 만들어 준다.
 type NotificationFixture = (typeof notificationsFixture)[number];
@@ -96,10 +163,18 @@ export const handlers = [
   http.post(apiPath("/matches/group/join"), () => HttpResponse.json(success(groupJoin))),
   http.post(apiPath("/matches/group/decline"), () => HttpResponse.json(success(null))),
 
-  http.post(apiPath("/ratings"), () => HttpResponse.json(success(oneOnOneRating))),
-  http.post(apiPath("/group-ratings"), () => HttpResponse.json(success(groupRating))),
-  http.post(apiPath("/rematches/request"), () => HttpResponse.json(success(rematchStatus))),
-  http.get(apiPath("/rematches/status"), () => HttpResponse.json(success(rematchStatus))),
+  // 평가는 대상 한 명씩 PUT으로 확정된다. 진행률/완료가 화면 분기를 좌우하므로 인메모리로 상태를 들고 간다.
+  http.get(apiPath("/member-reviews"), () => HttpResponse.json(success(listOpenReviews()))),
+  http.put(
+    apiPath("/member-reviews/([^/]+)/targets/([^/]+)"),
+    async ({ request }) => {
+      const [, reviewId, memberId] = new URL(request.url).pathname.match(
+        /\/member-reviews\/([^/]+)\/targets\/([^/]+)/,
+      ) ?? [];
+      const body = (await request.json()) as MockReviewSubmitBody;
+      return HttpResponse.json(success(answerReviewTarget(Number(reviewId), Number(memberId), body)));
+    },
+  ),
 
   http.get(apiPath("/system/state"), () => HttpResponse.json(success(systemState))),
   http.post(apiPath("/users/local-login"), () => HttpResponse.json(success(localLogin))),
@@ -119,15 +194,17 @@ export const handlers = [
     notificationSettings = { ...notificationSettings, ...patch };
     return HttpResponse.json(success(notificationSettings));
   }),
+  // BE와 같이 최신순으로 준다. blockedAt은 `yyyy-MM-dd HH:mm:ss`라 문자열 비교로도 시간순이 된다.
   http.get(apiPath("/users/me/blocks"), () => {
-    const sorted = [...blockedUsers].sort(
-      (left, right) => new Date(right.blockedAt).getTime() - new Date(left.blockedAt).getTime(),
+    const sorted = [...blockedUsers].sort((left, right) =>
+      right.blockedAt.localeCompare(left.blockedAt),
     );
     return HttpResponse.json(success(sorted));
   }),
+  // 경로의 id는 차단된 회원 ID(int64)다. 멱등이라 없는 대상이어도 성공으로 답한다.
   http.delete(apiPath("/users/me/blocks/[^/]+"), ({ request }) => {
     const id = request.url.split("/").pop();
-    blockedUsers = blockedUsers.filter((userItem) => userItem.id !== id);
+    blockedUsers = blockedUsers.filter((userItem) => String(userItem.id) !== id);
     return HttpResponse.json(success(null));
   }),
   http.get(apiPath("/notifications"), () => {

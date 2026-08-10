@@ -11,6 +11,7 @@ declare global {
       mockApi(options?: {
         matchesFixture?: string;
         matchingStatusFixture?: string;
+        memberReviewsFixture?: string;
       }): Chainable<void>;
     }
   }

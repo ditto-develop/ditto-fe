@@ -11,9 +11,9 @@ export function RematchHelpBottomSheet({ onClose }: RematchHelpBottomSheetProps)
       title="💝 1:1 재매칭 프로세스란?"
       detail={
         <Description>
-          대화를 나눈 상대방과 1:1 매칭을 다시 신청할 수 있어요. 내가 신청하고,
-          상대방도 나를 선택하면 즉시 매칭이 성사돼요. 채팅방은 매주 금요일
-          자정에 열리며, 신청 여부는 상대방에게 공개되지 않아요.
+          그룹에서 대화한 상대와 1:1로 다시 만나고 싶다면 체크해 주세요. 서로 선택하면
+          성사되고, 성사된 뒤 처음 오는 금요일 자정에 1:1 채팅방이 열려요. 한 번 제출한
+          의사는 바꿀 수 없고, 내 선택은 상대방에게 공개되지 않아요.
         </Description>
       }
       closer={onClose}

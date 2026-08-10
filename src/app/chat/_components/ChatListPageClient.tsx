@@ -7,6 +7,7 @@ import { ChatRoomListItem, type ChatRoomListItemData } from "./ChatRoomListItem"
 import { useChatRooms } from "@/features/chat";
 import type { ChatRoomWithCounterpart } from "@/features/chat";
 import { getChatRoomEndState } from "@/app/chat/_utils/chatRoomStatus";
+import { toReviewHref, usePendingReviews } from "@/features/rating/hooks/usePendingReviews";
 
 type FilterType = "전체" | "진행중" | "종료";
 const FILTERS: FilterType[] = ["전체", "진행중", "종료"];
@@ -19,7 +20,10 @@ function toPreview(room: ChatRoomWithCounterpart): string | undefined {
   return last.content;
 }
 
-function toListItem(room: ChatRoomWithCounterpart): ChatRoomListItemData {
+function toListItem(
+  room: ChatRoomWithCounterpart,
+  reviewHref?: string,
+): ChatRoomListItemData {
   return {
     roomId: room.roomId,
     partnerNickname: room.counterpartNickname,
@@ -29,14 +33,25 @@ function toListItem(room: ChatRoomWithCounterpart): ChatRoomListItemData {
     unreadCount: room.unreadCount,
     // 라이브 채팅 계약에는 방 종료/만료 정보가 없다. 상태 없는 방은 진행중으로 본다.
     isGroup: room.roomType === "GROUP",
+    reviewHref,
   };
 }
 
 export function ChatListPageClient() {
   const [filter, setFilter] = useState<FilterType>("전체");
   const { rooms: chatRooms, loading } = useChatRooms();
+  const { reviews } = usePendingReviews();
 
-  const rooms = useMemo(() => chatRooms.map(toListItem), [chatRooms]);
+  // 평가가 열린 방에만 '평가하기' 진입점을 붙인다.
+  const reviewHrefByRoomId = useMemo(
+    () => new Map(reviews.map((review) => [String(review.chatRoomId), toReviewHref(review)])),
+    [reviews],
+  );
+
+  const rooms = useMemo(
+    () => chatRooms.map((room) => toListItem(room, reviewHrefByRoomId.get(String(room.roomId)))),
+    [chatRooms, reviewHrefByRoomId],
+  );
 
   const filteredRooms = rooms.filter((room) => {
     if (filter === "전체") return true;

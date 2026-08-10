@@ -3,12 +3,12 @@
 import styled from "styled-components";
 import { RatingStarInput } from "@/shared/ui";
 import { CommentField } from "@/features/rating/ui/CommentField";
-import { MetStatusSelect } from "@/features/rating/ui/MetStatusSelect";
-import type { OneOnOneRatingForm } from "@/features/rating";
+import { MeetingStatusSelect } from "@/features/rating/ui/MeetingStatusSelect";
+import type { ReviewFormValue } from "@/features/rating/model/types";
 
 interface RatingFormFieldsProps {
-  value: OneOnOneRatingForm;
-  onChange: (value: OneOnOneRatingForm) => void;
+  value: ReviewFormValue;
+  onChange: (value: ReviewFormValue) => void;
 }
 
 export function RatingFormFields({ value, onChange }: RatingFormFieldsProps) {
@@ -16,9 +16,9 @@ export function RatingFormFields({ value, onChange }: RatingFormFieldsProps) {
     <Fields>
       <FieldSection>
         <FieldTitle>1. 오프라인 만남 성사 여부 <Required>*</Required></FieldTitle>
-        <MetStatusSelect
-          value={value.metStatus}
-          onChange={(metStatus) => onChange({ ...value, metStatus })}
+        <MeetingStatusSelect
+          value={value.meetingStatus}
+          onChange={(meetingStatus) => onChange({ ...value, meetingStatus })}
         />
       </FieldSection>
 
@@ -26,8 +26,8 @@ export function RatingFormFields({ value, onChange }: RatingFormFieldsProps) {
         <FieldTitle>2. 별점 평가 <Required>*</Required></FieldTitle>
         <StarCenter>
           <RatingStarInput
-            value={value.stars}
-            onChange={(stars) => onChange({ ...value, stars })}
+            value={value.rating}
+            onChange={(rating) => onChange({ ...value, rating })}
           />
         </StarCenter>
       </FieldSection>

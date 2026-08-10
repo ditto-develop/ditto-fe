@@ -1,60 +1,29 @@
-function mockGroupRoom(ended: boolean) {
-  cy.fixture("group-chat-detail.json").then((room) => {
-    cy.intercept("GET", "**/api/**/chat/group-rooms/*", {
-      statusCode: 200,
-      body: {
-        success: true,
-        data: { ...room, isEnded: ended },
-      },
-    }).as("getRatingGroupRoomDetail");
-  });
-
-  cy.fixture("group-chat-messages.json").then((data) => {
-    cy.intercept("GET", "**/api/**/chat/group-rooms/*/messages*", {
-      statusCode: 200,
-      body: { success: true, data },
-    }).as("getRatingGroupMessages");
-  });
-
-  cy.intercept("PATCH", "**/api/**/chat/group-rooms/*/read", {
-    statusCode: 200,
-    body: { success: true, data: null },
-  }).as("markRatingGroupRead");
-}
-
+/**
+ * 평가(member-reviews) 흐름.
+ *
+ * 평가 화면은 GET /api/v1/member-reviews에서 chatRoomId로 평가를 찾고,
+ * 대상 한 명씩 PUT .../targets/{memberId}로 확정한다.
+ */
 describe("rating system", () => {
   beforeEach(() => {
     cy.clockPeriod("CHATTING");
     cy.mockApi();
     cy.login();
-    cy.intercept("POST", "**/api/v1/ratings", {
-      statusCode: 200,
-      body: {
-        success: true,
-        data: { ratingId: "rating-e2e", submittedAt: "2026-07-01T00:00:00.000Z" },
-      },
-    }).as("submitOneOnOneRating");
-    cy.intercept("POST", "**/api/v1/group-ratings", {
-      statusCode: 200,
-      body: {
-        success: true,
-        data: { ratingIds: ["rating-1", "rating-2"], submittedAt: "2026-07-01T00:00:00.000Z" },
-      },
-    }).as("submitGroupRating");
-    cy.intercept("POST", "**/api/v1/rematches/request", {
-      statusCode: 200,
-      body: {
-        success: true,
-        data: { rematchId: null, matched: false, targetUserId: "partner-1" },
-      },
-    }).as("requestRematch");
   });
 
-  // 라이브 채팅 계약에는 방 종료 상태가 없어 채팅방의 '평가하기' 진입점이 없다.
-  // 평가 화면 자체는 그대로라 라우트로 직접 진입해 검증한다.
-  it("submits a 1:1 rating", () => {
+  it("채팅방 목록에서 평가가 열린 방에만 진입점을 띄운다", () => {
+    cy.visit("/chat");
+    cy.wait(["@getChatRooms", "@getMemberReviews"]);
+
+    // 목업 평가 2건(chatRoomId 1·2)이 곧 채팅방 2개와 1:1 대응한다.
+    cy.contains("button", "평가하기").should("have.length.at.least", 1);
+    cy.get("button").contains("평가하기").first().click();
+    cy.location("pathname").should("include", "/rate");
+  });
+
+  it("1:1 평가를 제출한다", () => {
     cy.visit("/chat/one-on-one/1/rate");
-    cy.wait("@getChatRooms");
+    cy.wait("@getMemberReviews");
 
     cy.contains("수민님 평가", { timeout: 8000 }).should("be.visible");
     cy.contains("button", "평가 제출하기").should("be.disabled");
@@ -65,42 +34,118 @@ describe("rating system", () => {
     cy.contains("9/50").should("be.visible");
     cy.contains("button", "평가 제출하기").should("be.enabled").click();
 
-    cy.wait("@submitOneOnOneRating");
+    // 1:1은 wantsOneToOneRematch를 보내면 8002라 바디에 실리면 안 된다.
+    cy.wait("@submitMemberReview").then(({ request }) => {
+      expect(request.body).to.deep.equal({
+        meetingStatus: "CHAT_ONLY",
+        rating: 5,
+        comment: "친절하고 재밌어요",
+      });
+      expect(request.url).to.include("/member-reviews/11/targets/2");
+    });
+
     cy.location("pathname").should("match", /^\/chat\/?$/);
   });
 
-  it("opens from an ended group chat", () => {
-    mockGroupRoom(true);
+  it("종료된 그룹 채팅방에서 평가 화면으로 들어간다", () => {
+    cy.fixture("group-chat-detail.json").then((room) => {
+      cy.intercept("GET", "**/api/**/chat/group-rooms/*", {
+        statusCode: 200,
+        body: { success: true, data: { ...room, isEnded: true } },
+      }).as("getRatingGroupRoomDetail");
+    });
+    cy.fixture("group-chat-messages.json").then((data) => {
+      cy.intercept("GET", "**/api/**/chat/group-rooms/*/messages*", {
+        statusCode: 200,
+        body: { success: true, data },
+      }).as("getRatingGroupMessages");
+    });
+    cy.intercept("PATCH", "**/api/**/chat/group-rooms/*/read", {
+      statusCode: 200,
+      body: { success: true, data: null },
+    }).as("markRatingGroupRead");
+
     cy.visit("/chat/group/group-room-1");
     cy.wait(["@getRatingGroupRoomDetail", "@getRatingGroupMessages"]);
 
     cy.contains("button", "평가하기").click();
     cy.location("pathname").should("include", "/chat/group/group-room-1/rate");
-    cy.contains("그룹 멤버 평가").should("be.visible");
   });
 
-  it("rates every group member and requests a rematch", () => {
-    mockGroupRoom(false);
-    cy.visit("/chat/group/group-room-1/rate");
-    cy.wait("@getRatingGroupRoomDetail");
+  it("그룹 멤버를 한 명씩 확정하고 재매칭 성사를 알린다", () => {
+    cy.visit("/chat/group/2/rate");
+    cy.wait("@getMemberReviews");
 
     cy.contains("그룹 멤버 평가").should("be.visible");
+    cy.contains("민지").should("be.visible");
+
     cy.get('button[aria-label="1:1 재매칭 프로세스 도움말"]').click();
     cy.contains("1:1 재매칭 프로세스란?").should("be.visible");
     cy.get('button[aria-label="닫기"]').click();
 
+    // 1번째 대상 — 재매칭 의사 true
     cy.contains("button", "만났어요").click();
     cy.get('button[aria-label="4점"]').click();
     cy.contains("💝 1:1로 다시 만나고 싶어요").click();
     cy.contains("button", "다음 멤버 평가하기").click();
 
+    // 그룹은 wantsOneToOneRematch가 필수다.
+    cy.wait("@submitMemberReview").then(({ request }) => {
+      expect(request.body).to.deep.equal({
+        meetingStatus: "MET",
+        rating: 4,
+        comment: null,
+        wantsOneToOneRematch: true,
+      });
+      expect(request.url).to.include("/member-reviews/12/targets/3");
+    });
+
+    // 성사 축하는 한 번만 뜬다.
+    cy.contains("1:1 재매칭 성사!").should("be.visible");
+    cy.contains("button", "확인").click();
+
+    // 2번째 대상 — 폼이 초기화되고 다음 멤버로 넘어간다.
+    cy.contains("수현").should("be.visible");
     cy.contains("2/2").should("be.visible");
+    cy.contains("button", "평가 제출하기").should("be.disabled");
+
     cy.contains("button", "약속 잡았어요").click();
     cy.get('button[aria-label="5점"]').click();
     cy.get('textarea[aria-label="한줄 코멘트"]').type("즐거웠어요");
     cy.contains("button", "평가 제출하기").click();
 
-    cy.wait(["@submitGroupRating", "@requestRematch"]);
+    cy.wait("@submitMemberReview").then(({ request }) => {
+      expect(request.body).to.deep.equal({
+        meetingStatus: "APPOINTMENT_MADE",
+        rating: 5,
+        comment: "즐거웠어요",
+        wantsOneToOneRematch: false,
+      });
+      expect(request.url).to.include("/member-reviews/12/targets/4");
+    });
+
     cy.location("pathname").should("match", /^\/chat\/?$/);
+  });
+
+  it("이미 확정된 평가를 다시 내면 수정 불가 안내를 띄운다", () => {
+    cy.intercept("PUT", "**/api/**/member-reviews/*/targets/*", {
+      statusCode: 200,
+      body: {
+        success: false,
+        data: null,
+        error: { statusCode: 409, code: "8005", message: "이미 답변한 대상입니다." },
+      },
+    }).as("submitAlreadyAnswered");
+
+    cy.visit("/chat/one-on-one/1/rate");
+    cy.wait("@getMemberReviews");
+
+    cy.contains("button", "채팅만 했어요").click();
+    cy.get('button[aria-label="3점"]').click();
+    cy.contains("button", "평가 제출하기").click();
+
+    cy.wait("@submitAlreadyAnswered");
+    cy.contains("이미 제출한 평가는 수정할 수 없습니다.").should("be.visible");
+    cy.location("pathname").should("include", "/rate");
   });
 });

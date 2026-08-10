@@ -17,6 +17,8 @@ export interface ChatRoomListItemData {
   isEnded?: boolean;
   isGroup?: boolean;
   coParticipantAvatarUrl?: string | null;
+  /** 이 방의 평가가 열려 있으면 평가 화면 경로. 없으면 진입점을 띄우지 않는다. */
+  reviewHref?: string;
 }
 
 interface ChatRoomListItemProps {
@@ -84,6 +86,17 @@ export function ChatRoomListItem({ room }: ChatRoomListItemProps) {
         </TopRow>
         <BottomRow>
           <LastMessage>{formatChatMessagePreview(room.lastMessageContent)}</LastMessage>
+          {room.reviewHref && (
+            <ReviewButton
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                router.push(room.reviewHref as string);
+              }}
+            >
+              평가하기
+            </ReviewButton>
+          )}
           {showUnread && (
             <UnreadBadge>
               <UnreadBadgeBg />
@@ -264,6 +277,24 @@ const LastMessage = styled.span`
   white-space: nowrap;
   flex: 1;
   min-width: 0;
+`;
+
+/* 평가 진입점: 평가가 열린 방에만 뜬다 */
+const ReviewButton = styled.button`
+  flex-shrink: 0;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--color-semantic-primary-normal);
+  border-radius: 13px;
+  background-color: transparent;
+  cursor: pointer;
+  font-family: "Pretendard JP", sans-serif;
+  font-size: var(--typography-caption-1-font-size);
+  font-weight: 600;
+  line-height: 1.334;
+  letter-spacing: 0.3024px;
+  color: var(--color-semantic-primary-normal);
+  white-space: nowrap;
 `;
 
 /* Unread badge: 26x26 circle, primary/normal bg, Label 2/Medium 13px */

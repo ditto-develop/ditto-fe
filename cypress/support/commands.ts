@@ -6,6 +6,7 @@ type LoginOptions = {
 type MockApiOptions = {
   matchesFixture?: string;
   matchingStatusFixture?: string;
+  memberReviewsFixture?: string;
 };
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -172,6 +173,30 @@ mockFixture("GET", ["**/api/users/*/ratings", "**/api/v1/users/*/ratings"], "use
     );
   }).as("chatImageUploadUrls");
   cy.intercept("PUT", "**/mock-chat-s3/*", { statusCode: 200, body: "" }).as("chatImagePut");
+
+  // 평가(member-reviews). 채팅방 목록이 평가 진입점을 그리려고 항상 조회하므로
+  // 개별 스펙이 아니라 여기서 기본 목킹한다.
+  mockFixture(
+    "GET",
+    ["**/api/v1/member-reviews", "**/api/member-reviews"],
+    options.memberReviewsFixture ?? "member-reviews.json",
+    "getMemberReviews",
+  );
+  cy.intercept("PUT", "**/api/**/member-reviews/*/targets/*", (req) => {
+    const body = req.body as { wantsOneToOneRematch?: boolean };
+    req.reply(
+      successResponse({
+        reviewId: 11,
+        status: "COMPLETED",
+        answeredTargetCount: 1,
+        totalTargetCount: 1,
+        completedAt: "2026-06-06 10:30:00",
+        rematch: body.wantsOneToOneRematch
+          ? { matchedMemberId: 3, matchedAt: "2026-06-06 10:30:00" }
+          : null,
+      }),
+    );
+  }).as("submitMemberReview");
 
   return cy.wrap(undefined, { log: false });
 });

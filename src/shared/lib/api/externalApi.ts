@@ -73,36 +73,6 @@ type IntroNoteItem = {
     answer: string;
 };
 
-export type ExternalMetStatus = "MET" | "PLANNED" | "CHAT_ONLY" | "NO_SHOW";
-
-export type SubmitOneOnOneRatingBody = {
-    roomId: string;
-    metStatus: ExternalMetStatus;
-    stars: number;
-    comment: string;
-};
-
-export type SubmitGroupMemberRatingBody = SubmitOneOnOneRatingBody & {
-    targetUserId: string;
-    wantRematch: boolean;
-};
-
-export type RatingSubmitResponse = {
-    ratingId: string;
-    submittedAt: string;
-};
-
-export type GroupRatingSubmitResponse = {
-    ratingIds: string[];
-    submittedAt: string;
-};
-
-export type RematchStatusResponse = {
-    rematchId: string | null;
-    matched: boolean;
-    targetUserId: string | null;
-};
-
 export type IntroNotesData = {
     answers: IntroNoteItem[];
     completedCount: number;
@@ -361,39 +331,4 @@ export function declineExternalGroupMatch(quizSetId?: string): Promise<void> {
         method: "POST",
         body: { quizSetId: Number(resolvedQuizSetId) },
     }).then(() => undefined);
-}
-
-// 평가/재매칭 API는 현재 MSW 목업 스펙이다. 실제 BE 스펙 확정 시 DTO를 갱신한다.
-export function submitOneOnOneRating(
-    roomId: string,
-    body: Omit<SubmitOneOnOneRatingBody, "roomId">,
-): Promise<RatingSubmitResponse> {
-    return externalApiFetch<RatingSubmitResponse>("/api/v1/ratings", {
-        method: "POST",
-        body: { roomId, ...body },
-    });
-}
-
-export function submitGroupRating(
-    roomId: string,
-    ratings: Array<Omit<SubmitGroupMemberRatingBody, "roomId">>,
-): Promise<GroupRatingSubmitResponse> {
-    return externalApiFetch<GroupRatingSubmitResponse>("/api/v1/group-ratings", {
-        method: "POST",
-        body: {
-            roomId,
-            ratings,
-        },
-    });
-}
-
-export function requestRematch(targetUserId: string): Promise<RematchStatusResponse> {
-    return externalApiFetch<RematchStatusResponse>("/api/v1/rematches/request", {
-        method: "POST",
-        body: { targetUserId },
-    });
-}
-
-export function getRematchStatus(): Promise<RematchStatusResponse> {
-    return externalApiFetch<RematchStatusResponse>("/api/v1/rematches/status");
 }

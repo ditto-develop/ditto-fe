@@ -3,123 +3,62 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
-import { getAccessToken } from "@/shared/lib/auth";
-import { ChatService } from "@/shared/lib/api/generated";
-import { getUserProfile } from "@/features/profile/api/profileApi";
 import { BottomActionArea, Button } from "@/shared/ui";
 import { useToast } from "@/context/ToastContext";
 import { useGroupRating } from "@/features/rating/hooks/useGroupRating";
+import { useMemberReview } from "@/features/rating/hooks/useMemberReview";
 import { GroupMemberRatingCard } from "@/features/rating/ui/GroupMemberRatingCard";
 import { RematchHelpBottomSheet } from "@/features/rating/ui/RematchHelpBottomSheet";
-import type { GroupMemberProfile } from "@/features/rating";
+import { RematchSuccessModal } from "@/features/rating/ui/RematchSuccessModal";
+import { toTargetNickname } from "@/features/rating/model/labels";
+import type { MemberReview } from "@/features/rating/model/types";
 
 interface GroupRatingContainerProps {
   roomId: string;
 }
 
-function getCurrentUserId(): string | null {
-  try {
-    const payload = getAccessToken().split(".")[1];
-    if (!payload) return null;
-    const decoded = JSON.parse(atob(payload)) as { sub?: string; userId?: string };
-    return decoded.sub ?? decoded.userId ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export function GroupRatingContainer({ roomId }: GroupRatingContainerProps) {
-  const router = useRouter();
-  const { showToast } = useToast();
-  const [members, setMembers] = useState<GroupMemberProfile[] | null>(null);
-  const [helpOpen, setHelpOpen] = useState(false);
+  const { review, state, reload } = useMemberReview(roomId, "GROUP");
 
-  useEffect(() => {
-    let active = true;
+  if (state === "loading") return <StateMessage>불러오는 중...</StateMessage>;
+  if (state === "error") return <StateMessage>그룹 평가 정보를 불러오지 못했어요.</StateMessage>;
+  if (state === "missing" || !review) return <StateMessage>완료했거나 아직 열리지 않은 평가예요.</StateMessage>;
 
-    const loadMembers = async () => {
-      try {
-        const response = await ChatService.chatControllerGetGroupRoomDetail(roomId);
-        if (!response.success || !response.data) throw new Error("Missing group room");
-
-        const currentUserId = getCurrentUserId();
-        const targets = response.data.members.filter((member) => member.userId !== currentUserId);
-        const profiles = await Promise.all(
-          targets.map((member) => getUserProfile(member.userId).catch(() => null)),
-        );
-        if (!active) return;
-
-        setMembers(
-          targets.map((member, index) => ({
-            userId: member.userId,
-            nickname: member.nickname,
-            avatarUrl: member.avatarUrl ?? profiles[index]?.profileImageUrl,
-            age: profiles[index]?.age,
-            gender: profiles[index]?.gender,
-            location: profiles[index]?.location,
-          })),
-        );
-      } catch {
-        if (active) {
-          setMembers([]);
-          showToast("그룹 평가 정보를 불러오지 못했어요.", "error");
-        }
-      }
-    };
-
-    loadMembers();
-    return () => {
-      active = false;
-    };
-  }, [roomId, showToast]);
-
-  if (members === null) return <StateMessage>불러오는 중...</StateMessage>;
-  if (members.length === 0) return <StateMessage>평가할 그룹 멤버가 없어요.</StateMessage>;
-
-  return (
-    <GroupRatingContent
-      roomId={roomId}
-      members={members}
-      helpOpen={helpOpen}
-      setHelpOpen={setHelpOpen}
-      onComplete={() => router.replace("/chat")}
-    />
-  );
+  return <GroupRatingContent review={review} reload={reload} />;
 }
 
 interface GroupRatingContentProps {
-  roomId: string;
-  members: GroupMemberProfile[];
-  helpOpen: boolean;
-  setHelpOpen: (open: boolean) => void;
-  onComplete: () => void;
+  review: MemberReview;
+  reload: () => Promise<void>;
 }
 
-function GroupRatingContent({
-  roomId,
-  members,
-  helpOpen,
-  setHelpOpen,
-  onComplete,
-}: GroupRatingContentProps) {
+function GroupRatingContent({ review, reload }: GroupRatingContentProps) {
+  const router = useRouter();
   const { showToast } = useToast();
-  const rating = useGroupRating(roomId, members);
-  const currentMember = members[rating.currentIndex];
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [completed, setCompleted] = useState(false);
+  const rating = useGroupRating(review, reload);
+
+  // 마지막 대상까지 확정되면 떠난다. 성사 축하가 떠 있으면 닫힌 뒤에 이동한다.
+  useEffect(() => {
+    if (completed && !rating.rematch) router.replace("/chat");
+  }, [completed, rating.rematch, router]);
+
+  if (!rating.currentTarget) return <StateMessage>평가할 그룹 멤버가 없어요.</StateMessage>;
+
+  const nickname = toTargetNickname(rating.currentTarget);
 
   const handleAction = async () => {
-    if (!rating.isLast) {
-      rating.next();
+    const result = await rating.submitCurrent();
+    if (!result) return;
+
+    if (result.completed) {
+      showToast("그룹 멤버 평가가 제출됐어요.", "success");
+      setCompleted(true);
       return;
     }
 
-    try {
-      const result = await rating.submit();
-      if (!result) return;
-      showToast("그룹 멤버 평가가 제출됐어요.", "success");
-      onComplete();
-    } catch {
-      showToast("평가를 제출하지 못했어요. 다시 시도해 주세요.", "error");
-    }
+    showToast(`${nickname}님 평가를 제출했어요.`, "success");
   };
 
   return (
@@ -127,18 +66,22 @@ function GroupRatingContent({
       <ScrollArea>
         <PageHeader>
           <Title>그룹 멤버 평가</Title>
-          <Subtitle>{members.length}명의 멤버를 평가해 주세요.</Subtitle>
+          <Subtitle>
+            {review.totalTargetCount}명 중 {review.answeredTargetCount + rating.currentIndex}명 평가했어요.
+          </Subtitle>
         </PageHeader>
 
         <GroupMemberRatingCard
-          member={currentMember}
-          rating={rating.currentRating}
+          target={rating.currentTarget}
+          form={rating.form}
           current={rating.currentIndex + 1}
-          total={members.length}
-          onRatingChange={rating.setCurrentForm}
-          onRematchChange={rating.setWantRematch}
+          total={rating.total}
+          onFormChange={rating.setFormValue}
+          onRematchChange={rating.setWantsOneToOneRematch}
           onHelpClick={() => setHelpOpen(true)}
         />
+
+        <Notice>제출한 평가와 재매칭 의사는 수정할 수 없어요.</Notice>
       </ScrollArea>
 
       <BottomActionArea>
@@ -157,6 +100,16 @@ function GroupRatingContent({
       </BottomActionArea>
 
       {helpOpen && <RematchHelpBottomSheet onClose={() => setHelpOpen(false)} />}
+
+      {rating.rematch && (
+        <RematchSuccessModal
+          nickname={toTargetNickname(
+            review.targets.find((target) => target.memberId === rating.rematch?.matchedMemberId) ??
+              rating.currentTarget,
+          )}
+          onClose={rating.clearRematch}
+        />
+      )}
     </Page>
   );
 }
@@ -198,6 +151,16 @@ const Subtitle = styled.p`
   font-weight: var(--typography-label-1-normal-font-weight);
   line-height: var(--typography-label-1-normal-line-height);
   letter-spacing: var(--typography-label-1-normal-letter-spacing);
+  color: var(--color-semantic-label-alternative);
+`;
+
+const Notice = styled.p`
+  margin: 0;
+  text-align: center;
+  font-size: var(--typography-label-2-font-size);
+  font-weight: var(--typography-label-2-font-weight);
+  line-height: var(--typography-label-2-line-height);
+  letter-spacing: var(--typography-label-2-letter-spacing);
   color: var(--color-semantic-label-alternative);
 `;
 
