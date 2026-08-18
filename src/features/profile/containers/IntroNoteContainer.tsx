@@ -13,7 +13,7 @@ import {
     acceptMatchRequest,
     rejectMatchRequest,
 } from "@/features/matching/api/matchingApi";
-import { ProfileDetailService, type UserRatingSummaryDto } from "@/shared/lib/api/generated";
+import type { UserRatingSummaryDto } from "@/shared/lib/api/generated";
 import { getUserIntroNotes, type IntroNoteAnswer } from "@/features/profile/api/profileApi";
 import { API_ERROR_CODE, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { useToast } from "@/context/ToastContext";
@@ -54,23 +54,17 @@ export function IntroNoteContainer({
     const [acting, setActing] = useState(false);
     const [showModal, setShowModal] = useState<"request" | "accept" | "reject" | null>(null);
     const [introNotes, setIntroNotes] = useState<IntroNoteAnswer[]>([]);
-    const [ratingSummary, setRatingSummary] = useState<UserRatingSummaryDto | null>(null);
+    const [ratingSummary] = useState<UserRatingSummaryDto | null>(null);
 
     useEffect(() => {
         setState(initialState);
     }, [userId]);
 
     useEffect(() => {
-        Promise.all([
-            getUserIntroNotes(userId).catch(() => []),
-            ProfileDetailService.ratingControllerGetUserRatings(userId)
-                .then((res) => res.success ? res.data ?? null : null)
-                .catch(() => null),
-        ])
-            .then(([notes, ratings]) => {
-                setIntroNotes(notes);
-                setRatingSummary(ratings);
-            })
+        // 받은 평가 요약(GET /api/v1/users/{id}/ratings)은 라이브 BE에 계약이 없다.
+        // 생기면 setRatingSummary를 되살린다(INTEGRATION-TODO.md §A-3).
+        getUserIntroNotes(userId)
+            .then(setIntroNotes)
             .catch(() => {/* 무시 */});
     }, [userId]);
 
@@ -196,13 +190,13 @@ export function IntroNoteContainer({
             <AlertModal
                 isOpen={showModal === "accept"}
                 title="대화 신청을 수락할까요?"
-                message="한 번 신청하면 취소할 수 없어요."
+                message="상대가 먼저 대화를 신청했어요. 수락하면 내일 대화가 시작돼요."
                 confirmParams={{
-                    text: "네, 신청할게요",
+                    text: "네, 수락할게요",
                     onClick: confirmAccept,
                 }}
                 cancelParams={{
-                    text: "취소",
+                    text: "아니오",
                     onClick: () => setShowModal(null),
                 }}
                 onClose={() => setShowModal(null)}

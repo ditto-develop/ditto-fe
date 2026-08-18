@@ -77,15 +77,21 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
     }));
 
     const completedCount = data.introduce.filter((v) => v.trim().length > 0).length;
+    const requiredAnswered = questions.every(
+      (question) =>
+        !question.required || (data.introduce[question.index] ?? "").trim().length > 0,
+    );
+    const canSubmit = completedCount >= 3 && requiredAnswered;
 
     // ✅ 부모에서 호출할 검증 함수
     useImperativeHandle(ref, () => ({
       handleSubmit: () => {
-        const ok = completedCount >= 3;
-        if (!ok) {
+        if (!requiredAnswered) {
+          showToast("필수 질문에 답해 주세요.", "error");
+        } else if (completedCount < 3) {
           showToast("최소 3개 이상 작성해주세요.", "error");
         }
-        return ok;
+        return canSubmit;
       },
       // 저장 여부와 관계없이 현재 입력된 모든 값 반환 (부분 저장용)
       getCurrentValues: () => {
@@ -96,10 +102,10 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
       },
     }));
 
-    // ✅ 버튼 활성화 조건 (3개 이상 작성 시 활성화)
+    // ✅ 버튼 활성화 조건 (3개 이상 및 필수 질문 작성 시 활성화)
     useEffect(() => {
-      setControlButton(completedCount >= 3 ? "primary" : "disabled");
-    }, [completedCount, setControlButton]);
+      setControlButton(canSubmit ? "primary" : "disabled");
+    }, [canSubmit, setControlButton]);
 
     return (
       <IntroContainer>
@@ -110,7 +116,10 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
 
           return (
             <QuestionContainer key={id}>
-              <Label1Normal>{q.question}</Label1Normal>
+              <Label1Normal>
+                {q.question}
+                {q.required && <Required> *</Required>}
+              </Label1Normal>
               <TextAreaWithActions
                 ref={(el) => {
                   textAreaRefs.current[index] = el;
@@ -148,7 +157,7 @@ interface QuestionProgressCardProps {
 const QuestionProgressCard: React.FC<QuestionProgressCardProps> = ({
   current,
   total,
-  helperText = "최소 3개 이상 작성해주세요",
+  helperText = "최소 3개 이상, 필수 질문 포함",
 }) => {
   const clampedCurrent = Math.min(Math.max(current, 0), total);
   const percent = total > 0 ? (clampedCurrent / total) * 100 : 0;
@@ -203,4 +212,8 @@ const HelperText = styled.div`
     font-size: var(--typography-caption-1-font-size);
     color: var(--color-semantic-label-alternative);
   }
+`;
+
+const Required = styled.span`
+  color: var(--color-semantic-status-negative);
 `;

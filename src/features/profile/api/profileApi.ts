@@ -111,11 +111,15 @@ export async function getUserIntroNotes(userId: string): Promise<IntroNoteAnswer
     const data = await getExternalUserIntroNotes(userId);
     return data.answers
         .filter((item) => item.answer.trim().length > 0)
-        .map((item) => ({
-            questionCode: item.questionCode,
-            question: item.question,
-            answer: item.answer,
-        }));
+        .map((item) => {
+            const localField = INTRO_NOTE_FIELDS.find((field) => field.code === item.questionCode);
+
+            return {
+                questionCode: item.questionCode,
+                question: localField?.question ?? item.question,
+                answer: item.answer,
+            };
+        });
 }
 
 export async function getMyIntroNoteAnswersByIndex(): Promise<string[]> {

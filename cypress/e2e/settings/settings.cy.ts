@@ -146,6 +146,21 @@ describe("settings", () => {
     cy.contains("댕이나나").should("not.exist");
   });
 
+  it("shows the empty blocked-users state without list metadata", () => {
+    cy.intercept("GET", "**/api/**/users/me/blocks", {
+      success: true,
+      data: [],
+    }).as("getEmptyBlockedUsers");
+
+    cy.visit("/settings/blocks");
+    cy.wait("@getEmptyBlockedUsers");
+
+    cy.contains("차단한 사용자가 없어요").should("be.visible");
+    cy.contains("불편한 사용자를 차단하면").should("be.visible");
+    cy.contains("명 차단 중").should("not.exist");
+    cy.contains("차단한 사용자는 나의 프로필을").should("not.exist");
+  });
+
   it("renders policy documents", () => {
     cy.visit("/settings");
 

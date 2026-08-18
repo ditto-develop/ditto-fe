@@ -123,12 +123,9 @@ export const TextAreaWithActions = forwardRef<
             </FooterRow>
           ) : (
             isSaved && (
-              <FooterRow>
-                <p>
-                  {savedValue.length}/{maxLength} (최소 {minLength}자 이상)
-                </p>
+              <SavedFooterRow>
                 <SavedEmoji src="/icons/status/textfield-success.svg" alt="saved" />
-              </FooterRow>
+              </SavedFooterRow>
             )
           )}
         </Wrapper>
@@ -193,6 +190,10 @@ const FooterRow = styled.div`
     font-size: var(--typography-label-2-font-size);
     color: var(--color-semantic-label-alternative);
   }
+`;
+
+const SavedFooterRow = styled(FooterRow)`
+  justify-content: flex-end;
 `;
 
 const ActionGroup = styled.div`

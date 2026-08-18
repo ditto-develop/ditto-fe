@@ -27,10 +27,15 @@ describe("3.2 소개노트", () => {
       cy.get("[data-testid='intro-note-preview-item']").last().should("contain", "Q10.");
       cy.contains("Q10. 나를 한 단어로 표현한다면?").should("be.visible");
       cy.contains("대화가 시작되면 더 많은 질문과 답변을 볼 수 있어요").should("be.visible");
-      cy.contains("받은 평가").should("be.visible");
-      cy.contains("4.7").should("be.visible");
-      cy.contains("(30)").should("be.visible");
       cy.contains("대화 신청하기").should("be.visible");
+    });
+
+    // '받은 평가' 섹션은 GET /api/v1/users/{id}/ratings가 있어야 뜬다. 라이브 BE에는 me만
+    // 있어서 이 섹션은 아직 그려지지 않는다(INTEGRATION-TODO.md §A-3). 목업만 보고 "된다"고
+    // 판단하지 않도록 없음을 명시적으로 고정한다.
+    it("받은 평가 섹션은 BE 계약이 생기기 전까지 노출되지 않는다", () => {
+      cy.contains("수민", { timeout: 6000 }).should("be.visible");
+      cy.contains("받은 평가").should("not.exist");
     });
   });
 

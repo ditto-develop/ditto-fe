@@ -7,7 +7,7 @@ import { useToast } from "@/context/ToastContext";
 import { useBlockedUsers } from "@/features/settings/hooks/useBlockedUsers";
 import type { BlockedUser } from "@/features/settings/model/types";
 import { BlockedUserItem } from "@/features/settings/ui/BlockedUserItem";
-import { AlertModal, TopNavigation } from "@/shared/ui";
+import { AlertModal, EmptyState, TopNavigation } from "@/shared/ui";
 
 export function BlockListContainer() {
   const router = useRouter();
@@ -27,19 +27,31 @@ export function BlockListContainer() {
     <Page>
       <TopNavigation label="차단 목록" onBack={() => router.push("/settings")} />
       <Content>
-        <Description>
-          차단한 사용자는 나의 프로필을 볼 수 없고,
-          <br />
-          매칭에서 제외돼요. 언제든지 해제할 수 있어요.
-        </Description>
-        {loading && <StateText>차단 목록을 불러오는 중...</StateText>}
-        {error && <StateText>차단 목록을 불러오지 못했어요.</StateText>}
-        <CountText>{blockedUsers.length}명 차단 중</CountText>
-        <List>
-          {blockedUsers.map((user) => (
-            <BlockedUserItem key={user.id} user={user} onUnblock={setSelectedUser} />
-          ))}
-        </List>
+        {!loading && !error && blockedUsers.length === 0 ? (
+          <EmptyStateContainer>
+            <EmptyState
+              icon="status.circleBlock"
+              title="차단한 사용자가 없어요"
+              description={<>불편한 사용자를 차단하면<br />여기에 표시돼요.</>}
+            />
+          </EmptyStateContainer>
+        ) : (
+          <>
+            <Description>
+              차단한 사용자는 나의 프로필을 볼 수 없고,
+              <br />
+              매칭에서 제외돼요. 언제든지 해제할 수 있어요.
+            </Description>
+            {loading && <StateText>차단 목록을 불러오는 중...</StateText>}
+            {error && <StateText>차단 목록을 불러오지 못했어요.</StateText>}
+            <CountText>{blockedUsers.length}명 차단 중</CountText>
+            <List>
+              {blockedUsers.map((user) => (
+                <BlockedUserItem key={user.id} user={user} onUnblock={setSelectedUser} />
+              ))}
+            </List>
+          </>
+        )}
       </Content>
 
       <AlertModal
@@ -74,6 +86,15 @@ const Description = styled.p`
   line-height: var(--typography-label-1-normal-line-height);
   letter-spacing: var(--typography-label-1-normal-letter-spacing);
   color: var(--color-semantic-label-neutral);
+`;
+
+const EmptyStateContainer = styled.div`
+  min-height: calc(100dvh - var(--space-14) - var(--space-16));
+  padding: var(--space-12) 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const CountText = styled.p`
