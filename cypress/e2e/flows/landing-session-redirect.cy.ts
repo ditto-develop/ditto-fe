@@ -40,7 +40,7 @@ describe("landing session redirect", () => {
       },
     });
 
-    cy.contains("퀴즈로 연결되는 새로운 만남의 시작", { timeout: 6000 }).should("be.visible");
+    cy.contains("퀴즈로 만나는 새로운 인연", { timeout: 6000 }).should("be.visible");
     cy.location("pathname").should("eq", "/");
     cy.window().should((win) => {
       expect(win.localStorage.getItem("accessToken")).to.eq(null);

@@ -28,7 +28,7 @@ describe("3.1 매칭 결과 - 그룹 매칭 (WF-07)", () => {
       openGroupModal();
 
       cy.contains("이번 주 매칭 결과").should("be.visible");
-      cy.contains("3명 이상이 참여해야 대화가 시작돼요").should("be.visible");
+      cy.contains("3명 이상이 참여하면 대화를 나눌 수 있어요").should("be.visible");
       cy.contains("12개중 평균 8개 일치").should("be.visible");
       cy.contains("같은 취미, 취향 그룹").should("be.visible");
       cy.contains("댕이누나님 외 3명").should("be.visible");
@@ -48,7 +48,7 @@ describe("3.1 매칭 결과 - 그룹 매칭 (WF-07)", () => {
 
       cy.contains("겜돌이").click();
       // 멤버 상세(소개노트) 모달 진입 — 모달 상단 Q&A 질문으로 검증
-      cy.contains("Q10. 나를 한 단어로 표현한다면?", { timeout: 6000 }).should("be.visible");
+      cy.contains("Q10. 나를 한 줄로 표현한다면?", { timeout: 6000 }).should("be.visible");
     });
   });
 

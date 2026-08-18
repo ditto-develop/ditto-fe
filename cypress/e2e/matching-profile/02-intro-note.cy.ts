@@ -25,7 +25,7 @@ describe("3.2 소개노트", () => {
       cy.contains("수민", { timeout: 6000 }).should("be.visible");
       cy.get("[data-testid='intro-note-preview-item']").should("have.length", 3);
       cy.get("[data-testid='intro-note-preview-item']").last().should("contain", "Q10.");
-      cy.contains("Q10. 나를 한 단어로 표현한다면?").should("be.visible");
+      cy.contains("Q10. 나를 한 줄로 표현한다면?").should("be.visible");
       cy.contains("대화가 시작되면 더 많은 질문과 답변을 볼 수 있어요").should("be.visible");
       cy.contains("대화 신청하기").should("be.visible");
     });
@@ -82,7 +82,7 @@ describe("3.2 소개노트", () => {
       cy.contains("대화 수락하기").click();
 
       cy.contains("대화 신청을 수락할까요?").should("be.visible");
-      cy.contains("네, 신청할게요").click();
+      cy.contains("네, 수락할게요").click();
 
       cy.wait("@acceptMatchRequest");
       cy.location("pathname", { timeout: 6000 }).should("match", /^\/home\/?$/);

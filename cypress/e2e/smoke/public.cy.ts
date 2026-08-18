@@ -6,7 +6,7 @@ describe("public routes", () => {
   it("renders the landing screen", () => {
     cy.visit("/");
 
-    cy.contains("퀴즈로 연결되는 새로운 만남의 시작", { timeout: 6000 }).should("be.visible");
+    cy.contains("퀴즈로 만나는 새로운 인연", { timeout: 6000 }).should("be.visible");
     cy.contains("매주 색다른 퀴즈를 풀어요").should("be.visible");
   });
 

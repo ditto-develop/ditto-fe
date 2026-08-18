@@ -51,7 +51,7 @@ describe("진입 — 홈 매칭 카드", () => {
       cy.contains("대화 신청하기").click();
 
       cy.contains("그룹 매칭", { timeout: 6000 }).should("be.visible");
-      cy.contains("3명 이상이 참여해야 대화가 시작돼요").should("be.visible");
+      cy.contains("3명 이상이 참여하면 대화를 나눌 수 있어요").should("be.visible");
     });
   });
 
