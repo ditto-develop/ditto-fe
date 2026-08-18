@@ -41,7 +41,7 @@ const Row = styled.button<{ $read: boolean }>`
   width: 100%;
   padding: var(--space-4);
   border: none;
-  border-bottom: 1px solid var(--color-semantic-background-normal-alternative);
+  border-bottom: var(--spacing-1px) solid var(--color-semantic-background-normal-alternative);
   box-sizing: border-box;
   text-align: left;
   cursor: pointer;

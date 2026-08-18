@@ -9,6 +9,7 @@ interface TopNavigationProps {
     label?: string;
     className?: string;
     trailingElement?: React.ReactNode;
+    titleAlign?: "center" | "left";
 }
 
 /**
@@ -16,14 +17,21 @@ interface TopNavigationProps {
  * 모바일 앱 상단 네비게이션 바.
  * back(←) 또는 close(×) 아이콘, 중앙 라벨을 선택적으로 사용.
  */
-export function TopNavigation({ onBack, onClose, label, className, trailingElement }: TopNavigationProps) {
+export function TopNavigation({
+    onBack,
+    onClose,
+    label,
+    className,
+    trailingElement,
+    titleAlign = "center",
+}: TopNavigationProps) {
     return (
         <NavContainer className={className}>
             <IconBox onClick={onBack} $isVisible={!!onBack}>
                 <IconImg src="/icons/navigation/arrow-left.svg" alt="back" />
             </IconBox>
 
-            {label && <NavLabel>{label}</NavLabel>}
+            {label && <NavLabel $align={titleAlign}>{label}</NavLabel>}
 
             {trailingElement ? (
                 <TrailingBox>{trailingElement}</TrailingBox>
@@ -76,11 +84,12 @@ const TrailingBox = styled.div`
   justify-content: flex-end;
 `;
 
-const NavLabel = styled.div`
+const NavLabel = styled.div<{ $align: NonNullable<TopNavigationProps["titleAlign"]> }>`
   font-size: var(--typography-body-1-normal-font-size);
   font-weight: 700;
   color: var(--color-semantic-label-strong);
-  text-align: center;
+  text-align: ${({ $align }) => $align};
+  padding-left: ${({ $align }) => ($align === "left" ? "var(--space-2)" : "0")};
   flex: 1;
   white-space: nowrap;
   overflow: hidden;

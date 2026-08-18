@@ -104,8 +104,8 @@ const AddButton = styled.button`
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
-  width: 96px;
-  height: 96px;
+  width: var(--space-24);
+  height: var(--space-24);
   flex-shrink: 0;
   border: none;
   border-radius: var(--spacing-6px);
@@ -138,8 +138,8 @@ const HiddenFileInput = styled.input`
 
 const Thumbnail = styled.div`
   position: relative;
-  width: 96px;
-  height: 96px;
+  width: var(--space-24);
+  height: var(--space-24);
   flex-shrink: 0;
   border-radius: var(--spacing-6px);
   overflow: hidden;

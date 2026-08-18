@@ -37,6 +37,7 @@ export function NotificationCenterContainer() {
       <Header>
         <TopNavigation
           label="알림"
+          titleAlign="left"
           onBack={() => router.back()}
           trailingElement={
             <MarkAllButton

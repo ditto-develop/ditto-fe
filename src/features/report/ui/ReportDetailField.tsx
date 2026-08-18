@@ -70,7 +70,7 @@ const InputBox = styled.div`
 
 const TextArea = styled.textarea`
   width: 100%;
-  min-height: 96px;
+  min-height: var(--space-24);
   padding: 0 var(--space-1);
   border: none;
   outline: none;

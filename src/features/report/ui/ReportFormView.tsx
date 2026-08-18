@@ -107,7 +107,7 @@ const Content = styled.main`
   width: 100%;
   max-width: var(--space-max);
   margin: 0 auto;
-  padding: var(--space-4) var(--space-4) 120px;
+  padding: var(--space-4) var(--space-4) var(--space-30);
   box-sizing: border-box;
 `;
 
