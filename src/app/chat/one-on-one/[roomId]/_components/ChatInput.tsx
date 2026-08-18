@@ -4,7 +4,12 @@ import type { ChangeEvent, KeyboardEvent } from "react";
 import { useState, useRef } from "react";
 import styled from "styled-components";
 
-import { CHAT_IMAGE_MAX_COUNT, CHAT_IMAGE_MAX_SIZE_BYTES, CHAT_TEXT_MAX_LENGTH } from "@/features/chat";
+import {
+  CHAT_IMAGE_MAX_COUNT,
+  CHAT_IMAGE_MAX_SIZE_BYTES,
+  CHAT_TEXT_MAX_LENGTH,
+  containsForbiddenWord,
+} from "@/features/chat";
 import { useToast } from "@/context/ToastContext";
 import { Icon } from "@/shared/ui";
 
@@ -87,9 +92,13 @@ export function ChatInput({ onSend, onSendImages, disabled }: ChatInputProps) {
   };
 
   const canSend = value.trim().length > 0 && !sending && !disabled;
+  const hasForbiddenWord = containsForbiddenWord(value);
 
   return (
     <Outer>
+      {hasForbiddenWord && (
+        <InputWarning role="status">채팅 내 금칙어가 있습니다.</InputWarning>
+      )}
       <FieldWrapper>
         {onSendImages && (
           <>
@@ -130,9 +139,28 @@ export function ChatInput({ onSend, onSendImages, disabled }: ChatInputProps) {
 }
 
 const Outer = styled.div`
+  position: relative;
   flex-shrink: 0;
   background-color: var(--color-semantic-background-normal-normal);
   padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+`;
+
+const InputWarning = styled.div`
+  position: absolute;
+  left: var(--space-4);
+  right: var(--space-4);
+  bottom: calc(100% + var(--space-3));
+  z-index: 10;
+  padding: var(--spacing-10px) var(--space-4);
+  border-radius: var(--space-3);
+  background-color: var(--color-semantic-inverse-background);
+  color: var(--color-semantic-inverse-label);
+  font-family: "Pretendard JP", sans-serif;
+  font-size: var(--typography-body-2-normal-font-size);
+  font-weight: 600;
+  line-height: var(--typography-body-2-normal-line-height);
+  letter-spacing: var(--typography-body-2-normal-letter-spacing);
   box-sizing: border-box;
 `;
 

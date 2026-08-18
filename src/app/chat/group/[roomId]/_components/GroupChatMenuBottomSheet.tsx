@@ -4,21 +4,20 @@ import { useEffect } from "react";
 import styled, { keyframes } from "styled-components";
 
 interface GroupChatMenuBottomSheetProps {
-  hasVote: boolean;
+  /** 투표 생성 진입점 노출 여부. BE 계약이 생기기 전까지는 false다. */
+  canCreateVote: boolean;
   onClose: () => void;
   onMemberList: () => void;
-  onCreateVote: () => void;
+  onCreateVote?: () => void;
   onReport: () => void;
-  onLeave: () => void;
 }
 
 export function GroupChatMenuBottomSheet({
-  hasVote,
+  canCreateVote,
   onClose,
   onMemberList,
   onCreateVote,
   onReport,
-  onLeave,
 }: GroupChatMenuBottomSheetProps) {
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -43,7 +42,7 @@ export function GroupChatMenuBottomSheet({
             <MenuText>멤버 목록</MenuText>
           </MenuItem>
 
-          {!hasVote && (
+          {canCreateVote && onCreateVote && (
             <MenuItem
               onClick={() => {
                 onCreateVote();
@@ -63,14 +62,7 @@ export function GroupChatMenuBottomSheet({
             <MenuText>신고하기</MenuText>
           </MenuItem>
 
-          <MenuItem
-            onClick={() => {
-              onClose();
-              onLeave();
-            }}
-          >
-            <MenuText>대화방 나가기</MenuText>
-          </MenuItem>
+          {/* 그룹 방은 나가기가 없다. 기한 만료로만 종료된다(BE 7002). */}
         </Contents>
       </Sheet>
     </Overlay>

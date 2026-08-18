@@ -182,8 +182,12 @@ export function getExternalSystemState(): Promise<SystemStateDto> {
 // provider/providerUserId는 더 이상 body로 보내지 않는다(인증은 Authorization 헤더로 처리).
 // generated CreateUserDto는 email/birthDate를 optional string으로만 정의하지만,
 // BE는 값이 없을 때 null을 허용하므로 해당 두 필드만 nullable로 넓힌다.
-// interests/location/job/caricature는 BE 스펙(ditto-api.json)에 아직 반영되지 않아 generated
-// DTO에 없으므로 여기서 수동으로 추가한다. 스펙 갱신 후 generate-client 재실행 시 정리한다.
+// interests/location/job/caricature는 라이브 CreateUserRequest의 required 필드지만,
+// 리포지토리의 ditto-api.json이 구 스펙이라 generated DTO에 없다. 여기서 수동으로 얹는다.
+// 스펙을 https://api.ditto.pics/docs/openapi.yaml로 교체하고 generate-client를 다시 돌리면 정리된다.
+//
+// 라이브에 profileImageUrl·introduce(소개)가 없어 온보딩 입력이 저장되지 않는다
+// (INTEGRATION-TODO.md §A-5).
 export type CreateExternalUserBody = Omit<
     CreateUserDto,
     "email" | "birthDate" | "provider" | "providerUserId"

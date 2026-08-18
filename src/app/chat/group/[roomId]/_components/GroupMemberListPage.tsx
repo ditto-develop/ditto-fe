@@ -2,51 +2,38 @@
 
 import { useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
-import type { GroupChatMemberDto } from "@/shared/lib/api/generated";
+import type { CounterpartProfile } from "@/features/chat";
 import {
+  getMyProfile,
   getUserProfile,
   type PublicProfileDto,
 } from "@/features/profile/api/profileApi";
-import { ProfileDetailService } from "@/shared/lib/api/generated";
-import type { UserAnswersComparisonDto } from "@/shared/lib/api/generated";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import { toLocationLabel } from "@/shared/lib/profileLabels";
 import { TopNavigation } from "@/shared/ui";
 
 interface MemberData {
-  member: GroupChatMemberDto;
+  member: CounterpartProfile;
   profile: PublicProfileDto | null;
-  comparison: UserAnswersComparisonDto | null;
 }
 
 interface GroupMemberListPageProps {
-  members: GroupChatMemberDto[];
-  myUserId: string;
+  /** 나를 제외한 참여자(counterpartMemberIds 기준). */
+  members: CounterpartProfile[];
   onClose: () => void;
-  onMemberClick: (member: GroupChatMemberDto) => void;
+  onMemberClick: (member: CounterpartProfile) => void;
 }
 
-function getCompatibilityInfo(
-  comparison: UserAnswersComparisonDto | null,
-  isTop: boolean,
-): { label: string; isNegative: boolean } | null {
-  if (!comparison) return null;
-  if (isTop) {
-    return { label: "🌟 당신과 가장 비슷해요", isNegative: true };
-  }
-  if (comparison.matchRate >= 70) {
-    return { label: "😊 대부분 비슷하게 생각해요", isNegative: true };
-  }
-  return { label: "🙂 비슷하지만 새로운 관점도 있어요", isNegative: false };
-}
-
+/**
+ * 퀴즈 답변 비교 배지(`🌟 당신과 가장 비슷해요` 등)는 라이브 BE에 계약이 없어 빠져 있다.
+ * `GET /api/v1/users/{id}/answers`가 생기면 되살린다(INTEGRATION-TODO.md §A-3).
+ */
 export function GroupMemberListPage({
   members,
-  myUserId,
   onClose,
   onMemberClick,
 }: GroupMemberListPageProps) {
-  const [myData, setMyData] = useState<MemberData | null>(null);
+  const [myProfile, setMyProfile] = useState<PublicProfileDto | null>(null);
   const [otherData, setOtherData] = useState<MemberData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -59,60 +46,26 @@ export function GroupMemberListPage({
   }, []);
 
   useEffect(() => {
-    const myMember = members.find((m) => m.userId === myUserId);
-    const otherMembers = members.filter((m) => m.userId !== myUserId);
+    let active = true;
 
-    const fetchAll = async () => {
-      // Fetch all profiles in parallel
-      const profileResults = await Promise.allSettled(
-        members.map((m) => getUserProfile(m.userId))
-      );
+    void (async () => {
+      const [mine, profiles] = await Promise.all([
+        getMyProfile().catch(() => null),
+        Promise.all(
+          members.map((member) => getUserProfile(String(member.userId)).catch(() => null)),
+        ),
+      ]);
 
-      // Fetch quiz comparisons for other members
-      const comparisonResults = await Promise.allSettled(
-        otherMembers.map((m) =>
-          ProfileDetailService.ratingControllerGetUserAnswers(m.userId)
-        )
-      );
-
-      // Build my data
-      const myIdx = members.findIndex((m) => m.userId === myUserId);
-      if (myMember) {
-        const myProfile =
-          profileResults[myIdx].status === "fulfilled"
-            ? (profileResults[myIdx] as PromiseFulfilledResult<PublicProfileDto>).value
-            : null;
-        setMyData({ member: myMember, profile: myProfile, comparison: null });
-      }
-
-      // Build other members' data
-      const others: MemberData[] = otherMembers.map((m, i) => {
-        const profileIdx = members.findIndex((mm) => mm.userId === m.userId);
-        const profile =
-          profileResults[profileIdx]?.status === "fulfilled"
-            ? (profileResults[profileIdx] as PromiseFulfilledResult<PublicProfileDto>).value
-            : null;
-        const compResult = comparisonResults[i];
-        const comparison =
-          compResult.status === "fulfilled" && compResult.value.success && compResult.value.data
-            ? compResult.value.data
-            : null;
-        return { member: m, profile, comparison };
-      });
-
-      // Sort others by matchRate descending (highest similarity first)
-      others.sort((a, b) => {
-        const rateA = a.comparison?.matchRate ?? -1;
-        const rateB = b.comparison?.matchRate ?? -1;
-        return rateB - rateA;
-      });
-
-      setOtherData(others);
+      if (!active) return;
+      setMyProfile(mine);
+      setOtherData(members.map((member, index) => ({ member, profile: profiles[index] })));
       setLoading(false);
-    };
+    })();
 
-    fetchAll();
-  }, [members, myUserId]);
+    return () => {
+      active = false;
+    };
+  }, [members]);
 
   function buildMetaText(profile: PublicProfileDto): string {
     return [
@@ -133,38 +86,22 @@ export function GroupMemberListPage({
         <PageTitle>멤버 전체보기</PageTitle>
 
         {/* 나 섹션 */}
-        {myData && (
+        {myProfile && (
           <Section>
             <SectionLabel>나</SectionLabel>
             <CardWrapper>
-              <MemberCard onClick={() => onMemberClick(myData.member)}>
+              <MemberCard as="div">
                 <CardRow>
                   <AvatarImg
-                    src={
-                      myData.profile?.profileImageUrl ||
-                      myData.member.avatarUrl ||
-                      "/assets/avatar/m1.png"
-                    }
-                    alt={myData.member.nickname}
+                    src={myProfile.profileImageUrl || "/assets/avatar/m1.png"}
+                    alt={myProfile.nickname}
                   />
                   <MemberInfo>
                     <NameRow>
-                      <MemberName>{myData.member.nickname}</MemberName>
-                      <ChevronImg
-                        src="/icons/navigation/chevron-right.svg"
-                        alt=""
-                        width={24}
-                        height={24}
-                      />
+                      <MemberName>{myProfile.nickname}</MemberName>
                     </NameRow>
-                    {myData.profile && (
-                      <>
-                        <MetaText>{buildMetaText(myData.profile)}</MetaText>
-                        {myData.profile.introduction && (
-                          <BioText>{myData.profile.introduction}</BioText>
-                        )}
-                      </>
-                    )}
+                    <MetaText>{buildMetaText(myProfile)}</MetaText>
+                    {myProfile.introduction && <BioText>{myProfile.introduction}</BioText>}
                   </MemberInfo>
                 </CardRow>
               </MemberCard>
@@ -177,35 +114,16 @@ export function GroupMemberListPage({
           <Section>
             <SectionLabel>상대방({otherData.length}명)</SectionLabel>
             <OtherList>
-              {otherData.map(({ member, profile, comparison }, idx) => {
-                const compat = getCompatibilityInfo(comparison, idx === 0);
+              {otherData.map(({ member, profile }) => {
                 return (
                   <OtherEntry key={member.userId}>
-                    {/* 배지 행 */}
-                    {compat && (
-                      <BadgeRow>
-                        <CompatBadge $isNegative={compat.isNegative}>
-                          <CompatBadgeBg $isNegative={compat.isNegative} />
-                          <CompatBadgeText $isNegative={compat.isNegative}>
-                            {compat.label}
-                          </CompatBadgeText>
-                        </CompatBadge>
-                        {comparison && (
-                          <MatchCountText>
-                            {comparison.totalCount}개중{" "}
-                            {comparison.matchedCount}개 일치
-                          </MatchCountText>
-                        )}
-                      </BadgeRow>
-                    )}
-
                     {/* 멤버 카드 */}
                     <MemberCard onClick={() => onMemberClick(member)}>
                       <CardRow>
                         <AvatarImg
                           src={
                             profile?.profileImageUrl ||
-                            member.avatarUrl ||
+                            member.profileImageUrl ||
                             "/assets/avatar/m1.png"
                           }
                           alt={member.nickname}
@@ -316,58 +234,6 @@ const OtherEntry = styled.div`
   gap: 8px;
 `;
 
-/* 배지 행 */
-const BadgeRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-`;
-
-const CompatBadge = styled.div<{ $isNegative: boolean }>`
-  position: relative;
-  display: flex;
-  align-items: center;
-  height: 24px;
-  padding: 0 6px;
-  border-radius: 6px;
-  overflow: hidden;
-`;
-
-const CompatBadgeBg = styled.div<{ $isNegative: boolean }>`
-  position: absolute;
-  inset: 0;
-  border-radius: 8px;
-  background-color: ${({ $isNegative }) =>
-    $isNegative
-      ? "var(--color-semantic-status-negative)"
-      : "var(--color-semantic-status-cautionary)"};
-  opacity: 0.08;
-`;
-
-const CompatBadgeText = styled.span<{ $isNegative: boolean }>`
-  position: relative;
-  font-family: "Pretendard JP", sans-serif;
-  font-size: var(--typography-caption-1-font-size);
-  font-weight: 500;
-  line-height: 1.334;
-  letter-spacing: 0.3024px;
-  color: ${({ $isNegative }) =>
-    $isNegative
-      ? "var(--color-semantic-status-negative)"
-      : "var(--color-semantic-status-cautionary)"};
-  white-space: nowrap;
-`;
-
-const MatchCountText = styled.span`
-  font-family: "Pretendard JP", sans-serif;
-  font-size: var(--typography-caption-1-font-size);
-  font-weight: 500;
-  line-height: 1.334;
-  letter-spacing: 0.3024px;
-  color: var(--color-semantic-label-alternative);
-  white-space: nowrap;
-`;
 
 /* 멤버 카드 */
 const MemberCard = styled.div`

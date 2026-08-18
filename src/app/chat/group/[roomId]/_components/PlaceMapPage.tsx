@@ -1,5 +1,15 @@
 "use client";
 
+/**
+ * ⚠️ 보류 중(연결 안 됨) — 그룹 만남 투표 UI.
+ *
+ * 라이브 BE에 투표 계약이 없다(swagger·BE 위키 어디에도 없음).
+ * 이 파일은 아직 구 백엔드 경로(`/api/chat/group-rooms/...`)를 호출하므로 그대로 노출하면
+ * 라이브에서 404가 난다. `GROUP_VOTE_ENABLED`(features/chat/model/constants.ts)가 false인 동안
+ * 화면에서 진입점이 막혀 있다. BE 엔드포인트가 생기면 externalApiFetch로 옮기고 플래그를 올린다.
+ * 상세: INTEGRATION-TODO.md §A-2
+ */
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Copy, LocateFixed, MapPin, X } from "lucide-react";
 import type { VotePlaceOptionDto } from "@/shared/lib/api/generated";

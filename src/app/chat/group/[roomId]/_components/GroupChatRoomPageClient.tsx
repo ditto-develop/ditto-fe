@@ -1,179 +1,85 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import styled from "styled-components";
 import {
-  ChatService,
-  type GroupVoteDto,
-  type GroupChatRoomDetailDto,
-  type GroupChatMessageDto,
-  type GroupChatMemberDto,
-} from "@/shared/lib/api/generated";
+  deriveRoomState,
+  getRoomEndedMessage,
+  GROUP_VOTE_ENABLED,
+  useChatRoom,
+  useChatRoomMeta,
+} from "@/features/chat";
+import { useToast } from "@/context/ToastContext";
+import { getMyMemberId } from "@/shared/lib/auth";
+import { parseServerDateTime } from "@/shared/lib/serverDateTime";
+import { resolveStaticRouteParam } from "@/shared/lib/staticRouteParam";
 import { GroupChatRoomHeader } from "./GroupChatRoomHeader";
 import { GroupMessageList } from "./GroupMessageList";
 import { GroupChatMenuBottomSheet } from "./GroupChatMenuBottomSheet";
 import { GroupMemberListPage } from "./GroupMemberListPage";
 import { GroupMemberProfilePage } from "./GroupMemberProfilePage";
-import { GroupVoteCreateModal } from "./GroupVoteCreateModal";
-import { VoteResultsPage } from "./VoteResultsPage";
-import { VoteSubmissionPage } from "./VoteSubmissionPage";
-import { VoteBanner } from "./VoteBanner";
 import { ChatInput } from "@/app/chat/one-on-one/[roomId]/_components/ChatInput";
-import { ChatLeaveModal } from "@/app/chat/one-on-one/[roomId]/_components/ChatLeaveModal";
-import { getChatRoomEndState } from "@/app/chat/_utils/chatRoomStatus";
 import { BottomActionArea, Button } from "@/shared/ui";
+import type { CounterpartProfile } from "@/features/chat";
 
-function getUserIdFromToken(): string | null {
-  try {
-    const token = localStorage.getItem("accessToken");
-    if (!token) return null;
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.sub || payload.userId || null;
-  } catch {
-    return null;
-  }
-}
-
+/**
+ * 그룹 채팅방.
+ *
+ * 그룹 방은 정원이 차면 서버가 자동 생성하고, 1:1·재매칭과 **같은** `/api/v1/chat/rooms`
+ * 계약을 쓴다(메시지 조회·읽음·이미지·STOMP 경로 모두 동일). 별도 group-rooms 엔드포인트는
+ * 존재하지 않으므로 1:1과 같은 훅을 그대로 재사용한다.
+ *
+ * 그룹은 `POST /chat/rooms/{id}/end`로 끝낼 수 없다(7002). 기한 만료로만 종료된다.
+ */
 export function GroupChatRoomPageClient() {
   const params = useParams<{ roomId: string }>();
-  const roomId = params.roomId;
   const router = useRouter();
 
-  const [myUserId, setMyUserId] = useState<string | null>(null);
-  const [roomDetail, setRoomDetail] = useState<GroupChatRoomDetailDto | null>(null);
-  const [messages, setMessages] = useState<GroupChatMessageDto[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const [roomId] = useState(() => Number(resolveStaticRouteParam("group", String(params.roomId))));
+  const [myUserId, setMyUserId] = useState<number | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isVoteCreateOpen, setIsVoteCreateOpen] = useState(false);
-  const [activeVote, setActiveVote] = useState<GroupVoteDto | null>(null);
-  const [voteView, setVoteView] = useState<"submission" | "results" | null>(null);
   const [isMemberListOpen, setIsMemberListOpen] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<GroupChatMemberDto | null>(null);
+  const [selectedMember, setSelectedMember] = useState<CounterpartProfile | null>(null);
+
+  const {
+    messages,
+    loading: messagesLoading,
+    hasMore,
+    loadingOlder,
+    loadOlder,
+    status,
+    sendText,
+    sendImages,
+    sendError,
+    clearSendError,
+  } = useChatRoom(roomId);
+  const { room, members, memberById, loading: metaLoading, refresh: refreshRoom } =
+    useChatRoomMeta(roomId);
+  const { showToast } = useToast();
 
   useEffect(() => {
-    const userId = getUserIdFromToken();
-    setMyUserId(userId);
+    setMyUserId(getMyMemberId());
+  }, []);
 
-    const init = async () => {
-      try {
-        const [detailRes, msgRes] = await Promise.all([
-          ChatService.chatControllerGetGroupRoomDetail(roomId),
-          ChatService.chatControllerGetGroupMessages(roomId, undefined, 30),
-        ]);
-
-        if (detailRes.success && detailRes.data) {
-          setRoomDetail(detailRes.data);
-        }
-
-        if (msgRes.success && msgRes.data) {
-          const msgs = msgRes.data.messages.slice().reverse();
-          setMessages(msgs);
-          setNextCursor(msgRes.data.nextCursor ?? null);
-          setHasMore(!!msgRes.data.nextCursor);
-        }
-
-        ChatService.chatControllerMarkGroupAsRead(roomId).catch(() => {});
-      } catch {
-        // ignore
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    init();
-  }, [roomId]);
-
-  // Poll room detail for vote changes
+  // 에코가 오지 않은 전송은 실패다. 원인을 알리고 방 상태를 다시 읽는다.
   useEffect(() => {
-    if (!roomDetail) return;
+    if (!sendError) return;
 
-    let isMounted = true;
-    let isFetching = false;
+    showToast(sendError, "error");
+    clearSendError();
+    void refreshRoom();
+  }, [sendError, clearSendError, showToast, refreshRoom]);
 
-    const refresh = async () => {
-      if (isFetching || document.hidden) return;
-      isFetching = true;
-      try {
-        const res = await ChatService.chatControllerGetGroupRoomDetail(roomId);
-        if (isMounted && res.success && res.data) {
-          setRoomDetail(res.data);
-        }
-      } catch {
-        // ignore
-      } finally {
-        isFetching = false;
-      }
-    };
+  const roomState = room ? deriveRoomState(room) : "OPEN";
+  const isEnded = roomState === "ENDED";
+  const expiresAt = useMemo(() => parseServerDateTime(room?.expiresAt), [room?.expiresAt]);
 
-    const id = window.setInterval(refresh, 5000);
-    return () => {
-      isMounted = false;
-      window.clearInterval(id);
-    };
-  }, [roomId, roomDetail]);
+  const memberNames = members.map((member) => member.nickname);
+  // counterpartMemberIds는 나를 뺀 인원이다. 표시용 총원에는 나를 더한다.
+  const totalMembers = members.length + 1;
 
-  const handleMessagesUpdate = useCallback(
-    (newMessages: GroupChatMessageDto[], cursor: string | null) => {
-      setMessages(newMessages);
-      setNextCursor(cursor);
-      setHasMore(!!cursor);
-    },
-    []
-  );
-
-  const handleSend = async (content: string) => {
-    try {
-      const res = await ChatService.chatControllerSendGroupMessage(roomId, { content });
-      if (res.success && res.data) {
-        setMessages((prev) => [...prev, res.data as unknown as GroupChatMessageDto]);
-      }
-    } catch {
-      // ignore — polling will pick it up
-    }
-  };
-
-  const handleLeave = async () => {
-    try {
-      await ChatService.chatControllerLeaveGroupChatRoom(roomId, { reason: "USER_LEFT" });
-    } catch {
-      // ignore
-    }
-    router.replace("/chat");
-  };
-
-  const openVote = async (voteId?: string) => {
-    const targetVoteId = voteId ?? activeVote?.id ?? roomDetail?.vote?.id;
-    if (!targetVoteId) return;
-
-    if (activeVote?.id === targetVoteId) {
-      setVoteView(activeVote.myVote ? "results" : "submission");
-      return;
-    }
-
-    const res = await ChatService.chatControllerGetVoteDetail(roomId, targetVoteId);
-    if (res.success && res.data) {
-      setActiveVote(res.data);
-      setVoteView(res.data.myVote ? "results" : "submission");
-    }
-  };
-
-  const handleVoteCreated = (vote: GroupVoteDto) => {
-    setActiveVote(vote);
-    setRoomDetail((prev) =>
-      prev
-        ? {
-            ...prev,
-            vote,
-          }
-        : prev
-    );
-  };
-
-  if (loading) {
+  if (metaLoading || messagesLoading) {
     return (
       <PageContainer>
         <EmptyMessage>불러오는 중...</EmptyMessage>
@@ -181,7 +87,7 @@ export function GroupChatRoomPageClient() {
     );
   }
 
-  if (!roomDetail) {
+  if (!room) {
     return (
       <PageContainer>
         <EmptyMessage>채팅방을 찾을 수 없어요.</EmptyMessage>
@@ -189,53 +95,48 @@ export function GroupChatRoomPageClient() {
     );
   }
 
-  const expiresAt = roomDetail.expiresAt ? new Date(roomDetail.expiresAt) : null;
-  const isEnded = getChatRoomEndState(roomDetail, myUserId).isEnded;
-  const memberNames = roomDetail.members.map((m) => m.nickname);
-  const hasVote = roomDetail.vote !== null || activeVote !== null;
-  const voteLabel = activeVote?.title ?? roomDetail.vote?.title ?? "만남 투표 진행 중";
-  const memberMap = roomDetail.members.reduce<Record<string, string>>((acc, member) => {
-    acc[member.userId] = member.nickname;
-    return acc;
-  }, {});
+  const notice = isEnded
+    ? getRoomEndedMessage(room)
+    : roomState === "BEFORE_OPEN"
+      ? "금요일에 대화가 열려요. 그때 다시 만나요!"
+      : status === "disconnected"
+        ? "연결이 끊겼어요. 다시 연결되면 놓친 메시지를 불러올게요."
+        : undefined;
 
   return (
     <PageContainer>
       <GroupChatRoomHeader
         memberNames={memberNames}
-        totalMembers={roomDetail.totalMembers}
-        expiresAt={expiresAt}
+        totalMembers={totalMembers}
+        expiresAt={isEnded ? null : expiresAt}
         onMenuClick={() => setIsMenuOpen(true)}
       />
 
-      {hasVote && (
-        <VoteBanner
-          label={voteLabel}
-          onVoteClick={() => {
-            openVote();
-          }}
-        />
-      )}
-
       <GroupMessageList
-        roomId={roomId}
         messages={messages}
-        currentUserId={myUserId ?? ""}
-        onMessagesUpdate={handleMessagesUpdate}
-        nextCursor={nextCursor}
+        myUserId={myUserId}
+        memberById={memberById}
         hasMore={hasMore}
-        isEnded={isEnded}
-        onVoteMessageClick={openVote}
+        loadingOlder={loadingOlder}
+        onLoadOlder={loadOlder}
+        notice={notice}
+        onImageClick={(imageUrl) => window.open(imageUrl, "_blank", "noopener,noreferrer")}
       />
 
-      {!isEnded && <ChatInput onSend={handleSend} />}
+      {!isEnded && (
+        <ChatInput
+          onSend={sendText}
+          onSendImages={sendImages}
+          disabled={roomState !== "OPEN"}
+        />
+      )}
 
       {isEnded && (
         <BottomActionArea>
           <RateButton
             type="button"
             $size="large"
-            onClick={() => router.push(`/chat/group/${encodeURIComponent(roomId)}/rate`)}
+            onClick={() => router.push(`/chat/group/${roomId}/rate`)}
           >
             평가하기
           </RateButton>
@@ -244,97 +145,27 @@ export function GroupChatRoomPageClient() {
 
       {isMenuOpen && (
         <GroupChatMenuBottomSheet
-          hasVote={hasVote}
+          // 투표는 BE 계약이 없다(INTEGRATION-TODO.md §A-2). 생기기 전에는 진입점을 숨긴다.
+          canCreateVote={GROUP_VOTE_ENABLED}
           onClose={() => setIsMenuOpen(false)}
           onMemberList={() => setIsMemberListOpen(true)}
-          onCreateVote={() => {
-            setIsVoteCreateOpen(true);
-          }}
-          onReport={() => {
-            // TODO: 신고하기 화면으로 이동
-          }}
-          onLeave={() => setIsLeaveModalOpen(true)}
+          onReport={() => showToast("그룹 채팅 신고는 멤버 목록에서 상대를 선택해 주세요.", "info")}
         />
       )}
 
-      {isVoteCreateOpen && (
-        <GroupVoteCreateModal
-          onClose={() => setIsVoteCreateOpen(false)}
-          onComplete={async (payload) => {
-            const res = await ChatService.chatControllerCreateVote(roomId, {
-              title: "만남 투표 진행 중",
-              allowMultiple: payload.allowMultiple,
-              placeOptions: payload.placeOptions.map((place) => ({
-                label: place.name,
-                address: place.address,
-                mapLink: place.mapUrl,
-                latitude: place.latitude,
-                longitude: place.longitude,
-              })),
-              timeOptions: payload.timeOptions,
-            });
-
-            if (res.success && res.data) {
-              handleVoteCreated(res.data);
-              const msgRes = await ChatService.chatControllerGetGroupMessages(roomId, undefined, 30);
-              if (msgRes.success && msgRes.data) {
-                setMessages(msgRes.data.messages.slice().reverse());
-                setNextCursor(msgRes.data.nextCursor ?? null);
-                setHasMore(!!msgRes.data.nextCursor);
-              }
-              return;
-            }
-
-            throw new Error(res.error ?? "투표를 생성할 수 없습니다.");
-          }}
-        />
-      )}
-
-      {activeVote && voteView === "submission" && (
-        <VoteSubmissionPage
-          vote={activeVote}
-          roomId={roomId}
-          onClose={() => setVoteView(null)}
-          onVoted={(updatedVote) => {
-            setActiveVote(updatedVote);
-            setVoteView("results");
-          }}
-        />
-      )}
-
-      {activeVote && voteView === "results" && (
-        <VoteResultsPage
-          vote={activeVote}
-          memberMap={memberMap}
-          roomId={roomId}
-          onClose={() => setVoteView(null)}
-          onRevote={() => setVoteView("submission")}
-          onVoteUpdated={(updatedVote) => setActiveVote(updatedVote)}
-        />
-      )}
-
-      <ChatLeaveModal
-        isOpen={isLeaveModalOpen}
-        onClose={() => setIsLeaveModalOpen(false)}
-        onConfirm={handleLeave}
-      />
-
-      {isMemberListOpen && roomDetail && (
+      {isMemberListOpen && (
         <GroupMemberListPage
-          members={roomDetail.members}
-          myUserId={myUserId ?? ""}
+          members={members}
           onClose={() => setIsMemberListOpen(false)}
-          onMemberClick={(member) => {
-            setSelectedMember(member);
-          }}
+          onMemberClick={(member) => setSelectedMember(member)}
         />
       )}
 
       {selectedMember && (
         <GroupMemberProfilePage
-          userId={selectedMember.userId}
+          userId={String(selectedMember.userId)}
           nickname={selectedMember.nickname}
-          profileImageUrl={selectedMember.avatarUrl ?? null}
+          profileImageUrl={selectedMember.profileImageUrl}
           onClose={() => setSelectedMember(null)}
         />
       )}

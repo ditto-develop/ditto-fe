@@ -1,45 +1,34 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type React from "react";
 import styled from "styled-components";
-import { ChatService, type GroupChatMessageDto } from "@/shared/lib/api/generated";
+import { getSystemMessageText } from "@/features/chat";
+import type { ChatMessage, CounterpartProfile } from "@/features/chat";
 import { GroupMessageBubble } from "./GroupMessageBubble";
-import { VoteCreatedMessageBubble } from "./VoteCreatedMessageBubble";
 
 interface GroupMessageListProps {
-  roomId: string;
-  messages: GroupChatMessageDto[];
-  currentUserId: string;
-  onMessagesUpdate: (messages: GroupChatMessageDto[], nextCursor: string | null) => void;
-  nextCursor: string | null;
+  messages: ChatMessage[];
+  myUserId: number | null;
+  /** 보낸 사람 해석용. 방 목록에는 닉네임·이미지가 없어 프로필을 따로 붙여 넘긴다. */
+  memberById: Map<number, CounterpartProfile>;
   hasMore: boolean;
-  isEnded: boolean;
-  endedMessage?: string;
-  onVoteMessageClick?: (voteId: string) => void;
+  loadingOlder: boolean;
+  onLoadOlder: () => void;
+  /** 종료·개방 전·연결 끊김 안내. 없으면 카드를 그리지 않는다. */
+  notice?: string;
+  onImageClick?: (imageUrl: string) => void;
 }
 
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
-type VoteSummary = { head: string; extraCount: number };
 
-function toVoteSummary(value: unknown): VoteSummary {
-  if (!value || typeof value !== "object") {
-    return { head: "", extraCount: 0 };
-  }
-
-  const record = value as Record<string, unknown>;
-  return {
-    head: typeof record.head === "string" ? record.head : "",
-    extraCount: typeof record.extraCount === "number" ? record.extraCount : 0,
-  };
+/** BE는 `yyyy-MM-dd HH:mm:ss`로 내려준다. Safari 파싱을 위해 T로 바꾼다. */
+function toDate(value: string): Date {
+  return new Date(value.includes("T") ? value : value.replace(" ", "T"));
 }
 
 function formatDateLabel(date: Date): string {
-  const y = date.getFullYear();
-  const m = date.getMonth() + 1;
-  const d = date.getDate();
-  const day = DAYS[date.getDay()];
-  return `${y}년 ${m}월 ${d}일 ${day}요일`;
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 ${DAYS[date.getDay()]}요일`;
 }
 
 function isSameDay(a: Date, b: Date): boolean {
@@ -51,25 +40,23 @@ function isSameDay(a: Date, b: Date): boolean {
 }
 
 export function GroupMessageList({
-  roomId,
   messages,
-  currentUserId,
-  onMessagesUpdate,
-  nextCursor,
+  myUserId,
+  memberById,
   hasMore,
-  isEnded,
-  endedMessage,
-  onVoteMessageClick,
+  loadingOlder,
+  onLoadOlder,
+  notice,
+  onImageClick,
 }: GroupMessageListProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const isLoadingMore = useRef(false);
-  const latestMessageId = useRef<string | null>(null);
   const isInitialLoad = useRef(true);
-  const renderedLatestMessageId = useRef<string | null>(null);
+  const renderedLatestMessageId = useRef<number | null>(null);
   const skipNextAutoScroll = useRef(false);
+  const previousScrollHeight = useRef(0);
 
-  // Auto-scroll to bottom on new messages
+  // 새 메시지에서만 바닥으로 붙는다. 위로 스크롤해 과거를 불러온 직후에는 붙지 않는다.
   useEffect(() => {
     const latest = messages[messages.length - 1];
     if (!latest) return;
@@ -78,9 +65,7 @@ export function GroupMessageList({
       skipNextAutoScroll.current = false;
       return;
     }
-
     renderedLatestMessageId.current = latest.id;
-    latestMessageId.current = latest.id;
 
     if (skipNextAutoScroll.current) {
       skipNextAutoScroll.current = false;
@@ -97,77 +82,20 @@ export function GroupMessageList({
     });
   }, [messages]);
 
-  // Polling
-  useEffect(() => {
-    if (isEnded) return;
-
-    if (messages.length > 0) {
-      latestMessageId.current = messages[messages.length - 1].id;
-    }
-
-    const poll = async () => {
-      try {
-        const res = await ChatService.chatControllerGetGroupMessages(roomId, undefined, 30);
-        if (!res.success || !res.data) return;
-
-        const polled = res.data.messages.slice().reverse();
-        if (!polled.length) return;
-
-        const latestNew = polled[polled.length - 1].id;
-        if (latestNew === latestMessageId.current) return;
-
-        const knownId = latestMessageId.current;
-        const knownIdx = polled.findIndex((m) => m.id === knownId);
-        const genuinelyNew = knownIdx >= 0 ? polled.slice(knownIdx + 1) : polled;
-
-        if (!genuinelyNew.length) return;
-
-        latestMessageId.current = latestNew;
-        onMessagesUpdate([...messages, ...genuinelyNew], res.data.nextCursor ?? null);
-
-        ChatService.chatControllerMarkGroupAsRead(roomId).catch(() => {});
-      } catch {
-        // ignore
-      }
-    };
-
-    const id = setInterval(poll, 3000);
-    return () => clearInterval(id);
-  }, [roomId, messages, onMessagesUpdate, isEnded]);
-
-  // Upward infinite scroll
-  const handleScroll = useCallback(async () => {
+  // 과거 메시지는 훅이 커서로 가져온다. 여기서는 스크롤 위치만 보존한다.
+  const handleScroll = useCallback(() => {
     const el = listRef.current;
-    if (!el || !hasMore || isLoadingMore.current) return;
+    if (!el || !hasMore || loadingOlder) return;
     if (el.scrollTop > 60) return;
 
-    isLoadingMore.current = true;
-    const prevScrollHeight = el.scrollHeight;
-
-    try {
-      const res = await ChatService.chatControllerGetGroupMessages(roomId, nextCursor ?? undefined, 30);
-      if (!res.success || !res.data) return;
-
-      const older = res.data.messages.slice().reverse();
-      const merged = [...older, ...messages];
-      skipNextAutoScroll.current = true;
-      onMessagesUpdate(merged, res.data.nextCursor ?? null);
-
-      requestAnimationFrame(() => {
-        if (listRef.current) {
-          listRef.current.scrollTop = listRef.current.scrollHeight - prevScrollHeight;
-        }
-      });
-    } catch {
-      // ignore
-    } finally {
-      isLoadingMore.current = false;
-    }
-  }, [roomId, hasMore, nextCursor, messages, onMessagesUpdate]);
+    skipNextAutoScroll.current = true;
+    previousScrollHeight.current = el.scrollHeight;
+    onLoadOlder();
+  }, [hasMore, loadingOlder, onLoadOlder]);
 
   useEffect(() => {
     const el = listRef.current;
-    if (!el) return;
+    if (!el) return undefined;
     el.addEventListener("scroll", handleScroll);
     return () => el.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
@@ -176,90 +104,76 @@ export function GroupMessageList({
     const items: React.ReactNode[] = [];
     let prevDate: Date | null = null;
 
-    for (let i = 0; i < messages.length; i++) {
-      const msg = messages[i];
-      const msgDate = new Date(msg.createdAt);
+    messages.forEach((message, index) => {
+      const messageDate = toDate(message.createdAt);
 
-      if (!prevDate || !isSameDay(prevDate, msgDate)) {
+      if (!prevDate || !isSameDay(prevDate, messageDate)) {
         items.push(
-          <DateSeparator key={`date-${msg.id}`}>
-            <DateChip>{formatDateLabel(msgDate)}</DateChip>
-          </DateSeparator>
+          <DateSeparator key={`date-${message.id}`}>
+            <DateChip>{formatDateLabel(messageDate)}</DateChip>
+          </DateSeparator>,
         );
-        prevDate = msgDate;
+        prevDate = messageDate;
       }
 
-      const isMine = msg.senderId === currentUserId;
-      // 앞뒤 메시지에서 시스템 메시지는 그룹 경계로 취급
-      const prevMsg = i > 0 ? messages[i - 1] : null;
-      const nextMsg = messages[i + 1] ?? null;
+      const isMine = myUserId !== null && message.senderId === myUserId;
+
+      if (message.messageType === "SYSTEM") {
+        // content는 사건 코드다. 모르는 코드는 그리지 않는다.
+        const systemText = getSystemMessageText(message, isMine);
+        if (systemText) {
+          items.push(
+            <SystemMessageRow key={message.id}>
+              <SystemMessageText>{systemText}</SystemMessageText>
+            </SystemMessageRow>,
+          );
+        }
+        return;
+      }
+
+      const previous = index > 0 ? messages[index - 1] : null;
+      const next = messages[index + 1] ?? null;
 
       const isFirstInGroup =
-        !prevMsg ||
-        prevMsg.type === 'SYSTEM' ||
-        prevMsg.type === 'VOTE_OPENED' ||
-        prevMsg.senderId !== msg.senderId ||
-        !isSameDay(new Date(prevMsg.createdAt), msgDate);
+        !previous ||
+        previous.messageType === "SYSTEM" ||
+        previous.senderId !== message.senderId ||
+        !isSameDay(toDate(previous.createdAt), messageDate);
 
       const isLastInGroup =
-        !nextMsg ||
-        nextMsg.type === 'SYSTEM' ||
-        nextMsg.type === 'VOTE_OPENED' ||
-        nextMsg.senderId !== msg.senderId ||
-        !isSameDay(new Date(nextMsg.createdAt), msgDate);
+        !next ||
+        next.messageType === "SYSTEM" ||
+        next.senderId !== message.senderId ||
+        !isSameDay(toDate(next.createdAt), messageDate);
 
-      if (msg.type === 'SYSTEM') {
-        items.push(
-          <SystemMessageRow key={msg.id}>
-            <SystemMessageText>{msg.content}</SystemMessageText>
-          </SystemMessageRow>
-        );
-      } else if (msg.type === 'VOTE_OPENED') {
-        const voteId = msg.voteMeta?.voteId;
+      const sender = memberById.get(message.senderId);
 
-        items.push(
-          <VoteCreatedMessageBubble
-            key={msg.id}
-            isMine={isMine}
-            senderNickname={msg.senderNickname}
-            senderAvatarUrl={msg.senderAvatarUrl ?? null}
-            isFirstInGroup={isFirstInGroup}
-            isLastInGroup={isLastInGroup}
-            placeSummary={toVoteSummary(msg.voteMeta?.placeSummary)}
-            timeSummary={toVoteSummary(msg.voteMeta?.timeSummary)}
-            timestamp={msg.createdAt}
-            unreadCount={msg.unreadCount}
-            onClick={() => {
-              if (voteId) onVoteMessageClick?.(voteId);
-            }}
-          />
-        );
-      } else {
-        items.push(
-          <GroupMessageBubble
-            key={msg.id}
-            message={msg}
-            isMine={isMine}
-            isFirstInGroup={isFirstInGroup}
-            isLastInGroup={isLastInGroup}
-          />
-        );
-      }
-    }
+      items.push(
+        <GroupMessageBubble
+          key={message.id}
+          message={message}
+          isMine={isMine}
+          isFirstInGroup={isFirstInGroup}
+          isLastInGroup={isLastInGroup}
+          senderNickname={sender?.nickname ?? "알 수 없음"}
+          senderAvatarUrl={sender?.profileImageUrl ?? null}
+          onImageClick={onImageClick}
+        />,
+      );
+    });
 
     return items;
   };
 
   return (
     <ListContainer ref={listRef}>
+      {loadingOlder && <LoadingOlder>이전 메시지를 불러오는 중...</LoadingOlder>}
       {renderMessages()}
-      {isEnded && (
+      {notice && (
         <EndedNoticeCard>
           <EndedNoticeContent>
             <EndedNoticeIcon aria-hidden="true">i</EndedNoticeIcon>
-            <EndedNoticeMessage>
-              {endedMessage ?? "대화가 종료되어 메시지를 보낼 수 없어요."}
-            </EndedNoticeMessage>
+            <EndedNoticeMessage>{notice}</EndedNoticeMessage>
           </EndedNoticeContent>
         </EndedNoticeCard>
       )}
@@ -268,6 +182,14 @@ export function GroupMessageList({
   );
 }
 
+const LoadingOlder = styled.div`
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+  font-family: "Pretendard JP", sans-serif;
+  font-size: var(--typography-label-2-font-size);
+  color: var(--color-semantic-label-alternative);
+`;
 const ListContainer = styled.div`
   flex: 1;
   overflow-y: auto;

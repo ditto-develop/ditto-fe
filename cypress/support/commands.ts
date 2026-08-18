@@ -154,12 +154,16 @@ mockFixture("GET", ["**/api/users/*/ratings", "**/api/v1/users/*/ratings"], "use
   // 1:1 채팅(PR #103/#105). 방 생성·상세·나가기 엔드포인트는 사라졌고,
   // 메시지 전송은 REST가 아니라 STOMP라 여기서 목킹하지 않는다.
   mockFixture("GET", ["**/api/v1/chat/rooms", "**/api/chat/rooms"], "chat-rooms.json", "getChatRooms");
-  mockFixture(
-    "GET",
-    ["**/api/v1/chat/rooms/*/messages*", "**/api/chat/rooms/*/messages*"],
-    "chat-messages.json",
-    "getChatMessages",
-  );
+  // 그룹 방(roomId 3)도 같은 경로를 쓴다. 화자가 여럿인 히스토리를 돌려주려고 방별로 나눈다.
+  cy.fixture("chat-messages.json").then((oneOnOne) => {
+    cy.fixture("group-chat-messages.json").then((group) => {
+      cy.intercept("GET", "**/api/**/chat/rooms/*/messages*", (req) => {
+        const roomId = new URL(req.url).pathname.match(/\/chat\/rooms\/([^/]+)\/messages/)?.[1];
+        req.reply(successResponse(roomId === "3" ? group : oneOnOne));
+      }).as("getChatMessages");
+    });
+  });
+  cy.intercept("POST", "**/api/**/chat/rooms/*/end", emptySuccessResponse()).as("endChatRoom");
   cy.intercept("POST", "**/api/**/chat/rooms/*/read", emptySuccessResponse()).as("markChatAsRead");
   cy.intercept("POST", "**/api/**/chat/rooms/*/image-upload-urls", (req) => {
     const body = req.body as { files?: { contentType: string }[] };

@@ -6,12 +6,11 @@ import type {
   ReviewSubmitResult,
 } from "@/features/rating";
 
-import chatMessageSent from "@/mocks/fixtures/chat-message-sent.json";
 import chatMessages from "@/mocks/fixtures/chat-messages.json";
 import chatRooms from "@/mocks/fixtures/chat-rooms.json";
+import groupChatMessages from "@/mocks/fixtures/group-chat-messages.json";
 import blockedUsersFixture from "@/mocks/fixtures/blocked-users.json";
 import currentUser from "@/mocks/fixtures/current-user.json";
-import groupChatRoomDetail from "@/mocks/fixtures/group-chat-room-detail.json";
 import groupJoin from "@/mocks/fixtures/group-join.json";
 import introNotes from "@/mocks/fixtures/intro-notes.json";
 import localLogin from "@/mocks/fixtures/local-login.json";
@@ -259,17 +258,24 @@ export const handlers = [
   http.post(apiPath("/users/[^/]+/ratings"), () => HttpResponse.json(success(null))),
   http.post(apiPath("/auth/kakao/callback"), () => HttpResponse.json(success(localLogin))),
 
-  // 1:1 채팅(PR #103/#105 계약). 메시지 전송은 REST가 아니라 STOMP라 여기엔 없다.
+  // 채팅(PR #103/#105/#119/#128 계약). 1:1·그룹·재매칭이 모두 이 경로를 쓴다.
+  // 메시지 전송은 REST가 아니라 STOMP라 여기엔 없다.
   http.get(apiPath("/chat/rooms"), () => HttpResponse.json(success(chatRooms))),
   http.get(apiPath("/chat/rooms/[^/]+/messages"), ({ request }) => {
-    // cursor가 오면 그보다 과거 구간을 돌려주고, 더 없으면 nextCursor를 null로 끝낸다.
-    const cursor = new URL(request.url).searchParams.get("cursor");
-    if (!cursor) return HttpResponse.json(success(chatMessages));
+    const url = new URL(request.url);
+    const roomId = url.pathname.match(/\/chat\/rooms\/([^/]+)\/messages/)?.[1];
+    const page = roomId === "3" ? groupChatMessages : chatMessages;
 
-    const older = chatMessages.messages.filter((message) => message.id < Number(cursor));
+    // cursor가 오면 그보다 과거 구간을 돌려주고, 더 없으면 nextCursor를 null로 끝낸다.
+    const cursor = url.searchParams.get("cursor");
+    if (!cursor) return HttpResponse.json(success(page));
+
+    const older = page.messages.filter((message) => message.id < Number(cursor));
     return HttpResponse.json(success({ messages: older, nextCursor: null }));
   }),
   http.post(apiPath("/chat/rooms/[^/]+/read"), () => HttpResponse.json(success(null))),
+  // 종료는 멱등이고 응답 data가 비어 있다. 그룹 방이면 BE가 7002로 막는다.
+  http.post(apiPath("/chat/rooms/[^/]+/end"), () => HttpResponse.json(success({}))),
   http.post(apiPath("/chat/rooms/[^/]+/image-upload-urls"), async ({ request }) => {
     const body = (await request.json().catch(() => null)) as { files?: unknown[] } | null;
     const files = Array.isArray(body?.files) ? body.files : [];
@@ -282,18 +288,9 @@ export const handlers = [
       }),
     );
   }),
-  http.get(apiPath("/chat/group-rooms/[^/]+"), () => HttpResponse.json(success(groupChatRoomDetail))),
-  http.get(apiPath("/chat/group-rooms/[^/]+/messages"), () => HttpResponse.json(success(chatMessages))),
-  http.post(apiPath("/chat/group-rooms/[^/]+/messages"), () => HttpResponse.json(success(chatMessageSent))),
-  http.patch(apiPath("/chat/group-rooms/[^/]+/read"), () => HttpResponse.json(success(null))),
-  http.delete(apiPath("/chat/group-rooms/[^/]+/leave"), () => HttpResponse.json(success(null))),
-  http.get(apiPath("/chat/votes/place-search"), () => HttpResponse.json(success([]))),
-  http.get(apiPath("/chat/group-rooms/[^/]+/votes"), () => HttpResponse.json(success([]))),
-  http.post(apiPath("/chat/group-rooms/[^/]+/votes"), () => HttpResponse.json(success(null))),
-  http.get(apiPath("/chat/group-rooms/[^/]+/votes/[^/]+"), () => HttpResponse.json(success(null))),
-  http.post(apiPath("/chat/group-rooms/[^/]+/votes/[^/]+/cast"), () => HttpResponse.json(success(null))),
-  http.post(apiPath("/chat/group-rooms/[^/]+/votes/[^/]+/options"), () => HttpResponse.json(success(null))),
-  http.post(apiPath("/chat/group-rooms/[^/]+/votes/[^/]+/close"), () => HttpResponse.json(success(null))),
+  // 그룹 방은 /chat/rooms 계약으로 통합됐다(BE #119). group-rooms 핸들러는 더 이상 없다.
+  // 만남 투표(votes·place-search)는 BE 계약 자체가 없어 목업도 두지 않는다
+  // — 빈 스텁을 두면 화면이 동작하는 것처럼 보여 오히려 위험하다(INTEGRATION-TODO.md §A-2).
 
   http.get(apiPath("/admin/stats"), () => HttpResponse.json(success(adminStats))),
   http.get(apiPath("/admin/matches"), () => HttpResponse.json(success(adminMatchList))),

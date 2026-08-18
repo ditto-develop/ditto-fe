@@ -1,7 +1,7 @@
 [
   {
     "roomId": 1,
-    "roomType": "PERSONAL",
+    "sourceType": "PERSONAL",
     "counterpartMemberIds": [2],
     "lastMessage": {
       "id": 30,
@@ -10,14 +10,40 @@
       "messageType": "TEXT",
       "content": "안녕하세요, 반가워요!",
       "imageUrl": null,
-      "createdAt": "2026-06-03 17:00:00"
+      "createdAt": "2026-06-05 17:00:00"
     },
     "unreadCount": 1,
-    "createdAt": "2026-06-03 11:00:00"
+    "createdAt": "2026-06-03 11:00:00",
+    "opensAt": "2026-06-05 00:00:00",
+    "expiresAt": "2026-06-08 00:00:00",
+    "isEnded": false,
+    "endedAt": null,
+    "endedReason": null
+  },
+  {
+    "roomId": 3,
+    "sourceType": "GROUP",
+    "counterpartMemberIds": [2, 3, 4],
+    "lastMessage": {
+      "id": 42,
+      "roomId": 3,
+      "senderId": 3,
+      "messageType": "TEXT",
+      "content": "다들 안녕하세요!",
+      "imageUrl": null,
+      "createdAt": "2026-06-05 18:00:00"
+    },
+    "unreadCount": 2,
+    "createdAt": "2026-06-04 09:00:00",
+    "opensAt": "2026-06-05 00:00:00",
+    "expiresAt": "2026-06-08 00:00:00",
+    "isEnded": false,
+    "endedAt": null,
+    "endedReason": null
   },
   {
     "roomId": 2,
-    "roomType": "PERSONAL",
+    "sourceType": "PERSONAL",
     "counterpartMemberIds": [3],
     "lastMessage": {
       "id": 12,
@@ -26,9 +52,14 @@
       "messageType": "IMAGE",
       "content": "chat/2/mock-object-key",
       "imageUrl": "/assets/avatar/f2.png",
-      "createdAt": "2026-06-02 18:20:00"
+      "createdAt": "2026-05-30 18:20:00"
     },
     "unreadCount": 0,
-    "createdAt": "2026-06-02 10:00:00"
+    "createdAt": "2026-05-29 10:00:00",
+    "opensAt": "2026-05-29 00:00:00",
+    "expiresAt": "2026-06-01 00:00:00",
+    "isEnded": true,
+    "endedAt": "2026-06-01 00:00:00",
+    "endedReason": "EXPIRED"
   }
 ]

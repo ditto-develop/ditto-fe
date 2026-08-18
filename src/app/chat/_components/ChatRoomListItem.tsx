@@ -2,10 +2,9 @@
 
 import styled from "styled-components";
 import { useRouter } from "next/navigation";
-import { getChatRoomEndState } from "@/app/chat/_utils/chatRoomStatus";
+import type { ChatRoomState } from "@/features/chat";
 import { formatChatMessagePreview } from "@/app/chat/_utils/messagePreview";
 
-// Extended type to support optional status fields the BE may return
 export interface ChatRoomListItemData {
   roomId: number;
   partnerNickname: string;
@@ -13,13 +12,19 @@ export interface ChatRoomListItemData {
   lastMessageContent?: string;
   lastMessageAt?: string;
   unreadCount: number;
-  expiresAt?: string | null; // optional — BE may or may not return this
-  isEnded?: boolean;
+  /** 목록 응답의 isEnded·opensAt·expiresAt에서 파생한 상태. */
+  state: ChatRoomState;
   isGroup?: boolean;
   coParticipantAvatarUrl?: string | null;
   /** 이 방의 평가가 열려 있으면 평가 화면 경로. 없으면 진입점을 띄우지 않는다. */
   reviewHref?: string;
 }
+
+const STATE_BADGE_LABEL: Record<ChatRoomState, string> = {
+  BEFORE_OPEN: "대기중",
+  OPEN: "진행중",
+  ENDED: "종료",
+};
 
 interface ChatRoomListItemProps {
   room: ChatRoomListItemData;
@@ -35,8 +40,8 @@ function formatDate(isoStr: string): string {
 
 export function ChatRoomListItem({ room }: ChatRoomListItemProps) {
   const router = useRouter();
-  const ended = getChatRoomEndState(room).isEnded;
-  const hasStatus = room.isEnded !== undefined || room.expiresAt !== undefined;
+  const ended = room.state === "ENDED";
+  // 종료 안내(SYSTEM)도 unreadCount에 포함돼서, 끝난 방이 배지 1을 달고 남는다. 종료 방은 배지를 뗀다.
   const showUnread = !ended && room.unreadCount > 0;
 
   return (
@@ -69,15 +74,18 @@ export function ChatRoomListItem({ room }: ChatRoomListItemProps) {
         <TopRow>
           <NameRow>
             <Name>{room.partnerNickname}</Name>
-            {hasStatus && (
-              ended ? (
-                <EndedBadge>종료</EndedBadge>
-              ) : (
-                <ActiveBadge>
-                  <ActiveBadgeText>진행중</ActiveBadgeText>
-                  <ActiveBadgeBg />
-                </ActiveBadge>
-              )
+            {room.state === "ENDED" ? (
+              <EndedBadge>{STATE_BADGE_LABEL.ENDED}</EndedBadge>
+            ) : room.state === "BEFORE_OPEN" ? (
+              <PendingBadge>
+                <PendingBadgeText>{STATE_BADGE_LABEL.BEFORE_OPEN}</PendingBadgeText>
+                <PendingBadgeBg />
+              </PendingBadge>
+            ) : (
+              <ActiveBadge>
+                <ActiveBadgeText>{STATE_BADGE_LABEL.OPEN}</ActiveBadgeText>
+                <ActiveBadgeBg />
+              </ActiveBadge>
             )}
           </NameRow>
           <DateText>
@@ -224,6 +232,17 @@ const ActiveBadgeText = styled.span`
   letter-spacing: 0.3421px;
   color: var(--color-semantic-status-negative);
   white-space: nowrap;
+`;
+
+/* 대기중 badge: 아직 열리지 않은 방. status/cautionary color at 8% bg */
+const PendingBadge = styled(ActiveBadge)``;
+
+const PendingBadgeBg = styled(ActiveBadgeBg)`
+  background-color: var(--color-semantic-status-cautionary);
+`;
+
+const PendingBadgeText = styled(ActiveBadgeText)`
+  color: var(--color-semantic-status-cautionary);
 `;
 
 /* 종료 badge: fill/normal bg, label/alternative text */

@@ -2,16 +2,19 @@
 
 import styled from "styled-components";
 
-import type { ChatMessage } from "@/features/chat";
+import { getSystemMessageText } from "@/features/chat";
+import type { ChatMessage, ChatOptimisticMessage } from "@/features/chat";
+import { RoomNoticeCard } from "./RoomNoticeCard";
 
 interface MessageBubbleProps {
-  message: ChatMessage;
+  message: ChatMessage | ChatOptimisticMessage;
   isMine: boolean;
   isFirstInGroup: boolean;
   isLastInGroup: boolean;
   partnerAvatarUrl: string | null;
   partnerNickname: string;
   onImageClick?: (imageUrl: string) => void;
+  onRetry?: () => void;
 }
 
 function formatTime(date: string): string {
@@ -29,27 +32,33 @@ export function MessageBubble({
   partnerAvatarUrl,
   partnerNickname,
   onImageClick,
+  onRetry,
 }: MessageBubbleProps) {
   // SYSTEM 메시지는 좌우 구분 없이 가운데 안내로 표시한다.
+  // content에는 문장이 아니라 사건 코드가 오므로 문구는 FE가 만든다.
+  // isMine(senderId === 내 ID)이 곧 '내가 종료했는가'다. 모르는 코드는 아예 그리지 않는다.
   if (message.messageType === "SYSTEM") {
-    return (
-      <SystemRow>
-        <SystemText>{message.content}</SystemText>
-      </SystemRow>
-    );
+    const systemText = getSystemMessageText(message, isMine);
+    if (!systemText) return null;
+
+    return <RoomNoticeCard>{systemText}</RoomNoticeCard>;
   }
 
+  const deliveryStatus = "status" in message ? message.status : null;
+  const imageUrl = "imageUrl" in message ? message.imageUrl : null;
   const body =
     message.messageType === "IMAGE" ? (
       <ImageButton
         type="button"
-        onClick={() => message.imageUrl && onImageClick?.(message.imageUrl)}
-        disabled={!message.imageUrl}
+        onClick={() => imageUrl && onImageClick?.(imageUrl)}
+        disabled={!imageUrl}
       >
-        {message.imageUrl ? (
-          <SentImage src={message.imageUrl} alt="보낸 이미지" loading="lazy" />
+        {imageUrl ? (
+          <SentImage src={imageUrl} alt="보낸 이미지" loading="lazy" />
         ) : (
-          <ImageFallback>이미지를 불러오지 못했어요</ImageFallback>
+          <ImageFallback>
+            {deliveryStatus === "failed" ? "사진 전송에 실패했어요" : "사진을 보내는 중이에요"}
+          </ImageFallback>
         )}
       </ImageButton>
     ) : (
@@ -59,14 +68,28 @@ export function MessageBubble({
   if (isMine) {
     return (
       <SentRow>
-        {isLastInGroup && (
+        {deliveryStatus === "failed" ? (
+          <FailureIcon aria-label="전송 실패">!</FailureIcon>
+        ) : deliveryStatus === "sending" ? (
+          <SendingIndicator aria-label="전송 중" />
+        ) : isLastInGroup ? (
           <SentMeta>
             <TimeLabel>{formatTime(message.createdAt)}</TimeLabel>
           </SentMeta>
-        )}
-        <SentBubble $isFirstInGroup={isFirstInGroup} $isImage={message.messageType === "IMAGE"}>
-          {body}
-        </SentBubble>
+        ) : null}
+        <SentContent>
+          <SentBubble
+            $isFirstInGroup={isFirstInGroup}
+            $isImage={message.messageType === "IMAGE"}
+          >
+            {body}
+          </SentBubble>
+          {deliveryStatus === "failed" && onRetry && (
+            <RetryButton type="button" onClick={onRetry}>
+              재전송
+            </RetryButton>
+          )}
+        </SentContent>
       </SentRow>
     );
   }
@@ -115,19 +138,11 @@ const ReceivedRow = styled.div<{ $isFirstInGroup: boolean }>`
   padding-left: ${({ $isFirstInGroup }) => ($isFirstInGroup ? "0" : "52px")};
 `;
 
-const SystemRow = styled.div`
+const SentContent = styled.div`
   display: flex;
-  justify-content: center;
-  padding: 4px 0;
-`;
-
-const SystemText = styled.span`
-  font-family: "Pretendard JP", sans-serif;
-  font-size: var(--typography-label-2-font-size);
-  font-weight: 500;
-  line-height: var(--typography-label-2-line-height);
-  color: var(--color-semantic-label-alternative);
-  text-align: center;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--spacing-2px);
 `;
 
 const AvatarSlot = styled.div`
@@ -232,6 +247,47 @@ const SentMeta = styled.div`
   justify-content: flex-end;
   gap: 2px;
   flex-shrink: 0;
+`;
+
+const FailureIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-4);
+  height: var(--space-4);
+  flex-shrink: 0;
+  margin-bottom: var(--space-2);
+  border-radius: 50%;
+  background-color: var(--color-semantic-status-negative);
+  color: var(--color-semantic-static-white);
+  font-family: var(--typography-font-family);
+  font-size: var(--typography-caption-2-font-size);
+  font-weight: var(--typography-label-1-normal-font-weight);
+  line-height: var(--typography-caption-2-line-height);
+`;
+
+const SendingIndicator = styled.span`
+  width: var(--space-4);
+  height: var(--space-4);
+  flex-shrink: 0;
+  margin-bottom: var(--space-2);
+  border-radius: 50%;
+  background-color: var(--color-semantic-label-assistive);
+  opacity: var(--color-atomic-opacity-52);
+`;
+
+const RetryButton = styled.button`
+  padding: var(--space-1) 0 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-semantic-label-alternative);
+  font-family: var(--typography-font-family);
+  font-size: var(--typography-caption-1-font-size);
+  font-weight: var(--typography-caption-1-font-weight);
+  line-height: var(--typography-caption-1-line-height);
+  letter-spacing: var(--typography-caption-1-letter-spacing);
+  text-decoration: underline;
+  cursor: pointer;
 `;
 
 const ReceivedMeta = styled.div`

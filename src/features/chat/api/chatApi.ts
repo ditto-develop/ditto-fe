@@ -43,6 +43,19 @@ export function markChatRoomRead(roomId: number, lastReadMessageId: number): Pro
   });
 }
 
+/**
+ * 채팅 종료. 멱등이라 여러 번 불러도 안내 메시지는 1건만 남고 최초 종료 시각이 덮이지 않는다.
+ *
+ * 응답 data가 비어 있어 종료를 누른 본인 화면은 서버 응답만으로 아무것도 알 수 없다.
+ * 호출부가 낙관적으로 전환하거나 목록을 다시 조회해야 한다.
+ *
+ * 그룹 방은 이 경로로 끝낼 수 없다(7002 — 코드가 멤버십 오류와 같아 message로만 구분된다).
+ * 그룹은 기한 만료로만 종료되므로 호출부에서 sourceType을 보고 막는다.
+ */
+export function endChatRoom(roomId: number): Promise<null> {
+  return externalApiFetch<null>(`/api/v1/chat/rooms/${roomId}/end`, { method: "POST" });
+}
+
 /** 1단계: 방 멤버만 발급 가능. image/*만 허용, 장당 10MB, 한 번에 최대 10장. */
 export function issueChatImageUploadUrls(
   roomId: number,
@@ -92,13 +105,24 @@ function normalizeMessage<T extends { imageUrl?: string | null }>(message: T) {
   return { ...message, imageUrl: message.imageUrl ?? null };
 }
 
+/**
+ * 선택 필드를 명시적 null로 정규화한다.
+ *
+ * swagger 스키마에는 endedAt·endedReason·lastMessage.imageUrl이 빠져 있지만(예시값이 null이라
+ * 타입 추론이 안 된 결과) 실제 응답에는 항상 키가 있다. sourceType도 enum에 REMATCH가 빠져 있어
+ * 자동 생성 타입을 믿을 수 없으므로, 계약 정본은 BE 위키 Frontend-Chat-Guide로 둔다.
+ */
 function normalizeRoom(room: ChatRoom): ChatRoom {
   return {
     ...room,
-    // 계약 정본은 swagger(ChatRoomResponse.roomType)다. 가이드 문서의 sourceType은 따르지 않는다.
-    roomType: room.roomType ?? "PERSONAL",
+    sourceType: room.sourceType ?? "PERSONAL",
     counterpartMemberIds: room.counterpartMemberIds ?? [],
     lastMessage: room.lastMessage ? normalizeMessage(room.lastMessage) : null,
     unreadCount: room.unreadCount ?? 0,
+    opensAt: room.opensAt ?? null,
+    expiresAt: room.expiresAt ?? null,
+    isEnded: room.isEnded ?? false,
+    endedAt: room.endedAt ?? null,
+    endedReason: room.endedReason ?? null,
   };
 }

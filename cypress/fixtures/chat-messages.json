@@ -7,7 +7,7 @@
       "messageType": "TEXT",
       "content": "안녕하세요, 반가워요!",
       "imageUrl": null,
-      "createdAt": "2026-06-03 17:00:00"
+      "createdAt": "2026-06-05 17:00:00"
     },
     {
       "id": 29,
@@ -16,7 +16,7 @@
       "messageType": "IMAGE",
       "content": "chat/1/mock-object-key",
       "imageUrl": "/assets/avatar/m3.png",
-      "createdAt": "2026-06-03 16:58:00"
+      "createdAt": "2026-06-05 16:58:00"
     },
     {
       "id": 28,
@@ -25,17 +25,8 @@
       "messageType": "TEXT",
       "content": "반갑습니다! 주말에 시간 괜찮으세요?",
       "imageUrl": null,
-      "createdAt": "2026-06-03 16:55:00"
-    },
-    {
-      "id": 27,
-      "roomId": 1,
-      "senderId": 2,
-      "messageType": "SYSTEM",
-      "content": "대화가 시작되었어요.",
-      "imageUrl": null,
-      "createdAt": "2026-06-03 11:00:00"
+      "createdAt": "2026-06-05 16:55:00"
     }
   ],
-  "nextCursor": 27
+  "nextCursor": 28
 }

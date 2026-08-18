@@ -9,16 +9,18 @@ interface ChatRoomHeaderProps {
   roomId: string;
   partnerNickname: string;
   expiresAt: Date | null;
+  isEnded?: boolean;
   onMenuClick: () => void;
 }
 
 export function ChatRoomHeader({
   partnerNickname,
   expiresAt,
+  isEnded = false,
   onMenuClick,
 }: ChatRoomHeaderProps) {
   const router = useRouter();
-  const timeLeft = useTimer(expiresAt);
+  const timeLeft = useTimer(expiresAt, isEnded);
 
   return (
     <HeaderContainer>
@@ -32,7 +34,7 @@ export function ChatRoomHeader({
           <Headline2 $align="center">{partnerNickname}</Headline2>
         </TitleWrapper>
 
-        <IconButton onClick={onMenuClick}>
+        <IconButton onClick={onMenuClick} data-cy="chat-menu-button">
           <img src="/icons/action/more-vertical.svg" alt="더보기" width={24} height={24} />
         </IconButton>
       </NavRow>

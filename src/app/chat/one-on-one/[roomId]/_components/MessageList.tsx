@@ -3,11 +3,14 @@
 import React, { useCallback, useEffect, useRef } from "react";
 import styled from "styled-components";
 
-import type { ChatMessage } from "@/features/chat";
+import { isRoomEndedSystemMessage } from "@/features/chat";
+import type { ChatMessage, ChatOptimisticMessage } from "@/features/chat";
 import { MessageBubble } from "./MessageBubble";
+import { RoomNoticeCard } from "./RoomNoticeCard";
 
 interface MessageListProps {
   messages: ChatMessage[];
+  optimisticMessages?: ChatOptimisticMessage[];
   myUserId: number | null;
   partnerAvatarUrl: string | null;
   partnerNickname: string;
@@ -17,6 +20,7 @@ interface MessageListProps {
   /** 연결이 끊겼을 때 상단에 띄우는 안내. */
   notice?: string | null;
   onImageClick?: (imageUrl: string) => void;
+  onRetrySend?: (localId: string) => void;
 }
 
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -44,12 +48,27 @@ function isSameDay(a: Date, b: Date): boolean {
 }
 
 /** 경고 배너는 사용자가 직접 쓴 TEXT에만 적용한다(IMAGE의 objectKey는 대상이 아니다). */
-function isTextMessage(message: ChatMessage): boolean {
+function isTextMessage(message: ChatMessage | ChatOptimisticMessage): boolean {
   return message.messageType === "TEXT";
+}
+
+function isOptimisticMessage(
+  message: ChatMessage | ChatOptimisticMessage,
+): message is ChatOptimisticMessage {
+  return "localId" in message;
+}
+
+function messageKey(message: ChatMessage | ChatOptimisticMessage): string {
+  return isOptimisticMessage(message) ? message.localId : String(message.id);
+}
+
+function senderKey(message: ChatMessage | ChatOptimisticMessage): string {
+  return isOptimisticMessage(message) ? "optimistic-mine" : String(message.senderId);
 }
 
 export function MessageList({
   messages,
+  optimisticMessages = [],
   myUserId,
   partnerAvatarUrl,
   partnerNickname,
@@ -58,21 +77,23 @@ export function MessageList({
   onLoadOlder,
   notice,
   onImageClick,
+  onRetrySend,
 }: MessageListProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const isInitialLoad = useRef(true);
-  const renderedLatestId = useRef<number | null>(null);
+  const renderedLatestKey = useRef<string | null>(null);
   // 위로 스크롤로 과거를 붙이면 스크롤 위치를 보정해야 하므로 자동 스크롤을 한 번 건너뛴다.
   const skipNextAutoScroll = useRef(false);
   const previousScrollHeight = useRef(0);
 
   useEffect(() => {
-    const latest = messages[messages.length - 1];
+    const latest = optimisticMessages[optimisticMessages.length - 1] ?? messages[messages.length - 1];
     if (!latest) return;
 
-    if (renderedLatestId.current === latest.id) return;
-    renderedLatestId.current = latest.id;
+    const latestKey = messageKey(latest);
+    if (renderedLatestKey.current === latestKey) return;
+    renderedLatestKey.current = latestKey;
 
     if (skipNextAutoScroll.current) {
       skipNextAutoScroll.current = false;
@@ -91,7 +112,7 @@ export function MessageList({
     requestAnimationFrame(() => {
       requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ behavior }));
     });
-  }, [messages]);
+  }, [messages, optimisticMessages]);
 
   const handleScroll = useCallback(() => {
     const el = listRef.current;
@@ -113,54 +134,65 @@ export function MessageList({
   const renderMessages = () => {
     const items: React.ReactNode[] = [];
     let prevDate: Date | null = null;
+    const displayMessages: (ChatMessage | ChatOptimisticMessage)[] = [
+      ...messages,
+      ...optimisticMessages,
+    ];
 
-    messages.forEach((message, index) => {
+    displayMessages.forEach((message, index) => {
       const messageDate = toDate(message.createdAt);
+      const key = messageKey(message);
 
       if (!prevDate || !isSameDay(prevDate, messageDate)) {
         items.push(
-          <DateSeparator key={`date-${message.id}`}>
+          <DateSeparator key={`date-${key}`}>
             <DateChip>{formatDateLabel(messageDate)}</DateChip>
           </DateSeparator>,
         );
         prevDate = messageDate;
       }
 
-      const previous = index > 0 ? messages[index - 1] : null;
-      const next = messages[index + 1] ?? null;
+      const previous = index > 0 ? displayMessages[index - 1] : null;
+      const next = displayMessages[index + 1] ?? null;
       const isSystem = message.messageType === "SYSTEM";
 
       const isFirstInGroup =
         isSystem ||
         !previous ||
-        previous.senderId !== message.senderId ||
+        senderKey(previous) !== senderKey(message) ||
         previous.messageType === "SYSTEM" ||
         !isSameDay(toDate(previous.createdAt), messageDate);
 
       const isLastInGroup =
         isSystem ||
         !next ||
-        next.senderId !== message.senderId ||
+        senderKey(next) !== senderKey(message) ||
         next.messageType === "SYSTEM" ||
         !isSameDay(toDate(next.createdAt), messageDate);
 
       items.push(
         <MessageBubble
-          key={message.id}
+          key={key}
           message={message}
-          isMine={myUserId !== null && message.senderId === myUserId}
+          isMine={
+            isOptimisticMessage(message) ||
+            (myUserId !== null && message.senderId === myUserId)
+          }
           isFirstInGroup={isFirstInGroup}
           isLastInGroup={isLastInGroup}
           partnerAvatarUrl={partnerAvatarUrl}
           partnerNickname={partnerNickname}
           onImageClick={onImageClick}
+          onRetry={
+            isOptimisticMessage(message) ? () => onRetrySend?.(message.localId) : undefined
+          }
         />,
       );
 
       if (isTextMessage(message) && URL_PATTERN.test(message.content)) {
         items.push(
           <SectionWarning
-            key={`link-warning-${message.id}`}
+            key={`link-warning-${key}`}
             message="출처 불명의 링크는 악성코드 또는 피싱 사이트로 연결될 수 있습니다. 클릭에 주의하세요!"
           />,
         );
@@ -172,7 +204,7 @@ export function MessageList({
       ) {
         items.push(
           <SectionWarning
-            key={`money-warning-${message.id}`}
+            key={`money-warning-${key}`}
             message="금전 요구는 100% 사기입니다. 피해 위험이 있으니 주의하세요!"
           />,
         );
@@ -182,6 +214,8 @@ export function MessageList({
     return items;
   };
 
+  const hasRoomEndedSystemMessage = messages.some(isRoomEndedSystemMessage);
+
   return (
     <ListContainer ref={listRef} data-cy="message-list">
       <WarningText>
@@ -190,14 +224,7 @@ export function MessageList({
       </WarningText>
       {loadingOlder && <LoadingOlder>이전 메시지를 불러오는 중...</LoadingOlder>}
       {renderMessages()}
-      {notice && (
-        <NoticeCard>
-          <NoticeContent>
-            <NoticeIcon aria-hidden="true">i</NoticeIcon>
-            <NoticeMessage>{notice}</NoticeMessage>
-          </NoticeContent>
-        </NoticeCard>
-      )}
+      {notice && !hasRoomEndedSystemMessage && <RoomNoticeCard>{notice}</RoomNoticeCard>}
       <div ref={bottomRef} />
     </ListContainer>
   );
@@ -335,69 +362,5 @@ const WarningMessage = styled.p`
   line-height: 1.467;
   letter-spacing: 0.144px;
   color: var(--color-semantic-status-cautionary);
-  font-feature-settings: "ss10" on;
-`;
-
-const NoticeCard = styled.div`
-  position: relative;
-  overflow: clip;
-  border-radius: 12px;
-  width: 100%;
-  margin-top: 4px;
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-color: var(--color-semantic-background-normal-normal);
-    opacity: 0.88;
-  }
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-color: var(--color-semantic-primary-normal);
-    opacity: 0.05;
-  }
-`;
-
-const NoticeContent = styled.div`
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  width: 100%;
-  padding: 12px;
-  box-sizing: border-box;
-`;
-
-const NoticeIcon = styled.span`
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 1px;
-  background-color: var(--color-semantic-label-normal);
-  color: var(--color-semantic-static-white);
-  font-family: "Pretendard JP", sans-serif;
-  font-size: var(--typography-label-2-font-size);
-  font-weight: 700;
-  line-height: 1;
-`;
-
-const NoticeMessage = styled.p`
-  flex: 1;
-  margin: 0;
-  font-family: "Pretendard JP", sans-serif;
-  font-size: var(--typography-body-2-normal-font-size);
-  font-weight: 500;
-  line-height: 1.467;
-  letter-spacing: 0.144px;
-  color: var(--color-semantic-label-normal);
   font-feature-settings: "ss10" on;
 `;

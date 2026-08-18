@@ -4,21 +4,13 @@ import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { MainBottomNav } from "@/app/home/MainBottomNav";
 import { ChatRoomListItem, type ChatRoomListItemData } from "./ChatRoomListItem";
-import { useChatRooms } from "@/features/chat";
+import { deriveRoomState, getLastMessagePreview, useChatRooms } from "@/features/chat";
 import type { ChatRoomWithCounterpart } from "@/features/chat";
-import { getChatRoomEndState } from "@/app/chat/_utils/chatRoomStatus";
 import { toReviewHref, usePendingReviews } from "@/features/rating/hooks/usePendingReviews";
+import { Button } from "@/shared/ui";
 
 type FilterType = "전체" | "진행중" | "종료";
 const FILTERS: FilterType[] = ["전체", "진행중", "종료"];
-
-/** 목록 미리보기 문구. IMAGE는 objectKey가 아니라 안내 문구를 보여준다. */
-function toPreview(room: ChatRoomWithCounterpart): string | undefined {
-  const last = room.lastMessage;
-  if (!last) return undefined;
-  if (last.messageType === "IMAGE") return "사진을 보냈어요.";
-  return last.content;
-}
 
 function toListItem(
   room: ChatRoomWithCounterpart,
@@ -28,11 +20,12 @@ function toListItem(
     roomId: room.roomId,
     partnerNickname: room.counterpartNickname,
     partnerAvatarUrl: room.counterpartProfileImageUrl,
-    lastMessageContent: toPreview(room),
+    lastMessageContent: getLastMessagePreview(room),
     lastMessageAt: room.lastMessage?.createdAt,
     unreadCount: room.unreadCount,
-    // 라이브 채팅 계약에는 방 종료/만료 정보가 없다. 상태 없는 방은 진행중으로 본다.
-    isGroup: room.roomType === "GROUP",
+    state: deriveRoomState(room),
+    // 재매칭 방은 1:1이다. 그룹만 별도 화면으로 보낸다.
+    isGroup: room.sourceType === "GROUP",
     reviewHref,
   };
 }
@@ -53,9 +46,10 @@ export function ChatListPageClient() {
     [chatRooms, reviewHrefByRoomId],
   );
 
+  // 개방 전(금요일 대기) 방은 아직 끝나지 않았으므로 '진행중'에 함께 둔다.
   const filteredRooms = rooms.filter((room) => {
     if (filter === "전체") return true;
-    const ended = getChatRoomEndState(room).isEnded;
+    const ended = room.state === "ENDED";
     return filter === "진행중" ? !ended : ended;
   });
 
@@ -75,9 +69,24 @@ export function ChatListPageClient() {
 
       <Body>
         {loading ? (
-          <EmptyState>불러오는 중...</EmptyState>
+          <EmptyState>
+            <EmptyTitle>불러오는 중...</EmptyTitle>
+          </EmptyState>
         ) : filteredRooms.length === 0 ? (
-          <EmptyState>대화방이 없어요.</EmptyState>
+          <EmptyState>
+            <EmptyTitle>
+              {filter === "전체" ? "아직 나눈 대화가 없어요" : "대화방이 없어요"}
+            </EmptyTitle>
+            {filter === "전체" ? (
+              <EmptyDescription>
+                퀴즈에 참여하고 새로운 만남을 시작해 보세요!
+              </EmptyDescription>
+            ) : (
+              <ShowAllButton type="button" $size="medium" onClick={() => setFilter("전체")}>
+                대화목록 전체보기
+              </ShowAllButton>
+            )}
+          </EmptyState>
         ) : (
           <RoomList>
             {filteredRooms.map((room) => (
@@ -141,23 +150,53 @@ const FilterChip = styled.button<{ $active: boolean }>`
 
 const Body = styled.div`
   flex: 1;
-  padding: 24px 0 4px;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6) 0 var(--space-1);
 `;
 
 const RoomList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 28px;
-  padding: 0 20px;
+  gap: var(--space-7);
+  padding: 0 var(--space-5);
 `;
 
 const EmptyState = styled.div`
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-family: "Pretendard JP", sans-serif;
-  font-size: var(--typography-label-1-normal-font-size);
+  width: 100%;
+  padding: var(--space-2) var(--space-4);
+  box-sizing: border-box;
+`;
+
+const EmptyTitle = styled.p`
+  width: 100%;
+  margin: 0;
+  color: var(--color-semantic-label-normal);
+  font-family: var(--typography-font-family);
+  font-size: var(--typography-headline-1-font-size);
+  font-weight: var(--typography-headline-1-font-weight);
+  line-height: var(--typography-headline-1-line-height);
+  letter-spacing: var(--typography-headline-1-letter-spacing);
+  text-align: center;
+`;
+
+const EmptyDescription = styled.p`
+  width: 100%;
+  margin: var(--spacing-2px) 0 0;
   color: var(--color-semantic-label-alternative);
-  padding-top: 80px;
+  font-family: var(--typography-font-family);
+  font-size: var(--typography-body-2-normal-font-size);
+  font-weight: var(--typography-body-2-normal-font-weight);
+  line-height: var(--typography-body-2-normal-line-height);
+  letter-spacing: var(--typography-body-2-normal-letter-spacing);
+  text-align: center;
+`;
+
+const ShowAllButton = styled(Button)`
+  margin-top: var(--space-4);
 `;

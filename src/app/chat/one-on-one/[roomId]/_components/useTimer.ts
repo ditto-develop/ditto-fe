@@ -10,7 +10,7 @@ interface TimerState {
 
 function formatTimeLeft(ms: number): TimerState {
   if (ms <= 0) {
-    return { label: "", isUrgent: false, isExpired: true };
+    return { label: "남은 시간 0분", isUrgent: false, isExpired: true };
   }
 
   const totalSeconds = Math.floor(ms / 1000);
@@ -32,14 +32,23 @@ function formatTimeLeft(ms: number): TimerState {
   return { label, isUrgent, isExpired: false };
 }
 
-export function useTimer(expiresAt: Date | null): TimerState {
+export function useTimer(expiresAt: Date | null, isEnded = false): TimerState {
   const [state, setState] = useState<TimerState>(() => {
+    if (isEnded) return formatTimeLeft(0);
     if (!expiresAt) return { label: "", isUrgent: false, isExpired: false };
     return formatTimeLeft(new Date(expiresAt).getTime() - Date.now());
   });
 
   useEffect(() => {
-    if (!expiresAt) return;
+    if (isEnded) {
+      setState(formatTimeLeft(0));
+      return undefined;
+    }
+
+    if (!expiresAt) {
+      setState({ label: "", isUrgent: false, isExpired: false });
+      return undefined;
+    }
 
     const tick = () => {
       setState(formatTimeLeft(new Date(expiresAt).getTime() - Date.now()));
@@ -48,7 +57,7 @@ export function useTimer(expiresAt: Date | null): TimerState {
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [expiresAt]);
+  }, [expiresAt, isEnded]);
 
   return state;
 }

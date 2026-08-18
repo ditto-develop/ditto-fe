@@ -5,7 +5,8 @@ import styled, { keyframes } from "styled-components";
 
 interface ChatMenuBottomSheetProps {
   onClose: () => void;
-  onLeave: () => void;
+  /** 생략하면 '대화방 나가기'를 숨긴다(이미 종료된 방, 그룹 방). */
+  onLeave?: () => void;
   onReport: () => void;
 }
 
@@ -36,14 +37,16 @@ export function ChatMenuBottomSheet({
           >
             <MenuText>신고하기</MenuText>
           </MenuItem>
-          <MenuItem
-            onClick={() => {
-              onClose();
-              onLeave();
-            }}
-          >
-            <MenuText>대화방 나가기</MenuText>
-          </MenuItem>
+          {onLeave && (
+            <MenuItem
+              onClick={() => {
+                onClose();
+                onLeave();
+              }}
+            >
+              <MenuText>대화방 나가기</MenuText>
+            </MenuItem>
+          )}
         </Contents>
       </Sheet>
     </Overlay>
