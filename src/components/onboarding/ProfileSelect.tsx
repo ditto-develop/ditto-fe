@@ -178,7 +178,7 @@ const ProfileSelect: React.FC<CaricatureSelectProps> = ({
       {/* 상단 헤더 */}
       <HeaderRow>
         <CloseButton onClick={() => setProfileModal(false)}>✕</CloseButton>
-        <Title3 $weight="bold">캐리커처 선택하기</Title3>
+        <Title3 $weight="bold">캐리커쳐 선택하기</Title3>
       </HeaderRow>
 
       {/* 성별 탭 */}

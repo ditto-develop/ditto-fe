@@ -2,7 +2,8 @@ import { AnimatePresence } from "framer-motion";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import { CardContainer, DecoImg } from "@/components/display/Card";
 import type { MatchCandidateDto } from "@/features/matching/api/matchingApi";
-import type { ChatRoomItemDto } from "@/shared/lib/api/generated";
+import type { ChatRoom } from "@/features/chat";
+import { getLastMessagePreview } from "@/features/chat";
 import { formatChatMessagePreview } from "@/app/chat/_utils/messagePreview";
 import { Body1Bold, Body2Reading, Caption1, Caption2, Heading2Bold, Headline1, Headline2, Label1Normal, Label2 } from "@/shared/ui";
 import { formatAgeRange } from "@/shared/lib/formatAge";
@@ -151,12 +152,13 @@ export const ChattingView = ({
   openProfileSelector: () => void;
   candidates: MatchCandidateDto[];
   acceptedCandidate?: MatchCandidateDto;
-  chatRoom?: ChatRoomItemDto;
+  chatRoom?: ChatRoom;
 }) => {
   const timeMondayLeft = useTargetDayCountdown(1);
-  const hasChat = !!chatRoom?.lastMessageContent;
+  const lastMessagePreview = chatRoom ? getLastMessagePreview(chatRoom) : undefined;
+  const hasChat = !!lastMessagePreview;
   const chatPreviewText = hasChat
-    ? formatChatMessagePreview(chatRoom!.lastMessageContent)
+    ? formatChatMessagePreview(lastMessagePreview)
     : "대화를 시작해보세요";
 
   if (cardType === "one") {

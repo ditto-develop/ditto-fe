@@ -8,7 +8,7 @@ import { AlertModal } from "@/shared/ui";
 import { ProfileIntroView } from '@/features/profile/ui/ProfileIntroView';
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import { getUserProfile, getUserIntroNotes, type IntroNoteAnswer } from '@/features/profile/api/profileApi';
-import { ProfileDetailService, type UserRatingSummaryDto } from "@/shared/lib/api/generated";
+import type { UserRatingSummaryDto } from "@/shared/lib/api/generated";
 import { toLocationLabel, toOccupationLabel, toInterestLabel } from '@/shared/lib/profileLabels';
 import { useToast } from '@/context/ToastContext';
 
@@ -73,17 +73,16 @@ export function ProfileDetailModal({
     Promise.all([
       getUserProfile(profileId).catch(() => null),
       getUserIntroNotes(profileId).catch(() => []),
-      ProfileDetailService.ratingControllerGetUserRatings(profileId)
-        .then((res) => res.success ? res.data ?? null : null)
-        .catch(() => null),
-    ]).then(([dto, notes, ratingSummary]) => {
+    ]).then(([dto, notes]) => {
       if (cancelled) return;
       setDetailData({
         profileId,
         introNotes: notes,
         interests: (dto?.interests ?? []).map(toInterestLabel),
         rating: dto?.rating,
-        ratingSummary,
+        // 상대가 받은 평가 요약은 라이브 BE에 계약이 없다(me만 존재).
+        // GET /api/v1/users/{id}/ratings가 생기면 되살린다(INTEGRATION-TODO.md §A-3).
+        ratingSummary: null,
         occupation: dto?.occupation ? toOccupationLabel(dto.occupation) : undefined,
       });
     });

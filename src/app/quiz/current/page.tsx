@@ -62,6 +62,7 @@ function QuizContent() {
   const selectedQuizSet = matchingType
     ? (quizData?.quizSets?.find((qs) => qs.matchingType === matchingType) ?? quizData?.quizSets?.[0])
     : quizData?.quizSets?.[0];
+  const matchingLabel = selectedQuizSet?.matchingType === "GROUP" ? "그룹 매칭" : "1:1 매칭";
   const quizzes: QuizDto[] = selectedQuizSet?.quizzes || [];
   const currentQuiz = quizzes[currentStep];
   const isLastQuiz = currentStep === quizzes.length - 1;
@@ -118,12 +119,12 @@ function QuizContent() {
         />
       )}
       {isFinish ? (
-        <FinishView />
+        <FinishView matchingLabel={matchingLabel} />
       ) : (
         <div>
           <Nav 
             prev={() => setIsModal(true)} 
-            label="1:1 매칭" 
+            label={matchingLabel}
           />
           <MainContainer>
             <ProgressBarContiner>
@@ -360,9 +361,10 @@ const getRandomImage = () => {
   return `/quiz/img/${num}.svg`;
 };
 
-function FinishView(){
+function FinishView({ matchingLabel }: { matchingLabel: string }) {
   const router = useRouter();
   const [imgSrc] = useState(getRandomImage); 
+  const isGroup = matchingLabel === "그룹 매칭";
 
     return(
         <PageContainer>
@@ -371,8 +373,18 @@ function FinishView(){
             />
             <TopContainer>
                 <LabelContainer>
-                    <img src="/icons/content/people-red.svg" alt="" />
-                    <Label2 style={{paddingTop: "4px", paddingLeft: "4px"}} $color="var(--color-semantic-accent-foreground-vintagePink)">1:1 매칭</Label2>
+                    <img
+                      src={isGroup ? "/icons/content/people-green.svg" : "/icons/content/people-red.svg"}
+                      alt=""
+                    />
+                    <Label2
+                      style={{paddingTop: "4px", paddingLeft: "4px"}}
+                      $color={isGroup
+                        ? "var(--color-atomic-olive-60)"
+                        : "var(--color-semantic-accent-foreground-vintagePink)"}
+                    >
+                      {matchingLabel}
+                    </Label2>
                 </LabelContainer>
                 <LabelContainer>
                   <Title3>퀴즈 참여 완료</Title3>

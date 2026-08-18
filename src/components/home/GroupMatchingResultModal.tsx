@@ -161,8 +161,8 @@ export function GroupMatchingResultModal({
             이번 주 매칭 결과
           </ResultTitle>
           <ResultDescription $color="var(--color-semantic-label-neutral)">
-            나와 비슷한 답을 한 사람들을 찾았어요.{"\n"}
-            3명 이상이 참여해야 대화가 시작돼요.
+            나와 가장 비슷한 답을 한 사람들을 찾았어요.{"\n"}
+            3명 이상이 참여하면 대화를 나눌 수 있어요.
           </ResultDescription>
         </HeaderContainer>
 

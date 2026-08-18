@@ -8,11 +8,18 @@ import { TimeLine } from "@/components/home/Timeline";
 import type { MatchingCardType } from "@/components/home/MatchingDay";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { ChatService, QuizProgressDto } from "@/shared/lib/api/generated";
-import type { ChatRoomItemDto, SystemStateDto } from "@/shared/lib/api/generated";
+import { QuizProgressDto } from "@/shared/lib/api/generated";
+import type { SystemStateDto } from "@/shared/lib/api/generated";
+import { getChatRooms } from "@/features/chat";
+import type { ChatRoom } from "@/features/chat";
+import { INTRO_NOTE_FIELDS } from "@/features/profile/model/introNotes";
 import type { MatchCandidateDto } from "@/features/matching/api/matchingApi";
 import { getMatchCandidates, getMatchingStatus } from "@/features/matching/api/matchingApi";
-import { getExternalQuizProgress, getExternalSystemState } from "@/shared/lib/api/externalApi";
+import {
+  getExternalMyIntroNotes,
+  getExternalQuizProgress,
+  getExternalSystemState,
+} from "@/shared/lib/api/externalApi";
 import { useHomeReady } from "@/context/HomeReadyContext";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useToast } from "@/context/ToastContext";
@@ -47,10 +54,10 @@ function mapSystemPeriod(apiPeriod: SystemStateDto["period"]): Period {
   }
 }
 
-async function getLatestChatRoom(): Promise<ChatRoomItemDto | undefined> {
-  const chatRes = await ChatService.chatControllerGetChatRooms();
-  if (!chatRes.success || !chatRes.data || chatRes.data.length === 0) return undefined;
-  return chatRes.data[0];
+/** 방 목록은 최근 대화순이라 첫 번째가 가장 최근 방이다. */
+async function getLatestChatRoom(): Promise<ChatRoom | undefined> {
+  const rooms = await getChatRooms();
+  return rooms[0];
 }
 
 export function MainSection() {
@@ -66,8 +73,7 @@ export function MainSection() {
   const [acceptedCandidate, setAcceptedCandidate] = useState<MatchCandidateDto | undefined>(undefined);
   const [groupJoined, setGroupJoined] = useState(false);
   const [groupJoinPending, setGroupJoinPending] = useState(false);
-  const [chatRoom, setChatRoom] = useState<ChatRoomItemDto | undefined>(undefined);
-  const [acceptedMatchRequestId, setAcceptedMatchRequestId] = useState<string | undefined>(undefined);
+  const [chatRoom, setChatRoom] = useState<ChatRoom | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const { setHomeReady } = useHomeReady();
   const searchParams = useSearchParams();
@@ -91,23 +97,20 @@ export function MainSection() {
 
     async function load() {
       try {
-        // BE 작업 대기: IntroNotes(GET /api/v1/users/me/intro-notes) 엔드포인트가 api.ditto.pics에 추가될 때까지
-        //   isIntroComplete는 false로 유지된다. 엔드포인트 추가 후 externalApi 패턴으로 호출 복구 필요.
-        const introRes = await Promise.resolve(null as { success: boolean; data?: { completedCount: number; answers: string[] } } | null);
-
-        // 기간 판정과 매칭 후보 조회는 서로 의존하지 않는다. 순차로 기다리면 홈 카드가
+        // 기간 판정·매칭 후보·소개노트는 서로 의존하지 않는다. 순차로 기다리면 홈 카드가
         // 그만큼 늦게 뜨므로 같이 쏜다. 퀴즈 기간에는 후보 조회 1건이 버려지지만,
         // 매칭/대화 기간(카드가 무거운 쪽)의 왕복이 한 번 줄어드는 편이 낫다.
-        const [systemState, candidateResult] = await Promise.all([
+        const [systemState, candidateResult, introNotes] = await Promise.all([
           getExternalSystemState(),
           getMatchCandidates().catch(() => null),
+          getExternalMyIntroNotes().catch(() => null),
         ]);
 
         const fetchedPeriod = mapSystemPeriod(systemState.period);
         setPeriod(fetchedPeriod);
 
-        if (introRes?.success && introRes.data) {
-          setIsIntroComplete(introRes.data.completedCount === 10);
+        if (introNotes) {
+          setIsIntroComplete(introNotes.completedCount === INTRO_NOTE_FIELDS.length);
         }
 
         if (fetchedPeriod === "QUIZ") {
@@ -147,8 +150,6 @@ export function MainSection() {
             groupDeclined,
             groupJoined: joined,
             groupJoinPending: joinPending,
-            sentRequests,
-            receivedRequests,
           } = status;
 
           setHasAcceptedMatch(accepted);
@@ -157,9 +158,6 @@ export function MainSection() {
           if (accepted && acceptedMatchUserId) {
             const found = fetchedCandidates.find(c => c.userId === acceptedMatchUserId);
             setAcceptedCandidate(found);
-            // 수락된 매칭 요청 ID 찾기 (채팅방 생성에 필요)
-            const acceptedReq = [...sentRequests, ...receivedRequests].find(r => r.status === "ACCEPTED");
-            if (acceptedReq) setAcceptedMatchRequestId(acceptedReq.id);
           }
           if (fetchedCandidates.length === 0 || groupDeclined) setMatchType("failmatch");
           else if (matchingType === 'GROUP') {
@@ -255,23 +253,25 @@ export function MainSection() {
           />
         );
       case "CHATTING": {
-        const getChatPath = (room: ChatRoomItemDto) =>
-          room.isGroup
+        const getChatPath = (room: ChatRoom) =>
+          room.sourceType === "GROUP"
             ? `/chat/group/${room.roomId}`
             : `/chat/one-on-one/${room.roomId}`;
 
+        /**
+         * 방은 서버가 만든다 — 1:1은 매칭 수락 즉시, 그룹은 정원이 차는 즉시.
+         * 클라가 방을 만드는 경로는 없으므로 아직 안 보이면 다시 읽어 본다.
+         */
         const handleStartChat = async () => {
           try {
-            if (chatRoom) {
-              router.push(getChatPath(chatRoom));
+            const room = chatRoom ?? (await getLatestChatRoom());
+            if (!room) {
+              showToast("아직 대화방이 열리지 않았어요. 잠시 후 다시 시도해주세요.", "error");
               return;
             }
-            if (!acceptedMatchRequestId) return;
-            const res = await ChatService.chatControllerCreateChatRoom({ matchRequestId: acceptedMatchRequestId });
-            if (res.success && res.data) {
-              setChatRoom(res.data);
-              router.push(getChatPath(res.data));
-            }
+
+            setChatRoom(room);
+            router.push(getChatPath(room));
           } catch {
             showToast("채팅방을 열 수 없어요. 잠시 후 다시 시도해주세요.", "error");
           }

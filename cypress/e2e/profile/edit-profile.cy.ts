@@ -37,7 +37,7 @@ describe("edit my profile", () => {
     cy.contains("사는 곳").should("be.visible");
     cy.contains("직업").should("be.visible");
     cy.get("[aria-label='프로필 이미지 수정']").click();
-    cy.contains("캐리커처 선택하기").should("be.visible");
+    cy.contains("캐리커쳐 선택하기").should("be.visible");
     cy.get("button").contains("골랐어요").click();
 
     cy.get("textarea")

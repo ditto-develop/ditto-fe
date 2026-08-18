@@ -4,7 +4,8 @@ import { Card } from "@/components/display/Card";
 import type { MatchCandidateDto } from "@/features/matching/api/matchingApi";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import { toLocationLabel } from "@/shared/lib/profileLabels";
-import type { ChatRoomItemDto } from "@/shared/lib/api/generated";
+import type { ChatRoom } from "@/features/chat";
+import { getLastMessagePreview } from "@/features/chat";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import { useTargetDayCountdown } from "@/lib/hooks/useKstCountdown";
 import { useState, useEffect } from "react";
@@ -66,7 +67,7 @@ export function MatchingDay({
   onGroupJoined?: () => void;
   groupJoinPending?: boolean;
   onGroupJoinPending?: () => void;
-  chatRoom?: ChatRoomItemDto;
+  chatRoom?: ChatRoom;
   quizSetId?: string;
   onStartChat?: () => void;
 }) {
@@ -289,7 +290,7 @@ export function MatchingDay({
             cardType={matchType}
             buttonState={buttonState}
             isChatTime={isChatTime}
-            hasChat={!!chatRoom?.lastMessageContent}
+            hasChat={!!(chatRoom && getLastMessagePreview(chatRoom))}
             onClick={!isChatTime
               ? matchType === "many"
                 ? () => setGroupModalOpen(true)

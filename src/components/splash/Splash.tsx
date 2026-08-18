@@ -12,7 +12,7 @@ export function Splash() {
           alt="Ditto"
         />
       </ImgContainer>
-      <Body1Normal>우연일까? 운명일까?</Body1Normal>
+      <Body1Normal>퀴즈로 만나는 새로운 인연</Body1Normal>
     </MainContainer>
   );
 }

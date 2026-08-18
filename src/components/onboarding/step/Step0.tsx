@@ -48,7 +48,7 @@ export function Step0({ onLoginComplete }: Step0Props) {
             <TopTextContainer>
               <TopImgContainer src="/assets/logo/ditto.svg" />
               <Headline1 $weight="semibold">
-                퀴즈로 연결되는 새로운 만남의 시작
+                퀴즈로 만나는 새로운 인연
               </Headline1>
             </TopTextContainer>
 
