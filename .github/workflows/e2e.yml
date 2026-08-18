@@ -13,6 +13,10 @@ jobs:
     env:
       # Node20 액션 deprecation 대응: 기존 액션 버전 그대로 node24 런타임 사용
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      # BE는 시각을 'yyyy-MM-dd HH:mm:ss' KST 벽시계로 내려주고 parseServerDateTime은
+      # 이를 브라우저 로컬로 파싱한다(한국 전용 서비스). 러너 기본 UTC로는 9시간 어긋나
+      # 채팅 종료 임박 배너 같은 시각 의존 테스트가 실패하므로 실사용 환경에 맞춘다.
+      TZ: Asia/Seoul
       NEXT_PUBLIC_API_BASE: http://localhost:10000
       NEXT_PUBLIC_DITTO_API_KEY: cypress-dummy-api-key
       NEXT_PUBLIC_KAKAO_JS_KEY: cypress-dummy-kakao-key
