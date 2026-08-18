@@ -44,32 +44,58 @@ describe("rating system", () => {
       expect(request.url).to.include("/member-reviews/11/targets/2");
     });
 
+    cy.location("pathname").should("match", /^\/home\/?$/);
+  });
+
+  it("1:1 평가를 건너뛸 때 확인을 요청한다", () => {
+    cy.visit("/chat/one-on-one/1/rate");
+    cy.wait("@getMemberReviews");
+
+    cy.get('img[alt="close"]').click();
+    cy.contains("평가를 건너뛸까요?").should("be.visible");
+    cy.contains("button", "취소").click();
+    cy.location("pathname").should("include", "/rate");
+
+    cy.get('img[alt="close"]').click();
+    cy.contains("button", "건너뛰기").click();
     cy.location("pathname").should("match", /^\/chat\/?$/);
   });
 
+  it("1:1 평가에서 신고를 선택하면 제출 후 신고 화면으로 이동한다", () => {
+    cy.visit("/chat/one-on-one/1/rate");
+    cy.wait("@getMemberReviews");
+
+    cy.contains("button", "채팅만 했어요").click();
+    cy.get('button[aria-label="5점"]').click();
+    cy.contains("사용자 신고하기").click();
+    cy.contains("button", "평가 제출하기").click();
+
+    cy.wait("@submitMemberReview");
+    cy.location("pathname").should("match", /^\/report\/2\/?$/);
+    cy.location("search").should("eq", "?source=chat-room");
+  });
+
   it("종료된 그룹 채팅방에서 평가 화면으로 들어간다", () => {
-    cy.fixture("group-chat-detail.json").then((room) => {
-      cy.intercept("GET", "**/api/**/chat/group-rooms/*", {
+    // 그룹 방도 /chat/rooms 계약을 쓴다. 종료 상태만 바꿔 끼운다.
+    cy.fixture("chat-rooms.json").then((rooms: Record<string, unknown>[]) => {
+      cy.intercept("GET", "**/api/**/chat/rooms", {
         statusCode: 200,
-        body: { success: true, data: { ...room, isEnded: true } },
-      }).as("getRatingGroupRoomDetail");
+        body: {
+          success: true,
+          data: rooms.map((room) =>
+            room.roomId === 3
+              ? { ...room, isEnded: true, endedAt: "2026-06-06 09:00:00", endedReason: "EXPIRED" }
+              : room,
+          ),
+        },
+      }).as("getEndedGroupRoom");
     });
-    cy.fixture("group-chat-messages.json").then((data) => {
-      cy.intercept("GET", "**/api/**/chat/group-rooms/*/messages*", {
-        statusCode: 200,
-        body: { success: true, data },
-      }).as("getRatingGroupMessages");
-    });
-    cy.intercept("PATCH", "**/api/**/chat/group-rooms/*/read", {
-      statusCode: 200,
-      body: { success: true, data: null },
-    }).as("markRatingGroupRead");
 
-    cy.visit("/chat/group/group-room-1");
-    cy.wait(["@getRatingGroupRoomDetail", "@getRatingGroupMessages"]);
+    cy.visit("/chat/group/3");
+    cy.wait("@getEndedGroupRoom");
 
-    cy.contains("button", "평가하기").click();
-    cy.location("pathname").should("include", "/chat/group/group-room-1/rate");
+    cy.contains("button", "평가하기", { timeout: 8000 }).click();
+    cy.location("pathname").should("include", "/chat/group/3/rate");
   });
 
   it("그룹 멤버를 한 명씩 확정하고 재매칭 성사를 알린다", () => {
@@ -124,7 +150,7 @@ describe("rating system", () => {
       expect(request.url).to.include("/member-reviews/12/targets/4");
     });
 
-    cy.location("pathname").should("match", /^\/chat\/?$/);
+    cy.location("pathname").should("match", /^\/home\/?$/);
   });
 
   it("이미 확정된 평가를 다시 내면 수정 불가 안내를 띄운다", () => {

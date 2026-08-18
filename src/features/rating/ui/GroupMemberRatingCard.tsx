@@ -64,7 +64,7 @@ export function GroupMemberRatingCard({
               </HelpButton>
             </RematchLabel>
           }
-          helperText="상대방도 나를 선택하면 다음 금요일에 1:1 채팅방이 열려요."
+          helperText="상대방도 나를 선택하면 즉시 매칭돼요."
         />
       </RematchRow>
 

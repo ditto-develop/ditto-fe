@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
-import { Avatar, BottomActionArea, Button } from "@/shared/ui";
+import { Avatar, BottomActionArea, Button, Checkbox, TopNavigation } from "@/shared/ui";
 import { useToast } from "@/context/ToastContext";
 import { useMemberReview } from "@/features/rating/hooks/useMemberReview";
 import { useOneOnOneRating } from "@/features/rating/hooks/useOneOnOneRating";
 import { RatingFormFields } from "@/features/rating/ui/RatingFormFields";
+import { RatingSkipModal } from "@/features/rating/ui/RatingSkipModal";
 import { RematchSuccessModal } from "@/features/rating/ui/RematchSuccessModal";
 import { toTargetNickname } from "@/features/rating/model/labels";
 import type { MemberReview } from "@/features/rating/model/types";
@@ -36,12 +37,18 @@ function OneOnOneRatingContent({ review, reload }: OneOnOneRatingContentProps) {
   const router = useRouter();
   const { showToast } = useToast();
   const [completed, setCompleted] = useState(false);
+  const [shouldReport, setShouldReport] = useState(false);
+  const [skipModalOpen, setSkipModalOpen] = useState(false);
   const rating = useOneOnOneRating(review, reload);
 
   // 성사 축하가 떠 있으면 닫힌 뒤에 이동한다(1:1 rematch는 계약상 항상 null이다).
   useEffect(() => {
-    if (completed && !rating.rematch) router.replace("/chat");
-  }, [completed, rating.rematch, router]);
+    if (!completed || rating.rematch || !rating.target) return;
+
+    router.replace(
+      shouldReport ? `/report/${rating.target.memberId}?source=chat-room` : "/home",
+    );
+  }, [completed, rating.rematch, rating.target, router, shouldReport]);
 
   if (!rating.target) return <StateMessage>평가할 사용자를 찾을 수 없어요.</StateMessage>;
 
@@ -50,12 +57,14 @@ function OneOnOneRatingContent({ review, reload }: OneOnOneRatingContentProps) {
   const handleSubmit = async () => {
     const result = await rating.submit();
     if (!result) return;
-    showToast("평가가 제출됐어요.", "success");
+    showToast("평가를 제출했어요!", "success");
     setCompleted(true);
   };
 
   return (
     <Page>
+      <TopNavigation onClose={() => setSkipModalOpen(true)} />
+
       <ScrollArea>
         <ProfileHeader>
           <Avatar
@@ -70,18 +79,12 @@ function OneOnOneRatingContent({ review, reload }: OneOnOneRatingContentProps) {
         </ProfileHeader>
 
         <RatingFormFields value={rating.form} onChange={rating.setForm} />
-
-        <FooterActions>
-          <Notice>제출한 평가는 수정할 수 없어요.</Notice>
-          <ReportLink
-            type="button"
-            onClick={() =>
-              router.push(`/report/${rating.target?.memberId}?source=chat-room`)
-            }
-          >
-            사용자 신고하기
-          </ReportLink>
-        </FooterActions>
+        <Checkbox
+          checked={shouldReport}
+          onChange={setShouldReport}
+          label="사용자 신고하기"
+          helperText="불쾌하거나 부적절한 행동이 있었나요?"
+        />
       </ScrollArea>
 
       <BottomActionArea>
@@ -98,6 +101,12 @@ function OneOnOneRatingContent({ review, reload }: OneOnOneRatingContentProps) {
       {rating.rematch && (
         <RematchSuccessModal nickname={nickname} onClose={rating.clearRematch} />
       )}
+
+      <RatingSkipModal
+        isOpen={skipModalOpen}
+        onClose={() => setSkipModalOpen(false)}
+        onConfirm={() => router.replace("/chat")}
+      />
     </Page>
   );
 }
@@ -110,7 +119,7 @@ const Page = styled.main`
 
 const ScrollArea = styled.div`
   width: 100%;
-  padding: var(--space-18) var(--space-5) var(--space-32);
+  padding: 0 var(--space-5) var(--space-32);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -141,35 +150,6 @@ const Title = styled.h1`
 `;
 
 const Subtitle = styled.p`
-  margin: 0;
-  font-size: var(--typography-label-2-font-size);
-  font-weight: var(--typography-label-2-font-weight);
-  line-height: var(--typography-label-2-line-height);
-  letter-spacing: var(--typography-label-2-letter-spacing);
-  color: var(--color-semantic-label-alternative);
-`;
-
-const FooterActions = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-`;
-
-const ReportLink = styled.button`
-  border: 0;
-  padding: 0;
-  background: transparent;
-  text-decoration: underline;
-  cursor: pointer;
-  font-size: var(--typography-label-2-font-size);
-  font-weight: var(--typography-label-2-font-weight);
-  line-height: var(--typography-label-2-line-height);
-  letter-spacing: var(--typography-label-2-letter-spacing);
-  color: var(--color-semantic-label-alternative);
-`;
-
-const Notice = styled.p`
   margin: 0;
   font-size: var(--typography-label-2-font-size);
   font-weight: var(--typography-label-2-font-weight);

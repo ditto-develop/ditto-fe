@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
-import { BottomActionArea, Button } from "@/shared/ui";
+import { BottomActionArea, Button, TopNavigation } from "@/shared/ui";
 import { useToast } from "@/context/ToastContext";
 import { useGroupRating } from "@/features/rating/hooks/useGroupRating";
 import { useMemberReview } from "@/features/rating/hooks/useMemberReview";
 import { GroupMemberRatingCard } from "@/features/rating/ui/GroupMemberRatingCard";
+import { RatingSkipModal } from "@/features/rating/ui/RatingSkipModal";
 import { RematchHelpBottomSheet } from "@/features/rating/ui/RematchHelpBottomSheet";
 import { RematchSuccessModal } from "@/features/rating/ui/RematchSuccessModal";
 import { toTargetNickname } from "@/features/rating/model/labels";
@@ -37,11 +38,12 @@ function GroupRatingContent({ review, reload }: GroupRatingContentProps) {
   const { showToast } = useToast();
   const [helpOpen, setHelpOpen] = useState(false);
   const [completed, setCompleted] = useState(false);
+  const [skipModalOpen, setSkipModalOpen] = useState(false);
   const rating = useGroupRating(review, reload);
 
   // 마지막 대상까지 확정되면 떠난다. 성사 축하가 떠 있으면 닫힌 뒤에 이동한다.
   useEffect(() => {
-    if (completed && !rating.rematch) router.replace("/chat");
+    if (completed && !rating.rematch) router.replace("/home");
   }, [completed, rating.rematch, router]);
 
   if (!rating.currentTarget) return <StateMessage>평가할 그룹 멤버가 없어요.</StateMessage>;
@@ -53,7 +55,7 @@ function GroupRatingContent({ review, reload }: GroupRatingContentProps) {
     if (!result) return;
 
     if (result.completed) {
-      showToast("그룹 멤버 평가가 제출됐어요.", "success");
+      showToast("평가를 제출했어요!", "success");
       setCompleted(true);
       return;
     }
@@ -63,25 +65,23 @@ function GroupRatingContent({ review, reload }: GroupRatingContentProps) {
 
   return (
     <Page>
+      <TopNavigation onClose={() => setSkipModalOpen(true)} />
+
       <ScrollArea>
         <PageHeader>
           <Title>그룹 멤버 평가</Title>
-          <Subtitle>
-            {review.totalTargetCount}명 중 {review.answeredTargetCount + rating.currentIndex}명 평가했어요.
-          </Subtitle>
+          <Subtitle>{review.totalTargetCount}명의 멤버를 평가해 주세요.</Subtitle>
         </PageHeader>
 
         <GroupMemberRatingCard
           target={rating.currentTarget}
           form={rating.form}
-          current={rating.currentIndex + 1}
+          current={rating.current}
           total={rating.total}
           onFormChange={rating.setFormValue}
           onRematchChange={rating.setWantsOneToOneRematch}
           onHelpClick={() => setHelpOpen(true)}
         />
-
-        <Notice>제출한 평가와 재매칭 의사는 수정할 수 없어요.</Notice>
       </ScrollArea>
 
       <BottomActionArea>
@@ -110,6 +110,12 @@ function GroupRatingContent({ review, reload }: GroupRatingContentProps) {
           onClose={rating.clearRematch}
         />
       )}
+
+      <RatingSkipModal
+        isOpen={skipModalOpen}
+        onClose={() => setSkipModalOpen(false)}
+        onConfirm={() => router.replace("/chat")}
+      />
     </Page>
   );
 }
@@ -122,7 +128,7 @@ const Page = styled.main`
 
 const ScrollArea = styled.div`
   width: 100%;
-  padding: var(--space-16) var(--space-4) var(--space-32);
+  padding: 0 var(--space-4) var(--space-32);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -151,16 +157,6 @@ const Subtitle = styled.p`
   font-weight: var(--typography-label-1-normal-font-weight);
   line-height: var(--typography-label-1-normal-line-height);
   letter-spacing: var(--typography-label-1-normal-letter-spacing);
-  color: var(--color-semantic-label-alternative);
-`;
-
-const Notice = styled.p`
-  margin: 0;
-  text-align: center;
-  font-size: var(--typography-label-2-font-size);
-  font-weight: var(--typography-label-2-font-weight);
-  line-height: var(--typography-label-2-line-height);
-  letter-spacing: var(--typography-label-2-letter-spacing);
   color: var(--color-semantic-label-alternative);
 `;
 

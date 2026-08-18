@@ -27,6 +27,7 @@ export function useGroupRating(review: MemberReview, reload: () => Promise<void>
   const [pendingTargets] = useState<ReviewTarget[]>(() =>
     review.targets.filter((target) => !isAnswered(target)),
   );
+  const [answeredBase] = useState(review.answeredTargetCount);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [form, setForm] = useState<GroupReviewFormValue>(INITIAL_FORM);
   const { submitting, rematch, clearRematch, submitTarget } = useReviewSubmission(review, reload);
@@ -61,7 +62,8 @@ export function useGroupRating(review: MemberReview, reload: () => Promise<void>
     pendingTargets,
     currentTarget,
     currentIndex,
-    total: pendingTargets.length,
+    current: answeredBase + currentIndex + 1,
+    total: review.totalTargetCount,
     form,
     setFormValue,
     setWantsOneToOneRematch,
