@@ -1,5 +1,6 @@
 import type { ChatMessage, ChatRoom } from "@/features/chat/model/types";
 import { CHAT_SYSTEM_EVENT_USER_LEFT } from "@/features/chat/model/types";
+import type { SystemPeriod } from "@/features/system/api/systemStateApi";
 import { parseServerDateTime } from "@/shared/lib/serverDateTime";
 
 /**
@@ -8,6 +9,9 @@ import { parseServerDateTime } from "@/shared/lib/serverDateTime";
  * - BEFORE_OPEN: 방은 만들어졌지만 아직 금요일이 오지 않았다. 전송·구독이 막힌다(7005).
  * - OPEN: 대화 가능.
  * - ENDED: 기한 만료 또는 사용자 종료. 전송·구독이 막힌다(7004).
+ *
+ * 개방 여부는 시각만으로 판정하지 않는다 — 어드민 '시간 임시 조정'이 걸리면 서버 기간이
+ * 실제 요일과 어긋나므로 serverPeriod를 함께 본다(deriveRoomState 참고).
  */
 export type ChatRoomState = "BEFORE_OPEN" | "OPEN" | "ENDED";
 
@@ -18,9 +22,15 @@ export type ChatRoomState = "BEFORE_OPEN" | "OPEN" | "ENDED";
  */
 const SCHEDULER_LAG_MS = 60 * 1000;
 
+/**
+ * @param now 생략하면 현재 시각. 렌더 중 `Date.now()`를 부르지 않도록 호출부는 대개 비워 둔다.
+ * @param serverPeriod `GET /api/v1/system/state`의 기간. 어드민 시각 오버라이드가 반영된 값이다.
+ *   모르면(null) 클라이언트 시계만으로 판정한다.
+ */
 export function deriveRoomState(
   room: Pick<ChatRoom, "isEnded" | "opensAt" | "expiresAt">,
   now: number = Date.now(),
+  serverPeriod: SystemPeriod | null = null,
 ): ChatRoomState {
   if (room.isEnded) return "ENDED";
 
@@ -29,7 +39,13 @@ export function deriveRoomState(
   if (expiresAt && expiresAt.getTime() <= now) return "ENDED";
 
   const opensAt = parseServerDateTime(room.opensAt);
-  if (opensAt && now < opensAt.getTime() + SCHEDULER_LAG_MS) return "BEFORE_OPEN";
+  if (opensAt && now < opensAt.getTime() + SCHEDULER_LAG_MS) {
+    // 어드민 시각 오버라이드가 걸리면 서버는 이미 대화 기간인데 opensAt은 실제 금요일 그대로다.
+    // 클라 시계가 opensAt 이전인데 서버가 CHATTING_PERIOD라고 하면 오버라이드 상태이므로 서버를 따른다.
+    // 자연스러운 금요일 전환(now가 opensAt 직후)은 여기 해당하지 않아 스케줄러 지연 보호가 유지된다.
+    const openedByOverride = serverPeriod === "CHATTING_PERIOD" && now < opensAt.getTime();
+    if (!openedByOverride) return "BEFORE_OPEN";
+  }
 
   return "OPEN";
 }

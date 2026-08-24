@@ -65,6 +65,13 @@ const emptyList = {
   limit: 20,
 };
 
+/**
+ * 어드민 '시간 임시 조정'의 목업 상태. 라이브 BE는 Redis에 저장하지만 목업은 인메모리다
+ * — 새로고침하면 초기화된다. 이 값이 /system/state의 period로 그대로 나가야
+ * 오버라이드가 화면(홈·채팅 개방 판정)에 실제로 반영된다.
+ */
+let systemPeriodOverride: string | null = null;
+
 let notificationSettings = { ...notificationSettingsFixture };
 let blockedUsers = [...blockedUsersFixture];
 
@@ -175,7 +182,11 @@ export const handlers = [
     },
   ),
 
-  http.get(apiPath("/system/state"), () => HttpResponse.json(success(systemState))),
+  http.get(apiPath("/system/state"), () =>
+    HttpResponse.json(
+      success({ ...systemState, period: systemPeriodOverride ?? systemState.period }),
+    ),
+  ),
   http.post(apiPath("/users/local-login"), () => HttpResponse.json(success(localLogin))),
   // admin 로그인: /admin/login → POST /api/users/login → data.accessToken 저장
   http.post(apiPath("/users/login"), () => HttpResponse.json(success(adminLoginResult))),
@@ -297,8 +308,15 @@ export const handlers = [
   http.get(apiPath("/admin/quiz-progress"), () => HttpResponse.json(success(adminQuizProgress))),
   http.get(apiPath("/admin/users/[^/]+/match-candidates"), () => HttpResponse.json(success(adminMatchCandidateList))),
   http.get(apiPath("/admin/quiz-sets/active"), () => HttpResponse.json(success(adminActiveQuizSets))),
-  http.post(apiPath("/admin/system/override"), () => HttpResponse.json(success(null))),
-  http.delete(apiPath("/admin/system/override"), () => HttpResponse.json(success(null))),
+  http.post(apiPath("/admin/system/override"), async ({ request }) => {
+    const body = (await request.json().catch(() => null)) as { period?: string } | null;
+    if (body?.period) systemPeriodOverride = body.period;
+    return HttpResponse.json(success(null));
+  }),
+  http.delete(apiPath("/admin/system/override"), () => {
+    systemPeriodOverride = null;
+    return HttpResponse.json(success(null));
+  }),
   http.post(apiPath("/admin/quiz-progress/reset"), () => HttpResponse.json(success(null))),
   http.post(apiPath("/admin/seed-dummy"), () => HttpResponse.json(success(adminSeedResult))),
   http.post(apiPath("/admin/match-requests/dummy-request"), () => HttpResponse.json(success(adminDummyMatchResult))),

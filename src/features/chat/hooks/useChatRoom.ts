@@ -10,6 +10,7 @@ import {
 } from "@/features/chat/api/chatApi";
 import { createChatSocket, type ChatSocket } from "@/features/chat/lib/chatSocket";
 import { deriveRoomState } from "@/features/chat/lib/roomState";
+import { getSystemPeriod } from "@/features/system/api/systemStateApi";
 import { CHAT_TEXT_MAX_LENGTH } from "@/features/chat/model/constants";
 import type {
   ChatConnectionStatus,
@@ -105,11 +106,15 @@ export function useChatRoom(
    * 에코가 오지 않았다. 서버는 이유를 돌려주지 않으므로 방 목록을 다시 읽어 원인을 가른다.
    */
   const diagnoseSendFailure = useCallback(async () => {
-    const room = await getChatRooms()
-      .then((rooms) => rooms.find((item) => item.roomId === roomId) ?? null)
-      .catch(() => null);
+    // 개방 판정은 어드민 시각 오버라이드를 타므로 서버 기간도 함께 읽는다.
+    const [room, serverPeriod] = await Promise.all([
+      getChatRooms()
+        .then((rooms) => rooms.find((item) => item.roomId === roomId) ?? null)
+        .catch(() => null),
+      getSystemPeriod(),
+    ]);
 
-    const state = room ? deriveRoomState(room) : null;
+    const state = room ? deriveRoomState(room, undefined, serverPeriod) : null;
     if (state === "ENDED") {
       setSendError("대화가 종료되어 메시지를 보내지 못했어요.");
     } else if (state === "BEFORE_OPEN") {

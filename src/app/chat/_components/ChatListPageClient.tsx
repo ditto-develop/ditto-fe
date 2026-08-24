@@ -7,6 +7,8 @@ import { ChatRoomListItem, type ChatRoomListItemData } from "./ChatRoomListItem"
 import { deriveRoomState, getLastMessagePreview, useChatRooms } from "@/features/chat";
 import type { ChatRoomWithCounterpart } from "@/features/chat";
 import { toReviewHref, usePendingReviews } from "@/features/rating/hooks/usePendingReviews";
+import { useSystemPeriod } from "@/features/system/hooks/useSystemPeriod";
+import type { SystemPeriod } from "@/features/system/api/systemStateApi";
 import { Button } from "@/shared/ui";
 
 type FilterType = "전체" | "진행중" | "종료";
@@ -14,6 +16,7 @@ const FILTERS: FilterType[] = ["전체", "진행중", "종료"];
 
 function toListItem(
   room: ChatRoomWithCounterpart,
+  serverPeriod: SystemPeriod | null,
   reviewHref?: string,
 ): ChatRoomListItemData {
   return {
@@ -23,7 +26,7 @@ function toListItem(
     lastMessageContent: getLastMessagePreview(room),
     lastMessageAt: room.lastMessage?.createdAt,
     unreadCount: room.unreadCount,
-    state: deriveRoomState(room),
+    state: deriveRoomState(room, undefined, serverPeriod),
     // 재매칭 방은 1:1이다. 그룹만 별도 화면으로 보낸다.
     isGroup: room.sourceType === "GROUP",
     reviewHref,
@@ -34,6 +37,8 @@ export function ChatListPageClient() {
   const [filter, setFilter] = useState<FilterType>("전체");
   const { rooms: chatRooms, loading } = useChatRooms();
   const { reviews } = usePendingReviews();
+  // '대기중' 배지도 어드민 시각 오버라이드를 따라야 한다.
+  const serverPeriod = useSystemPeriod();
 
   // 평가가 열린 방에만 '평가하기' 진입점을 붙인다.
   const reviewHrefByRoomId = useMemo(
@@ -42,8 +47,11 @@ export function ChatListPageClient() {
   );
 
   const rooms = useMemo(
-    () => chatRooms.map((room) => toListItem(room, reviewHrefByRoomId.get(String(room.roomId)))),
-    [chatRooms, reviewHrefByRoomId],
+    () =>
+      chatRooms.map((room) =>
+        toListItem(room, serverPeriod, reviewHrefByRoomId.get(String(room.roomId))),
+      ),
+    [chatRooms, reviewHrefByRoomId, serverPeriod],
   );
 
   // 개방 전(금요일 대기) 방은 아직 끝나지 않았으므로 '진행중'에 함께 둔다.

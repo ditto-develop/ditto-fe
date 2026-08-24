@@ -10,6 +10,7 @@ import {
   useChatRoom,
   useChatRoomMeta,
 } from "@/features/chat";
+import { useSystemPeriod } from "@/features/system/hooks/useSystemPeriod";
 import { useToast } from "@/context/ToastContext";
 import { getMyMemberId } from "@/shared/lib/auth";
 import { parseServerDateTime } from "@/shared/lib/serverDateTime";
@@ -56,6 +57,8 @@ export function GroupChatRoomPageClient() {
   } = useChatRoom(roomId);
   const { room, members, memberById, loading: metaLoading, refresh: refreshRoom } =
     useChatRoomMeta(roomId);
+  // 개방 판정의 기준. 어드민 시각 오버라이드가 반영된 서버 기간이다.
+  const serverPeriod = useSystemPeriod();
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -71,7 +74,7 @@ export function GroupChatRoomPageClient() {
     void refreshRoom();
   }, [sendError, clearSendError, showToast, refreshRoom]);
 
-  const roomState = room ? deriveRoomState(room) : "OPEN";
+  const roomState = room ? deriveRoomState(room, undefined, serverPeriod) : "OPEN";
   const isEnded = roomState === "ENDED";
   const expiresAt = useMemo(() => parseServerDateTime(room?.expiresAt), [room?.expiresAt]);
 

@@ -56,6 +56,54 @@ describe("deriveRoomState", () => {
     ).toBe("OPEN");
   });
 
+  it("어드민 시각 오버라이드로 서버가 CHATTING_PERIOD면 개방 전이어도 OPEN이다", () => {
+    // opensAt은 오버라이드와 무관하게 실제 금요일 그대로 내려온다.
+    // 클라 시계(수요일)만 보면 BEFORE_OPEN이지만 서버는 이미 대화 기간이다.
+    const wednesday = new Date("2026-06-03T12:00:00").getTime();
+    expect(
+      deriveRoomState(
+        { isEnded: false, opensAt: OPENS_AT, expiresAt: EXPIRES_AT },
+        wednesday,
+        "CHATTING_PERIOD",
+      ),
+    ).toBe("OPEN");
+  });
+
+  it("서버가 대화 기간이 아니면 오버라이드로 열지 않는다", () => {
+    const wednesday = new Date("2026-06-03T12:00:00").getTime();
+    expect(
+      deriveRoomState(
+        { isEnded: false, opensAt: OPENS_AT, expiresAt: EXPIRES_AT },
+        wednesday,
+        "QUIZ_PERIOD",
+      ),
+    ).toBe("BEFORE_OPEN");
+  });
+
+  it("개방 직후 1분은 서버가 CHATTING_PERIOD여도 스케줄러를 기다린다", () => {
+    // 자연스러운 금요일 전환에서는 기간도 CHATTING_PERIOD다. 이때까지 열어 버리면
+    // 서버가 아직 7005로 막고 있어 보낸 메시지가 조용히 사라진다.
+    const thirtySecondsAfter = new Date("2026-06-05T00:00:30").getTime();
+    expect(
+      deriveRoomState(
+        { isEnded: false, opensAt: OPENS_AT, expiresAt: EXPIRES_AT },
+        thirtySecondsAfter,
+        "CHATTING_PERIOD",
+      ),
+    ).toBe("BEFORE_OPEN");
+  });
+
+  it("만료된 방은 오버라이드로도 되살아나지 않는다", () => {
+    const afterExpiry = new Date("2026-06-09T00:00:00").getTime();
+    expect(
+      deriveRoomState(
+        { isEnded: false, opensAt: OPENS_AT, expiresAt: EXPIRES_AT },
+        afterExpiry,
+        "CHATTING_PERIOD",
+      ),
+    ).toBe("ENDED");
+  });
+
   it("시각 정보가 없으면 OPEN으로 둔다(입력을 막지 않는다)", () => {
     expect(deriveRoomState({ isEnded: false, opensAt: null, expiresAt: null })).toBe("OPEN");
   });
