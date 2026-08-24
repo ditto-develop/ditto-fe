@@ -3,8 +3,13 @@
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 
+import { getChatRooms } from "@/features/chat";
 import { useNotifications } from "@/features/notification/hooks/useNotifications";
-import { NOTIFICATION_FILTERS } from "@/features/notification/model/notificationMeta";
+import {
+  isUnread,
+  NOTIFICATION_FILTERS,
+  toNotificationTarget,
+} from "@/features/notification/model/notificationMeta";
 import type { NotificationItem } from "@/features/notification/model/types";
 import { NotificationRow } from "@/features/notification/ui/NotificationRow";
 import { EmptyState, FilterChips, TopNavigation } from "@/shared/ui";
@@ -27,9 +32,31 @@ export function NotificationCenterContainer() {
     markAllRead,
   } = useNotifications();
 
-  const handleSelect = (item: NotificationItem) => {
-    if (!item.read) markRead(item.id);
-    if (item.linkTo) router.push(item.linkTo);
+  /**
+   * 방 목록이 1:1/그룹을 구분하는 유일한 출처다(방 상세 API가 없다).
+   * 못 찾으면 대화방 목록으로 보낸다 — 알림을 눌렀는데 아무 일도 안 일어나는 것보다 낫다.
+   */
+  const toChatRoomPath = async (roomId: number): Promise<string> => {
+    const room = await getChatRooms()
+      .then((rooms) => rooms.find((item) => item.roomId === roomId))
+      .catch(() => undefined);
+
+    if (!room) return "/chat";
+    return room.sourceType === "GROUP"
+      ? `/chat/group/${roomId}`
+      : `/chat/one-on-one/${roomId}`;
+  };
+
+  const handleSelect = async (item: NotificationItem) => {
+    if (isUnread(item)) markRead(item.id);
+
+    const target = toNotificationTarget(item);
+    // 모르는 type은 이동하지 않는다(BE 위키 명시 — enum이 늘어난다).
+    if (!target) return;
+
+    router.push(
+      target.kind === "path" ? target.path : await toChatRoomPath(target.roomId),
+    );
   };
 
   return (
@@ -76,7 +103,12 @@ export function NotificationCenterContainer() {
             <SectionLabel>{section.label}</SectionLabel>
             <List>
               {section.items.map((item) => (
-                <NotificationRow key={item.id} item={item} now={now} onSelect={handleSelect} />
+                <NotificationRow
+                  key={item.id}
+                  item={item}
+                  now={now}
+                  onSelect={(selected) => void handleSelect(selected)}
+                />
               ))}
             </List>
           </Section>

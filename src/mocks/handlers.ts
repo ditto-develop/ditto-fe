@@ -141,16 +141,31 @@ function answerReviewTarget(
 // 알림 목록은 '오늘 / 지난 소식' 구간과 상대 시간 표기가 항상 의미를 갖도록
 // 고정 시각 대신 요청 시점 기준 상대 오프셋(minutesAgo)으로 만들어 준다.
 type NotificationFixture = (typeof notificationsFixture)[number];
-let readNotificationIds = new Set<string>(
+let readNotificationIds = new Set<number>(
   notificationsFixture.filter((item) => item.read).map((item) => item.id),
 );
 
+/** 라이브 BE의 시각 포맷은 ISO가 아니라 `yyyy-MM-dd HH:mm:ss`다. */
+function toServerDateTime(timestamp: number): string {
+  const date = new Date(timestamp);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
+    `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  );
+}
+
 function toNotification(item: NotificationFixture, now: number) {
-  const { minutesAgo, ...rest } = item;
   return {
-    ...rest,
-    createdAt: new Date(now - minutesAgo * 60 * 1000).toISOString(),
-    read: readNotificationIds.has(item.id),
+    id: item.id,
+    type: item.type,
+    category: item.category,
+    title: item.title,
+    body: item.body,
+    targetId: item.targetId,
+    createdAt: toServerDateTime(now - item.minutesAgo * 60 * 1000),
+    // 안읽음 판정은 readAt이 null인지로 한다(라이브 계약).
+    readAt: readNotificationIds.has(item.id) ? toServerDateTime(now) : null,
   };
 }
 
@@ -217,18 +232,39 @@ export const handlers = [
     blockedUsers = blockedUsers.filter((userItem) => String(userItem.id) !== id);
     return HttpResponse.json(success(null));
   }),
-  http.get(apiPath("/notifications"), () => {
+  http.get(apiPath("/notifications/unread-count"), () =>
+    HttpResponse.json(
+      success({
+        count: notificationsFixture.filter((item) => !readNotificationIds.has(item.id)).length,
+      }),
+    ),
+  ),
+  // 목록은 배열이 아니라 `{ notifications, nextCursor }` 래퍼다. category는 서버 필터.
+  http.get(apiPath("/notifications"), ({ request }) => {
     const now = Date.now();
-    return HttpResponse.json(success(notificationsFixture.map((item) => toNotification(item, now))));
+    const category = new URL(request.url).searchParams.get("category");
+    const visible = category
+      ? notificationsFixture.filter((item) => item.category === category)
+      : notificationsFixture;
+
+    return HttpResponse.json(
+      success({
+        notifications: visible.map((item) => toNotification(item, now)),
+        nextCursor: null,
+      }),
+    );
   }),
-  http.post(apiPath("/notifications/read-all"), () => {
+  http.put(apiPath("/notifications/read-all"), () => {
+    const readCount = notificationsFixture.filter(
+      (item) => !readNotificationIds.has(item.id),
+    ).length;
     readNotificationIds = new Set(notificationsFixture.map((item) => item.id));
-    return HttpResponse.json(success(null));
+    return HttpResponse.json(success({ readCount }));
   }),
-  http.post(apiPath("/notifications/[^/]+/read"), ({ request }) => {
-    const id = request.url.split("/").filter(Boolean).at(-2);
-    if (id) readNotificationIds.add(id);
-    return HttpResponse.json(success(null));
+  http.put(apiPath("/notifications/[^/]+/read"), ({ request }) => {
+    const id = Number(request.url.split("/").filter(Boolean).at(-2));
+    if (Number.isFinite(id)) readNotificationIds.add(id);
+    return HttpResponse.json(success({}));
   }),
 
   // 신고(PR #97): presigned URL 발급 → S3 PUT → 접수.

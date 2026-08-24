@@ -1,3 +1,5 @@
+import { parseServerDateTime } from "@/shared/lib/serverDateTime";
+
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
@@ -17,9 +19,10 @@ const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"] as cons
  * | 날짜 표시(MM.DD.요일) | 8일 이상   |
  */
 export function formatNotificationTime(createdAt: string, now: number = Date.now()): string {
-  const created = new Date(createdAt);
+  // 서버는 `yyyy-MM-dd HH:mm:ss`로 내려준다. 공백 구분자는 Safari에서 Invalid Date다.
+  const created = parseServerDateTime(createdAt);
+  if (!created) return "";
   const timestamp = created.getTime();
-  if (Number.isNaN(timestamp)) return "";
 
   const elapsed = now - timestamp;
   // 서버/클라이언트 시계 차이로 미래 시각이 오면 '방금 전'으로 처리한다.
@@ -37,7 +40,7 @@ export function formatNotificationTime(createdAt: string, now: number = Date.now
 
 /** 24시간 이내이면 '오늘' 구간에 속한다. Figma [2508:32056]. */
 export function isToday(createdAt: string, now: number = Date.now()): boolean {
-  const timestamp = new Date(createdAt).getTime();
-  if (Number.isNaN(timestamp)) return false;
-  return now - timestamp < TODAY_THRESHOLD_MS;
+  const created = parseServerDateTime(createdAt);
+  if (!created) return false;
+  return now - created.getTime() < TODAY_THRESHOLD_MS;
 }

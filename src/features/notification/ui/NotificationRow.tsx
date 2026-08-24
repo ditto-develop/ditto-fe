@@ -3,7 +3,7 @@
 import styled from "styled-components";
 
 import { formatNotificationTime } from "@/features/notification/lib/notificationTime";
-import { NOTIFICATION_ICON } from "@/features/notification/model/notificationMeta";
+import { isUnread, toNotificationIcon } from "@/features/notification/model/notificationMeta";
 import type { NotificationItem } from "@/features/notification/model/types";
 import { Icon } from "@/shared/ui";
 
@@ -21,13 +21,14 @@ interface NotificationRowProps {
  */
 export function NotificationRow({ item, now, onSelect }: NotificationRowProps) {
   return (
-    <Row type="button" $read={item.read} onClick={() => onSelect(item)}>
+    <Row type="button" $read={!isUnread(item)} onClick={() => onSelect(item)}>
       <IconSlot>
-        <Icon name={NOTIFICATION_ICON[item.type]} size={20} />
+        {/* 모르는 type도 기본 아이콘으로 반드시 그린다. 건너뛰면 알림이 사라진다. */}
+        <Icon name={toNotificationIcon(item.type)} size={20} />
       </IconSlot>
       <Texts>
         <Title>{item.title}</Title>
-        <Body>{item.body}</Body>
+        {item.body && <Body>{item.body}</Body>}
         <Time>{formatNotificationTime(item.createdAt, now)}</Time>
       </Texts>
     </Row>
