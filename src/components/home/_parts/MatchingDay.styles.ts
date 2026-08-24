@@ -55,7 +55,8 @@ export const FCardDivContainer = styled.div`
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
-  flex: 1 0;
+  flex: 1 1 0;
+  min-width: 0;
 `;
 
 export const MatchingBottomContainer = styled.div`
@@ -89,11 +90,22 @@ export const ChatMainContainer = styled.div`
   align-items: flex-start;
   gap: var(--space-4, 16px);
   align-self: stretch;
+  width: 100%;
+  min-width: 0;
 `;
 
+/**
+ * 오른쪽 정보 영역.
+ *
+ * 예전에는 width: 201px 고정이었다. 아바타 100px + gap 16px + 201px = 317px 인데
+ * 바깥 여백(페이지 32 + 카드 48 + 뷰카드 래퍼 10 + ViewCardContainer 32)이 122px라
+ * 최소 439px가 필요했다 — 360~430px 폰에서 홈 대화 카드가 통째로 가로로 넘쳤다.
+ * 남는 폭을 그대로 받도록 바꾸고, min-width: 0 으로 자식 텍스트가 줄어들 수 있게 한다.
+ */
 export const ChatRightContainer = styled.div`
   display: flex;
-  width: 201px;
+  flex: 1 1 0;
+  min-width: 0;
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
@@ -101,7 +113,7 @@ export const ChatRightContainer = styled.div`
 
 export const RelativeProfileSlot = styled.div`
   position: relative;
-  flex-shrink: 0;
+  flex: 0 0 auto;
 `;
 
 export const ChatInfoColumn = styled.div`
@@ -109,19 +121,38 @@ export const ChatInfoColumn = styled.div`
   flex-direction: column;
   gap: 4px;
   width: 100%;
+  min-width: 0;
 `;
 
 export const ChatHeaderRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-2, 8px);
+  width: 100%;
+  min-width: 0;
 `;
 
 export const ChatGroupHeaderRow = styled.div`
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  gap: var(--space-2, 8px);
   width: 100%;
+  min-width: 0;
+`;
+
+/** 닉네임/그룹명이 길어도 타이머를 밀어내지 않도록 한 줄로 자른다. */
+export const ChatTitleSlot = styled.div`
+  min-width: 0;
+  flex: 1 1 auto;
+
+  > * {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 `;
 
 export const ChatContainer = styled.div`
@@ -182,6 +213,8 @@ export const TimerBox = styled.div`
   border-radius: 8px; /* 둥근 사각형 */
   width: 79px;
   height: 24px;
+  flex: 0 0 auto;
+  box-sizing: border-box;
 `;
 
 export const TimerText = styled(Body1Bold)`
@@ -203,6 +236,7 @@ export const AvatarCollage = styled.div`
   position: relative;
   width: 150px;
   height: 150px;
+  max-width: 100%;
   flex-shrink: 0;
 `;
 

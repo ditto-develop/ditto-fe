@@ -28,6 +28,7 @@ import {
   ChatPreviewText,
   ChatPreviewViewport,
   ChatRightContainer,
+  ChatTitleSlot,
   ChevronIcon,
   CollageSlot,
   ColumnViewCardContainer,
@@ -181,7 +182,9 @@ export const ChattingView = ({
           <ChatRightContainer>
             <ChatInfoColumn>
               <ChatHeaderRow>
-                <Heading2Bold>{c?.nickname ?? ""}</Heading2Bold>
+                <ChatTitleSlot>
+                  <Heading2Bold>{c?.nickname ?? ""}</Heading2Bold>
+                </ChatTitleSlot>
                 <TimerBox>
                   <TimerText
                     $color="var(--color-semantic-status-cautionary)"
@@ -220,31 +223,33 @@ export const ChattingView = ({
     return (
       <ViewCardContainer>
         <ChatMainContainer>
-          <ProfileWrapper>
-            <TopImgContainer onClick={openProfileSelector}>
-              {shown.map((c, i) => (
-                <SmallProfileImg
-                  key={c.userId}
-                  imageUrl={c.profileImageUrl || getAvatarUrl(c.gender, i)}
-                />
-              ))}
-              {extra > 0 && (
-                <Plusmember>
-                  <Label1Normal $color="white" $weight="bold">
-                    +{extra}
-                  </Label1Normal>
-                </Plusmember>
-              )}
-            </TopImgContainer>
-          </ProfileWrapper>
+          <RelativeProfileSlot>
+            <ProfileWrapper>
+              <TopImgContainer onClick={openProfileSelector}>
+                {shown.map((c, i) => (
+                  <SmallProfileImg
+                    key={c.userId}
+                    imageUrl={c.profileImageUrl || getAvatarUrl(c.gender, i)}
+                  />
+                ))}
+                {extra > 0 && (
+                  <Plusmember>
+                    <Label1Normal $color="white" $weight="bold">
+                      +{extra}
+                    </Label1Normal>
+                  </Plusmember>
+                )}
+              </TopImgContainer>
+            </ProfileWrapper>
+          </RelativeProfileSlot>
           <ChatRightContainer>
             <ChatGroupHeaderRow>
-              <div>
+              <ChatTitleSlot>
                 <Heading2Bold>같은 취미, 취향 그룹</Heading2Bold>
                 <Label2 $color="var(--color-semantic-label-alternative)">
                   {firstName}님 외 {othersCount}명
                 </Label2>
-              </div>
+              </ChatTitleSlot>
                 <TimerBox>
                 <TimerText
                   $color="var(--color-semantic-status-cautionary)"
