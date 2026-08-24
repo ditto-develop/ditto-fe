@@ -82,7 +82,7 @@ describe("report a user", () => {
 
   it("submits a report and shows the completion screen", () => {
     mockReportApi();
-    cy.visit(`/report/${TARGET_MEMBER_ID}`);
+    cy.visit(`/report?userId=${TARGET_MEMBER_ID}`);
     cy.wait("@getTargetProfile");
 
     cy.contains("신고하기").should("be.visible");
@@ -118,7 +118,7 @@ describe("report a user", () => {
 
   it("uploads evidence via presigned URLs before creating the report", () => {
     mockReportApi();
-    cy.visit(`/report/${TARGET_MEMBER_ID}`);
+    cy.visit(`/report?userId=${TARGET_MEMBER_ID}`);
     cy.wait("@getTargetProfile");
 
     cy.contains("허위 정보").click();
@@ -149,7 +149,7 @@ describe("report a user", () => {
 
   it("requires detail when 기타 is selected (BE 6003)", () => {
     mockReportApi();
-    cy.visit(`/report/${TARGET_MEMBER_ID}`);
+    cy.visit(`/report?userId=${TARGET_MEMBER_ID}`);
     cy.wait("@getTargetProfile");
 
     cy.contains("기타").click();
@@ -164,7 +164,7 @@ describe("report a user", () => {
 
   it("shows a toast for a duplicate report (HTTP 200 + success:false, code 6002)", () => {
     mockReportApi({ failWith: { code: "6002", message: "이미 신고한 사용자입니다." } });
-    cy.visit(`/report/${TARGET_MEMBER_ID}`);
+    cy.visit(`/report?userId=${TARGET_MEMBER_ID}`);
     cy.wait("@getTargetProfile");
 
     cy.contains("미성년자").click();
@@ -177,7 +177,7 @@ describe("report a user", () => {
 
   it("shows a toast when reporting yourself (code 6001)", () => {
     mockReportApi({ failWith: { code: "6001", message: "자기 자신은 신고할 수 없습니다." } });
-    cy.visit(`/report/${TARGET_MEMBER_ID}`);
+    cy.visit(`/report?userId=${TARGET_MEMBER_ID}`);
     cy.wait("@getTargetProfile");
 
     cy.contains("금전 요구").click();
@@ -189,7 +189,7 @@ describe("report a user", () => {
 
   it("hides the block notice when 차단하기 is not checked", () => {
     mockReportApi();
-    cy.visit(`/report/${TARGET_MEMBER_ID}`);
+    cy.visit(`/report?userId=${TARGET_MEMBER_ID}`);
     cy.wait("@getTargetProfile");
 
     cy.contains("금전 요구").click();
@@ -212,7 +212,8 @@ describe("report a user", () => {
     cy.get('img[alt="더보기"]', { timeout: 8000 }).parent("button").click();
     cy.contains("신고하기").click();
 
-    cy.location("pathname").should("include", "/report/");
+    cy.location("pathname").should("match", /^\/report\/?$/);
+    cy.location("search").should("include", "source=chat-room");
     cy.contains("신고 사유 선택").should("be.visible");
 
     cy.contains("부적절한 행동").click();

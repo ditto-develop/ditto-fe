@@ -71,8 +71,8 @@ describe("rating system", () => {
     cy.contains("button", "평가 제출하기").click();
 
     cy.wait("@submitMemberReview");
-    cy.location("pathname").should("match", /^\/report\/2\/?$/);
-    cy.location("search").should("eq", "?source=chat-room");
+    cy.location("pathname").should("match", /^\/report\/?$/);
+    cy.location("search").should("eq", "?userId=2&source=chat-room");
   });
 
   it("종료된 그룹 채팅방에서 평가 화면으로 들어간다", () => {

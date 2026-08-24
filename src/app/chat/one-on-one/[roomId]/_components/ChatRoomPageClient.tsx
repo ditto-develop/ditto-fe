@@ -211,7 +211,8 @@ export function ChatRoomPageClient() {
           // 이미 끝난 방은 종료할 게 없다. 신고는 종료 후에도 열어 둔다.
           onLeave={isEnded ? undefined : () => setIsLeaveModalOpen(true)}
           onReport={() =>
-            counterpart && router.push(`/report/${counterpart.userId}?source=chat-room`)
+            counterpart &&
+            router.push(`/report?userId=${counterpart.userId}&source=chat-room`)
           }
         />
       )}

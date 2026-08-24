@@ -1,11 +1,10 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 import { ReportContainer } from "@/features/report";
 import type { ReportSource } from "@/features/report";
-import { resolveStaticRouteParam } from "@/shared/lib/staticRouteParam";
 
 const REPORT_SOURCES: readonly ReportSource[] = ["profile", "match-result", "chat-room"];
 
@@ -15,12 +14,9 @@ function toReportSource(value: string | null): ReportSource {
 }
 
 function ReportContent() {
-  const params = useParams();
   const searchParams = useSearchParams();
-  // BE reportedMemberId는 int64다. 라우트 세그먼트를 숫자로 변환해 넘긴다.
-  const [reportedMemberId] = useState(() =>
-    Number(resolveStaticRouteParam("report", String(params.userId))),
-  );
+  // BE reportedMemberId는 int64다. 쿼리 값을 숫자로 변환해 넘긴다.
+  const [reportedMemberId] = useState(() => Number(searchParams.get("userId")));
 
   return (
     <ReportContainer

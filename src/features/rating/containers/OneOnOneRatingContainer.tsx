@@ -46,7 +46,9 @@ function OneOnOneRatingContent({ review, reload }: OneOnOneRatingContentProps) {
     if (!completed || rating.rematch || !rating.target) return;
 
     router.replace(
-      shouldReport ? `/report/${rating.target.memberId}?source=chat-room` : "/home",
+      shouldReport
+        ? `/report?userId=${rating.target.memberId}&source=chat-room`
+        : "/home",
     );
   }, [completed, rating.rematch, rating.target, router, shouldReport]);
 

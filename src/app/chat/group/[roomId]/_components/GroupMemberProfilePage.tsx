@@ -142,7 +142,7 @@ export function GroupMemberProfilePage({
           onClose={() => setIsMoreModalOpen(false)}
           onReport={() => {
             setIsMoreModalOpen(false);
-            router.push(`/report/${userId}`);
+            router.push(`/report?userId=${userId}`);
           }}
         />
       )}
