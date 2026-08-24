@@ -10,6 +10,7 @@ import {
   hasValidSession,
 } from "@/shared/lib/auth";
 import { tryRefreshToken } from "@/shared/lib/api/client";
+import { normalizePathname } from "@/shared/lib/routePath";
 import { usePathname, useRouter } from "next/navigation";
 import Script from "next/script";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -26,23 +27,26 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { isHomeReady } = useHomeReady();
 
+  // trailingSlash: true 라 하드 로드면 "/home/", 클라이언트 내비게이션이면 "/home"이 들어온다.
+  // 아래 판정은 전부 정규화한 경로 하나만 본다.
+  const path = normalizePathname(pathname);
+
   // 로그인이 필요 없는 공개 경로
-  const isAuthCallbackPath = pathname === "/auth/callback" || pathname === "/auth/callback/";
+  const isAuthCallbackPath = path === "/auth/callback";
   // OAuth 콜백 경로(/oauth/*, /auth/callback)는 KakaoCallback이 로그인 후 라우팅을
   // 직접 결정한다(신규 회원=signupRequired → 회원가입 Tutorial 유지, 기존 회원 → /home).
   // ClientLayout이 "로그인 상태 + 공개 경로 → /home" 규칙으로 이 경로를 덮어쓰면
   // 회원가입 중인 신규 회원이 토큰 세팅 직후 /home으로 튕긴다. 라우팅 권한을 분리한다.
-  const isOAuthFlowPath = pathname.startsWith('/oauth') || isAuthCallbackPath;
+  const isOAuthFlowPath = path === '/oauth' || path.startsWith('/oauth/') || isAuthCallbackPath;
   // 제재 안내: OAuth 콜백으로 넘어온 제재 회원은 토큰이 아예 없으므로 공개 경로여야 한다.
-  const isSanctionPath = pathname.startsWith('/sanction');
+  const isSanctionPath = path === '/sanction' || path.startsWith('/sanction/');
   const isPublicPath =
-    pathname === "/" ||
+    path === "/" ||
     isOAuthFlowPath ||
     isSanctionPath ||
-    pathname === '/localogin' ||
-    pathname === '/localogin/';
+    path === '/localogin';
   // 관리자 경로: ClientLayout 리다이렉트/스플래시 완전 제외
-  const isAdminPath = pathname.startsWith('/admin');
+  const isAdminPath = path === '/admin' || path.startsWith('/admin/');
 
   // 만료된 임시 토큰(refresh 없는 access)을 제거하고 로그인 상태를 동기화한다.
   const syncAuthState = useCallback(() => {
@@ -52,7 +56,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setIsHydrated(true);
     syncAuthState();
-  }, [pathname, syncAuthState]);
+  }, [path, syncAuthState]);
 
   // 쓰레기 토큰 감시: 주기적 + 탭 간 storage 변경 시 제거·동기화
   useEffect(() => {
@@ -72,7 +76,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   // /home 진입 시 refresh로 세션 유효성 검증 (이미 검증한 세션은 건너뜀)
   useEffect(() => {
-    if (!isHydrated || pathname !== "/home" || !isLoggedIn) return;
+    if (!isHydrated || path !== "/home" || !isLoggedIn) return;
     if (sessionVerified.current || sessionVerifyInFlight.current) return;
 
     sessionVerifyInFlight.current = true;
@@ -88,17 +92,17 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         router.push("/");
       }
     });
-  }, [isHydrated, pathname, isLoggedIn, router]);
+  }, [isHydrated, path, isLoggedIn, router]);
 
   useEffect(() => {
-    if (!isHydrated || pathname !== "/home" || !isLoggedIn) {
+    if (!isHydrated || path !== "/home" || !isLoggedIn) {
       setHomeSplashExpired(false);
       return;
     }
 
     const timer = setTimeout(() => setHomeSplashExpired(true), 2500);
     return () => clearTimeout(timer);
-  }, [isHydrated, pathname, isLoggedIn]);
+  }, [isHydrated, path, isLoggedIn]);
 
   useEffect(() => {
     if (!isHydrated || isAdminPath) return;
@@ -125,8 +129,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       isPublicPath &&
       !isOAuthFlowPath &&
       !isSanctionPath &&
-      pathname !== '/localogin' &&
-      pathname !== '/localogin/';
+      path !== '/localogin';
 
     if (!isHomeRedirectCandidate) return;
 
@@ -157,7 +160,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     isOAuthFlowPath,
     isSanctionPath,
     isAdminPath,
-    pathname,
+    path,
     router,
   ]);
 
@@ -172,7 +175,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     if (isOAuthFlowPath) return false;
     if (isSanctionPath) return false;               // 제재 안내: 자체 로딩 문구 사용
     if (!isLoggedIn) return !splashDone;            // 비로그인: 3초 타이머
-    if (pathname === '/home') return isVerifyingSession || (!isHomeReady && !homeSplashExpired);
+    if (path === '/home') return isVerifyingSession || (!isHomeReady && !homeSplashExpired);
     return false;                                   // 로그인 + 다른 페이지
   })();
 

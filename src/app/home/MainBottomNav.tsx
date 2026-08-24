@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Caption2 } from '@/shared/ui';
 import { Icon, type IconName } from '@/shared/ui';
+import { isPathActive } from '@/shared/lib/routePath';
 
 // 1. 네비게이션 아이템 설정 (경로, 라벨, 아이콘 경로 등)
 // 실제 프로젝트에 있는 이미지 경로로 교체해주세요.
@@ -33,11 +34,16 @@ const MainBottomNav = () => {
   return (
     <NavContainer>
       {NAV_ITEMS.map((item) => {
-        // 현재 경로가 해당 아이템의 path와 일치하는지 확인
-        const isActive = pathname === item.path;
+        // trailingSlash 설정 탓에 하드 로드면 "/home/", 클라이언트 내비게이션이면 "/home"이
+        // 들어온다. 문자열 동등 비교로는 전자가 통째로 빗나가므로 정규화해서 본다.
+        const isActive = isPathActive(pathname, item.path);
 
         return (
-          <NavItem key={item.path} href={item.path}>
+          <NavItem
+            key={item.path}
+            href={item.path}
+            aria-current={isActive ? "page" : undefined}
+          >
             {/* 이미지 영역: 활성 상태에 따라 다른 이미지 렌더링 */}
             <IconWrapper>
               <TabIcon name={item.iconName} $isActive={isActive} />
