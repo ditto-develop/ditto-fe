@@ -4,6 +4,13 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 
+/**
+ * 화면 전체를 덮는 시트.
+ *
+ * 예전에는 Wrapper 하나가 스크롤을 맡고 하단 버튼이 position:fixed로 그 위에 떠 있었다.
+ * 그래서 마지막 아바타 줄이 버튼 뒤에 깔린 채 더 내려가지 않아 "스크롤이 안 된다"로 보였다.
+ * 이제 헤더/탭·스크롤 영역·버튼을 세로로 나눠 잡고, 스크롤은 아바타 그리드에만 준다.
+ */
 const Wrapper = styled.div`
   position: fixed;
   inset: 0;                /* top, right, bottom, left 전부 0 */
@@ -11,12 +18,6 @@ const Wrapper = styled.div`
 
   display: flex;
   flex-direction: column;
-  gap: 16px;
-
-  /* safe area + padding */
-  padding: calc(env(safe-area-inset-top, 0px) + 44px)
-           16px
-           calc(env(safe-area-inset-bottom, 0px) + 24px);
 
   width: 100%;
   height: 100%;
@@ -24,7 +25,26 @@ const Wrapper = styled.div`
 
   margin: 0 auto;
   background: var(--color-semantic-background-normal-normal);
-  overflow-y: auto;         /* 내용 많으면 스크롤 */
+  overflow: hidden;         /* 스크롤은 AvatarScrollArea가 맡는다 */
+`;
+
+const StickyTop = styled.div`
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: calc(env(safe-area-inset-top, 0px) + 44px) 16px 16px;
+  box-sizing: border-box;
+`;
+
+const AvatarScrollArea = styled.div`
+  flex: 1 1 auto;
+  min-height: 0;            /* flex 자식이 내용만큼 늘어나 스크롤을 죽이지 않도록 */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 16px 16px;
+  box-sizing: border-box;
 `;
 
 const HeaderRow = styled.div`
@@ -74,7 +94,7 @@ border-radius: 6px;
 
 const AvatarGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, 1fr); /* 모바일 2열 또는 3열로 조정 가능 */
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* 모바일 2열 또는 3열로 조정 가능 */
   gap: 16px;
 `;
 
@@ -83,18 +103,21 @@ const AvatarItem = styled.button`
   padding: 0;
   background: none;
   cursor: pointer;
+  min-width: 0;
 `;
 
+/* 좁은 화면에서 160px 고정이면 2열이 가로로 넘친다. 열 폭을 따라가되 최대 160px. */
 const AvatarWrapper = styled.div`
   position: relative;
-  width: 160px;
-  height: 160px;
+  width: 100%;
+  max-width: 160px;
+  aspect-ratio: 1 / 1;
   margin: 0 auto;
 `;
 
 const AvatarCircle = styled.div<{ $selected?: boolean }>`
-  width: 160px;
-  height: 160px;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   background: var(--color-semantic-background-normal-alternative);
   border: ${({ $selected }) =>
@@ -175,50 +198,53 @@ const ProfileSelect: React.FC<CaricatureSelectProps> = ({
 
   return (
     <Wrapper>
-      {/* 상단 헤더 */}
-      <HeaderRow>
-        <CloseButton onClick={() => setProfileModal(false)}>✕</CloseButton>
-        <Title3 $weight="bold">캐리커쳐 선택하기</Title3>
-      </HeaderRow>
+      {/* 상단 헤더 + 성별 탭: 스크롤과 무관하게 고정 */}
+      <StickyTop>
+        <HeaderRow>
+          <CloseButton onClick={() => setProfileModal(false)}>✕</CloseButton>
+          <Title3 $weight="bold">캐리커쳐 선택하기</Title3>
+        </HeaderRow>
 
-      {/* 성별 탭 */}
-      <TabRow>
-        <TabButton
-          type="button"
-          $active={gender === "male"}
-          onClick={() => setGender("male")}
-        >
-          남자
-        </TabButton>
-        <TabButton
-          type="button"
-          $active={gender === "female"}
-          onClick={() => setGender("female")}
-        >
-          여자
-        </TabButton>
-      </TabRow>
+        <TabRow>
+          <TabButton
+            type="button"
+            $active={gender === "male"}
+            onClick={() => setGender("male")}
+          >
+            남자
+          </TabButton>
+          <TabButton
+            type="button"
+            $active={gender === "female"}
+            onClick={() => setGender("female")}
+          >
+            여자
+          </TabButton>
+        </TabRow>
+      </StickyTop>
 
-      {/* 아바타 그리드 */}
-      <AvatarGrid>
-        {avatarList.map((avatar) => {
-          const selected = profile === avatar.id;
-          return (
-            <AvatarItem key={avatar.id} onClick={() => handleSelectAvatar(avatar.id)}>
-              <AvatarWrapper>
-                <AvatarCircle $selected={selected}>
-                  <img src={avatar.src} alt={avatar.id} />
-                </AvatarCircle>
-                {selected && (
-                  <CheckBadge>
-                    <CheckIcon src="/icons/status/profile-check.svg" alt="" />
-                  </CheckBadge>
-                )}
-              </AvatarWrapper>
-            </AvatarItem>
-          );
-        })}
-      </AvatarGrid>
+      {/* 아바타 그리드: 여기만 스크롤한다 */}
+      <AvatarScrollArea>
+        <AvatarGrid>
+          {avatarList.map((avatar) => {
+            const selected = profile === avatar.id;
+            return (
+              <AvatarItem key={avatar.id} onClick={() => handleSelectAvatar(avatar.id)}>
+                <AvatarWrapper>
+                  <AvatarCircle $selected={selected}>
+                    <img src={avatar.src} alt={avatar.id} />
+                  </AvatarCircle>
+                  {selected && (
+                    <CheckBadge>
+                      <CheckIcon src="/icons/status/profile-check.svg" alt="" />
+                    </CheckBadge>
+                  )}
+                </AvatarWrapper>
+              </AvatarItem>
+            );
+          })}
+        </AvatarGrid>
+      </AvatarScrollArea>
 
       {/* 하단 버튼 */}
       <Bottom>
@@ -237,12 +263,12 @@ const ProfileSelect: React.FC<CaricatureSelectProps> = ({
   );
 };
 
+/* 흐름 안에 두어 스크롤 영역의 마지막 줄을 가리지 않게 한다. */
 const Bottom = styled.div`
-    position: fixed;
+    flex: 0 0 auto;
     width: 100%;
-
-    bottom: 0;
-    left: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--color-semantic-background-normal-normal);
 `
 
 export { ProfileSelect };
