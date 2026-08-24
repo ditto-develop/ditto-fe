@@ -6,6 +6,7 @@ import styled from "styled-components";
 import { useToast } from "@/context/ToastContext";
 import { useSettings } from "@/features/settings/hooks/useSettings";
 import { formatMaskedPhoneNumber } from "@/features/settings/lib/formatPhone";
+import { SETTINGS_EXTERNAL_LINKS } from "@/features/settings/model/externalLinks";
 import type { NotificationSettingKey } from "@/features/settings/model/types";
 import { clearToken } from "@/shared/lib/api/client";
 import { logoutExternal } from "@/shared/lib/api/externalApi";
@@ -41,9 +42,18 @@ export function SettingsContainer() {
     showToast("준비 중입니다.", "info");
   };
 
+  /** 주소가 아직 없으면 빈 탭을 여는 대신 준비 중임을 알린다. */
+  const openExternal = (url: string) => {
+    if (!url) {
+      showPreparingToast();
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   const informationRows: RowConfig[] = [
-    { label: "공지사항", onClick: showPreparingToast },
-    { label: "자주 묻는 질문", onClick: showPreparingToast },
+    { label: "공지사항", onClick: () => openExternal(SETTINGS_EXTERNAL_LINKS.notice) },
+    { label: "자주 묻는 질문", onClick: () => openExternal(SETTINGS_EXTERNAL_LINKS.faq) },
     { label: "서비스 이용약관", onClick: () => router.push("/settings/terms") },
     { label: "개인정보 처리방침", onClick: () => router.push("/settings/privacy") },
     { label: "위치기반 서비스 이용약관", onClick: () => router.push("/settings/location-terms") },
