@@ -12,7 +12,13 @@ import type { CapacitorConfig } from "@capacitor/cli";
  * `webDir`은 Capacitor CLI가 요구해서 남겨둔 값이고 실제로 서빙되지 않는다.
  */
 
-/** 빌드 대상 환경. staging 앱은 test.ditto.pics를 본다. */
+/**
+ * 빌드 대상 환경.
+ *
+ * ⚠️ 기본값(prod)은 **릴리스 기준**이다. 지금 `ditto.pics` 아펙스에 DNS 레코드가
+ * 없어서(INTEGRATION-TODO.md §0-0) 이 값으로 sync 하면 앱이 흰 화면으로 뜬다.
+ * 개발·테스트는 반드시 `npm run cap:staging` 을 쓸 것 — test.ditto.pics 로 sync 한다.
+ */
 const SERVER_URL = process.env.CAPACITOR_SERVER_URL ?? "https://ditto.pics";
 
 const config: CapacitorConfig = {
