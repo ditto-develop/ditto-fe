@@ -192,6 +192,71 @@ JS가 아예 돌지 않으며 STOMP 소켓도 끊긴다. 서버가 깨워주는 
 
 ---
 
+## 2.3 Firebase 설정 (푸시 전제)
+
+앱 식별자는 Android · iOS 모두 **`pics.ditto.app`** 이다.
+
+### 콘솔에서 할 일
+
+**① Android 앱 등록** — 프로젝트 설정 → 내 앱 → Android
+
+- Android 패키지 이름: `pics.ditto.app`
+- **SHA-1 은 넣지 않아도 된다.** Google 로그인 · Dynamic Links 에나 필요하고
+  FCM 만 쓰는 지금은 불필요하다.
+- `google-services.json` 다운로드 → **`android/app/google-services.json`**
+
+**② iOS 앱 등록** — 프로젝트 설정 → 내 앱 → iOS
+
+- 번들 ID: `pics.ditto.app`
+- `GoogleService-Info.plist` 다운로드 → **`ios/App/App/GoogleService-Info.plist`**
+- ⚠️ **파일만 두면 동작하지 않는다.** Xcode 에서 App 타겟에 추가해
+  Build Phases → Copy Bundle Resources 에 들어가야 한다.
+  (Xcode 좌측 트리의 `App` 폴더로 드래그 → "Copy items if needed" + App 타겟 체크)
+
+**③ APNs 인증 키** — iOS 푸시에 필수
+
+1. Apple Developer → Certificates, Identifiers & Profiles → **Keys** → 새 키,
+   **Apple Push Notifications service (APNs)** 체크 → `.p8` 다운로드
+   **한 번만 내려받을 수 있다.** 잃어버리면 키를 다시 만들어야 한다.
+2. Key ID 와 Team ID 를 기록
+3. Firebase 콘솔 → 프로젝트 설정 → **클라우드 메시징** → Apple 앱 구성 →
+   APNs 인증 키 업로드
+
+**④ Xcode 에서 Push Notifications capability** — App 타겟 →
+Signing & Capabilities → + Capability → Push Notifications
+
+**⑤ BE 에 전달할 것** — 서비스 계정 키
+
+BE 가 FCM 으로 발송하려면 자격증명이 필요하다.
+프로젝트 설정 → **서비스 계정** → 새 비공개 키 생성 → JSON.
+
+> 🔴 **이 JSON 은 비밀이다.** 유출되면 누구나 우리 사용자에게 푸시를 보낼 수 있다.
+> FE 레포에 들어올 이유가 없고, `.gitignore` 로 `firebase-adminsdk-*.json` ·
+> `serviceAccountKey*.json` · `*.p8` 을 막아 뒀다. BE 에 안전한 경로로 전달할 것.
+
+### 커밋 여부
+
+| 파일 | 커밋 | 이유 |
+|---|---|---|
+| `google-services.json` | ✅ 한다 | 클라이언트 설정. 앱 번들에 그대로 들어가는 공개 값 |
+| `GoogleService-Info.plist` | ✅ 한다 | 〃 |
+| 서비스 계정 JSON | ❌ 절대 | 발송 권한 자격증명 |
+| APNs `.p8` | ❌ 절대 | 재발급 불가, 발송 권한 |
+
+### 파일을 넣은 뒤
+
+```bash
+npm run cap:sync
+```
+
+Gradle 배선은 Capacitor 템플릿에 이미 있어 `google-services.json` 이 있으면
+자동으로 `com.google.gms.google-services` 플러그인이 적용된다.
+
+**푸시를 실제로 켜는 것은 BE 의 디바이스 토큰 API(§A)가 배포된 뒤다.**
+그때 `NEXT_PUBLIC_PUSH_ENABLED=true` 를 배포 워크플로 `Build` 스텝 `env:` 에 추가한다.
+
+---
+
 ## 3. 앱에서 확인해야 할 것 (기기 스모크)
 
 웹에서는 재현되지 않고 **기기에서만 드러나는** 항목이다. 순서대로 확인한다.

@@ -67,3 +67,15 @@ amplifytools.xcconfig
 .secret-*
 **.sample
 #amplify-do-not-edit-end
+
+# Firebase — 비밀 자격증명. 절대 커밋하지 않는다.
+#
+# 서비스 계정 키(JSON)는 FCM 발송 권한을 가진 자격증명이라 유출되면 누구나 우리
+# 사용자에게 푸시를 보낼 수 있다. BE 가 쓰는 값이며 FE 레포에 들어올 이유가 없다.
+# APNs 인증 키(.p8)도 마찬가지다 — Apple 은 이 파일을 한 번만 내려준다.
+#
+# 반면 google-services.json / GoogleService-Info.plist 는 **클라이언트 설정**이라
+# 앱 번들에 그대로 들어가는 공개 값이다. 이 둘은 커밋한다(무시하지 않는다).
+**/serviceAccountKey*.json
+**/firebase-adminsdk-*.json
+**/*.p8
