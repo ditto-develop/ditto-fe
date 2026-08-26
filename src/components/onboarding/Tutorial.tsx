@@ -8,8 +8,9 @@ import {
 
 } from "@/context/ToastContext";
 
-import { createExternalUser } from "@/shared/lib/api/externalApi";
+import { createExternalUser, saveExternalIntroNote } from "@/shared/lib/api/externalApi";
 import type { CreateExternalUserBody } from "@/shared/lib/api/externalApi";
+import { INTRO_NOTE_FIELDS } from "@/features/profile/model/introNotes";
 
 import type {
 
@@ -124,6 +125,10 @@ function toFormGender(gender: string | undefined, fallback: FormData["gender"]):
   if (normalized === "female") return "woman";
   return fallback;
 }
+
+
+/** 소개노트 마지막 문항(Q10, "나를 한 줄로 표현한다면?"). 회원가입 introduction으로 전송된다. */
+const LAST_INTRO_NOTE_INDEX = INTRO_NOTE_FIELDS.length - 1;
 
 export function Tutorial({ initialData }: TutorialProps) {
   const { showToast, removeToast } = useToast();
@@ -247,14 +252,24 @@ export function Tutorial({ initialData }: TutorialProps) {
           job: formData.job ?? "",
 
           // 사용자가 선택한 아바타(formData.pic: "m1"/"f4" 등)를 svg 경로로 전송한다.
+          // 별도 profileImageUrl 필드는 없다 — 이 경로가 프로필 조회의 profileImageUrl로 나간다.
           caricature: `/onboarding/profileimg/avatar/${formData.pic}.svg`,
+
+          // 한 줄 소개. 소개노트 마지막 문항(Q10)의 답변이 그대로 여기로 간다.
+          introduction: formData.introduce[LAST_INTRO_NOTE_INDEX]?.trim() || null,
         };
 
         await createExternalUser(createUserDto);
 
-        // TODO(소개노트): BE 엔드포인트 추가 후 아래 항목 저장 복구 필요
-        //   - profileImageUrl: `/assets/avatar/${formData.pic}.png`
-        //   - introduce(소개노트)
+        // 나머지 소개노트는 가입 후 문항별로 저장한다(Q10은 introduction으로 이미 저장됨).
+        // 소개노트 저장이 실패해도 가입 자체는 끝난 상태라 되돌리지 않고 넘어간다.
+        await Promise.allSettled(
+          INTRO_NOTE_FIELDS.slice(0, LAST_INTRO_NOTE_INDEX)
+            .map((field, index) => ({ code: field.code, answer: formData.introduce[index]?.trim() ?? "" }))
+            .filter(({ answer }) => answer.length > 0)
+            .map(({ code, answer }) => saveExternalIntroNote(code, answer)),
+        );
+
         router.push("/onboarding/complete");
       } catch (error) {
         console.error("Signup failed:", error);

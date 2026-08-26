@@ -186,8 +186,10 @@ export function getExternalSystemState(): Promise<SystemStateDto> {
 // 리포지토리의 ditto-api.json이 구 스펙이라 generated DTO에 없다. 여기서 수동으로 얹는다.
 // 스펙을 https://api.ditto.pics/docs/openapi.yaml로 교체하고 generate-client를 다시 돌리면 정리된다.
 //
-// 라이브에 profileImageUrl·introduce(소개)가 없어 온보딩 입력이 저장되지 않는다
-// (INTEGRATION-TODO.md §A-5).
+// 프로필 이미지는 별도 필드가 없다 — caricature에 실은 아바타 경로가 프로필 조회의
+// profileImageUrl로 그대로 나간다(라이브 스펙 CreateUserRequest 설명).
+// introduction은 한 줄 소개(최대 50자)이며, 소개노트 Q10('나를 한 줄로 표현한다면?')
+// 답변으로 저장된다. 나머지 소개노트 9개는 가입 후 PUT /users/me/intro-notes/{code}로 보낸다.
 export type CreateExternalUserBody = Omit<
     CreateUserDto,
     "email" | "birthDate" | "provider" | "providerUserId"
@@ -198,6 +200,7 @@ export type CreateExternalUserBody = Omit<
     location: string;
     job: string;
     caricature: string;
+    introduction: string | null;
 };
 
 // 카카오 로그인 직후 BE가 카카오 정보를 바탕으로 채워둔 현재 사용자 정보.
@@ -228,10 +231,24 @@ export function createExternalUser(requestBody: CreateExternalUserBody): Promise
     });
 }
 
-export function leaveExternalUser(id: string, reason?: string): Promise<UserDto> {
+/**
+ * 회원 탈퇴.
+ *
+ * `reason`은 선택지 code, `reasonDetail`은 자유 입력(최대 100자)이다. BE는 '기타'가
+ * 아니어도 detail을 받는다 — 선택지와 무관하게 있으면 그대로 보낸다.
+ */
+export function leaveExternalUser(
+    id: string,
+    reason?: string,
+    reasonDetail?: string,
+): Promise<UserDto> {
+    const body: { reason?: string; reasonDetail?: string } = {};
+    if (reason) body.reason = reason;
+    if (reasonDetail) body.reasonDetail = reasonDetail;
+
     return externalApiFetch<UserDto>(`/api/v1/users/${id}/leave`, {
         method: "POST",
-        ...(reason ? { body: { reason } } : {}),
+        ...(Object.keys(body).length > 0 ? { body } : {}),
     });
 }
 

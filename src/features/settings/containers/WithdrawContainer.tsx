@@ -32,6 +32,9 @@ const FAILURE_MESSAGE = {
   unknown: "탈퇴를 처리하지 못했어요. 잠시 후 다시 시도해 주세요.",
 } as const;
 
+/** BE 상한과 같다. 초과분은 서버가 거절하므로 입력 단계에서 막는다. */
+const REASON_DETAIL_MAX_LENGTH = 100;
+
 const noticeItems = [
   "진행 중인 매칭이나 채팅이 있으면 탈퇴가 제한됩니다.",
   "탈퇴 후 30일 이내 재가입하면 계정을 복구할 수 있습니다.",
@@ -43,6 +46,7 @@ export function WithdrawContainer() {
   const { profile, rawProfile } = useMyProfile();
   const [step, setStep] = useState<WithdrawStep>("notice");
   const [reason, setReason] = useState<string | null>(null);
+  const [reasonDetail, setReasonDetail] = useState("");
   const [dialog, setDialog] = useState<ResultDialog>(null);
   const [failureMessage, setFailureMessage] = useState<string>(FAILURE_MESSAGE.unknown);
   const [blockedAttempts, setBlockedAttempts] = useState(0);
@@ -58,7 +62,7 @@ export function WithdrawContainer() {
     if (!rawProfile?.userId || !reason) return;
 
     try {
-      await leaveExternalUser(rawProfile.userId, reason);
+      await leaveExternalUser(rawProfile.userId, reason, reasonDetail.trim() || undefined);
       setDialog("success");
     } catch (err: unknown) {
       if (hasApiErrorCode(err, API_ERROR_CODE.LEAVE_BLOCKED)) {
@@ -119,6 +123,20 @@ export function WithdrawContainer() {
                 options={WITHDRAW_REASONS.map((item) => ({ label: item.label, value: item.value }))}
               />
               {selectedReason && <ReasonComment>{selectedReason.comment}</ReasonComment>}
+            </FieldGroup>
+            <FieldGroup>
+              {/* 선택 입력이다. '기타'가 아니어도 BE가 받는다. */}
+              <FieldLabel>더 하고 싶은 말이 있다면 남겨 주세요. (선택)</FieldLabel>
+              <ReasonDetailInput
+                value={reasonDetail}
+                onChange={(event) => setReasonDetail(event.target.value)}
+                placeholder="자유롭게 적어 주세요"
+                maxLength={REASON_DETAIL_MAX_LENGTH}
+                rows={3}
+              />
+              <ReasonDetailCount>
+                {reasonDetail.length}/{REASON_DETAIL_MAX_LENGTH}
+              </ReasonDetailCount>
             </FieldGroup>
           </StepContent>
         ) : null}
@@ -258,6 +276,40 @@ const ReasonComment = styled.p`
   line-height: var(--typography-body-2-normal-line-height);
   letter-spacing: var(--typography-body-2-normal-letter-spacing);
   color: var(--color-semantic-label-alternative);
+`;
+
+const ReasonDetailInput = styled.textarea`
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-4);
+  border: 1px solid var(--color-semantic-line-normal-normal);
+  border-radius: var(--radius-radi-4);
+  background-color: var(--color-semantic-background-normal-normal);
+  resize: none;
+  font-family: inherit;
+  font-size: var(--typography-body-2-normal-font-size);
+  font-weight: var(--typography-body-2-normal-font-weight);
+  line-height: var(--typography-body-2-normal-line-height);
+  letter-spacing: var(--typography-body-2-normal-letter-spacing);
+  color: var(--color-semantic-label-normal);
+
+  &::placeholder {
+    color: var(--color-semantic-label-assistive);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-semantic-primary-normal);
+  }
+`;
+
+const ReasonDetailCount = styled.span`
+  align-self: flex-end;
+  font-size: var(--typography-caption-1-font-size);
+  font-weight: var(--typography-caption-1-font-weight);
+  line-height: var(--typography-caption-1-line-height);
+  letter-spacing: var(--typography-caption-1-letter-spacing);
+  color: var(--color-semantic-label-assistive);
 `;
 
 const BottomActions = styled.div`
