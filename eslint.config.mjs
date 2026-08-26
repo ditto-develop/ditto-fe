@@ -55,6 +55,14 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    // CloudFront Function 소스. `handler` 는 AWS 런타임이 호출하는 진입점이라
+    // 파일 안에서는 미사용으로 보인다. 앱 번들에 포함되지 않는 인프라 코드다.
+    files: ["infra/cloudfront/*.js"],
+    rules: {
+      "@typescript-eslint/no-unused-vars": "off",
+    },
+  },
+  {
     files: [
       "eslint.config.mjs",
       "next.config.*",
