@@ -24,11 +24,18 @@ import type { KakaoLoginResult } from "@/types/kakao";
 
 // --- Styled Components ---
 const TmpContainer = styled.div`
+  /**
+   * box-sizing이 없으면 content-box라 실제 높이가 100dvh + padding-top 이 되어
+   * 화면을 넘긴다 — 랜딩에서 스크롤이 생기던 원인이다.
+   * (프로젝트에 전역 box-sizing 리셋이 없어 컴포넌트마다 직접 지정해야 한다.)
+   */
+  box-sizing: border-box;
   height: 100dvh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding-top: 40px;
+  /* 앱에서는 상태바가 웹뷰 위에 겹친다. 웹에서는 env()가 0이라 40px 그대로다. */
+  padding-top: calc(40px + env(safe-area-inset-top, 0px));
 `;
 
 interface Step0Props {

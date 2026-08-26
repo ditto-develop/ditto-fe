@@ -117,7 +117,8 @@ const Container = styled.div`
 `;
 
 const Header = styled.div`
-  padding: 16px 20px;
+  /* 앱에서 상태바가 웹뷰 위에 겹친다. 웹에서는 env()가 0이라 16px 그대로다. */
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 20px 16px;
 `;
 
 const Title = styled.h1`
@@ -160,7 +161,11 @@ const Body = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: var(--space-6) 0 var(--space-1);
+  /**
+   * 하단 탭(MainBottomNav)이 position: fixed로 덮으므로 그만큼 비워 준다.
+   * 탭의 실제 높이는 60px + 홈 인디케이터 인셋이다(앱에서만 인셋 > 0).
+   */
+  padding: var(--space-6) 0 calc(72px + env(safe-area-inset-bottom, 0px));
 `;
 
 const RoomList = styled.div`

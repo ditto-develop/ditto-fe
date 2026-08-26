@@ -52,8 +52,13 @@ const NavContainer = styled.div`
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  height: 56px;
-  padding: 0 16px;
+  /**
+   * 앱(네이티브 셸)에서는 웹뷰가 상태바 아래로 깔려 있어 그대로 두면 제목이 잘린다.
+   * 인셋만큼 바를 키우고 같은 값으로 위를 비워, 콘텐츠 영역은 56px을 유지한다.
+   * 웹에서는 env()가 0이라 기존과 완전히 동일하다.
+   */
+  height: calc(56px + env(safe-area-inset-top, 0px));
+  padding: env(safe-area-inset-top, 0px) 16px 0;
   box-sizing: border-box;
   background-color: var(--color-semantic-background-normal-normal);
 `;

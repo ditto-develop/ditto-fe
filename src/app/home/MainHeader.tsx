@@ -5,7 +5,8 @@ import styled from "styled-components";
 
 const Header = styled.div`
     display: flex;
-    padding: 16px;
+    /* 앱에서 상태바가 웹뷰 위에 겹친다. 웹에서는 env()가 0이라 16px 그대로다. */
+    padding: calc(16px + env(safe-area-inset-top, 0px)) 16px 16px;
     justify-content: space-between;
     align-items: flex-start;
 `;

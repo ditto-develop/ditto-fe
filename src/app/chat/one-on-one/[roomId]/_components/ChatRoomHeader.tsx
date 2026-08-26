@@ -57,6 +57,8 @@ const HeaderContainer = styled.div`
   flex-direction: column;
   width: 100%;
   box-sizing: border-box;
+  /* 앱에서 상태바가 웹뷰 위에 겹친다. 웹에서는 0이라 영향이 없다. */
+  padding-top: env(safe-area-inset-top, 0px);
   background-color: var(--color-semantic-background-normal-normal);
 `;
 
