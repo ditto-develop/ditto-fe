@@ -6,6 +6,7 @@ import {
   getRoomEndedMessage,
   getSystemMessageText,
   isRoomEndedSystemMessage,
+  parseVoteSystemMessage,
 } from "./roomState";
 
 // 금요일 00:00 개방 → 월요일 00:00 만료. 토요일 정오를 '진행 중' 기준 시각으로 쓴다.
@@ -114,6 +115,10 @@ describe("getRoomEndedMessage", () => {
     expect(getRoomEndedMessage({ endedReason: "USER_ENDED" })).toContain("대화가 종료");
     expect(getRoomEndedMessage({ endedReason: "EXPIRED" })).toContain("대화 기간이 끝나");
   });
+
+  it("그룹 인원 부족 해체는 별도 문구를 쓴다", () => {
+    expect(getRoomEndedMessage({ endedReason: "INSUFFICIENT_MEMBERS" })).toContain("인원이 부족해");
+  });
 });
 
 describe("getSystemMessageText", () => {
@@ -133,6 +138,43 @@ describe("getSystemMessageText", () => {
       getSystemMessageText({ content: "상대방이 채팅을 종료했습니다." }, false),
     ).toBe("상대방이 채팅을 종료했습니다.");
   });
+
+  it("MEMBER_LEFT는 나간 사람 이름을 쓰고, 몰라도 종료 문구로 새지 않는다", () => {
+    expect(getSystemMessageText({ content: "MEMBER_LEFT" }, false, "디토")).toBe(
+      "디토님이 대화방에서 나갔어요.",
+    );
+    expect(getSystemMessageText({ content: "MEMBER_LEFT" }, false)).toBe(
+      "한 명이 대화방에서 나갔어요.",
+    );
+    expect(getSystemMessageText({ content: "MEMBER_LEFT" }, true)).toBe("대화방에서 나갔어요.");
+  });
+
+  it("INSUFFICIENT_MEMBERS는 해체 안내를 쓴다", () => {
+    expect(getSystemMessageText({ content: "INSUFFICIENT_MEMBERS" }, false)).toContain(
+      "인원이 부족해",
+    );
+  });
+});
+
+describe("parseVoteSystemMessage", () => {
+  it("코드와 voteId를 가른다", () => {
+    expect(
+      parseVoteSystemMessage({ messageType: "SYSTEM", content: "VOTE_CREATED:41" }),
+    ).toEqual({ code: "VOTE_CREATED", voteId: 41 });
+    expect(
+      parseVoteSystemMessage({ messageType: "SYSTEM", content: "VOTE_CLOSED:41" }),
+    ).toEqual({ code: "VOTE_CLOSED", voteId: 41 });
+  });
+
+  it("접미가 없는 코드·모르는 코드·일반 메시지는 무시한다", () => {
+    expect(parseVoteSystemMessage({ messageType: "SYSTEM", content: "USER_LEFT" })).toBeNull();
+    expect(parseVoteSystemMessage({ messageType: "SYSTEM", content: "VOTE_CREATED" })).toBeNull();
+    expect(parseVoteSystemMessage({ messageType: "SYSTEM", content: "SOMETHING:1" })).toBeNull();
+    expect(parseVoteSystemMessage({ messageType: "SYSTEM", content: "VOTE_CLOSED:abc" })).toBeNull();
+    expect(
+      parseVoteSystemMessage({ messageType: "TEXT", content: "VOTE_CREATED:41" }),
+    ).toBeNull();
+  });
 });
 
 describe("isRoomEndedSystemMessage", () => {
@@ -144,6 +186,16 @@ describe("isRoomEndedSystemMessage", () => {
         content: "상대방이 채팅을 종료했습니다.",
       }),
     ).toBe(true);
+  });
+
+  it("인원 부족 해체는 종료로 본다", () => {
+    expect(
+      isRoomEndedSystemMessage({ messageType: "SYSTEM", content: "INSUFFICIENT_MEMBERS" }),
+    ).toBe(true);
+  });
+
+  it("MEMBER_LEFT는 종료가 아니다 — 그룹은 한 명이 나가도 방이 계속된다", () => {
+    expect(isRoomEndedSystemMessage({ messageType: "SYSTEM", content: "MEMBER_LEFT" })).toBe(false);
   });
 
   it("일반 메시지와 모르는 시스템 이벤트는 종료로 보지 않는다", () => {

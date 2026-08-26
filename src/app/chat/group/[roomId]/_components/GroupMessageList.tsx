@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useRef } from "react";
 import type React from "react";
 import styled from "styled-components";
-import { getSystemMessageText } from "@/features/chat";
-import type { ChatMessage, CounterpartProfile } from "@/features/chat";
+import { formatMeetAt, getSystemMessageText, parseVoteSystemMessage } from "@/features/chat";
+import type { ChatMessage, CounterpartProfile, GroupVote } from "@/features/chat";
 import { GroupMessageBubble } from "./GroupMessageBubble";
+import { VoteCreatedMessageBubble } from "./VoteCreatedMessageBubble";
 
 interface GroupMessageListProps {
   messages: ChatMessage[];
@@ -18,6 +19,14 @@ interface GroupMessageListProps {
   /** 종료·개방 전·연결 끊김 안내. 없으면 카드를 그리지 않는다. */
   notice?: string;
   onImageClick?: (imageUrl: string) => void;
+  /** VOTE_CREATED 카드의 요약을 그리려면 상세가 필요하다. 아직 못 읽었으면 null. */
+  getVoteById?: (voteId: number) => GroupVote | null;
+  onVoteClick?: (voteId: number) => void;
+}
+
+/** `"성수 카페거리 외 2개"`. 선택지가 없으면 빈 문자열이라 호출부가 대체 문구를 쓴다. */
+function toSummary(labels: string[]): { head: string; extraCount: number } {
+  return { head: labels[0] ?? "", extraCount: Math.max(0, labels.length - 1) };
 }
 
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -48,6 +57,8 @@ export function GroupMessageList({
   onLoadOlder,
   notice,
   onImageClick,
+  getVoteById,
+  onVoteClick,
 }: GroupMessageListProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -119,8 +130,49 @@ export function GroupMessageList({
       const isMine = myUserId !== null && message.senderId === myUserId;
 
       if (message.messageType === "SYSTEM") {
+        // 투표 코드만 `:{voteId}` 접미가 붙는다. 카드로 그려야 하므로 먼저 가른다.
+        const voteEvent = parseVoteSystemMessage(message);
+
+        if (voteEvent?.code === "VOTE_CREATED") {
+          const vote = getVoteById?.(voteEvent.voteId) ?? null;
+          const creator = memberById.get(message.senderId);
+
+          items.push(
+            <VoteCreatedMessageBubble
+              key={message.id}
+              isMine={isMine}
+              senderNickname={creator?.nickname ?? "알 수 없음"}
+              senderAvatarUrl={creator?.profileImageUrl ?? null}
+              // 투표 카드는 늘 한 장짜리다 — 연속 말풍선 묶음에 넣지 않는다.
+              isFirstInGroup
+              isLastInGroup
+              placeSummary={toSummary((vote?.placeOptions ?? []).map((option) => option.label))}
+              timeSummary={toSummary(
+                (vote?.timeOptions ?? []).map((option) => formatMeetAt(option.meetAt)),
+              )}
+              timestamp={message.createdAt}
+              onClick={() => onVoteClick?.(voteEvent.voteId)}
+            />,
+          );
+          return;
+        }
+
+        if (voteEvent?.code === "VOTE_CLOSED") {
+          items.push(
+            <SystemMessageRow key={message.id}>
+              <SystemMessageText>만남 투표가 마감됐어요.</SystemMessageText>
+            </SystemMessageRow>,
+          );
+          return;
+        }
+
         // content는 사건 코드다. 모르는 코드는 그리지 않는다.
-        const systemText = getSystemMessageText(message, isMine);
+        // MEMBER_LEFT는 나간 사람 이름이 필요해 senderId로 프로필을 찾아 넘긴다.
+        const systemText = getSystemMessageText(
+          message,
+          isMine,
+          memberById.get(message.senderId)?.nickname,
+        );
         if (systemText) {
           items.push(
             <SystemMessageRow key={message.id}>

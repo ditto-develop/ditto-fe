@@ -29,9 +29,24 @@ declare global {
     position: KakaoLatLng;
   };
 
+  /**
+   * `services.Places().keywordSearch` 의 결과 1건.
+   * 카카오 로컬 API 원본 필드명 그대로다(snake_case). 좌표 x=경도 / y=위도이고 문자열로 온다.
+   */
   type KakaoPlaceSearchResult = {
+    id: string;
+    place_name: string;
+    /** 도로명 주소. 없는 장소가 있어 address_name으로 폴백한다. */
+    road_address_name: string;
+    address_name: string;
+    place_url: string;
     x: string;
     y: string;
+  };
+
+  type KakaoPlacesSearchOptions = {
+    /** 1~15. 기본 15. */
+    size?: number;
   };
 
   type KakaoAddressSearchResult = {
@@ -43,6 +58,7 @@ declare global {
     keywordSearch(
       keyword: string,
       callback: (result: KakaoPlaceSearchResult[], status: string) => void,
+      options?: KakaoPlacesSearchOptions,
     ): void;
   }
 
@@ -63,6 +79,8 @@ declare global {
       Geocoder: new () => KakaoGeocoderService;
       Status: {
         OK: string;
+        ZERO_RESULT: string;
+        ERROR: string;
       };
     };
     event: {

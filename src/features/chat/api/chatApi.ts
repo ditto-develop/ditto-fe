@@ -56,6 +56,20 @@ export function endChatRoom(roomId: number): Promise<null> {
   return externalApiFetch<null>(`/api/v1/chat/rooms/${roomId}/end`, { method: "POST" });
 }
 
+/**
+ * 채팅방 나가기. 그룹은 나만 빠지고 방은 남은 인원으로 유지된다.
+ *
+ * **방 유형별로 호출을 가를 필요가 없다** — 1:1·재매칭에 부르면 서버가 end와 동일하게
+ * 처리한다(USER_LEFT). 그룹은 MEMBER_LEFT를 브로드캐스트하고, 이탈로 잔여 1명이 되면
+ * INSUFFICIENT_MEMBERS를 한 건 더 발행하며 방을 해체한다.
+ *
+ * **멱등이다.** 이미 나갔거나 끝난 방에 다시 요청해도 200이라 재시도를 막을 필요가 없다.
+ * 이탈 후에도 방은 목록에 읽기 전용(`hasLeft: true`)으로 남는다.
+ */
+export function leaveChatRoom(roomId: number): Promise<null> {
+  return externalApiFetch<null>(`/api/v1/chat/rooms/${roomId}/leave`, { method: "POST" });
+}
+
 /** 1단계: 방 멤버만 발급 가능. image/*만 허용, 장당 10MB, 한 번에 최대 10장. */
 export function issueChatImageUploadUrls(
   roomId: number,
@@ -124,5 +138,6 @@ function normalizeRoom(room: ChatRoom): ChatRoom {
     isEnded: room.isEnded ?? false,
     endedAt: room.endedAt ?? null,
     endedReason: room.endedReason ?? null,
+    hasLeft: room.hasLeft ?? false,
   };
 }

@@ -2,7 +2,9 @@
   {
     "roomId": 1,
     "sourceType": "PERSONAL",
-    "counterpartMemberIds": [2],
+    "counterpartMemberIds": [
+      2
+    ],
     "lastMessage": {
       "id": 30,
       "roomId": 1,
@@ -18,12 +20,17 @@
     "expiresAt": "2026-06-08 00:00:00",
     "isEnded": false,
     "endedAt": null,
-    "endedReason": null
+    "endedReason": null,
+    "hasLeft": false
   },
   {
     "roomId": 3,
     "sourceType": "GROUP",
-    "counterpartMemberIds": [2, 3, 4],
+    "counterpartMemberIds": [
+      2,
+      3,
+      4
+    ],
     "lastMessage": {
       "id": 42,
       "roomId": 3,
@@ -39,12 +46,15 @@
     "expiresAt": "2026-06-08 00:00:00",
     "isEnded": false,
     "endedAt": null,
-    "endedReason": null
+    "endedReason": null,
+    "hasLeft": false
   },
   {
     "roomId": 2,
     "sourceType": "PERSONAL",
-    "counterpartMemberIds": [3],
+    "counterpartMemberIds": [
+      3
+    ],
     "lastMessage": {
       "id": 12,
       "roomId": 2,
@@ -60,6 +70,7 @@
     "expiresAt": "2026-06-01 00:00:00",
     "isEnded": true,
     "endedAt": "2026-06-01 00:00:00",
-    "endedReason": "EXPIRED"
+    "endedReason": "EXPIRED",
+    "hasLeft": false
   }
 ]

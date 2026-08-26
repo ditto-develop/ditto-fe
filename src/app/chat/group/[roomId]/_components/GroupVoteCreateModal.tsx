@@ -1,15 +1,5 @@
 "use client";
 
-/**
- * ⚠️ 보류 중(연결 안 됨) — 그룹 만남 투표 UI.
- *
- * 라이브 BE에 투표 계약이 없다(swagger·BE 위키 어디에도 없음).
- * 이 파일은 아직 구 백엔드 경로(`/api/chat/group-rooms/...`)를 호출하므로 그대로 노출하면
- * 라이브에서 404가 난다. `GROUP_VOTE_ENABLED`(features/chat/model/constants.ts)가 false인 동안
- * 화면에서 진입점이 막혀 있다. BE 엔드포인트가 생기면 externalApiFetch로 옮기고 플래그를 올린다.
- * 상세: INTEGRATION-TODO.md §A-2
- */
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import {
@@ -49,6 +39,8 @@ import {
   TopNavigation,
   Wrapper,
 } from "./_parts/GroupVoteCreateModal.parts";
+import { toMeetAt } from "@/features/chat";
+import type { CreateGroupVoteRequest } from "@/features/chat";
 import { PlaceSearchModal } from "./PlaceSearchModal";
 import type { SelectedPlace } from "./PlaceSearchModal";
 
@@ -63,14 +55,13 @@ type TimeOption = {
 
 interface GroupVoteCreateModalProps {
   onClose: () => void;
-  onComplete?: (payload: {
-    placeOptions: PlaceOption[];
-    timeOptions: Array<TimeOption & { dateLabel: string }>;
-    allowMultiple: boolean;
-  }) => void | Promise<void>;
+  /** 생성 요청 본문을 그대로 넘긴다. 선택지는 여기서 확정되며 이후 추가·삭제가 없다. */
+  onComplete?: (payload: CreateGroupVoteRequest) => void | Promise<void>;
 }
 
+/** 장소·시간 각 2~10개. 서버가 같은 상한으로 검증한다(위반 시 0001). */
 const MIN_OPTION_COUNT = 2;
+const MAX_OPTION_COUNT = 10;
 
 function formatDateLabel(value: string) {
   if (!value) return "날짜 선택";
@@ -226,7 +217,14 @@ export function GroupVoteCreateModal({
     onClose();
   };
 
+  const canAddOption =
+    voteType === "place"
+      ? placeOptions.length < MAX_OPTION_COUNT
+      : timeOptions.length < MAX_OPTION_COUNT;
+
   const handleAddOption = () => {
+    if (!canAddOption) return;
+
     if (voteType === "place") {
       setPlaceOptions((prev) => [...prev, null]);
       return;
@@ -252,12 +250,19 @@ export function GroupVoteCreateModal({
     try {
       setIsSubmitting(true);
       await onComplete?.({
-        placeOptions: validPlaceOptions,
-        timeOptions: validTimeOptions.map((option) => ({
-          ...option,
-          dateLabel: `${formatDateLabel(option.date)} ${formatTimeLabel(option.time)}`,
-        })),
         allowMultiple,
+        placeOptions: validPlaceOptions.map((option) => ({
+          label: option.name,
+          // 직접 입력이 아닌 검색 결과만 주소·좌표를 갖는다. 빈 값은 아예 보내지 않는다.
+          ...(option.address ? { address: option.address } : {}),
+          ...(option.mapUrl ? { mapLink: option.mapUrl } : {}),
+          ...(typeof option.latitude === "number" ? { latitude: option.latitude } : {}),
+          ...(typeof option.longitude === "number" ? { longitude: option.longitude } : {}),
+        })),
+        // 서버는 meetAt 단일 필드만 받는다. 표시 문구(dateLabel)는 저장하지 않는다.
+        timeOptions: validTimeOptions.map((option) => ({
+          meetAt: toMeetAt(option.date, option.time),
+        })),
       });
       onClose();
     } catch (error) {
@@ -294,7 +299,7 @@ export function GroupVoteCreateModal({
           <Section>
             <HeadingRow>
               <Heading>옵션</Heading>
-              <Hint>최소 2개</Hint>
+              <Hint>최소 {MIN_OPTION_COUNT}개 · 최대 {MAX_OPTION_COUNT}개</Hint>
             </HeadingRow>
 
             <OptionList>
@@ -373,10 +378,12 @@ export function GroupVoteCreateModal({
                 </>
               )}
 
-              <AddOptionButton type="button" onClick={handleAddOption}>
-                <PlusIcon aria-hidden="true" />
-                항목 추가
-              </AddOptionButton>
+              {canAddOption && (
+                <AddOptionButton type="button" onClick={handleAddOption}>
+                  <PlusIcon aria-hidden="true" />
+                  항목 추가
+                </AddOptionButton>
+              )}
             </OptionList>
           </Section>
 

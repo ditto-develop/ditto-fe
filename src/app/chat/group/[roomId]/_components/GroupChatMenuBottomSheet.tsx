@@ -4,12 +4,17 @@ import { useEffect } from "react";
 import styled, { keyframes } from "styled-components";
 
 interface GroupChatMenuBottomSheetProps {
-  /** 투표 생성 진입점 노출 여부. BE 계약이 생기기 전까지는 false다. */
+  /**
+   * 투표 생성 진입점 노출 여부.
+   * 방당 열린 투표는 하나뿐이라 진행 중이면 숨긴다(그대로 만들면 서버가 8202로 거절한다).
+   */
   canCreateVote: boolean;
   onClose: () => void;
   onMemberList: () => void;
   onCreateVote?: () => void;
   onReport: () => void;
+  /** 나가기. 이미 나간 방·종료된 방에서는 넘기지 않아 진입점이 사라진다. */
+  onLeave?: () => void;
 }
 
 export function GroupChatMenuBottomSheet({
@@ -18,6 +23,7 @@ export function GroupChatMenuBottomSheet({
   onMemberList,
   onCreateVote,
   onReport,
+  onLeave,
 }: GroupChatMenuBottomSheetProps) {
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -62,7 +68,16 @@ export function GroupChatMenuBottomSheet({
             <MenuText>신고하기</MenuText>
           </MenuItem>
 
-          {/* 그룹 방은 나가기가 없다. 기한 만료로만 종료된다(BE 7002). */}
+          {onLeave && (
+            <MenuItem
+              onClick={() => {
+                onLeave();
+                onClose();
+              }}
+            >
+              <MenuText $destructive>대화방 나가기</MenuText>
+            </MenuItem>
+          )}
         </Contents>
       </Sheet>
     </Overlay>
@@ -146,11 +161,14 @@ const MenuItem = styled.button`
   }
 `;
 
-const MenuText = styled.span`
+const MenuText = styled.span<{ $destructive?: boolean }>`
   font-family: "Pretendard JP", sans-serif;
   font-size: var(--typography-body-1-normal-font-size);
   font-weight: 400;
   line-height: 1.5;
   letter-spacing: 0.0912px;
-  color: var(--color-semantic-label-normal);
+  color: ${({ $destructive }) =>
+    $destructive
+      ? "var(--color-semantic-status-destructive)"
+      : "var(--color-semantic-label-normal)"};
 `;

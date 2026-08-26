@@ -30,11 +30,13 @@ describe("group chat room", () => {
     cy.contains("반가워요! 이번 주말 시간 어떠세요?").should("be.visible");
   });
 
-  it("hides the vote entry point while the BE contract is missing", () => {
+  // 투표 자체의 플로우는 group-vote.cy.ts가 다룬다.
+  it("surfaces the meeting vote banner in the room", () => {
     cy.visit("/chat/group/3");
     cy.wait("@getChatRooms");
+    cy.wait("@getRoomVotes");
 
     cy.contains("다들 안녕하세요!", { timeout: 8000 }).should("be.visible");
-    cy.contains("투표 만들기").should("not.exist");
+    cy.contains("만남 투표 진행 중").should("be.visible");
   });
 });

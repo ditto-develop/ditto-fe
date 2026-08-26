@@ -1,16 +1,8 @@
 "use client";
 
-/**
- * ⚠️ 보류 중(연결 안 됨) — 그룹 만남 투표 UI.
- *
- * 라이브 BE에 투표 계약이 없다(swagger·BE 위키 어디에도 없음).
- * 이 파일은 아직 구 백엔드 경로(`/api/chat/group-rooms/...`)를 호출하므로 그대로 노출하면
- * 라이브에서 404가 난다. `GROUP_VOTE_ENABLED`(features/chat/model/constants.ts)가 false인 동안
- * 화면에서 진입점이 막혀 있다. BE 엔드포인트가 생기면 externalApiFetch로 옮기고 플래그를 올린다.
- * 상세: INTEGRATION-TODO.md §A-2
- */
-
 import styled, { css } from "styled-components";
+
+import { parseServerDateTime } from "@/shared/lib/serverDateTime";
 
 interface VoteCreatedMessageBubbleProps {
   isMine: boolean;
@@ -21,13 +13,13 @@ interface VoteCreatedMessageBubbleProps {
   placeSummary: { head: string; extraCount: number };
   timeSummary: { head: string; extraCount: number };
   timestamp: string;
-  unreadCount?: number;
   onClick: () => void;
 }
 
 function formatTime(date: string): string {
-  const d = new Date(date);
-  if (Number.isNaN(d.getTime())) return "";
+  // BE는 `yyyy-MM-dd HH:mm:ss`로 준다. 공백 구분자는 Safari에서 파싱되지 않는다.
+  const d = parseServerDateTime(date);
+  if (!d) return "";
   const h = d.getHours().toString().padStart(2, "0");
   const m = d.getMinutes().toString().padStart(2, "0");
   return `${h}:${m}`;
@@ -49,7 +41,6 @@ export function VoteCreatedMessageBubble({
   placeSummary,
   timeSummary,
   timestamp,
-  unreadCount = 0,
   onClick,
 }: VoteCreatedMessageBubbleProps) {
   const timeLabel = formatTime(timestamp);
@@ -84,7 +75,6 @@ export function VoteCreatedMessageBubble({
       <SentRow>
         {isLastInGroup && (
           <SentMeta>
-            {unreadCount > 0 && <ReadCount>{unreadCount}</ReadCount>}
             {timeLabel && <TimeLabel>{timeLabel}</TimeLabel>}
           </SentMeta>
         )}
@@ -111,8 +101,7 @@ export function VoteCreatedMessageBubble({
           {card}
           {isLastInGroup && (
             <ReceivedMeta>
-              {unreadCount > 0 && <ReadCount>{unreadCount}</ReadCount>}
-              {timeLabel && <TimeLabel>{timeLabel}</TimeLabel>}
+                {timeLabel && <TimeLabel>{timeLabel}</TimeLabel>}
             </ReceivedMeta>
           )}
         </ReceivedBubbleRow>
@@ -248,16 +237,6 @@ const ReceivedMeta = styled.div`
   align-items: flex-start;
   justify-content: flex-end;
   flex-shrink: 0;
-`;
-
-const ReadCount = styled.span`
-  ${fontBase}
-  font-size: var(--typography-caption-2-font-size);
-  font-weight: 500;
-  line-height: 1.273;
-  letter-spacing: 0.342px;
-  color: var(--color-semantic-primary-strong);
-  white-space: nowrap;
 `;
 
 const TimeLabel = styled.span`

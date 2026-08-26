@@ -1,19 +1,9 @@
 "use client";
 
-/**
- * ⚠️ 보류 중(연결 안 됨) — 그룹 만남 투표 UI.
- *
- * 라이브 BE에 투표 계약이 없다(swagger·BE 위키 어디에도 없음).
- * 이 파일은 아직 구 백엔드 경로(`/api/chat/group-rooms/...`)를 호출하므로 그대로 노출하면
- * 라이브에서 404가 난다. `GROUP_VOTE_ENABLED`(features/chat/model/constants.ts)가 false인 동안
- * 화면에서 진입점이 막혀 있다. BE 엔드포인트가 생기면 externalApiFetch로 옮기고 플래그를 올린다.
- * 상세: INTEGRATION-TODO.md §A-2
- */
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, CircleX, MapPin, Search } from "lucide-react";
-import { ChatService } from "@/shared/lib/api/generated";
-import type { KakaoPlaceSearchResultDto } from "@/shared/lib/api/generated";
+import { searchPlaces } from "@/features/chat/lib/placeSearch";
+import type { PlaceSearchResult } from "@/features/chat/lib/placeSearch";
 import {
   ClearButton,
   FeedbackText,
@@ -66,7 +56,7 @@ const countTokenMatches = (text: string, tokens: string[]) => {
   return tokens.filter((token) => normalizedText.includes(token)).length;
 };
 
-const getPlaceSearchRank = (place: KakaoPlaceSearchResultDto, keyword: string) => {
+const getPlaceSearchRank = (place: PlaceSearchResult, keyword: string) => {
   const normalizedKeyword = normalizeSearchText(keyword);
   const tokens = getSearchTokens(keyword);
   const normalizedName = normalizeSearchText(place.name);
@@ -95,7 +85,7 @@ const getPlaceSearchRank = (place: KakaoPlaceSearchResultDto, keyword: string) =
   return 5;
 };
 
-const sortPlacesByQuery = (places: KakaoPlaceSearchResultDto[], keyword: string) => {
+const sortPlacesByQuery = (places: PlaceSearchResult[], keyword: string) => {
   const tokens = getSearchTokens(keyword);
 
   return [...places].sort((left, right) => {
@@ -140,7 +130,7 @@ const getHighlightedSegments = (text: string, keyword: string): HighlightSegment
 
 export function PlaceSearchModal({ onClose, onSelect }: PlaceSearchModalProps) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<KakaoPlaceSearchResultDto[]>([]);
+  const [results, setResults] = useState<PlaceSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [focused, setFocused] = useState(false);
@@ -164,23 +154,17 @@ export function PlaceSearchModal({ onClose, onSelect }: PlaceSearchModalProps) {
       setLoading(true);
       setError(null);
 
-      void ChatService.chatControllerSearchPlaces(normalizedQuery, 15)
-        .then((response) => {
+      void searchPlaces(normalizedQuery)
+        .then((places) => {
           if (requestIdRef.current !== requestId) return;
 
-          if (!response.success) {
-            setResults([]);
-            setError(response.error ?? "장소를 검색할 수 없습니다.");
-            return;
-          }
-
-          setResults(sortPlacesByQuery(response.data ?? [], normalizedQuery));
+          setResults(sortPlacesByQuery(places, normalizedQuery));
         })
         .catch((err: unknown) => {
           if (requestIdRef.current !== requestId) return;
 
           setResults([]);
-          setError(err instanceof Error ? err.message : "장소를 검색할 수 없습니다.");
+          setError(err instanceof Error ? err.message : "장소를 검색하지 못했어요.");
         })
         .finally(() => {
           if (requestIdRef.current === requestId) {
@@ -192,7 +176,7 @@ export function PlaceSearchModal({ onClose, onSelect }: PlaceSearchModalProps) {
     return () => window.clearTimeout(timer);
   }, [normalizedQuery]);
 
-  const handleSelect = (place: KakaoPlaceSearchResultDto) => {
+  const handleSelect = (place: PlaceSearchResult) => {
     onSelect({
       name: place.name,
       address: place.address,

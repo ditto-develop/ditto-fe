@@ -11,6 +11,34 @@ type MockApiOptions = {
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
+/**
+ * 투표 인메모리 목업이 다루는 최소 형태.
+ * 화면 타입(GroupVote)을 그대로 쓰지 않는 것은, 테스트가 앱 타입 변경에 끌려다니지 않도록
+ * 응답 계약만 붙잡아 두기 위함이다.
+ */
+type VoteOptionLike = { optionId: number; voterIds: number[] };
+
+type GroupVoteLike = {
+  voteId: number;
+  roomId: number;
+  status: "OPEN" | "CLOSED";
+  allowMultiple: boolean;
+  createdBy: number;
+  createdAt: string;
+  closedAt: string | null;
+  totalMembers: number;
+  votedCount: number;
+  placeOptions: Array<VoteOptionLike & {
+    label: string;
+    address: string | null;
+    mapLink: string | null;
+    latitude: number | null;
+    longitude: number | null;
+  }>;
+  timeOptions: Array<VoteOptionLike & { meetAt: string }>;
+  myVote: { placeIds: number[]; timeIds: number[] } | null;
+};
+
 const TEST_ACCESS_TOKEN =
   "eyJhbGciOiJub25lIn0.eyJzdWIiOiJ1c2VyLWUxZSIsInVzZXJJZCI6InVzZXItZTFlIn0.signature";
 const TEST_REFRESH_TOKEN = "cypress-refresh-token";
@@ -164,6 +192,94 @@ mockFixture("GET", ["**/api/users/*/ratings", "**/api/v1/users/*/ratings"], "use
     });
   });
   cy.intercept("POST", "**/api/**/chat/rooms/*/end", emptySuccessResponse()).as("endChatRoom");
+  cy.intercept("POST", "**/api/**/chat/rooms/*/leave", emptySuccessResponse()).as("leaveChatRoom");
+
+  // 만남 투표. 다섯 엔드포인트가 모두 같은 상세를 돌려주는 계약이라, 스텁만으로는
+  // 화면이 돌지 않는다(내 표가 반영되지 않아 제출 화면에서 못 빠져나온다).
+  // 테스트마다 새로 만드는 인메모리 상태를 실제로 갱신한다.
+  cy.fixture("group-votes.json").then((seed: GroupVoteLike[]) => {
+    const votes: GroupVoteLike[] = JSON.parse(JSON.stringify(seed));
+    const findVote = (url: string) => {
+      const voteId = Number(new URL(url).pathname.match(/\/votes\/([^/]+)/)?.[1]);
+      return votes.find((vote) => vote.voteId === voteId);
+    };
+
+    cy.intercept("GET", "**/api/**/chat/rooms/*/votes", (req) => {
+      req.reply(successResponse(votes));
+    }).as("getRoomVotes");
+
+    cy.intercept("POST", "**/api/**/chat/rooms/*/votes", (req) => {
+      const body = req.body as {
+        allowMultiple: boolean;
+        placeOptions: { label: string }[];
+        timeOptions: { meetAt: string }[];
+      };
+      let nextOptionId = 900;
+      const created: GroupVoteLike = {
+        voteId: 99,
+        roomId: 3,
+        status: "OPEN",
+        allowMultiple: body.allowMultiple,
+        createdBy: 1,
+        createdAt: "2026-06-05 18:30:00",
+        closedAt: null,
+        totalMembers: 4,
+        votedCount: 0,
+        placeOptions: body.placeOptions.map((option) => ({
+          optionId: (nextOptionId += 1),
+          label: option.label,
+          address: null,
+          mapLink: null,
+          latitude: null,
+          longitude: null,
+          voterIds: [],
+        })),
+        timeOptions: body.timeOptions.map((option) => ({
+          optionId: (nextOptionId += 1),
+          meetAt: option.meetAt,
+          voterIds: [],
+        })),
+        myVote: null,
+      };
+      votes.unshift(created);
+      req.reply(successResponse(created));
+    }).as("createVote");
+
+    cy.intercept("GET", "**/api/**/chat/rooms/*/votes/*", (req) => {
+      req.reply(successResponse(findVote(req.url)));
+    }).as("getVote");
+
+    cy.intercept("POST", "**/api/**/chat/rooms/*/votes/*/cast", (req) => {
+      const vote = findVote(req.url);
+      const body = req.body as { placeIds: number[]; timeIds: number[] };
+      if (!vote) return;
+
+      // 보낸 집합이 최종 선택으로 치환된다(덧붙이기가 아니다).
+      const MY_ID = 1;
+      const apply = (options: VoteOptionLike[], selected: number[]) =>
+        options.map((option) => ({
+          ...option,
+          voterIds: selected.includes(option.optionId)
+            ? [...option.voterIds.filter((id) => id !== MY_ID), MY_ID]
+            : option.voterIds.filter((id) => id !== MY_ID),
+        }));
+
+      if (vote.myVote === null) vote.votedCount += 1;
+      vote.placeOptions = apply(vote.placeOptions, body.placeIds);
+      vote.timeOptions = apply(vote.timeOptions, body.timeIds);
+      vote.myVote = { placeIds: body.placeIds, timeIds: body.timeIds };
+      req.reply(successResponse(vote));
+    }).as("castVote");
+
+    // 마감은 멱등이다.
+    cy.intercept("POST", "**/api/**/chat/rooms/*/votes/*/close", (req) => {
+      const vote = findVote(req.url);
+      if (!vote) return;
+      vote.status = "CLOSED";
+      vote.closedAt = "2026-06-05 19:00:00";
+      req.reply(successResponse(vote));
+    }).as("closeVote");
+  });
   cy.intercept("POST", "**/api/**/chat/rooms/*/read", emptySuccessResponse()).as("markChatAsRead");
   cy.intercept("POST", "**/api/**/chat/rooms/*/image-upload-urls", (req) => {
     const body = req.body as { files?: { contentType: string }[] };

@@ -5,6 +5,15 @@ import type {
   MemberReview,
   ReviewSubmitResult,
 } from "@/features/rating";
+import type { CastVoteRequest, CreateGroupVoteRequest } from "@/features/chat";
+import {
+  castVote as castMockVote,
+  closeVote as closeMockVote,
+  createVote as createMockVote,
+  findVote as findMockVote,
+  hasOpenVote as hasMockOpenVote,
+  listVotes as listMockVotes,
+} from "@/mocks/voteStore";
 
 import chatMessages from "@/mocks/fixtures/chat-messages.json";
 import chatRooms from "@/mocks/fixtures/chat-rooms.json";
@@ -56,6 +65,23 @@ function success(data: unknown): SuccessEnvelope {
 
 function apiPath(path: string): RegExp {
   return new RegExp(`/api(?:/v1)?${path}(?:\\?.*)?$`);
+}
+
+/** 실패 응답 봉투. 화면이 error.code로 분기하므로 코드까지 채워 준다. */
+function failure(code: string, message: string, statusCode: number) {
+  return HttpResponse.json(
+    { success: false, data: null, error: { code, message, statusCode } },
+    { status: statusCode },
+  );
+}
+
+/** `/chat/rooms/{roomId}/...` 경로에서 roomId를 뽑는다. */
+function roomIdFromUrl(url: string): number {
+  return Number(new URL(url).pathname.match(/\/chat\/rooms\/([^/]+)/)?.[1]);
+}
+
+function voteIdFromUrl(url: string): number {
+  return Number(new URL(url).pathname.match(/\/votes\/([^/]+)/)?.[1]);
 }
 
 const emptyList = {
@@ -335,9 +361,49 @@ export const handlers = [
       }),
     );
   }),
+  // 나가기는 멱등이고 응답 data가 비어 있다. 1:1에 불러도 서버가 end와 동일하게 처리한다.
+  http.post(apiPath("/chat/rooms/[^/]+/leave"), () => HttpResponse.json(success({}))),
+
   // 그룹 방은 /chat/rooms 계약으로 통합됐다(BE #119). group-rooms 핸들러는 더 이상 없다.
-  // 만남 투표(votes·place-search)는 BE 계약 자체가 없어 목업도 두지 않는다
-  // — 빈 스텁을 두면 화면이 동작하는 것처럼 보여 오히려 위험하다(INTEGRATION-TODO.md §A-2).
+  //
+  // 만남 투표. 다섯 엔드포인트가 모두 같은 상세를 돌려주는 계약이라, 목업도 인메모리
+  // 상태를 실제로 갱신한다(voteStore). 장소 검색은 카카오 SDK 직접 호출이라 핸들러가 없다.
+  http.get(apiPath("/chat/rooms/[^/]+/votes"), ({ request }) =>
+    HttpResponse.json(success(listMockVotes(roomIdFromUrl(request.url)))),
+  ),
+  http.post(apiPath("/chat/rooms/[^/]+/votes"), async ({ request }) => {
+    const roomId = roomIdFromUrl(request.url);
+    // 방당 열린 투표는 하나뿐이다.
+    if (hasMockOpenVote(roomId)) {
+      return failure("8202", "이미 진행 중인 투표가 있습니다.", 409);
+    }
+
+    const body = (await request.json()) as CreateGroupVoteRequest;
+    return HttpResponse.json(success(createMockVote(roomId, body)));
+  }),
+  http.get(apiPath("/chat/rooms/[^/]+/votes/[^/]+"), ({ request }) => {
+    const vote = findMockVote(roomIdFromUrl(request.url), voteIdFromUrl(request.url));
+    if (!vote) return failure("8201", "존재하지 않는 투표입니다.", 404);
+    return HttpResponse.json(success(vote));
+  }),
+  http.post(apiPath("/chat/rooms/[^/]+/votes/[^/]+/cast"), async ({ request }) => {
+    const vote = findMockVote(roomIdFromUrl(request.url), voteIdFromUrl(request.url));
+    if (!vote) return failure("8201", "존재하지 않는 투표입니다.", 404);
+    if (vote.status === "CLOSED") return failure("8203", "이미 마감된 투표입니다.", 409);
+
+    const body = (await request.json()) as CastVoteRequest;
+    if (!vote.allowMultiple && (body.placeIds.length > 1 || body.timeIds.length > 1)) {
+      return failure("8207", "복수 선택이 허용되지 않은 투표입니다.", 400);
+    }
+
+    return HttpResponse.json(success(castMockVote(vote, body)));
+  }),
+  // 마감은 멱등이다 — 이미 닫힌 투표에 다시 보내도 성공으로 답한다.
+  http.post(apiPath("/chat/rooms/[^/]+/votes/[^/]+/close"), ({ request }) => {
+    const vote = findMockVote(roomIdFromUrl(request.url), voteIdFromUrl(request.url));
+    if (!vote) return failure("8201", "존재하지 않는 투표입니다.", 404);
+    return HttpResponse.json(success(closeMockVote(vote)));
+  }),
 
   http.get(apiPath("/admin/stats"), () => HttpResponse.json(success(adminStats))),
   http.get(apiPath("/admin/matches"), () => HttpResponse.json(success(adminMatchList))),

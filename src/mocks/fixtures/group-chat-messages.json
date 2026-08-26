@@ -1,6 +1,15 @@
 {
   "messages": [
     {
+      "id": 43,
+      "roomId": 3,
+      "senderId": 3,
+      "messageType": "SYSTEM",
+      "content": "VOTE_CREATED:41",
+      "imageUrl": null,
+      "createdAt": "2026-06-05 18:10:00"
+    },
+    {
       "id": 42,
       "roomId": 3,
       "senderId": 3,

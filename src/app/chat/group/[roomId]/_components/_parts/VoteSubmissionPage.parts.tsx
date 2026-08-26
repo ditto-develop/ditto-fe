@@ -173,141 +173,15 @@ export const MapPinButton = styled.button`
   }
 `;
 
-export const AddOptionButton = styled.button`
-  ${textStyle};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  width: 100%;
-  height: 48px;
-  padding: 12px;
-  border: 1px solid var(--color-semantic-line-normal-neutral);
-  border-radius: 12px;
-  background-color: transparent;
-  color: var(--color-semantic-label-alternative);
-  cursor: pointer;
-  font-size: var(--typography-body-1-normal-font-size);
-  font-weight: 400;
-  line-height: 1.5;
-  letter-spacing: 0.091px;
-`;
-
-export const NewInputRow = styled.div`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  gap: 8px;
-`;
-
-export const NewPlaceField = styled.button`
-  ${textStyle};
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  width: 100%;
-  height: 48px;
-  padding: 12px;
-  border: 1px solid var(--color-semantic-line-normal-neutral);
-  border-radius: 12px;
-  background-color: transparent;
-  color: var(--color-semantic-label-assistive);
-  cursor: pointer;
-  box-sizing: border-box;
-  text-align: left;
-`;
-
-export const NewPlaceText = styled.span`
-  ${textStyle};
-  min-width: 0;
-  overflow: hidden;
-  padding: 0 4px;
-  color: var(--color-semantic-label-assistive);
-  font-size: var(--typography-body-1-normal-font-size);
-  font-weight: 400;
-  line-height: 1.5;
-  letter-spacing: 0.091px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-export const NewPlaceIcon = styled.span`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-  color: var(--color-semantic-label-assistive);
-`;
-
-export const NewTimeRow = styled.div`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-`;
-
-export const NewTimeFieldGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-`;
-
-export const TimePickerField = styled.label`
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 48px;
-  padding: 12px;
-  border: solid var(--color-semantic-line-normal-neutral);
-  box-sizing: border-box;
-  cursor: pointer;
-  color: var(--color-semantic-label-assistive);
-
-  &:first-of-type {
-    border-width: 1px;
-    border-radius: 12px 12px 0 0;
-    background-color: transparent;
-  }
-
-  &:last-of-type {
-    border-width: 0 1px 1px;
-    border-radius: 0 0 12px 12px;
-    background-color: rgb(
-      from var(--color-semantic-background-normal-alternative) r g b /
-        var(--color-atomic-opacity-52)
-    );
-  }
-`;
-
-export const HiddenDateInput = styled.input`
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.01;
-  cursor: pointer;
-  border: 0;
-  padding: 0;
-  appearance: none;
-  -webkit-appearance: none;
-`;
-
-export const PickerDisplay = styled.span<{ $empty?: boolean }>`
-  ${textStyle};
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  padding: 0 4px;
-  color: ${({ $empty }) =>
-    $empty ? "var(--color-semantic-label-assistive)" : "var(--color-semantic-label-normal)"};
-  font-size: var(--typography-body-1-normal-font-size);
-  font-weight: 400;
-  line-height: 1.5;
-  letter-spacing: 0.091px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+export const SubmitError = styled.p`
+  margin: 0 0 var(--space-2);
+  font-family: "Pretendard JP", sans-serif;
+  font-size: var(--typography-label-2-font-size);
+  font-weight: 500;
+  line-height: var(--typography-label-2-line-height);
+  letter-spacing: var(--typography-label-2-letter-spacing);
+  color: var(--color-semantic-status-negative);
+  text-align: center;
 `;
 
 export const ActionArea = styled.footer`
@@ -391,35 +265,6 @@ export function ClockIcon() {
       <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.8" />
       <path d="M12 7.5V12L15 14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </IconSvg>
-  );
-}
-
-export function ClockIconSmall() {
-  return (
-    <IconSvgSmall viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ color: "var(--color-semantic-label-normal)" }}>
-      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M12 7.5V12L15 14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </IconSvgSmall>
-  );
-}
-
-export function CalendarIcon() {
-  return (
-    <IconSvgSmall viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="4" y="5.5" width="16" height="14" rx="2" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M8 3.8V7.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M16 3.8V7.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M4.5 10H19.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </IconSvgSmall>
-  );
-}
-
-export function PlusIcon() {
-  return (
-    <IconSvgSmall viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 5V19" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M5 12H19" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </IconSvgSmall>
   );
 }
 

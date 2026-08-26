@@ -1,100 +1,51 @@
 "use client";
 
-/**
- * ⚠️ 보류 중(연결 안 됨) — 그룹 만남 투표 UI.
- *
- * 라이브 BE에 투표 계약이 없다(swagger·BE 위키 어디에도 없음).
- * 이 파일은 아직 구 백엔드 경로(`/api/chat/group-rooms/...`)를 호출하므로 그대로 노출하면
- * 라이브에서 404가 난다. `GROUP_VOTE_ENABLED`(features/chat/model/constants.ts)가 false인 동안
- * 화면에서 진입점이 막혀 있다. BE 엔드포인트가 생기면 externalApiFetch로 옮기고 플래그를 올린다.
- * 상세: INTEGRATION-TODO.md §A-2
- */
-
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type React from "react";
-import type {
-  CastVoteDto,
-  GroupVoteDto,
-  VotePlaceOptionDto,
-  VoteTimeOptionDto,
-} from "@/shared/lib/api/generated";
-import { AddVoteOptionDto, ChatService } from "@/shared/lib/api/generated";
+import { formatMeetAt } from "@/features/chat";
+import type { CastVoteRequest, GroupVote, VotePlaceOption } from "@/features/chat";
 import {
   ActionArea,
-  AddOptionButton,
   BackButton,
   Body,
-  CalendarIcon,
   CheckIcon,
   ChevronLeftIcon,
   ClockIcon,
-  ClockIconSmall,
-  HiddenDateInput,
   LocationIcon,
   LocationIconSmall,
   MapPinButton,
   NavCount,
   NavTitle,
-  NewInputRow,
-  NewPlaceField,
-  NewPlaceIcon,
-  NewPlaceText,
-  NewTimeFieldGroup,
-  NewTimeRow,
   OptionLabel,
   OptionList,
   OptionRow,
   PageRoot,
-  PickerDisplay,
-  PlusIcon,
   PrimaryButton,
   Radio,
   Section,
   SectionHeader,
   SectionTitle,
-  TimePickerField,
+  SubmitError,
   TopNavigation,
 } from "./_parts/VoteSubmissionPage.parts";
 import { PlaceMapPage } from "./PlaceMapPage";
-import { PlaceSearchModal } from "./PlaceSearchModal";
-import type { SelectedPlace } from "./PlaceSearchModal";
 
 interface VoteSubmissionPageProps {
-  vote: GroupVoteDto;
-  roomId: string;
+  vote: GroupVote;
   onClose: () => void;
-  onVoted: (updatedVote: GroupVoteDto) => void;
-  /** 실패/모킹 시 fallback — page client가 로컬 상태 업데이트를 처리 */
-  onLocalVote?: (payload: CastVoteDto) => GroupVoteDto;
-  onLocalAddPlace?: (label: string) => GroupVoteDto;
-  onLocalAddTime?: (draft: { dateLabel: string; date: string; time: string }) => GroupVoteDto;
+  /**
+   * cast 요청. **보낸 집합이 최종 선택으로 치환**되므로 유지할 기존 선택도 함께 담는다
+   * (화면 상태가 이미 기존 선택으로 초기화돼 있어 그대로 보내면 된다).
+   */
+  onSubmit: (body: CastVoteRequest) => Promise<void>;
 }
 
-const WEEKDAYS = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
-
-function formatTimeLabel(time: string): string {
-  if (!time) return "";
-  const [h, m] = time.split(":").map(Number);
-  if (Number.isNaN(h)) return time;
-  const period = h < 12 ? "오전" : "오후";
-  const hour = h % 12 || 12;
-  const minute = m > 0 ? ` ${m}분` : "";
-  return `${period} ${hour}시${minute}`;
-}
-
-function formatDateLabelFromInputs(date: string, time: string): string {
-  if (!date || !time) return "";
-  const [y, mo, d] = date.split("-").map(Number);
-  if (!y || !mo || !d) return "";
-  const dt = new Date(y, mo - 1, d);
-  return `${mo}월 ${d}일 ${WEEKDAYS[dt.getDay()]} ${formatTimeLabel(time)}`;
-}
-
-function hasPlaceCoordinates(option: VotePlaceOptionDto) {
+function hasPlaceCoordinates(option: VotePlaceOption) {
   return typeof option.latitude === "number" && typeof option.longitude === "number";
 }
 
-function canResolvePlaceMap(option: VotePlaceOptionDto) {
+/** 좌표가 없어도 주소·상호명이 있으면 지도에서 검색으로 찾을 수 있다. */
+function canResolvePlaceMap(option: VotePlaceOption) {
   return hasPlaceCoordinates(option) || Boolean(option.address?.trim() || option.label.trim());
 }
 
@@ -105,28 +56,18 @@ function handleRowKeyDown(event: React.KeyboardEvent, action: () => void) {
   action();
 }
 
-export function VoteSubmissionPage({
-  vote,
-  roomId,
-  onClose,
-  onVoted,
-  onLocalVote,
-  onLocalAddPlace,
-  onLocalAddTime,
-}: VoteSubmissionPageProps) {
-  const [selectedPlaceIds, setSelectedPlaceIds] = useState<string[]>(vote.myVote?.placeIds ?? []);
-  const [selectedTimeIds, setSelectedTimeIds] = useState<string[]>(vote.myVote?.timeIds ?? []);
-  const [placeOptions, setPlaceOptions] = useState<VotePlaceOptionDto[]>(vote.placeOptions);
-  const [timeOptions, setTimeOptions] = useState<VoteTimeOptionDto[]>(vote.timeOptions);
-  const [newPlaceLabel, setNewPlaceLabel] = useState("");
-  const [isAddingPlace, setIsAddingPlace] = useState(false);
-  const [isPlaceSearchOpen, setIsPlaceSearchOpen] = useState(false);
-  const [newTimeDate, setNewTimeDate] = useState("");
-  const [newTimeValue, setNewTimeValue] = useState("");
-  const [isAddingTime, setIsAddingTime] = useState(false);
+/**
+ * 만남 투표 제출 화면.
+ *
+ * 선택지는 **생성 시 확정**되어 여기서 추가·삭제할 수 없다(선택지 추가 API는 만들지 않기로
+ * 확정 — BE 위키 Frontend-Vote-Guide). 재투표도 같은 화면에서 같은 요청을 다시 보낸다.
+ */
+export function VoteSubmissionPage({ vote, onClose, onSubmit }: VoteSubmissionPageProps) {
+  const [selectedPlaceIds, setSelectedPlaceIds] = useState<number[]>(vote.myVote?.placeIds ?? []);
+  const [selectedTimeIds, setSelectedTimeIds] = useState<number[]>(vote.myVote?.timeIds ?? []);
   const [submitting, setSubmitting] = useState(false);
-  const [mapTarget, setMapTarget] = useState<VotePlaceOptionDto | null>(null);
-  const addingTimeKeyRef = useRef<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [mapTarget, setMapTarget] = useState<VotePlaceOption | null>(null);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -137,112 +78,35 @@ export function VoteSubmissionPage({
 
   const canSubmit = selectedPlaceIds.length > 0 && selectedTimeIds.length > 0 && !submitting;
 
-  const togglePlace = (id: string) => {
-    setSelectedPlaceIds((prev) => {
-      if (prev.includes(id)) return prev.filter((x) => x !== id);
-      return vote.allowMultiple ? [...prev, id] : [id];
+  /** allowMultiple이 false면 유형별 1개까지다 — 넘기면 서버가 8207로 거절한다. */
+  const toggleId = (
+    setSelected: React.Dispatch<React.SetStateAction<number[]>>,
+    optionId: number,
+  ) => {
+    setSelected((previous) => {
+      if (previous.includes(optionId)) return previous.filter((id) => id !== optionId);
+      return vote.allowMultiple ? [...previous, optionId] : [optionId];
     });
   };
 
-  const selectPlaceFromMap = (id: string) => {
-    setSelectedPlaceIds((prev) => {
-      if (prev.includes(id)) return prev;
-      return vote.allowMultiple ? [...prev, id] : [id];
+  const selectPlaceFromMap = (optionId: number) => {
+    setSelectedPlaceIds((previous) => {
+      if (previous.includes(optionId)) return previous;
+      return vote.allowMultiple ? [...previous, optionId] : [optionId];
     });
   };
-
-  const toggleTime = (id: string) => {
-    setSelectedTimeIds((prev) => {
-      if (prev.includes(id)) return prev.filter((x) => x !== id);
-      return vote.allowMultiple ? [...prev, id] : [id];
-    });
-  };
-
-  const handleAddPlace = async (place?: SelectedPlace) => {
-    const label = (place?.name ?? newPlaceLabel).trim();
-    if (!label) return;
-
-    const res = await ChatService.chatControllerAddVoteOption(roomId, vote.id, {
-      type: AddVoteOptionDto.type.PLACE,
-      label,
-      address: place?.address,
-      mapLink: place?.mapUrl,
-      latitude: place?.latitude,
-      longitude: place?.longitude,
-    });
-
-    if (res.success && res.data) {
-      setPlaceOptions(res.data.placeOptions);
-      setTimeOptions(res.data.timeOptions);
-    } else if (onLocalAddPlace) {
-      const updated = onLocalAddPlace(label);
-      setPlaceOptions(updated.placeOptions);
-      setTimeOptions(updated.timeOptions);
-    }
-
-    setNewPlaceLabel("");
-    setIsAddingPlace(false);
-    setIsPlaceSearchOpen(false);
-  };
-
-  const handleAddTime = useCallback(async (date: string, time: string) => {
-    if (!date || !time) return;
-    const dateLabel = formatDateLabelFromInputs(date, time);
-    if (!dateLabel) return;
-
-    const res = await ChatService.chatControllerAddVoteOption(roomId, vote.id, {
-      type: AddVoteOptionDto.type.TIME,
-      dateLabel,
-      date,
-      time,
-    });
-
-    if (res.success && res.data) {
-      setPlaceOptions(res.data.placeOptions);
-      setTimeOptions(res.data.timeOptions);
-    } else if (onLocalAddTime) {
-      const updated = onLocalAddTime({ dateLabel, date, time });
-      setPlaceOptions(updated.placeOptions);
-      setTimeOptions(updated.timeOptions);
-    }
-
-    setNewTimeDate("");
-    setNewTimeValue("");
-    setIsAddingTime(false);
-    addingTimeKeyRef.current = null;
-  }, [onLocalAddTime, roomId, vote.id]);
-
-  useEffect(() => {
-    if (!isAddingTime || !newTimeDate || !newTimeValue) return;
-
-    const timeKey = `${newTimeDate}-${newTimeValue}`;
-    if (addingTimeKeyRef.current === timeKey) return;
-
-    addingTimeKeyRef.current = timeKey;
-    void handleAddTime(newTimeDate, newTimeValue);
-  }, [handleAddTime, isAddingTime, newTimeDate, newTimeValue]);
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
+
     setSubmitting(true);
-    const payload: CastVoteDto = {
-      placeIds: selectedPlaceIds,
-      timeIds: selectedTimeIds,
-    };
-
-    const res = await ChatService.chatControllerCastVote(roomId, vote.id, payload);
-    if (res.success && res.data) {
-      onVoted(res.data);
-      return;
+    setError(null);
+    try {
+      await onSubmit({ placeIds: selectedPlaceIds, timeIds: selectedTimeIds });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "투표하지 못했어요. 잠시 후 다시 시도해주세요.");
+      setSubmitting(false);
     }
-
-    if (onLocalVote) {
-      const updated = onLocalVote(payload);
-      onVoted(updated);
-      return;
-    }
-
-    setSubmitting(false);
   };
 
   return (
@@ -264,16 +128,18 @@ export function VoteSubmissionPage({
             <SectionTitle>만남 장소 투표</SectionTitle>
           </SectionHeader>
           <OptionList>
-            {placeOptions.map((option) => {
-              const checked = selectedPlaceIds.includes(option.id);
+            {vote.placeOptions.map((option) => {
+              const checked = selectedPlaceIds.includes(option.optionId);
               const canOpenMap = canResolvePlaceMap(option);
               return (
                 <OptionRow
-                  key={option.id}
+                  key={option.optionId}
                   role="button"
                   tabIndex={0}
-                  onClick={() => togglePlace(option.id)}
-                  onKeyDown={(event) => handleRowKeyDown(event, () => togglePlace(option.id))}
+                  onClick={() => toggleId(setSelectedPlaceIds, option.optionId)}
+                  onKeyDown={(event) =>
+                    handleRowKeyDown(event, () => toggleId(setSelectedPlaceIds, option.optionId))
+                  }
                   $checked={checked}
                 >
                   <Radio $checked={checked}>{checked && <CheckIcon />}</Radio>
@@ -292,20 +158,6 @@ export function VoteSubmissionPage({
                 </OptionRow>
               );
             })}
-            {isAddingPlace && (
-              <NewInputRow>
-                <NewPlaceField type="button" onClick={() => setIsPlaceSearchOpen(true)}>
-                  <NewPlaceIcon>
-                    <LocationIconSmall $muted />
-                  </NewPlaceIcon>
-                  <NewPlaceText>장소 선택</NewPlaceText>
-                </NewPlaceField>
-              </NewInputRow>
-            )}
-            <AddOptionButton type="button" onClick={() => setIsAddingPlace(true)}>
-              <PlusIcon />
-              새로운 장소 추가하기
-            </AddOptionButton>
           </OptionList>
         </Section>
 
@@ -315,76 +167,43 @@ export function VoteSubmissionPage({
             <SectionTitle>만남 시간 투표</SectionTitle>
           </SectionHeader>
           <OptionList>
-            {timeOptions.map((option) => {
-              const checked = selectedTimeIds.includes(option.id);
+            {vote.timeOptions.map((option) => {
+              const checked = selectedTimeIds.includes(option.optionId);
               return (
                 <OptionRow
-                  key={option.id}
+                  key={option.optionId}
                   role="button"
                   tabIndex={0}
-                  onClick={() => toggleTime(option.id)}
-                  onKeyDown={(event) => handleRowKeyDown(event, () => toggleTime(option.id))}
+                  onClick={() => toggleId(setSelectedTimeIds, option.optionId)}
+                  onKeyDown={(event) =>
+                    handleRowKeyDown(event, () => toggleId(setSelectedTimeIds, option.optionId))
+                  }
                   $checked={checked}
                 >
                   <Radio $checked={checked}>{checked && <CheckIcon />}</Radio>
-                  <OptionLabel $checked={checked}>{option.dateLabel}</OptionLabel>
+                  {/* 서버는 표시 문구를 저장하지 않는다 — meetAt을 FE가 읽는다. */}
+                  <OptionLabel $checked={checked}>{formatMeetAt(option.meetAt)}</OptionLabel>
                 </OptionRow>
               );
             })}
-            {isAddingTime && (
-              <NewTimeRow>
-                <NewTimeFieldGroup>
-                  <TimePickerField>
-                    <CalendarIcon />
-                    <HiddenDateInput
-                      type="date"
-                      value={newTimeDate}
-                      onChange={(e) => setNewTimeDate(e.target.value)}
-                    />
-                    <PickerDisplay $empty={!newTimeDate}>{newTimeDate || "날짜 선택"}</PickerDisplay>
-                  </TimePickerField>
-                  <TimePickerField>
-                    <ClockIconSmall />
-                    <HiddenDateInput
-                      type="time"
-                      value={newTimeValue}
-                      onChange={(e) => setNewTimeValue(e.target.value)}
-                    />
-                    <PickerDisplay $empty={!newTimeValue}>
-                      {newTimeValue ? formatTimeLabel(newTimeValue) : "시간 선택"}
-                    </PickerDisplay>
-                  </TimePickerField>
-                </NewTimeFieldGroup>
-              </NewTimeRow>
-            )}
-            <AddOptionButton type="button" onClick={() => setIsAddingTime(true)}>
-              <PlusIcon />
-              새로운 시간 추가하기
-            </AddOptionButton>
           </OptionList>
         </Section>
       </Body>
 
       <ActionArea>
+        {error && <SubmitError role="alert">{error}</SubmitError>}
         <PrimaryButton type="button" onClick={handleSubmit} disabled={!canSubmit} $active={canSubmit}>
-          투표하기
+          {submitting ? "투표 중..." : "투표하기"}
         </PrimaryButton>
       </ActionArea>
+
       {mapTarget && (
         <PlaceMapPage
           place={mapTarget}
           onClose={() => setMapTarget(null)}
           onSelect={() => {
-            selectPlaceFromMap(mapTarget.id);
+            selectPlaceFromMap(mapTarget.optionId);
             setMapTarget(null);
-          }}
-        />
-      )}
-      {isPlaceSearchOpen && (
-        <PlaceSearchModal
-          onClose={() => setIsPlaceSearchOpen(false)}
-          onSelect={(place) => {
-            void handleAddPlace(place);
           }}
         />
       )}

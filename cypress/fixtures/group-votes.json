@@ -1,0 +1,53 @@
+[
+  {
+    "voteId": 41,
+    "roomId": 3,
+    "status": "OPEN",
+    "allowMultiple": false,
+    "createdBy": 3,
+    "createdAt": "2026-06-05 18:10:00",
+    "closedAt": null,
+    "totalMembers": 4,
+    "votedCount": 2,
+    "placeOptions": [
+      {
+        "optionId": 301,
+        "label": "강남역 스타벅스",
+        "address": "서울 강남구 테헤란로 231",
+        "mapLink": "http://place.map.kakao.com/26338954",
+        "latitude": 37.4979,
+        "longitude": 127.0276,
+        "voterIds": [
+          2,
+          3
+        ]
+      },
+      {
+        "optionId": 302,
+        "label": "홍대 카페거리",
+        "address": null,
+        "mapLink": null,
+        "latitude": null,
+        "longitude": null,
+        "voterIds": []
+      }
+    ],
+    "timeOptions": [
+      {
+        "optionId": 311,
+        "meetAt": "2026-06-13 19:00:00",
+        "voterIds": [
+          2
+        ]
+      },
+      {
+        "optionId": 312,
+        "meetAt": "2026-06-14 12:30:00",
+        "voterIds": [
+          3
+        ]
+      }
+    ],
+    "myVote": null
+  }
+]

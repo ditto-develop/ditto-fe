@@ -1,5 +1,11 @@
 import type { ChatMessage, ChatRoom } from "@/features/chat/model/types";
-import { CHAT_SYSTEM_EVENT_USER_LEFT } from "@/features/chat/model/types";
+import {
+  CHAT_SYSTEM_EVENT_INSUFFICIENT_MEMBERS,
+  CHAT_SYSTEM_EVENT_MEMBER_LEFT,
+  CHAT_SYSTEM_EVENT_USER_LEFT,
+  CHAT_SYSTEM_EVENT_VOTE_CLOSED,
+  CHAT_SYSTEM_EVENT_VOTE_CREATED,
+} from "@/features/chat/model/types";
 import type { SystemPeriod } from "@/features/system/api/systemStateApi";
 import { parseServerDateTime } from "@/shared/lib/serverDateTime";
 
@@ -70,13 +76,14 @@ export function getLastMessagePreview(
   return last.content;
 }
 
-/** 종료된 방의 안내 문구. 사용자 종료와 기한 만료를 구분한다. */
+/** 종료된 방의 안내 문구. 사용자 종료·인원 부족 해체·기한 만료를 구분한다. */
 export function getRoomEndedMessage(
   room: Pick<ChatRoom, "endedReason">,
 ): string {
-  return room.endedReason === "USER_ENDED"
-    ? "대화가 종료되어 메시지를 보낼 수 없어요."
-    : "대화 기간이 끝나 메시지를 보낼 수 없어요.";
+  if (room.endedReason === "USER_ENDED") return "대화가 종료되어 메시지를 보낼 수 없어요.";
+  // 그룹 전용 — 이탈로 잔여 1명이 되는 순간 서버가 방을 해체한다.
+  if (room.endedReason === "INSUFFICIENT_MEMBERS") return "인원이 부족해 대화가 종료되었어요.";
+  return "대화 기간이 끝나 메시지를 보낼 수 없어요.";
 }
 
 /**
@@ -87,12 +94,59 @@ export function getRoomEndedMessage(
 export function getSystemMessageText(
   message: Pick<ChatMessage, "content">,
   isMine: boolean,
+  /** MEMBER_LEFT의 senderId(나간 회원) 닉네임. 모르면 이름 없이 안내한다. */
+  senderNickname?: string,
 ): string | null {
   if (message.content === "채팅을 종료했습니다.") return message.content;
   if (message.content === "상대방이 채팅을 종료했습니다.") return message.content;
-  if (message.content !== CHAT_SYSTEM_EVENT_USER_LEFT) return null;
 
-  return isMine ? "채팅을 종료했습니다." : "상대방이 채팅을 종료했습니다.";
+  if (message.content === CHAT_SYSTEM_EVENT_USER_LEFT) {
+    return isMine ? "채팅을 종료했습니다." : "상대방이 채팅을 종료했습니다.";
+  }
+
+  // 그룹 이탈. USER_LEFT와 달리 **방은 계속된다** — 종료 문구를 쓰면 안 된다.
+  if (message.content === CHAT_SYSTEM_EVENT_MEMBER_LEFT) {
+    if (isMine) return "대화방에서 나갔어요.";
+    return senderNickname
+      ? `${senderNickname}님이 대화방에서 나갔어요.`
+      : "한 명이 대화방에서 나갔어요.";
+  }
+
+  if (message.content === CHAT_SYSTEM_EVENT_INSUFFICIENT_MEMBERS) {
+    return "인원이 부족해 대화가 종료되었어요.";
+  }
+
+  return null;
+}
+
+/** 투표 SYSTEM 메시지에서 뽑아낸 사건. 그 외 메시지는 null이다. */
+export type VoteSystemEvent = {
+  code: typeof CHAT_SYSTEM_EVENT_VOTE_CREATED | typeof CHAT_SYSTEM_EVENT_VOTE_CLOSED;
+  voteId: number;
+};
+
+/**
+ * `VOTE_CREATED:41` 처럼 **투표 코드에만 붙는 `:{voteId}` 접미**를 가른다.
+ * 다른 SYSTEM 코드에는 접미가 없으므로 콜론이 없으면 그대로 null이다.
+ * 모르는 코드는 무시한다 — 값이 추가될 수 있다.
+ */
+export function parseVoteSystemMessage(
+  message: Pick<ChatMessage, "messageType" | "content">,
+): VoteSystemEvent | null {
+  if (message.messageType !== "SYSTEM") return null;
+
+  const separatorIndex = message.content.indexOf(":");
+  if (separatorIndex < 0) return null;
+
+  const code = message.content.slice(0, separatorIndex);
+  if (code !== CHAT_SYSTEM_EVENT_VOTE_CREATED && code !== CHAT_SYSTEM_EVENT_VOTE_CLOSED) {
+    return null;
+  }
+
+  const voteId = Number(message.content.slice(separatorIndex + 1));
+  if (!Number.isInteger(voteId)) return null;
+
+  return { code, voteId };
 }
 
 export function isRoomEndedSystemMessage(
@@ -100,8 +154,10 @@ export function isRoomEndedSystemMessage(
 ): boolean {
   if (message.messageType !== "SYSTEM") return false;
 
+  // MEMBER_LEFT는 **의도적으로 빠져 있다** — 그룹에서 한 명이 나가도 방은 계속된다.
   return (
     message.content === CHAT_SYSTEM_EVENT_USER_LEFT ||
+    message.content === CHAT_SYSTEM_EVENT_INSUFFICIENT_MEMBERS ||
     message.content === "채팅을 종료했습니다." ||
     message.content === "상대방이 채팅을 종료했습니다."
   );

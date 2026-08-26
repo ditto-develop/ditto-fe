@@ -1,51 +1,25 @@
 "use client";
 
-/**
- * ⚠️ 보류 중(연결 안 됨) — 그룹 만남 투표 UI.
- *
- * 라이브 BE에 투표 계약이 없다(swagger·BE 위키 어디에도 없음).
- * 이 파일은 아직 구 백엔드 경로(`/api/chat/group-rooms/...`)를 호출하므로 그대로 노출하면
- * 라이브에서 404가 난다. `GROUP_VOTE_ENABLED`(features/chat/model/constants.ts)가 false인 동안
- * 화면에서 진입점이 막혀 있다. BE 엔드포인트가 생기면 externalApiFetch로 옮기고 플래그를 올린다.
- * 상세: INTEGRATION-TODO.md §A-2
- */
-
-import { useCallback, useEffect, useRef, useState } from "react";
-import type {
-  GroupVoteDto,
-  VotePlaceOptionDto,
-  VoteTimeOptionDto,
-} from "@/shared/lib/api/generated";
-import { AddVoteOptionDto, ChatService } from "@/shared/lib/api/generated";
+import { useEffect, useState } from "react";
+import { formatMeetAt, isTied, tallyPlaceOptions, tallyTimeOptions } from "@/features/chat";
+import type { GroupVote, VotePlaceOption, VoteTally, VoteTimeOption } from "@/features/chat";
 import {
   ActionArea,
   ActionButton,
-  AddOptionButton,
   BackButton,
   Body,
   BottomSpacer,
-  CalendarIcon,
   ChevronLeft,
   ClockIcon,
-  ClockIconSmall,
-  HiddenDateInput,
   InlineCheckIcon,
   LocationIcon,
   NavTitle,
-  NewInputRow,
-  NewPlaceField,
-  NewPlaceIcon,
-  NewPlaceText,
-  NewTimeFieldGroup,
-  NewTimeRow,
   OptionCard,
   OptionHeader,
   OptionLabel,
   OptionLabelRow,
   OptionList,
   Overlay,
-  PickerDisplay,
-  PlusIcon,
   ProgressFill,
   ProgressTrack,
   Section,
@@ -54,226 +28,118 @@ import {
   SectionIcon,
   SectionSubtext,
   SectionTitle,
-  TimePickerField,
   TopNav,
   VoteCount,
   VoteCounter,
   VotersLine,
 } from "./_parts/VoteResultsPage.parts";
 import { PlaceMapPage } from "./PlaceMapPage";
-import { PlaceSearchModal } from "./PlaceSearchModal";
-import type { SelectedPlace } from "./PlaceSearchModal";
 
-const WEEKDAYS = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
-
-function formatTimeLabel(time: string): string {
-  if (!time) return "";
-  const [h, m] = time.split(":").map(Number);
-  if (Number.isNaN(h)) return time;
-  const period = h < 12 ? "오전" : "오후";
-  const hour = h % 12 || 12;
-  const minute = m > 0 ? ` ${m}분` : "";
-  return `${period} ${hour}시${minute}`;
+interface VoteResultsPageProps {
+  vote: GroupVote;
+  /** voterIds(회원 ID) → 표시 이름. 서버는 ID만 주므로 매핑은 화면 몫이다. */
+  memberNameById: Map<number, string>;
+  onClose: () => void;
+  onRevote: () => void;
+  /** 마감. 방 멤버 누구나 가능하고 멱등이라 중복 호출을 막을 필요가 없다. */
+  onCloseVote: () => Promise<void>;
 }
 
-function formatDateLabelFromInputs(date: string, time: string): string {
-  if (!date || !time) return "";
-  const [y, mo, d] = date.split("-").map(Number);
-  if (!y || !mo || !d) return "";
-  const dt = new Date(y, mo - 1, d);
-  return `${mo}월 ${d}일 ${WEEKDAYS[dt.getDay()]} ${formatTimeLabel(time)}`;
-}
-
-function hasPlaceCoordinates(option: VotePlaceOptionDto) {
+function hasPlaceCoordinates(option: VotePlaceOption) {
   return typeof option.latitude === "number" && typeof option.longitude === "number";
 }
 
-function canResolvePlaceMap(option: VotePlaceOptionDto) {
+function canResolvePlaceMap(option: VotePlaceOption) {
   return hasPlaceCoordinates(option) || Boolean(option.address?.trim() || option.label.trim());
 }
 
-interface VoteResultsPageProps {
-  vote: GroupVoteDto;
-  memberMap: Record<string, string>;
-  roomId: string;
-  onClose: () => void;
-  onRevote: () => void;
-  onVoteUpdated?: (updatedVote: GroupVoteDto) => void;
-}
-
+/**
+ * 만남 투표 결과 화면.
+ *
+ * **서버는 승자·득표율을 계산하지 않는다.** 1위·동표 판정은 전부 `tally*` 헬퍼가 하고,
+ * 선택지 배열 순서(=생성 시 입력 순)를 그대로 노출한다. 동표는 동표로 끝난다 —
+ * 재투표·확정 절차는 기획에 없다.
+ */
 export function VoteResultsPage({
   vote,
-  memberMap,
-  roomId,
+  memberNameById,
   onClose,
   onRevote,
-  onVoteUpdated,
+  onCloseVote,
 }: VoteResultsPageProps) {
-  const [placeOptions, setPlaceOptions] = useState<VotePlaceOptionDto[]>(vote.placeOptions);
-  const [timeOptions, setTimeOptions] = useState<VoteTimeOptionDto[]>(vote.timeOptions);
-  const [isAddingPlace, setIsAddingPlace] = useState(false);
-  const [newPlaceLabel, setNewPlaceLabel] = useState("");
-  const [isAddingTime, setIsAddingTime] = useState(false);
-  const [newTimeDate, setNewTimeDate] = useState("");
-  const [newTimeValue, setNewTimeValue] = useState("");
-  const [mapTarget, setMapTarget] = useState<VotePlaceOptionDto | null>(null);
-  const [isPlaceSearchOpen, setIsPlaceSearchOpen] = useState(false);
-  const addingTimeKeyRef = useRef<string | null>(null);
+  const [mapTarget, setMapTarget] = useState<VotePlaceOption | null>(null);
+  const [closing, setClosing] = useState(false);
 
   useEffect(() => {
-    setPlaceOptions(vote.placeOptions);
-    setTimeOptions(vote.timeOptions);
-  }, [vote.placeOptions, vote.timeOptions]);
-
-  useEffect(() => {
-    const prev = document.body.style.overflow;
+    const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = previous;
     };
   }, []);
 
   const myPlaceIds = new Set(vote.myVote?.placeIds ?? []);
   const myTimeIds = new Set(vote.myVote?.timeIds ?? []);
-  const maxPlaceVotes = Math.max(0, ...placeOptions.map((o) => o.voterIds.length));
-  const maxTimeVotes = Math.max(0, ...timeOptions.map((o) => o.voterIds.length));
+  const placeTallies = tallyPlaceOptions(vote);
+  const timeTallies = tallyTimeOptions(vote);
 
   const isOpen = vote.status === "OPEN";
-  const hasMyVote = vote.myVote !== null;
   const isAllVoted = vote.votedCount >= vote.totalMembers;
-  const showRevote = isOpen && hasMyVote && !isAllVoted;
-  const showAddOptions = isOpen && !isAllVoted;
-  const canAddOptions = !hasMyVote && isOpen && !isAllVoted;
-  const totalMembers = vote.totalMembers;
+  const showRevote = isOpen && vote.myVote !== null && !isAllVoted;
+  // 마감된 투표에서만 동표를 안내한다. 진행 중에는 아직 결과가 아니다.
+  const placeTied = !isOpen && isTied(placeTallies);
+  const timeTied = !isOpen && isTied(timeTallies);
 
-  const handleAddPlace = async (place?: SelectedPlace) => {
-    const label = (place?.name ?? newPlaceLabel).trim();
-    if (!label) return;
-    const res = await ChatService.chatControllerAddVoteOption(roomId, vote.id, {
-      type: AddVoteOptionDto.type.PLACE,
-      label,
-      address: place?.address,
-      mapLink: place?.mapUrl,
-      latitude: place?.latitude,
-      longitude: place?.longitude,
-    });
-    if (res.success && res.data) {
-      setPlaceOptions(res.data.placeOptions);
-      setTimeOptions(res.data.timeOptions);
-      onVoteUpdated?.(res.data);
+  const handleCloseVote = async () => {
+    if (closing) return;
+    setClosing(true);
+    try {
+      await onCloseVote();
+    } finally {
+      setClosing(false);
     }
-    setNewPlaceLabel("");
-    setIsAddingPlace(false);
-    setIsPlaceSearchOpen(false);
   };
 
-  const handleAddTime = useCallback(async (date: string, time: string) => {
-    if (!date || !time) return;
-    const dateLabel = formatDateLabelFromInputs(date, time);
-    if (!dateLabel) return;
-    const res = await ChatService.chatControllerAddVoteOption(roomId, vote.id, {
-      type: AddVoteOptionDto.type.TIME,
-      dateLabel,
-      date,
-      time,
-    });
-    if (res.success && res.data) {
-      setPlaceOptions(res.data.placeOptions);
-      setTimeOptions(res.data.timeOptions);
-      onVoteUpdated?.(res.data);
-    }
-    setNewTimeDate("");
-    setNewTimeValue("");
-    setIsAddingTime(false);
-    addingTimeKeyRef.current = null;
-  }, [onVoteUpdated, roomId, vote.id]);
-
-  useEffect(() => {
-    if (!isAddingTime || !newTimeDate || !newTimeValue) return;
-
-    const timeKey = `${newTimeDate}-${newTimeValue}`;
-    if (addingTimeKeyRef.current === timeKey) return;
-
-    addingTimeKeyRef.current = timeKey;
-    void handleAddTime(newTimeDate, newTimeValue);
-  }, [handleAddTime, isAddingTime, newTimeDate, newTimeValue]);
-
-  const renderVoters = (voterIds: string[]) => {
-    if (!voterIds.length) return null;
-    const names = voterIds
-      .map((id) => memberMap[id] ?? "익명")
-      .join(", ");
+  const renderVoters = (voterIds: number[]) => {
+    if (voterIds.length === 0) return null;
+    const names = voterIds.map((id) => memberNameById.get(id) ?? "알 수 없음").join(", ");
     return <VotersLine>{names}</VotersLine>;
   };
 
-  const renderPlaceOption = (option: VotePlaceOptionDto) => {
-    const voteCount = option.voterIds.length;
-    const isWinner = voteCount > 0 && voteCount === maxPlaceVotes;
-    const hasVotes = voteCount > 0;
-    const isMine = myPlaceIds.has(option.id);
-    const progressPct = totalMembers > 0 ? (voteCount / totalMembers) * 100 : 0;
-    const canOpenMap = canResolvePlaceMap(option);
+  const renderOptionCard = (
+    tally: VoteTally<VotePlaceOption | VoteTimeOption>,
+    label: string,
+    isMine: boolean,
+    onCardClick?: () => void,
+  ) => {
+    const hasVotes = tally.count > 0;
 
     return (
       <OptionCard
-        key={option.id}
-        $isWinner={isWinner}
+        key={tally.option.optionId}
+        $isWinner={tally.isWinner}
         $hasVotes={hasVotes}
         $isAllVoted={isAllVoted}
-        $clickable={canOpenMap}
-        type="button"
-        onClick={() => {
-          if (canOpenMap) setMapTarget(option);
-        }}
+        $clickable={Boolean(onCardClick)}
+        {...(onCardClick ? { type: "button" as const, onClick: onCardClick } : { as: "div" as const })}
       >
         <OptionHeader>
           <OptionLabelRow>
-            <OptionLabel>{option.label}</OptionLabel>
+            <OptionLabel>{label}</OptionLabel>
             {isMine && <InlineCheckIcon />}
           </OptionLabelRow>
-          {hasVotes && <VoteCount>{voteCount}명</VoteCount>}
+          {hasVotes && <VoteCount>{tally.count}명</VoteCount>}
         </OptionHeader>
-        {hasVotes && renderVoters(option.voterIds)}
+        {hasVotes && renderVoters(tally.option.voterIds)}
         <ProgressTrack>
-          <ProgressFill style={{ width: `${progressPct}%` }} />
-        </ProgressTrack>
-      </OptionCard>
-    );
-  };
-
-  const renderTimeOption = (option: VoteTimeOptionDto) => {
-    const voteCount = option.voterIds.length;
-    const isWinner = voteCount > 0 && voteCount === maxTimeVotes;
-    const hasVotes = voteCount > 0;
-    const isMine = myTimeIds.has(option.id);
-    const progressPct = totalMembers > 0 ? (voteCount / totalMembers) * 100 : 0;
-
-    return (
-      <OptionCard
-        key={option.id}
-        $isWinner={isWinner}
-        $hasVotes={hasVotes}
-        $isAllVoted={isAllVoted}
-        $clickable={false}
-        as="div"
-      >
-        <OptionHeader>
-          <OptionLabelRow>
-            <OptionLabel>{option.dateLabel}</OptionLabel>
-            {isMine && <InlineCheckIcon />}
-          </OptionLabelRow>
-          {hasVotes && <VoteCount>{voteCount}명</VoteCount>}
-        </OptionHeader>
-        {hasVotes && renderVoters(option.voterIds)}
-        <ProgressTrack>
-          <ProgressFill style={{ width: `${progressPct}%` }} />
+          <ProgressFill style={{ width: `${tally.ratio * 100}%` }} />
         </ProgressTrack>
       </OptionCard>
     );
   };
 
   return (
-    <Overlay role="dialog" aria-modal="true">
+    <Overlay role="dialog" aria-modal="true" aria-label="투표 결과">
       <TopNav>
         <BackButton type="button" onClick={onClose} aria-label="뒤로가기">
           <ChevronLeft />
@@ -293,35 +159,21 @@ export function VoteResultsPage({
               </SectionIcon>
               <SectionTitle>만남 장소 투표</SectionTitle>
             </SectionHeader>
-            <SectionSubtext>장소를 탭하고 위치를 확인해 보세요</SectionSubtext>
+            <SectionSubtext>
+              {placeTied ? "표가 같아 장소가 정해지지 않았어요" : "장소를 탭하고 위치를 확인해 보세요"}
+            </SectionSubtext>
           </SectionHeaderWrapper>
           <OptionList>
-            {placeOptions.map(renderPlaceOption)}
-            {showAddOptions && (
-              <>
-                {canAddOptions && isAddingPlace && (
-                <NewInputRow>
-                  <NewPlaceField type="button" onClick={() => setIsPlaceSearchOpen(true)}>
-                    <NewPlaceIcon>
-                      <LocationIcon />
-                    </NewPlaceIcon>
-                    <NewPlaceText>장소 선택</NewPlaceText>
-                  </NewPlaceField>
-                </NewInputRow>
-                )}
-                <AddOptionButton
-                  type="button"
-                  disabled={!canAddOptions}
-                  $disabled={!canAddOptions}
-                  onClick={() => {
-                    if (canAddOptions) setIsAddingPlace(true);
-                  }}
-                >
-                  <PlusIcon />
-                  새로운 장소 추가하기
-                </AddOptionButton>
-              </>
-            )}
+            {placeTallies.map((tally) => {
+              const option = tally.option;
+              const canOpenMap = canResolvePlaceMap(option);
+              return renderOptionCard(
+                tally,
+                option.label,
+                myPlaceIds.has(option.optionId),
+                canOpenMap ? () => setMapTarget(option) : undefined,
+              );
+            })}
           </OptionList>
         </Section>
 
@@ -333,75 +185,40 @@ export function VoteResultsPage({
               </SectionIcon>
               <SectionTitle>만남 시간 투표</SectionTitle>
             </SectionHeader>
+            {timeTied && <SectionSubtext>표가 같아 시간이 정해지지 않았어요</SectionSubtext>}
           </SectionHeaderWrapper>
           <OptionList>
-            {timeOptions.map(renderTimeOption)}
-            {showAddOptions && (
-              <>
-                {canAddOptions && isAddingTime && (
-                <NewTimeRow>
-                  <NewTimeFieldGroup>
-                    <TimePickerField>
-                      <CalendarIcon />
-                      <HiddenDateInput
-                        type="date"
-                        value={newTimeDate}
-                        onChange={(e) => setNewTimeDate(e.target.value)}
-                      />
-                      <PickerDisplay $empty={!newTimeDate}>{newTimeDate || "날짜 선택"}</PickerDisplay>
-                    </TimePickerField>
-                    <TimePickerField>
-                      <ClockIconSmall />
-                      <HiddenDateInput
-                        type="time"
-                        value={newTimeValue}
-                        onChange={(e) => setNewTimeValue(e.target.value)}
-                      />
-                      <PickerDisplay $empty={!newTimeValue}>
-                        {newTimeValue ? formatTimeLabel(newTimeValue) : "시간 선택"}
-                      </PickerDisplay>
-                    </TimePickerField>
-                  </NewTimeFieldGroup>
-                </NewTimeRow>
-                )}
-                <AddOptionButton
-                  type="button"
-                  disabled={!canAddOptions}
-                  $disabled={!canAddOptions}
-                  onClick={() => {
-                    if (canAddOptions) setIsAddingTime(true);
-                  }}
-                >
-                  <PlusIcon />
-                  새로운 시간 추가하기
-                </AddOptionButton>
-              </>
+            {timeTallies.map((tally) =>
+              renderOptionCard(
+                tally,
+                // 표시 문구는 FE가 만든다 — 서버는 meetAt만 저장한다.
+                formatMeetAt(tally.option.meetAt),
+                myTimeIds.has(tally.option.optionId),
+              ),
             )}
           </OptionList>
         </Section>
         <BottomSpacer />
       </Body>
 
-      {showRevote && (
+      {isOpen && (
         <ActionArea>
-          <ActionButton type="button" onClick={onRevote}>
-            다시 투표하기
+          {showRevote && (
+            <ActionButton type="button" onClick={onRevote}>
+              다시 투표하기
+            </ActionButton>
+          )}
+          <ActionButton type="button" onClick={handleCloseVote} disabled={closing}>
+            {closing ? "마감하는 중..." : "투표 마감하기"}
           </ActionButton>
         </ActionArea>
       )}
+
       {mapTarget && (
         <PlaceMapPage
           place={mapTarget}
           onClose={() => setMapTarget(null)}
           onSelect={() => setMapTarget(null)}
-        />
-      )}
-      {isPlaceSearchOpen && (
-        <PlaceSearchModal
-          onClose={() => setIsPlaceSearchOpen(false)}
-          onSelect={(place) => {
-            void handleAddPlace(place);
-          }}
         />
       )}
     </Overlay>
