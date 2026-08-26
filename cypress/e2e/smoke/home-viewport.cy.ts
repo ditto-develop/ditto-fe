@@ -35,3 +35,40 @@ describe("home fits one screen", () => {
     });
   });
 });
+
+/**
+ * 앱 안에서 홈으로 다시 들어올 때 Splash가 다시 뜨면 화면이 한 번 깜빡인다.
+ * (`isHomeReady`를 MainSection이 마운트마다 false로 되돌리기 때문)
+ * 최초 로드 이후에는 홈 자체 스켈레톤이 그 자리를 받아야 한다.
+ */
+describe("no splash flash on in-app navigation", () => {
+  it("does not re-show the splash when returning to home", () => {
+    cy.clockPeriod("QUIZ");
+    cy.mockApi();
+    cy.login();
+    cy.visit("/home");
+    cy.contains("타임라인", { timeout: 10000 }).should("be.visible");
+    cy.wait(3000);
+
+    cy.contains("a", "프로필").click();
+    cy.location("pathname", { timeout: 8000 }).should("include", "/profile");
+    cy.wait(1500);
+
+    // 홈으로 돌아가는 동안 Splash가 한 프레임이라도 뜨는지 감시한다.
+    const seen = { frames: 0 };
+    cy.window().then((win) => {
+      const timer = win.setInterval(() => {
+        if (win.document.querySelector(".splash-main")) seen.frames += 1;
+      }, 16);
+      win.setTimeout(() => win.clearInterval(timer), 6000);
+    });
+
+    cy.contains("a", "홈").click();
+    cy.location("pathname", { timeout: 8000 }).should("include", "/home");
+    cy.wait(2500);
+
+    cy.then(() => {
+      expect(seen.frames, "홈 복귀 중 Splash가 뜬 프레임 수").to.equal(0);
+    });
+  });
+});

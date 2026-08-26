@@ -24,6 +24,15 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const [splashDone, setSplashDone] = useState(false); // 비로그인 3초 타이머용
   const [homeSplashExpired, setHomeSplashExpired] = useState(false);
   const [isVerifyingSession, setIsVerifyingSession] = useState(false);
+  /**
+   * 첫 진입(콜드 스타트)에서 Splash가 한 번 걷혔는지.
+   *
+   * 홈 Splash는 `isHomeReady`에 걸려 있는데 MainSection이 **마운트마다** 그 값을
+   * false로 되돌린다. 그래서 앱 안에서 홈으로 다시 들어오거나, 홈에서 다른 탭으로
+   * 나가는 순간(전환이 커밋되기 전 path가 아직 '/home'인 프레임)에도 Splash가 떠서
+   * 화면이 한 번 깜빡였다. 최초 로드가 끝난 뒤에는 홈의 스켈레톤이 그 자리를 받는다.
+   */
+  const [initialSplashDone, setInitialSplashDone] = useState(false);
   const sessionVerified = useRef(false);
   const sessionVerifyInFlight = useRef(false);
   const router = useRouter();
@@ -223,9 +232,15 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     if (isOAuthFlowPath) return false;
     if (isSanctionPath) return false;               // 제재 안내: 자체 로딩 문구 사용
     if (!isLoggedIn) return !splashDone;            // 비로그인: 3초 타이머
-    if (path === '/home') return isVerifyingSession || (!isHomeReady && !homeSplashExpired);
+    // 홈은 첫 진입에서만 Splash가 받는다. 재진입·탭 전환은 홈 자체 스켈레톤이 받는다.
+    if (path === '/home' && !initialSplashDone) return !isHomeReady && !homeSplashExpired;
     return false;                                   // 로그인 + 다른 페이지
   })();
+
+  // Splash가 한 번 걷히면 이 세션에서는 다시 띄우지 않는다.
+  useEffect(() => {
+    if (!showSplash && !initialSplashDone) setInitialSplashDone(true);
+  }, [showSplash, initialSplashDone]);
 
   const kakaoInit = () => {
     if (window.Kakao && !window.Kakao.isInitialized()) {

@@ -16,7 +16,7 @@ interface TimelineProps {
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px; /* 각 단계 사이의 간격 */
+  gap: 4px; /* 각 단계 사이의 간격 */
   position: relative;
 `;
 
@@ -47,7 +47,8 @@ const StepRow = styled.div<{ $isActive: boolean }>`
 // 아이콘 영역 (원 + 후광)
 const IconWrapper = styled.div`
   width: 34px;
-  height: 34px;
+  /* 행 높이를 정하는 값이다. 가로 34px은 VerticalTrack(left:16px) 정렬 기준이라 유지. */
+  height: 28px;
   display: flex;
   justify-content: center;
   align-items: center;
