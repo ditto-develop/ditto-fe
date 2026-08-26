@@ -30,9 +30,9 @@ const MainSectionContainer = styled.div`
    * 탭의 실제 높이가 60px + 홈 인디케이터 인셋이라, 80px 고정이면 앱에서
    * 인셋만큼 카드 아래가 탭에 가린다.
    */
-  padding: 16px 0px calc(80px + env(safe-area-inset-bottom, 0px));
+  padding: 8px 0px calc(64px + env(safe-area-inset-bottom, 0px));
   display: grid;
-  gap: 24px;
+  gap: 14px;
 `;
 
 
