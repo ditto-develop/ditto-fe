@@ -12,6 +12,7 @@ import { clearToken } from "@/shared/lib/api/client";
 import { logoutExternal } from "@/shared/lib/api/externalApi";
 import { WEB_APP_VERSION, getAppVersion } from "@/shared/lib/native/appVersion";
 import { clearScheduledNotifications } from "@/shared/lib/native/localNotifications";
+import { releasePushToken } from "@/shared/lib/native/pushNotifications";
 import {
   ActionArea,
   ActionExtra,
@@ -83,6 +84,8 @@ export function SettingsContainer() {
     // 예약된 로컬 알림을 지운다. 안 지우면 다른 계정으로 로그인해도, 심지어
     // 로그아웃 상태로 두어도 매칭 알림이 계속 울린다.
     await clearScheduledNotifications();
+    // 원격 푸시도 끊는다. BE 연결 해제 + 기기 토큰 폐기.
+    await releasePushToken();
     clearToken();
     setLogoutModalOpen(false);
     router.replace("/");

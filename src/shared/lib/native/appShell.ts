@@ -12,10 +12,9 @@ import { getNativePlatform, isNativeApp } from "@/shared/lib/native/platform";
  * 전체를 정확히 비교한다.
  */
 const ALLOWED_HOSTS = new Set([
-    "app.ditto.pics",   // 앱이 서빙받는 정본 호스트
+    "ditto.pics",       // 정본. 앱·웹 모두 이 호스트를 본다
+    "www.ditto.pics",   // CloudFront 에서 아펙스로 301 되지만 링크가 이 형태로 올 수 있다
     "test.ditto.pics",  // staging
-    "ditto.pics",       // 웹. 기존 공유 링크가 이 호스트로 들어올 수 있다
-    "www.ditto.pics",
 ]);
 
 type AppShellOptions = {

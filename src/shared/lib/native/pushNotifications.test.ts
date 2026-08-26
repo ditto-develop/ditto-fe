@@ -13,14 +13,16 @@ vi.mock("@/shared/lib/api/externalClient", () => ({
   externalApiFetch: (...args: unknown[]) => externalApiFetch(...args),
 }));
 
-const requestPermissions = vi.fn();
-const register = vi.fn();
+const requestPermissions = vi.fn(async () => ({ receive: "granted" }));
+const getToken = vi.fn(async () => ({ token: "fcm-token" }));
+const deleteToken = vi.fn(async () => {});
 const addListener = vi.fn(async () => ({ remove: async () => {} }));
-vi.mock("@capacitor/push-notifications", () => ({
-  PushNotifications: {
-    requestPermissions: (...a: unknown[]) => requestPermissions(...a),
-    register: (...a: unknown[]) => register(...a),
-    addListener: (...a: unknown[]) => addListener(...a),
+vi.mock("@capacitor-firebase/messaging", () => ({
+  FirebaseMessaging: {
+    requestPermissions: (...a: unknown[]) => requestPermissions(...(a as [])),
+    getToken: (...a: unknown[]) => getToken(...(a as [])),
+    deleteToken: (...a: unknown[]) => deleteToken(...(a as [])),
+    addListener: (...a: unknown[]) => addListener(...(a as [])),
   },
 }));
 
@@ -61,7 +63,7 @@ describe("initPushNotifications 게이팅", () => {
     await initPushNotifications({ navigate: () => {} });
 
     expect(requestPermissions).not.toHaveBeenCalled();
-    expect(register).not.toHaveBeenCalled();
+    expect(getToken).not.toHaveBeenCalled();
     expect(addListener).not.toHaveBeenCalled();
   });
 
@@ -73,7 +75,7 @@ describe("initPushNotifications 게이팅", () => {
     await initPushNotifications({ navigate: () => {} });
 
     expect(requestPermissions).not.toHaveBeenCalled();
-    expect(register).not.toHaveBeenCalled();
+    expect(getToken).not.toHaveBeenCalled();
   });
 });
 
@@ -96,5 +98,22 @@ describe("unregisterDeviceToken 게이팅", () => {
     await unregisterDeviceToken("");
 
     expect(externalApiFetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("extractDeepLink", () => {
+  it("data.deepLink 를 내부 경로로 바꾼다", async () => {
+    const { extractDeepLink } = await import("@/shared/lib/native/pushNotifications");
+    expect(extractDeepLink({ deepLink: "/chat/one-on-one/12/" })).toBe("/chat/one-on-one/12/");
+    expect(extractDeepLink({ deepLink: "https://ditto.pics/profile/8/" })).toBe("/profile/8/");
+  });
+
+  it("외부 호스트 · 비정상 payload 는 거부한다", async () => {
+    const { extractDeepLink } = await import("@/shared/lib/native/pushNotifications");
+    expect(extractDeepLink({ deepLink: "https://evil.example.com/x/" })).toBeNull();
+    expect(extractDeepLink({ deepLink: 42 })).toBeNull();
+    expect(extractDeepLink({})).toBeNull();
+    expect(extractDeepLink(null)).toBeNull();
+    expect(extractDeepLink("문자열")).toBeNull();
   });
 });

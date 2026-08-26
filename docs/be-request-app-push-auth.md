@@ -190,6 +190,33 @@ FE의 딥링크 검증은 이미 `app` · `test` · `ditto.pics` · `www` 네 �
 
 ---
 
+### C-4. CORS 허용 origin — **확인 요청 (도메인 확정 후)**
+
+FE가 서빙되는 호스트가 바뀔 예정이다(아래 배경). 현재 BE의 CORS 허용 목록이
+**명시적 allowlist**라면, 새 호스트를 추가하지 않는 순간 그 도메인에서는
+**모든 API 호출이 실패한다.** 로그인뿐 아니라 전부다.
+
+**배경:** `ditto.pics` 아펙스에 DNS 레코드가 없어 프로덕션 접속이 불가능한 상태이고
+(§0-0), 현재 DNS 업체가 아펙스 ALIAS를 지원하지 않아 **Route53 이전을 진행 중**이다.
+이전 결과에 따라 FE 정본 호스트가 아래 중 하나로 정해진다:
+
+- `ditto.pics` (아펙스 정본)
+- `www.ditto.pics` (www 정본)
+- `app.ditto.pics` (앱 전용 서브도메인을 두는 경우)
+
+**확인해 줄 것:**
+
+1. 현재 CORS 허용 origin 목록이 무엇인가? (와일드카드인가 명시적 목록인가)
+2. `credentials: 'include'` 요청을 허용하고 있는가?
+   (refresh 쿠키 때문에 필요하다. 이 경우 `Access-Control-Allow-Origin`에
+   `*`를 쓸 수 없고 origin을 정확히 반환해야 한다)
+3. 도메인이 확정되면 추가해 줄 수 있는가?
+
+FE가 도메인을 확정하는 대로 정확한 목록을 회신하겠다.
+확정 전까지는 `test.ditto.pics`(staging)로 개발·검증한다.
+
+---
+
 ---
 
 ## D. 네이티브 소셜 로그인 토큰 교환 (2단계 — A·B 이후)
@@ -217,7 +244,9 @@ Content-Type: application/json
 
 ```jsonc
 // Request — 네이티브 카카오 SDK가 받은 액세스 토큰
-{ "accessToken": "kakao_sdk_access_token" }
+// ⚠️ 필드명은 `accessToken`이 아니라 `kakaoAccessToken`으로 요청한다.
+//    응답의 `accessToken`(우리 JWT)과 이름이 겹치면 양쪽 다 헷갈린다.
+{ "kakaoAccessToken": "kakao_sdk_access_token" }
 ```
 
 ```jsonc
@@ -238,6 +267,25 @@ Content-Type: application/json
   이건 *추가*이지 대체가 아니다.
 - `signupRequired` / `sanctioned` 분기 의미는 현재 콜백 쿼리파라미터와 동일하게 유지.
 - refreshToken은 이 응답에서도 동일하게 `Set-Cookie`로 내려주면 된다.
+  **바디로 내려줄 필요는 없다** — 아래 호출 주체를 참고할 것.
+
+**토큰이 두 개다 (이름 충돌 주의)**
+
+| | 발급자 | 수명 | FE 저장 |
+|---|---|---|---|
+| 요청의 `kakaoAccessToken` | 카카오 | 교환용, 1회성 | 저장 안 함 |
+| 응답의 `accessToken` | BE(우리 JWT) | 기존과 동일 | localStorage |
+
+**이 엔드포인트를 호출하는 주체는 네이티브가 아니라 웹뷰다**
+
+앱이라도 이 요청은 **웹뷰(JS)에서** 나간다. 네이티브 코드가 직접 호출하지 않는다.
+네이티브가 호출하면 `Set-Cookie: refreshToken`이 네이티브 쿠키 저장소로 들어가고
+**웹뷰는 그 쿠키를 보지 못해** 이후 `/api/v1/users/auth/refresh`가 항상 실패한다
+(증상: 며칠 쓰다가 원인 없이 로그아웃 — 추적이 매우 어렵다).
+
+네이티브가 맡는 부분은 **카카오 SDK 로그인 한 조각뿐**이고, 받은 카카오 토큰을
+웹뷰로 넘기면 웹뷰가 이 엔드포인트를 호출한다. 따라서 BE 입장에서는
+**기존 웹 요청과 동일한 origin · 쿠키 처리**를 하면 된다.
 
 ---
 

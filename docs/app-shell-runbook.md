@@ -69,56 +69,34 @@ CAPACITOR_SERVER_URL=https://test.ditto.pics npx cap sync
 
 ---
 
-## 2.1 앱이 서빙받을 도메인 — `app.ditto.pics`
+## 2.1 앱이 서빙받는 도메인 — `ditto.pics` (확정)
 
-앱은 웹(`ditto.pics` / `www`)과 **분리된 호스트**를 쓴다. 이유:
+Route53 이전(2026-08-26)으로 아펙스가 살아났다. **아펙스가 정본이고 앱도 같은 호스트를
+본다.** `www` 는 CloudFront 에서 아펙스로 301 된다.
 
-- **CloudFront 함수를 건드리지 않아도 된다.** 실측 결과 배포판은 *알 수 없는 호스트를
-  prod 콘텐츠로* 서빙한다. `app.ditto.pics` 는 함수의 www 분기(301)에도 apex 분기에도
-  걸리지 않고 기본값으로 떨어진다. 함수 수술이 이 작업에서 가장 위험한 부분인데 그걸 피한다.
-- 앱/웹 트래픽이 분리되어 나중에 캐싱·분석 정책을 따로 줄 수 있다.
-- 아펙스/www 정본 결정(§4.1)과 독립적으로 진행할 수 있다.
-
-### 살리는 데 필요한 것
-
-| # | 작업 | 어디서 | 상태 |
-|---|---|---|---|
-| 1 | `app` CNAME → `d28wm0h79feewt.cloudfront.net` | HOSTING.KR | 서브도메인이라 CNAME 가능 |
-| 2 | CloudFront **대체 도메인 이름**에 `app.ditto.pics` 추가 | AWS 콘솔 | **필수** |
-| 3 | 딥링크 허용 호스트에 추가 | 코드 | ✅ 완료 |
-| 4 | 카카오 JS SDK 플랫폼 도메인 등록 | 카카오 콘솔 | 확인 필요 |
-
-**2번을 빠뜨리면 DNS 만으로는 동작하지 않는다.** 인증서는 `ditto.pics` + `*.ditto.pics`
-와일드카드라 재발급이 필요 없지만, CloudFront 는 **별칭으로 등록된 호스트에만 인증서를
-제시한다.** 등록 전에는 HTTP 응답조차 오지 않고 TLS 핸드셰이크 단계에서 끊긴다:
+검토했다가 접은 것: 앱 전용 서브도메인(`app.ditto.pics`). 원래 명분이 "CloudFront 함수를
+안 건드리고 앱을 붙인다" 였는데, 아펙스 정본이면 함수를 건드릴 이유가 없어 명분이
+사라졌다. CloudFront 별칭 등록 작업도 아꼈다.
 
 ```
-$ curl --resolve app.ditto.pics:443:<CF-IP> https://app.ditto.pics/
-* sslv3 alert handshake failure
+ditto.pics       A(Alias) → CloudFront   ✅ 정본 (앱·웹 공통)
+www.ditto.pics   A(Alias) → CloudFront   ✅ 아펙스로 301
+api.ditto.pics   A(Alias) → ALB          ✅ BE
+test.ditto.pics  ❌ Route53 이전 때 누락 — staging 이 죽어 있다
 ```
 
-### 살아났는지 확인
+### ⚠️ `test.ditto.pics` 복구 필요
 
-```bash
-dig +short @8.8.8.8 app.ditto.pics                  # CloudFront 도메인이 나와야 한다
-curl -s -o /dev/null -w "%{http_code}\n" https://app.ditto.pics/    # 200
-```
-
-`capacitor.config.ts` 의 기본 `server.url` 은 이미 `https://app.ditto.pics` 다.
-1·2번이 끝나기 전까지 개발·테스트는 `npm run cap:staging`(→ `test.ditto.pics`)을 쓴다.
-
-### ⚠️ 도메인을 바꾸기 전에 BE 에 확인할 것
-
-카카오 OAuth 의 `redirect_uri` 는 **BE 자신**을 가리켜서 FE 도메인과 무관하다(확인함):
+Route53 존에 이 레코드가 빠졌다. 배포 워크플로는 계속 `s3://…/staging` 에 올리지만
+**볼 수가 없다.** `npm run cap:staging` 도 죽은 도메인을 가리킨다.
 
 ```
-redirect_uri=https://api.ditto.pics/api/v1/users/social-login/KAKAO/callback
+Route53 > ditto.pics > 레코드 생성
+  이름: test    유형: A    별칭: CloudFront > d28wm0h79feewt.cloudfront.net
 ```
 
-문제는 그다음이다. BE 가 카카오에서 돌아온 뒤 **FE 의 `/auth/callback` 으로 리다이렉트할 때
-쓰는 호스트**는 BE 설정이라 밖에서 확인할 수 없다. `https://ditto.pics` 로 하드코딩돼 있으면
-`app.ditto.pics` 에서 로그인해도 **죽은 도메인에 떨어진다.** www 정본화를 택해도 같은 문제라,
-어느 쪽으로 가든 이 답을 먼저 받아야 한다. → BE 요청서 §C-3.
+CloudFront 배포판에는 `test.ditto.pics` 가 이미 대체 도메인 이름으로 등록돼 있으므로
+(이전에 동작했다) **DNS 레코드만 다시 만들면 된다.**
 
 ---
 
@@ -169,8 +147,40 @@ Android는 `POST_NOTIFICATIONS`(13+)만 있으면 되고 이미 매니페스트�
 
 **새 채팅 메시지는 원리적으로 불가능하다.** 언제 올지 모르고, 앱이 백그라운드면
 JS가 아예 돌지 않으며 STOMP 소켓도 끊긴다. 서버가 깨워주는 수밖에 없다 —
-이것이 앱으로 가는 진짜 이유이자 BE 요청서 §A·§B가 필요한 이유다.
-그룹 결성·재매칭 성사·시스템 공지도 서버가 시점을 정하므로 동일하다.
+이것이 앱으로 가는 진짜 이유다. 그룹 결성·재매칭 성사·시스템 공지도 동일하다.
+
+### 원격 푸시 (FCM) — 배선 완료, BE 대기
+
+`@capacitor-firebase/messaging` 을 쓴다. `@capacitor/push-notifications` 는
+**제거했다** — 둘 다 APNs 델리게이트를 잡아서 함께 두면 충돌한다.
+
+| 단계 | 상태 |
+|---|---|
+| 권한 요청 · 토큰 획득 · 갱신 감지 | ✅ |
+| 알림 탭 → `data.deepLink` 딥링크 | ✅ (호스트 검증 포함) |
+| 로그아웃 시 BE 해제 + 토큰 폐기 | ✅ |
+| BE 디바이스 토큰 등록 API | ❌ **없음** |
+| Firebase 설정 파일 | ❌ **없음** |
+
+**남은 것 둘:**
+
+1. **BE `/api/v1/notifications/devices`** — 2026-08-26 라이브 스펙(54개 경로)에
+   존재하지 않음을 확인했다. 이게 없으면 BE가 우리 토큰을 알 수 없어 발송 대상이 없다.
+   → BE 요청서 §A.
+2. **Firebase 설정 파일** — Firebase 콘솔에서 받아 각 위치에 둔다.
+   - `android/app/google-services.json`
+   - `ios/App/App/GoogleService-Info.plist` — **파일만 두면 안 되고 Xcode 에서
+     타겟의 Copy Bundle Resources 에 들어가야 한다.**
+   - iOS 는 추가로 Xcode 에서 **Push Notifications capability** 를 켜고,
+     Firebase 콘솔에 **APNs 인증 키**를 올려야 한다.
+   - Gradle 쪽 배선은 Capacitor 템플릿에 이미 있다(`google-services` classpath +
+     파일 존재 시에만 apply). **파일이 없어도 빌드는 깨지지 않고** 경고만 남는다.
+
+둘 다 준비되면 `NEXT_PUBLIC_PUSH_ENABLED=true` 로 켠다.
+배포 워크플로의 `Build` 스텝 `env:` 에도 추가해야 한다.
+
+> iOS 권한은 로컬 알림과 **같은 권한**이라, 로컬 알림에서 이미 승인을 받았다면
+> 푸시가 켜질 때 재요청이 없다.
 
 ---
 
@@ -345,6 +355,82 @@ dig +short @8.8.8.8 test.ditto.pics     → d28wm0h79feewt.cloudfront.net ✅
 - 조치: 아펙스 `ditto.pics`에 CloudFront(`d28wm0h79feewt.cloudfront.net`)를 가리키는
   레코드 추가. 아펙스는 CNAME을 못 쓰므로 호스팅 업체의 ALIAS/ANAME 기능이 필요하고,
   없다면 Route53으로 이전하거나 www를 정본으로 바꾸고 301 방향을 뒤집어야 한다.
+
+## 4.2 Route53 이전이 끝나면 — FE 대응 절차
+
+아펙스에 ALIAS를 걸 수 없어(호스팅 업체가 A 레코드에 IP만 허용, 웹 포워딩은 DNS 레코드
+서비스와 배타적) Route53으로 이전한다. **이전이 끝나면 아펙스가 살아나고, 그 시점에
+도메인 정본을 다시 정해야 한다.** 아래는 그 뒤 FE가 할 일이다.
+
+### 0단계 — 이전 자체 검증 (인프라)
+
+```bash
+# NS 교체 전, Route53 네임서버에 직접 질의해서 4개가 다 옳은지 확인
+dig @<route53-ns1> ditto.pics A
+dig @<route53-ns1> api.ditto.pics A     # ★ 이게 틀리면 BE 가 통째로 죽는다
+dig @<route53-ns1> www.ditto.pics A
+dig @<route53-ns1> test.ditto.pics A
+```
+
+교체 후에는 `npm run verify:domains` 로 한 번에 확인한다(§4.3).
+
+### 1단계 — 도메인 정본 결정
+
+아펙스가 살아나면 선택지가 셋이고, **FE 대응이 각각 다르다.**
+
+| 정본 | CloudFront 함수 | FE 변경 | 비고 |
+|---|---|---|---|
+| **`ditto.pics`** (아펙스) | 손댈 필요 없음 — 기존 www→apex 301 이 그대로 맞아떨어진다 | `server.url` 을 아펙스로 되돌림 | 가장 단순 |
+| `www.ditto.pics` | 301 방향 뒤집기 필요 | `server.url` 을 www 로 | |
+| `app.ditto.pics` (앱 전용) | 손댈 필요 없음(알 수 없는 호스트 → prod) | 현재 커밋 상태 유지 | **CloudFront 별칭 추가 필요** |
+
+> Route53 이전으로 아펙스가 살아나면 **`app.ditto.pics` 를 따로 둘 이유가 줄어든다.**
+> 앱 전용 서브도메인의 원래 명분은 "함수를 안 건드리고 앱을 붙인다"였는데,
+> 아펙스 정본을 택하면 함수를 안 건드려도 되기 때문이다.
+> 커밋 `6576516` 이 `server.url` 을 `app.ditto.pics` 로 바꿔 뒀으므로 **재검토 대상**이다.
+
+### 2단계 — 코드 반영 (정본 확정 후)
+
+- [ ] **`capacitor.config.ts`** — `SERVER_URL` 기본값을 정본 호스트로.
+      현재 `https://app.ditto.pics` (커밋 `6576516`).
+- [ ] **`src/shared/lib/native/appShell.ts`** — `ALLOWED_HOSTS` 정리.
+      딥링크가 통과할 호스트 집합이다. **안 쓰기로 한 호스트는 빼는 편이 안전하다**
+      (푸시 payload 로 들어오는 값이라 공격 표면이다).
+- [ ] `npm run cap:prod` 로 sync 하고 네이티브 `capacitor.config.json` 을 눈으로 확인.
+
+### 3단계 — 외부 등록 (코드 밖)
+
+- [ ] **BE CORS** — 정본 호스트가 허용 목록에 있는지. 없으면 **모든 API 호출이 막힌다.**
+      → BE 요청서 §C-4 로 질의해 둠.
+- [ ] **BE 로그인 리다이렉트 호스트** — 로그인 후 FE `/auth/callback` 으로 보낼 때 쓰는 호스트.
+      하드코딩이면 도메인을 바꾸는 순간 로그인이 깨진다. → BE 요청서 §C-3.
+- [ ] **카카오 개발자 콘솔** — JS SDK 플랫폼 도메인. 카카오맵(`ClientLayout.tsx`)이 이걸 쓴다.
+- [ ] **CloudFront 별칭** — `app.ditto.pics` 를 쓰기로 한 경우에만. 인증서는 `*.ditto.pics`
+      와일드카드라 재발급은 불필요하지만, 별칭 등록 전에는 TLS 핸드셰이크에서 끊긴다.
+
+### 4단계 — Route53 과 무관하게 여전히 남는 것
+
+도메인이 정리돼도 **아래는 그대로 남는다.** 같이 끝났다고 착각하지 말 것.
+
+- **CloudFront 함수의 과매칭 버그** — `/profile/edit/` · `/profile/intro-note/` ·
+  `/quiz/current/` 가 placeholder 로 덮이는 문제(§4). 도메인과 무관하다.
+- **404 폴백의 프리픽스 누락** — staging 에서 없는 경로가 prod 빌드를 띄운다(§4).
+  배포판 분리가 필요하다.
+- **도메인 자동갱신** — 만료 2026-10-24. NS 를 Route53 으로 옮겨도 **등록기관은
+  HOSTING.KR 그대로**라 갱신은 계속 거기서 한다.
+
+---
+
+## 4.3 도메인 검증
+
+```bash
+npm run verify:domains
+```
+
+DNS · HTTP · 딥링크 rewrite 를 한 번에 확인한다. Route53 이전 직후,
+CloudFront 함수 배포 직후에 돌릴 것. 자세한 내용은 `scripts/verify-domains.mjs`.
+
+---
 
 ## 5. 남은 작업
 

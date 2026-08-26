@@ -15,19 +15,18 @@ import type { CapacitorConfig } from "@capacitor/cli";
 /**
  * 빌드 대상 환경.
  *
- * 앱은 `app.ditto.pics` 를 정본으로 삼는다. 웹(`ditto.pics` / `www`)과 분리해 두면
- * CloudFront 함수의 호스트 분기를 건드리지 않고도(알 수 없는 호스트는 prod 로 떨어진다)
- * 앱을 붙일 수 있고, 나중에 앱/웹에 캐싱·분석 정책을 따로 줄 수 있다.
+ * Route53 이전(2026-08-26)으로 아펙스 `ditto.pics` 가 살아났다. 아펙스가 정본이며
+ * `www` 는 CloudFront 에서 아펙스로 301 된다. 앱도 같은 호스트를 본다.
  *
- * ⚠️ `app.ditto.pics` 는 **아직 살아 있지 않다.** 아래 둘이 끝나야 동작한다:
- *   1. DNS: `app` CNAME → `d28wm0h79feewt.cloudfront.net` (HOSTING.KR)
- *   2. CloudFront 배포판의 **대체 도메인 이름**에 `app.ditto.pics` 추가
- *      (인증서는 `*.ditto.pics` 와일드카드라 재발급 불필요. 등록 전에는
- *       TLS 핸드셰이크 단계에서 끊긴다 — 실측 확인함)
+ * 앱 전용 서브도메인(`app.ditto.pics`)은 두지 않기로 했다. 원래 명분이
+ * "CloudFront 함수를 안 건드리고 앱을 붙인다" 였는데, 아펙스 정본이면 함수를
+ * 건드릴 이유가 없어 명분이 사라졌다. CloudFront 별칭 등록도 아낀다.
  *
- * 그때까지 개발·테스트는 `npm run cap:staging` 을 쓸 것.
+ * 개발·테스트는 `npm run cap:staging`(→ `test.ditto.pics`).
+ * ⚠️ 단 `test.ditto.pics` 는 Route53 이전 때 누락되어 현재 죽어 있다 —
+ *    Route53 에 A(Alias) 레코드를 다시 만들어야 한다.
  */
-const SERVER_URL = process.env.CAPACITOR_SERVER_URL ?? "https://app.ditto.pics";
+const SERVER_URL = process.env.CAPACITOR_SERVER_URL ?? "https://ditto.pics";
 
 const config: CapacitorConfig = {
     appId: "pics.ditto.app",
