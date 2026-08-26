@@ -32,6 +32,11 @@ jobs:
           NEXT_PUBLIC_REDIRECT_URI: ${{ secrets.NEXT_PUBLIC_REDIRECT_URI }}
           NEXT_PUBLIC_DITTO_API_KEY: ${{ secrets.NEXT_PUBLIC_DITTO_API_KEY }}
 
+      - name: Verify CloudFront rewrite function is in sync with build output
+        # 새 동적 라우트가 추가됐는데 함수를 재생성하지 않으면 그 라우트의 딥링크가
+        # 조용히 깨진다. 빌드 산출물과 커밋된 함수가 어긋나면 여기서 배포를 멈춘다.
+        run: node scripts/generate-cf-rewrite-function.mjs --check
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -47,3 +52,19 @@ jobs:
           aws cloudfront create-invalidation \
             --distribution-id ${{ secrets.CF_DISTRIBUTION_ID }} \
             --paths "/*"
+
+      - name: Publish CloudFront rewrite function
+        # CF_REWRITE_FUNCTION_NAME 변수가 설정되기 전(= 함수 최초 생성/배포판 연결
+        # 전)에는 건너뛴다. 일회성 설정 절차는 docs/app-shell-runbook.md 참고.
+        if: vars.CF_REWRITE_FUNCTION_NAME != ''
+        run: |
+          set -euo pipefail
+          FN="${{ vars.CF_REWRITE_FUNCTION_NAME }}"
+          ETAG=$(aws cloudfront describe-function --name "$FN" --query 'ETag' --output text)
+          aws cloudfront update-function \
+            --name "$FN" \
+            --if-match "$ETAG" \
+            --function-config Comment="ditto dynamic route rewrite",Runtime=cloudfront-js-2.0 \
+            --function-code fileb://infra/cloudfront/rewrite-dynamic-routes.js
+          NEW_ETAG=$(aws cloudfront describe-function --name "$FN" --query 'ETag' --output text)
+          aws cloudfront publish-function --name "$FN" --if-match "$NEW_ETAG"

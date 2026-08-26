@@ -17,9 +17,18 @@
     "verify": "npm run lint && npm run typecheck && npm run test",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "generate-client": "openapi --input ./ditto-api.json --output ./src/shared/lib/api/generated --client fetch"
+    "generate-client": "openapi --input ./ditto-api.json --output ./src/shared/lib/api/generated --client fetch",
+    "cf:rewrite": "node scripts/generate-cf-rewrite-function.mjs",
+    "cf:rewrite:check": "node scripts/generate-cf-rewrite-function.mjs --check"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/ios": "^8.5.0",
+    "@capacitor/keyboard": "^8.0.5",
+    "@capacitor/push-notifications": "^8.1.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@stomp/stompjs": "^7.3.0",
     "framer-motion": "^12.23.26",
     "lottie-react": "^2.4.1",
@@ -30,6 +39,7 @@
     "styled-components": "^6.1.19"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
     "@chromatic-com/storybook": "^3.0.0",
     "@storybook/addon-a11y": "^8.4.7",
     "@storybook/addon-docs": "^8.4.7",

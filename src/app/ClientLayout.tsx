@@ -11,6 +11,8 @@ import {
 } from "@/shared/lib/auth";
 import { tryRefreshToken } from "@/shared/lib/api/client";
 import { normalizePathname } from "@/shared/lib/routePath";
+import { initAppShell } from "@/shared/lib/native/appShell";
+import { initPushNotifications } from "@/shared/lib/native/pushNotifications";
 import { usePathname, useRouter } from "next/navigation";
 import Script from "next/script";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -57,6 +59,35 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     setIsHydrated(true);
     syncAuthState();
   }, [path, syncAuthState]);
+
+  // 네이티브 앱 셸(Capacitor) 초기화. 웹 브라우저에서는 전부 no-op이다.
+  // Android 하드웨어 뒤로가기 · 상태바 · 딥링크만 담당한다.
+  useEffect(() => {
+    let dispose: (() => void) | undefined;
+    initAppShell({ navigate: (target) => router.push(target) })
+      .then((cleanup) => {
+        dispose = cleanup;
+      })
+      .catch((err: unknown) => {
+        console.error("[native] 앱 셸 초기화 실패:", err);
+      });
+    return () => dispose?.();
+  }, [router]);
+
+  // 푸시 알림은 로그인 이후에만 초기화한다. 디바이스 토큰 등록 API가 인증을
+  // 요구하므로 비로그인 상태에서 부르면 401이 난다.
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    let dispose: (() => void) | undefined;
+    initPushNotifications({ navigate: (target) => router.push(target) })
+      .then((cleanup) => {
+        dispose = cleanup;
+      })
+      .catch((err: unknown) => {
+        console.error("[native] 푸시 초기화 실패:", err);
+      });
+    return () => dispose?.();
+  }, [isLoggedIn, router]);
 
   // 쓰레기 토큰 감시: 주기적 + 탭 간 storage 변경 시 제거·동기화
   useEffect(() => {

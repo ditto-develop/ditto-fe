@@ -23,6 +23,10 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "src/shared/lib/api/generated/**",
     "src/lib/api/**",
+    // Capacitor가 생성/관리하는 네이티브 프로젝트. 웹 번들 사본이 들어 있어
+    // 린트 대상이 아니다(빌드 산출물이며 .gitignore로도 제외된다).
+    "android/**",
+    "ios/**",
   ]),
   {
     files: ["**/*.{js,jsx,ts,tsx,mjs}"],
@@ -56,6 +60,8 @@ const eslintConfig = defineConfig([
       "next.config.*",
       "cypress.config.*",
       "vitest.config.*",
+      // Capacitor CLI가 default export 를 요구한다(next/cypress/vitest 설정과 동일).
+      "capacitor.config.*",
       "**/*.stories.{js,jsx,ts,tsx}",
       "**/.storybook/**/*.{js,jsx,ts,tsx}",
       "src/app/**/page.{js,jsx,ts,tsx}",
