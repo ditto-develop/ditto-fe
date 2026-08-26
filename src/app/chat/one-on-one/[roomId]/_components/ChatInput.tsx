@@ -77,6 +77,18 @@ export function ChatInput({ onSend, onSendImages, disabled }: ChatInputProps) {
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    /**
+     * 한글 IME 조합 중의 Enter는 무시한다.
+     *
+     * 크롬은 조합 중 Enter에 keydown을 **두 번** 쏜다 — 조합 확정용(isComposing: true)과
+     * 실제 Enter. 가드가 없으면 첫 번째가 "안녕하세요"를 보내고 value를 비우는데,
+     * 조합이 아직 안 끝나 compositionend가 마지막 글자("요")를 되돌려 놓고,
+     * 두 번째 keydown이 그 "요"를 한 번 더 보낸다.
+     *
+     * keyCode 229는 isComposing을 안 채우는 구형 IME 대비다(deprecated지만 폴백으로만 쓴다).
+     */
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();

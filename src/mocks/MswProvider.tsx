@@ -33,7 +33,14 @@ export function MswProvider({ children }: MswProviderProps) {
           onUnhandledRequest: "bypass",
         }),
       )
-      .then(() => {
+      .catch((err: unknown) => {
+        // 목업 기동 실패로 앱 전체가 Splash에 갇히면 안 된다. 실패해도 화면은 띄우고
+        // 요청은 실제 백엔드로 나가게 둔다.
+        // 대표 사례: secure context가 아닌 곳(폰에서 http://192.168.x.x:3000 같은 LAN 주소)에서는
+        // navigator.serviceWorker가 없어 worker.start()가 거부된다 — 데스크톱 localhost만 무사하다.
+        console.error("[msw] 목업 워커를 시작하지 못했습니다. 실제 API로 요청합니다:", err);
+      })
+      .finally(() => {
         if (!cancelled) {
           setMockReady(true);
         }

@@ -18,6 +18,15 @@ type ExternalRequestOptions = {
 
 const REFRESH_PATH = "/api/v1/users/auth/refresh";
 
+/**
+ * 세션 검증(refresh)의 응답 대기 상한.
+ *
+ * fetch에는 기본 타임아웃이 없다. 이 요청이 영영 끝나지 않으면 ClientLayout의
+ * `isVerifyingSession`이 true로 굳어 **Splash가 화면을 영구히 덮는다** — 사용자에게는
+ * "스플래시에서 안 넘어간다"로 보인다. 실패로 떨어뜨려야 로그인 화면이라도 나온다.
+ */
+const REFRESH_TIMEOUT_MS = 8000;
+
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, "");
 
 export function getExternalApiBase(): string {
@@ -51,6 +60,21 @@ function toApiError(
     return new ApiError(getErrorMessage(json?.error, fallback), code, statusCode);
 }
 
+/**
+ * 상한을 건 fetch. 시간이 지나면 abort 되어 호출부의 catch로 떨어진다.
+ * AbortSignal.timeout은 사파리 지원이 늦어(16+) 직접 컨트롤러를 만든다.
+ */
+async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REFRESH_TIMEOUT_MS);
+
+    try {
+        return await fetch(url, { ...init, signal: controller.signal });
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
+
 // 토큰 refresh 정본: 동시에 여러 401이 발생해도 refresh 요청은 1회만 발생(single-flight).
 // generated client(client.ts)의 tryRefreshToken도 이 함수로 위임된다.
 let refreshPromise: Promise<string | null> | null = null;
@@ -63,7 +87,7 @@ export async function refreshAccessToken(): Promise<string | null> {
             const refreshUrl = `${getExternalApiBase()}${REFRESH_PATH}`;
             console.log(`[externalApiFetch] → POST ${refreshUrl} (token refresh)`);
             const apiKey = process.env.NEXT_PUBLIC_DITTO_API_KEY;
-            const res = await fetch(refreshUrl, {
+            const res = await fetchWithTimeout(refreshUrl, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
