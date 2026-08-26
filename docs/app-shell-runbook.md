@@ -424,39 +424,32 @@ dig @<route53-ns1> test.ditto.pics A
 ## 4.3 도메인 검증
 
 ```bash
-npm run verify:domains
+npm run build && npm run verify:domains
 ```
 
-DNS · HTTP · 딥링크 rewrite 를 한 번에 확인한다. Route53 이전 직후,
-CloudFront 함수 배포 직후에 돌릴 것. 자세한 내용은 `scripts/verify-domains.mjs`.
+DNS · HTTP · 딥링크 rewrite · **형제 정적 라우트 과매칭**을 한 번에 확인한다.
+Route53 레코드 변경 직후, CloudFront 함수 배포 직후에 돌릴 것.
+실패가 있으면 종료 코드 1이라 CI 에도 걸 수 있다.
 
----
+**비교 방식이 핵심이다.** 배포본과 로컬 빌드는 보통 서로 다른 빌드라 응답 크기가
+절대 일치하지 않는다. 그래서 로컬과 대조하지 않고 **같은 호스트 안에서** 비교한다:
 
-## 5. 남은 작업
+```
+/{parent}/{숫자}/  === /{parent}/placeholder/   → rewrite 동작
+/{parent}/{정적}/  !== /{parent}/placeholder/   → 과매칭 없음
+```
 
-- [ ] **푸시 활성화** — BE의 A·B 도착 후 `NEXT_PUBLIC_PUSH_ENABLED=true`.
-      배포 워크플로의 `Build` 스텝 `env:`에도 추가해야 한다.
-- [x] **safe-area 완료.** 코드베이스에 이미 24개 파일이 `env(safe-area-inset-*)`를
-      쓰고 있었고, `viewport-fit=cover`가 없어 전부 0으로 계산되던 것을 살린 것이
-      이번 수정이다. 나머지를 전수 점검한 결과 **실제로 필요한 것은 2개뿐**이었다:
+이 비교는 어느 빌드가 올라가 있든 유효하다. 라우트 목록은 `out/**/placeholder`
+스캔으로 만들기 때문에 새 동적 라우트가 생겨도 자동으로 포함된다.
 
-      - `shared/ui/BottomSheet` — 하단 앵커(`align-items: flex-end`)라 시트가 바닥에 붙는다 ✅
-      - `components/home/GroupMatchingResultModal` — viewport 고정 하단 액션 바 ✅
+### 2026-08-26 기준 결과
 
-      **일부러 적용하지 않은 것** (적용하면 오히려 나빠진다):
+```
+DNS      ditto.pics ✓   www ✓   api ✓   test ✗ (Route53 누락)
+HTTP     apex 200 ✓     www 301 → apex ✓
+딥링크    4/4 rewrite 동작 ✓
+과매칭    /profile/edit/ · /profile/intro-note/ · /quiz/current/ ✗
+```
 
-      - `AlertModal` · `QuizModal` — `align-items: center`로 수직 중앙 정렬이라
-        하단 가장자리에 닿지 않는다. 인셋을 넣으면 중앙이 어긋난다.
-      - `FullScreenModal` — 자식이 임의인 범용 컨테이너다. 컨테이너에 패딩을 주면
-        자체 하단 바를 가진 소비자(`GroupMatchingResultModal`)와 이중으로 적용된다.
-        소비자 쪽에서 각자 처리하는 것이 맞다.
-      - `ProfileDetailModal` — `padding: 0 16px 34px`로 이미 34px(아이폰 홈 인디케이터
-        높이)를 수동 확보해 두었다. 깨진 상태가 아니고, 적응형으로 바꿀지는
-        **실기기로 눈으로 봐야 판단할 수 있다.** 추측으로 건드리지 않는다.
-
-- [ ] **네이티브 카카오 로그인** — BE의 D 도착 후. 1차 출시는 기존 리다이렉트로 충분하다.
-- [ ] **스토어 심사 대비** — 원격 URL만 로드하는 순수 래퍼는 App Store 4.2
-      (minimum functionality) 리젝 사유가 된다. **푸시·딥링크가 붙은 뒤에 심사를 넣을 것.**
-- [ ] **앱 아이콘 / 스플래시** — 현재 Capacitor 기본 리소스다. 디자인 에셋으로 교체 필요.
-- [ ] **실기기 빌드 검증** — 프로젝트 생성까지만 되어 있고 실제 컴파일은 아직 한 번도 하지 않았다.
-      Android Studio / Xcode 가 있는 머신에서 §3 스모크와 함께 확인할 것.
+남은 실패 4건은 전부 AWS 작업이다 — `test` 레코드 재생성(§2.1)과
+CloudFront 함수의 숫자 id 가드(§4).
