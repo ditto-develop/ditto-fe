@@ -150,16 +150,60 @@ CF_REWRITE_FUNCTION_NAME = ditto-rewrite-dynamic-routes
 `cloudfront:DescribeFunction`, `cloudfront:UpdateFunction`, `cloudfront:PublishFunction`
 (최초 연결을 CLI로 한다면 `cloudfront:UpdateDistribution`도)
 
-### ⚠️ 검증 순서
+### ⚠️ 실측 결과 (2026-08-26) — 문서의 전제가 틀렸다
 
-**staging에서 라우트 하나만 먼저 붙여 확인할 것.** 주소창(`/profile/12/`)과
-RSC 페이로드 세그먼트(`placeholder`)가 다른 상태를 Next 라우터가 어떻게 다루는지
-이 배포에서 한 번도 검증된 적이 없다. 이상하면 신고 화면처럼 쿼리 파라미터가 폴백 플랜이다.
+`INTEGRATION-TODO.md` §0-1은 "placeholder 서빙은 이 배포에서 한 번도 동작한 적이 없다"고
+적고 있으나 **사실이 아니다.** staging 실측 결과 rewrite는 **이미 동작 중이고, 과매칭 상태**다.
+
+응답 크기를 로컬 빌드 산출물과 대조한 결과:
+
+| 경로 | 서빙 | 로컬 실제 | 판정 |
+|---|---|---|---|
+| `/profile/12/` | 9521 | 9521 (placeholder) | 정상 — rewrite 동작 중 |
+| `/chat/one-on-one/305/` | 10311 | 10311 (placeholder) | 정상 |
+| `/profile/edit/` | 9521 | **16759** | **깨짐** — placeholder가 덮음 |
+| `/profile/intro-note/` | 9521 | **16555** | **깨짐** |
+| `/quiz/current/` | 9489 | **9895** | **깨짐** |
+
+즉 **동적 세그먼트를 무제한 매칭하는 rewrite가 이미 배포돼 있어, 형제 정적 라우트 3개를
+placeholder로 덮고 있다.** 이 저장소의 함수가 숫자 id 가드로 막는 바로 그 사고다.
+
+하드 로드에서만 재현되므로(앱 내부 이동은 Next 라우터가 받아서 정상) 지금까지 드러나지 않았다.
+`/profile/edit/`를 새로고침하거나 URL을 직접 열면 프로필 상세가 뜬다.
+
+**따라서 이 저장소의 함수를 연결하는 것은 신규 도입이 아니라 기존 과매칭의 수정이다.**
+연결 전에 콘솔에서 **현재 무엇이 rewrite를 하고 있는지 반드시 확인할 것** — CloudFront는
+behavior당 viewer-request 함수를 하나만 붙일 수 있어, 기존 함수가 있으면 교체된다.
+기존 함수가 host 기반 staging/prod 프리픽스 분기까지 겸하고 있다면 그 로직을
+이 함수에 합쳐야 한다. 확인 없이 붙이면 사이트 전체가 깨진다.
+
+> ⚠️ `ditto.pics`(prod)와 `test.ditto.pics`(staging)는 **같은 배포판 E2IAN5BWR5D33B**를 쓴다.
+> default behavior에 함수를 붙이면 staging만 검증하는 것이 불가능하고 prod에 즉시 적용된다.
+> staging 전용 검증이 필요하면 host 조건 분기를 함수 안에 넣어야 한다.
 
 404 폴백을 `/index.html`(200) → `/404.html`(404)로 바꾸는 것은 **이 함수가 동작한 뒤에** 한다.
 순서를 뒤집으면 지금 첫 화면이 뜨던 자리에 404가 뜰 뿐 더 나빠진다.
 
 ---
+
+## 4.1 ⚠️ 프로덕션 DNS 장애 (2026-08-26 발견, 이 작업과 무관)
+
+**`ditto.pics` 아펙스 도메인에 DNS 레코드가 하나도 없다.** 공개 리졸버(8.8.8.8 / 1.1.1.1)
+양쪽에서 A·AAAA·CNAME·MX·TXT 전부 비어 있다(존은 존재, `status: NOERROR`).
+
+```
+dig +short @8.8.8.8 ditto.pics A        → (빈 응답)
+dig +short @8.8.8.8 www.ditto.pics      → d28wm0h79feewt.cloudfront.net ✅
+dig +short @8.8.8.8 test.ditto.pics     → d28wm0h79feewt.cloudfront.net ✅
+```
+
+그런데 `www.ditto.pics`는 CloudFront에서 **301로 `https://ditto.pics/`로 보낸다.**
+즉 **실사용자는 프로덕션에 접속할 수 없다** — www로 들어와도 존재하지 않는 도메인으로 튕긴다.
+
+- 네임서버는 Route53이 아니라 `ns1~4.hosting.co.kr` 이다. DNS는 해당 호스팅 콘솔에서 관리된다.
+- 조치: 아펙스 `ditto.pics`에 CloudFront(`d28wm0h79feewt.cloudfront.net`)를 가리키는
+  레코드 추가. 아펙스는 CNAME을 못 쓰므로 호스팅 업체의 ALIAS/ANAME 기능이 필요하고,
+  없다면 Route53으로 이전하거나 www를 정본으로 바꾸고 301 방향을 뒤집어야 한다.
 
 ## 5. 남은 작업
 

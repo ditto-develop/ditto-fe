@@ -18,6 +18,28 @@
 
 ## 0. 배포 · 인프라
 
+### 0-0. 🔴 프로덕션 DNS 장애 — `ditto.pics` 아펙스에 레코드가 없다
+
+**2026-08-26 발견. 실사용자가 프로덕션에 접속할 수 없는 상태다.**
+
+공개 리졸버(8.8.8.8 / 1.1.1.1) 양쪽에서 아펙스 `ditto.pics`의 A·AAAA·CNAME·MX·TXT가
+**전부 비어 있다**(존은 존재, `status: NOERROR`).
+
+```
+dig +short @8.8.8.8 ditto.pics A      → (빈 응답)
+dig +short @8.8.8.8 www.ditto.pics    → d28wm0h79feewt.cloudfront.net ✅
+dig +short @8.8.8.8 test.ditto.pics   → d28wm0h79feewt.cloudfront.net ✅
+```
+
+그런데 `www.ditto.pics`는 CloudFront에서 **301로 `https://ditto.pics/`로 보낸다.**
+→ www로 들어와도 존재하지 않는 도메인으로 튕긴다. staging(`test.ditto.pics`)만 살아 있다.
+
+- 네임서버가 Route53이 아니라 `ns1~4.hosting.co.kr` 이다. DNS는 해당 호스팅 콘솔에서 관리된다.
+- 아펙스는 CNAME을 쓸 수 없으므로 호스팅 업체의 **ALIAS/ANAME** 기능이 필요하다.
+  없으면 Route53으로 이전하거나, www를 정본으로 바꾸고 301 방향을 뒤집어야 한다.
+
+---
+
 ### 0-1. 정적 export의 동적 라우트가 하드 로드에서 깨진다
 
 `output: 'export'`는 동적 라우트를 `generateStaticParams`의 더미값(`placeholder`) 한 장으로만
@@ -51,9 +73,23 @@
 
 - ⚠️ **드리프트**: 패턴 목록이 AWS에만 살면 새 동적 라우트가 조용히 깨진다.
   `out/**/placeholder`를 스캔해 함수 소스를 생성하고 배포 워크플로에서 publish 하면 없앨 수 있다.
-- ⚠️ **미검증**: placeholder 서빙은 이 배포에서 한 번도 동작한 적이 없다. 주소창(`/profile/12/`)과
-  RSC 페이로드 세그먼트(`placeholder`)가 다른 상태를 Next 라우터가 어떻게 다루는지
-  **staging에서 한 라우트만 먼저 붙여 확인**할 것. 이상하면 신고 화면처럼 쿼리 파라미터가 폴백 플랜.
+- ✅ **드리프트 해소됨(2026-08-26)**: `out/**/placeholder`를 스캔해 함수 소스를 생성하는
+  `scripts/generate-cf-rewrite-function.mjs`를 추가했다. 배포 워크플로가 `--check`로
+  빌드 산출물과 커밋본 불일치 시 배포를 중단한다.
+- 🔴 **정정(2026-08-26)**: 위의 "미검증 / 한 번도 동작한 적이 없다"는 **사실이 아니었다.**
+  staging 실측 결과 rewrite는 **이미 동작 중이고 과매칭 상태**다. 동적 세그먼트를
+  무제한 매칭해서 **형제 정적 라우트 3개를 placeholder로 덮고 있다**:
+  `/profile/edit/`(9521 서빙 / 실제 16759), `/profile/intro-note/`(9521 / 16555),
+  `/quiz/current/`(9489 / 9895). 하드 로드에서만 재현되어(앱 내부 이동은 Next 라우터가
+  받는다) 그동안 드러나지 않았다.
+  → `infra/cloudfront/rewrite-dynamic-routes.js`는 **숫자 id만 매칭**해 이를 막는다.
+  연결은 신규 도입이 아니라 **기존 과매칭의 수정**이다.
+- ⚠️ **연결 전 필수 확인**: CloudFront는 behavior당 viewer-request 함수를 하나만 붙일 수
+  있다. 지금 무엇이 rewrite를 하고 있는지 콘솔에서 확인하지 않고 붙이면 기존 함수가
+  교체되어 사이트 전체가 깨질 수 있다. 기존 함수가 host 기반 staging/prod 프리픽스 분기를
+  겸하고 있다면 그 로직을 합쳐야 한다.
+- ⚠️ **staging 단독 검증 불가**: `ditto.pics`와 `test.ditto.pics`가 같은 배포판
+  (E2IAN5BWR5D33B)을 쓴다. default behavior에 붙이면 prod에 즉시 적용된다.
 - 배포 IAM 롤에 `cloudfront:UpdateFunction` · `PublishFunction` ·
   (최초 연결 시) `UpdateDistribution` 권한이 추가로 필요하다.
 
