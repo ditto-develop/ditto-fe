@@ -1,11 +1,15 @@
 # FE 남은 작업 (TODO)
 
-> 갱신: 2026-08-25
+> 갱신: 2026-08-26
 >
 > BE 개발 요청서는 발송 완료됐고 정본은 리포지토리 위키에 있다 —
 > [BE-Request](https://github.com/ditto-develop/ditto-fe/wiki/BE-Request).
-> **2026-08-24 BE 회신**으로 부록 B 체크리스트 6건과 부록 A(스키마) 3건에 전부 답이 왔다.
-> 아래 §A 항목들은 이제 "요청할 것"이 아니라 **계약이 확정된 채 구현 도착을 기다리는 것**이다.
+> **2026-08-26 BE 회신**: 그룹 투표 · 채팅방 나가기 · 어드민 시각 조정 수정이 배포됐고,
+> 나머지 요청도 A-3(타인 프로필 보조, P2 — 재현님 담당)만 남기고 전부 반영됐다.
+> **§A-2 · A-4 · A-5 · A-6은 FE 연동까지 끝났다.** 남은 §A 항목은 A-3 · A-7 · A-8뿐이다.
+>
+> ⚠️ 라이브 스펙(`https://api.ditto.pics/docs/openapi.yaml`)이 요청서와 **필드명이 다른 곳이
+> 있다**(§A-5). 연동 전에는 요청서가 아니라 라이브 스펙을 정본으로 대조할 것.
 >
 > §A-2 · §A-3 · §A-5 번호는 코드 주석 15곳이 참조하므로 그대로 둔다.
 
@@ -97,30 +101,30 @@ dig +short @8.8.8.8 test.ditto.pics   → d28wm0h79feewt.cloudfront.net ✅
 
 ## A. BE 구현 대기 — 계약은 확정됨 (2026-08-24 회신)
 
-### A-2. 그룹 투표
+### A-2. 그룹 투표 — ✅ 연동 완료 (2026-08-26)
 
-회신으로 확정된 것:
+BE 배포 완료(위키 `Frontend-Vote-Guide`). FE 이관도 끝났다.
 
-- **STOMP 브로드캐스트 가능.** 별도 destination 없이 기존 방 토픽(`/sub/chat/rooms/{roomId}`)으로
-  SYSTEM 메시지가 온다. `content`는 `"VOTE_CREATED:{voteId}"` / `"VOTE_CLOSED:{voteId}"`(콜론 1회 split).
-  → **5초 폴링은 걷는다.**
-- 단 **전달 보장이 없다**(인메모리 브로커). 재접속·백그라운드 복귀 시 놓친 프레임은 못 받는다.
-  그래서 `GET /api/v1/chat/rooms/{roomId}/votes`(방의 투표 목록)가 함께 열린다.
-  **화면 복구(배너의 열린 투표 되찾기)는 이 REST를 기준으로 잡을 것.** 브로드캐스트는 실시간 갱신용.
-- **권한**: 생성·마감 모두 방 멤버 누구나.
-- **장소검색**: BE 프록시(카카오 키는 서버 관리).
+- API: `src/features/chat/api/voteApi.ts` — 목록·상세·생성·cast·close 5개. 다섯 응답이 모두
+  같은 상세 형태라 성공 후 재조회가 없다.
+- 상태: `useGroupVote`. **진실은 목록 REST이고 STOMP는 갱신 신호일 뿐이다** —
+  `VOTE_CREATED:{id}` / `VOTE_CLOSED:{id}` SYSTEM 메시지를 보면 목록을 다시 읽는다
+  (`parseVoteSystemMessage`). 인메모리 브로커라 전달 보장이 없어 이 구조가 필수다.
+- 집계: `lib/voteResult.ts`. **서버는 승자·득표율을 계산하지 않는다** — `voterIds.length`로
+  FE가 1위·동표를 판정하고, 선택지 배열 순서(=입력 순)를 그대로 노출한다.
+- 화면: 배너 → 제출/결과, 생성 모달, VOTE_CREATED 카드까지 `GroupChatRoomPageClient`에 연결됨.
+  결과 화면에 **투표 마감** 진입점을 새로 넣었다(방 멤버 누구나·멱등).
+- 장소 검색은 **BE 프록시가 아니라 카카오 지도 SDK 직접 호출**이다(`lib/placeSearch.ts`).
+  `loadKakaoMaps()`가 이미 `libraries=services`로 불러온다.
+- **선택지 추가·삭제 UI는 제거했다** — API를 만들지 않기로 확정됐다. 선택지는 생성 시 확정.
+- 목업: `src/mocks/voteStore.ts` + 핸들러 5개(인메모리 상태를 실제로 갱신).
+- E2E: `cypress/e2e/chat/group-vote.cy.ts`.
 
-도착 시 FE 작업:
+⚠️ **투표 생성 플로우는 E2E로 고정하지 못했다** — 장소 선택이 카카오 지도 SDK의 키워드 검색에
+의존해 테스트 환경에서 결정적이지 않다. 생성 진입점의 노출/숨김 규칙만 검증한다.
+실기기·스테이징에서 눈으로 확인할 것.
 
-1. `GROUP_VOTE_ENABLED`(`features/chat/model/constants.ts`)를 `true`로.
-2. 투표 컴포넌트 7개(`VoteBanner`, `GroupVoteCreateModal`, `VoteSubmissionPage`, `VoteResultsPage`,
-   `PlaceSearchModal`, `PlaceMapPage`, `VoteCreatedMessageBubble`)를 구 경로
-   (`/api/chat/group-rooms/{id}/votes`) → `externalApiFetch`로 이관.
-3. 폴링 제거 + STOMP `VOTE_CREATED`/`VOTE_CLOSED` 수신 처리, 진입/복귀 시 `GET .../votes`로 복구.
-4. MSW 투표 핸들러 추가(현재는 **일부러 비워 뒀다** — 빈 스텁이 있으면 동작하는 것처럼 보여 위험).
-5. 이관이 끝나면 generated client의 마지막 소비자가 사라진다 → §B-1과 함께 정리.
-
-### A-3. 타인 프로필 보조
+### A-3. 타인 프로필 보조 — ⏸️ P2, 재현님 담당 (BE 회신 2026-08-26)
 
 **둘 다 원문은 노출하지 않는 방향으로 확정.**
 
@@ -131,40 +135,35 @@ dig +short @8.8.8.8 test.ditto.pics   → d28wm0h79feewt.cloudfront.net ✅
 - **퀴즈 답변**: 원문 대신 **서버가 계산한 일치 개수만** 내린다.
   - 도착 시: `GroupMemberListPage`의 유사도 배지 복구.
 
-### A-4. 그룹 채팅 개별 이탈 + 인원 부족 종료
+### A-4. 그룹 채팅 개별 이탈 + 인원 부족 종료 — ✅ 연동 완료 (2026-08-26)
 
-- `POST /api/v1/chat/rooms/{roomId}/leave` 신설. **멱등** — 이미 나간 방·종료된 방에 재호출해도 200.
-- **1:1 방에 호출해도 거절하지 않는다.** 기존 `end`와 동일 처리(위임). REMATCH 방도 같다.
-  → FE가 방 유형별로 호출을 가를 필요 없다.
-- **SYSTEM 코드 신규 `MEMBER_LEFT`**(`senderId` = 나간 회원). `USER_LEFT`는 1:1·REMATCH 종료 전용으로 유지.
-  같은 코드가 1:1에선 "방이 끝났다", 그룹에선 "방은 계속된다"로 정반대가 되기 때문에 분리한 것이다.
-- **인원 부족 해체**: `endedReason = INSUFFICIENT_MEMBERS`.
-  정책 — **잔여 2명까지는 방을 유지**하고 **1명만 남는 순간** 해체.
-  해체 시 `MEMBER_LEFT` 1건 + `INSUFFICIENT_MEMBERS` 1건(`senderId` = 마지막 이탈자)이 연달아 발행된다.
-- **이탈자의 방 목록**: 남는다(읽기 전용). 구분용으로 `ChatRoomResponse`에 **`hasLeft: Boolean`** 추가.
-- ⚠️ **계약 변경 예고**: `counterpartMemberIds`에서 이탈자가 빠진다(필드명·타입 그대로, 의미만 변경).
+`POST /api/v1/chat/rooms/{roomId}/leave` 배포 완료.
 
-도착 시 FE 작업:
+- `leaveChatRoom()` 추가. 방 유형별 분기 없음 — 1:1·재매칭에 불러도 서버가 end와 동일 처리.
+- `GroupChatMenuBottomSheet`에 '대화방 나가기' + 그룹 문구를 쓴 `ChatLeaveModal` 재사용.
+- `ChatRoomEndedReason`에 `INSUFFICIENT_MEMBERS`, `ChatRoom`에 `hasLeft` 추가.
+  나간 방은 입력창·평가 버튼을 숨겨 읽기 전용으로 둔다.
+- **`MEMBER_LEFT`는 방을 끝내지 않는다** — `isRoomEndedSystemMessage`에서 의도적으로 제외했고
+  회귀 테스트로 못 박아 뒀다(`roomState.test.ts`). `USER_LEFT`와 정반대라 섞이면 그룹 방이
+  한 명 나갈 때마다 종료 화면으로 넘어간다.
+- `getSystemMessageText`에 세 번째 인자(나간 사람 닉네임)를 추가했다. 기존 호출부는 그대로 동작한다.
 
-1. `GroupChatMenuBottomSheet`에 '대화방 나가기' 복구 + 나가기 모달(1:1 `ChatLeaveModal` 재사용).
-2. `ChatRoomEndedReason`에 `INSUFFICIENT_MEMBERS` 추가 →
-   `getRoomEndedMessage()`에 "인원 부족으로 대화가 종료되었습니다." 분기.
-3. `getSystemMessageText()`·`isRoomEndedSystemMessage()`에 `MEMBER_LEFT` 처리 추가.
-   **`MEMBER_LEFT`는 방을 끝내지 않는다** — `USER_LEFT`와 달리 `endedBySystemMessage`로 보면 안 된다.
-4. `ChatRoom` 타입에 `hasLeft` 추가, 목록에서 읽기 전용 표시.
-5. 1명 이탈한 방은 "대화는 계속" 화면 그대로 간다(Figma `2124-33472`).
-   "인원 부족 종료" 전용 문구는 3명 방에서 2명이 차례로 나간 경우에만 뜬다.
+### A-5. 회원가입 누락 필드 — ✅ 연동 완료 (2026-08-26)
 
-### A-5. 회원가입 누락 필드
+라이브 스펙을 다시 읽어 보니 **요청서의 필드명과 다르게 반영돼 있었다.**
 
-라이브 `CreateUserRequest`에 `profileImageUrl`·`introduce`가 없어 온보딩 입력이 저장되지 않는다
-(`src/shared/lib/api/externalApi.ts` 주석 참조).
-도착 시: `Tutorial.tsx`에서 두 필드 전송 복구.
+- `profileImageUrl`은 **별도 필드가 아니다.** `caricature`에 실은 아바타 경로가 프로필 조회의
+  `profileImageUrl`로 그대로 나간다(스펙 설명 명시). FE는 이미 보내고 있었다 — 할 일 없음.
+- 소개는 `introduce`가 아니라 **`introduction`**(한 줄 소개, 최대 50자)이고,
+  소개노트 Q10('나를 한 줄로 표현한다면?') 답변으로 저장된다.
+  → `Tutorial.tsx`가 `formData.introduce[9]`를 `introduction`으로 보낸다.
+- 나머지 소개노트 9개는 가입 직후 `PUT /users/me/intro-notes/{code}`로 저장한다.
+  가입은 이미 끝난 상태라 저장 실패해도 되돌리지 않는다(`Promise.allSettled`).
 
-### A-6. 탈퇴 사유 자유 입력
+### A-6. 탈퇴 사유 자유 입력 — ✅ 연동 완료 (2026-08-26)
 
-**A안 확정** — `POST /api/v1/users/{id}/leave`에 `reasonDetail`(선택, 최대 100자) 추가.
-`reason`은 지금처럼 선택지 코드. `reasonDetail`은 `other`가 아니어도 받는다(강제 안 함).
+`reasonDetail`(선택, 최대 100자)이 라이브에 있다. `leaveExternalUser(id, reason, reasonDetail)`로
+넓히고 탈퇴 화면에 선택 입력 textarea를 추가했다. '기타'가 아니어도 보낸다(BE가 허용).
 
 ### A-7. 매칭 히스토리 — **Figma 대기**
 
@@ -201,7 +200,11 @@ BE가 스키마 누락을 반영 완료했다([ditto-server#141](https://github.
 - ⚠️ `sourceType`은 description에만 `REMATCH`가 추가됐고 **타입 수준 enum으로는 안 내려온다**
   (코드젠 결과가 `string`). `'PERSONAL' | 'GROUP' | 'REMATCH'` 리터럴 유니온이 필요하면 BE에 알리면
   yaml 후처리를 붙여 준다. → **회신 필요.** 현재는 `features/chat/model/types.ts`가 수기 정본이다.
-- generated client의 남은 소비자는 §A-2 대기 중인 투표 UI뿐이므로, A-2와 함께 정리하는 게 맞다.
+- 투표 UI는 §A-2에서 `externalApi`로 이관돼 generated client를 더 쓰지 않는다.
+  **남은 소비자는 quiz·home·profile·system 4계열**이다
+  (`MainSection`, `QuizPageClient`, `quiz/current`, `ProfileDetailModal`,
+  `IntroNoteContainer`, `systemStateApi`, `externalApi`의 DTO 재사용).
+  이들이 `/api/v1`로 옮겨가야 generated 레이어를 지울 수 있다.
 
 ### B-2. 설정 > 정보
 
@@ -237,3 +240,11 @@ BE가 Figma에 맞춰 변경 예정. **반영 전까지 로컬 문구 우선 처
 - 하단 탭이 새로고침 후에도 활성 표시되는지
 - 알림센터 목록·필터·읽음
 - 1:1 채팅 메뉴 → 신고하기가 `/report?userId=..`로 열리는지
+- **그룹 투표 생성** — 장소 검색(카카오 SDK 직접 호출)이 실기기·앱 웹뷰에서 뜨는지.
+  E2E로 고정하지 못한 유일한 구간이다(§A-2).
+- 그룹 투표 배너 → 제출 → 결과 → 마감, 그리고 마감 후 '투표 만들기'가 다시 열리는지
+- 그룹 '대화방 나가기' → 남은 인원에게 `MEMBER_LEFT` 안내가 뜨고 방이 유지되는지
+  (2명까지 유지, 1명 남으면 해체)
+- 어드민 시각 조정 상태에서 채팅 전송 — BE가 서버 측을 고쳤다(2026-08-26 회신).
+  `deriveRoomState`의 `openedByOverride` 보정은 그대로 두었다(있어도 무해).
+  실제로 불필요해졌는지는 오버라이드를 걸어 눈으로 확인할 것.
