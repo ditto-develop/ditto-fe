@@ -22,9 +22,9 @@ import type { CapacitorConfig } from "@capacitor/cli";
  * "CloudFront 함수를 안 건드리고 앱을 붙인다" 였는데, 아펙스 정본이면 함수를
  * 건드릴 이유가 없어 명분이 사라졌다. CloudFront 별칭 등록도 아낀다.
  *
- * 개발·테스트는 `npm run cap:staging`(→ `test.ditto.pics`).
- * ⚠️ 단 `test.ditto.pics` 는 Route53 이전 때 누락되어 현재 죽어 있다 —
- *    Route53 에 A(Alias) 레코드를 다시 만들어야 한다.
+ * staging 환경은 두지 않는다(2026-08-26). `npm run cap:sync` 가 이 값을 그대로 쓴다.
+ * alpha.ditto.pics 를 도입하면 그때는
+ * `CAPACITOR_SERVER_URL=https://alpha.ditto.pics npm run cap:sync` 로 빌드한다.
  */
 const SERVER_URL = process.env.CAPACITOR_SERVER_URL ?? "https://ditto.pics";
 

@@ -1,10 +1,9 @@
 name: Cypress E2E
 
+# 푸시 경로의 E2E 는 deploy-prod.yml 의 verify 잡이 담당한다(배포를 게이팅한다).
+# 여기는 PR 전용으로 남긴다 — 중복 실행을 피하기 위함이다.
 on:
   pull_request:
-  push:
-    branches:
-      - feat/s3-migration
 
 jobs:
   cypress:

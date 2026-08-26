@@ -387,16 +387,35 @@ npm run test:e2e:cypress
 
 ### 13.0 How Deployment Works (read this first)
 
-Staging deployment is triggered by pushing commits to the `feat/s3-migration` branch. Production deployment is triggered manually with `workflow_dispatch`, normally from `main` after staging validation.
+**Pushing to `feat/s3-migration` deploys straight to production (`ditto.pics`).**
+There is no staging environment as of 2026-08-26 — `test.ditto.pics` was dropped during the
+Route53 migration and is not coming back. An `alpha.ditto.pics` environment is planned for
+after the first release, at which point a second workflow will be added.
 
-- The staging workflow is [`.github/workflows/deploy-staging.yml`](.github/workflows/deploy-staging.yml): on `feat/s3-migration` push it runs `npm ci` → `npm run build` (static export to `./out`) → `aws s3 sync ./out s3://<bucket>/staging --delete` → CloudFront `/*` invalidation.
-- The production workflow is [`.github/workflows/deploy-prod.yml`](.github/workflows/deploy-prod.yml): on manual dispatch it runs the same build and syncs to `s3://<bucket>/prod --delete` → CloudFront `/*` invalidation.
-- `test.ditto.pics` is routed to the `/staging` S3 prefix. `ditto.pics` and `www.ditto.pics` are routed to the `/prod` S3 prefix.
-- **Uncommitted or unpushed changes are NEVER deployed.** Working-tree edits and local `npm run build` output (`./out`) have no effect on the live site until they are committed AND pushed. If "deployment isn't happening," first check `git status` and `git log origin/feat/s3-migration..feat/s3-migration` for unpushed work — that is the most common cause.
+- The only deploy workflow is [`.github/workflows/deploy-prod.yml`](.github/workflows/deploy-prod.yml).
+  It runs on push to `feat/s3-migration` and on manual `workflow_dispatch`.
+- It has two jobs. **`verify` gates `deploy`** — lint, typecheck, vitest, and Cypress E2E must
+  all pass before anything reaches S3. This gate replaces the staging buffer; do not weaken it.
+- `deploy` then runs `npm run build` (static export to `./out`) →
+  `aws s3 sync ./out s3://<bucket>/prod --delete` → CloudFront `/*` invalidation →
+  publishes the CloudFront rewrite function (skipped until `CF_REWRITE_FUNCTION_NAME` is set).
+- [`.github/workflows/e2e.yml`](.github/workflows/e2e.yml) is **pull-request only**. The push
+  path's E2E lives in the deploy workflow's `verify` job, so it can block the deploy.
+- `ditto.pics` and `www.ditto.pics` are routed to the `/prod` S3 prefix (`www` 301s to the apex).
+- **Uncommitted or unpushed changes are NEVER deployed.** Working-tree edits and local
+  `npm run build` output (`./out`) have no effect on the live site until they are committed AND
+  pushed. If "deployment isn't happening," first check `git status` and
+  `git log origin/feat/s3-migration..feat/s3-migration` for unpushed work.
 
 ### 13.1 When the User Says "Push" / "Deploy"
 
-A staging push/deploy instruction means: commit ALL relevant changes, push to `feat/s3-migration`, and watch the staging run until it succeeds. A production deploy instruction means: merge or fast-forward the validated changes to `main`, manually dispatch `deploy-prod.yml`, and watch that run until it succeeds. Do not stop at "validation passed" — the user expects the code to actually reach the remote and deploy. Run `npm run lint && npm run build && npx tsc --noEmit` first, then commit and push.
+**A push is a production release.** It means: commit ALL relevant changes, push to
+`feat/s3-migration`, and watch the run until it succeeds. Run
+`npm run lint && npm run build && npx tsc --noEmit` locally first — the workflow will run the
+full suite anyway, but catching failures locally is faster than waiting for CI.
+
+Do not stop at "validation passed" — the user expects the code to actually reach production.
+After the run succeeds, confirm the live site with `npm run verify:domains`.
 
 ### 13.2 Deployment Infrastructure (AWS, account `247842832483`)
 
@@ -405,12 +424,13 @@ A staging push/deploy instruction means: commit ALL relevant changes, push to `f
 | GitHub repo | `ditto-develop/ditto-fe` (branch `feat/s3-migration`) |
 | S3 bucket | `ditto-pics-247842832483-ap-northeast-2` (region `ap-northeast-2`) |
 | CloudFront distribution | `E2IAN5BWR5D33B` |
-| Domains | `ditto.pics`, `www.ditto.pics`, `test.ditto.pics` (`d28wm0h79feewt.cloudfront.net`) |
+| Domains | `ditto.pics`, `www.ditto.pics` (`d28wm0h79feewt.cloudfront.net`). DNS is Route53 since 2026-08-26 |
 
 S3 prefixes:
 
-- `staging/`: `test.ditto.pics`
-- `prod/`: `ditto.pics`, `www.ditto.pics`
+- `prod/`: `ditto.pics`, `www.ditto.pics` — the only live prefix
+- `staging/`: orphaned. `test.ditto.pics` was dropped in the Route53 migration and nothing
+  serves this prefix any more. Safe to delete once `alpha.ditto.pics` is set up.
 
 To compare deployed vs local content directly: `aws s3 ls s3://ditto-pics-247842832483-ap-northeast-2/ --recursive`, or `aws s3 cp <key> -` to inspect a file. Note that `_next/static/chunks/*` filenames are content-hashed and the build ID differs on every build, so chunk-name diffs are expected noise — compare route/HTML structure and normalized content, not raw filenames.
 

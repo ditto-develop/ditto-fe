@@ -59,13 +59,13 @@ npx cap open android          # Android Studio 실행
 npx cap open ios              # Xcode 실행
 ```
 
-### staging 앱 빌드
+### 다른 환경으로 빌드
+
+기본값은 `https://ditto.pics`(프로덕션)다. `alpha.ditto.pics` 를 도입하면:
 
 ```bash
-CAPACITOR_SERVER_URL=https://test.ditto.pics npx cap sync
+CAPACITOR_SERVER_URL=https://alpha.ditto.pics npm run cap:sync
 ```
-
-기본값은 `https://ditto.pics`(prod)다.
 
 ---
 
@@ -82,21 +82,29 @@ Route53 이전(2026-08-26)으로 아펙스가 살아났다. **아펙스가 정�
 ditto.pics       A(Alias) → CloudFront   ✅ 정본 (앱·웹 공통)
 www.ditto.pics   A(Alias) → CloudFront   ✅ 아펙스로 301
 api.ditto.pics   A(Alias) → ALB          ✅ BE
-test.ditto.pics  ❌ Route53 이전 때 누락 — staging 이 죽어 있다
 ```
 
-### ⚠️ `test.ditto.pics` 복구 필요
+### staging 환경은 두지 않는다 (2026-08-26)
 
-Route53 존에 이 레코드가 빠졌다. 배포 워크플로는 계속 `s3://…/staging` 에 올리지만
-**볼 수가 없다.** `npm run cap:staging` 도 죽은 도메인을 가리킨다.
+`test.ditto.pics` 는 Route53 이전 때 누락됐고 **복구하지 않기로 했다.**
+그 결과 **`feat/s3-migration` 에 푸시하면 곧바로 프로덕션에 배포된다.**
 
-```
-Route53 > ditto.pics > 레코드 생성
-  이름: test    유형: A    별칭: CloudFront > d28wm0h79feewt.cloudfront.net
-```
+검증 버퍼가 사라진 대신 배포 워크플로에 `verify` 잡을 두어
+lint · typecheck · vitest · Cypress 가 전부 통과해야 `deploy` 가 돌게 했다.
+**이 게이트를 약화시키지 말 것** — 지금은 이게 유일한 안전망이다.
 
-CloudFront 배포판에는 `test.ditto.pics` 가 이미 대체 도메인 이름으로 등록돼 있으므로
-(이전에 동작했다) **DNS 레코드만 다시 만들면 된다.**
+1차 릴리스 이후 `alpha.ditto.pics` 를 도입해 다시 분리할 예정이다. 그때 필요한 것:
+
+| # | 작업 |
+|---|---|
+| 1 | Route53 에 `alpha` A(Alias) → `d28wm0h79feewt.cloudfront.net` |
+| 2 | CloudFront 배포판의 **대체 도메인 이름**에 `alpha.ditto.pics` 추가 (인증서는 `*.ditto.pics` 와일드카드라 재발급 불필요) |
+| 3 | CloudFront 함수의 host→prefix 분기에 alpha 추가 |
+| 4 | `deploy-prod.yml` 을 복제해 트리거 브랜치와 S3 프리픽스만 교체 |
+| 5 | `ALLOWED_HOSTS`(`appShell.ts`)에 추가 · `verify:domains --also alpha.ditto.pics` |
+| 6 | BE CORS 허용 목록에 추가 |
+
+S3 의 `staging/` 프리픽스는 현재 고아 상태다. alpha 를 붙일 때 재사용하거나 지우면 된다.
 
 ---
 

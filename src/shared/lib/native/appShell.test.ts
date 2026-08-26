@@ -11,7 +11,6 @@ describe("toInternalPath", () => {
     ["/chat/one-on-one/12/", "/chat/one-on-one/12/"],
     ["https://ditto.pics/profile/8/", "/profile/8/"],
     ["https://www.ditto.pics/home/", "/home/"],
-    ["https://test.ditto.pics/quiz/3/", "/quiz/3/"],
   ])("%s 를 내부 경로 %s 로 바꾼다", (input, expected) => {
     expect(toInternalPath(input)).toBe(expected);
   });
@@ -26,6 +25,7 @@ describe("toInternalPath", () => {
     "https://evil.example.com/phish/",
     "https://ditto.pics.evil.com/profile/1/",
     "https://app.ditto.pics/chat/group/5/",
+    "https://test.ditto.pics/quiz/3/",
     "javascript:alert(1)",
     "",
   ])("외부·비정상 URL %s 은 거부한다", (input) => {

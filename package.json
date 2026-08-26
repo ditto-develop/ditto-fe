@@ -21,8 +21,7 @@
     "cf:rewrite": "node scripts/generate-cf-rewrite-function.mjs",
     "cf:rewrite:check": "node scripts/generate-cf-rewrite-function.mjs --check",
     "verify:domains": "node scripts/verify-domains.mjs",
-    "cap:staging": "npm run build && CAPACITOR_SERVER_URL=https://test.ditto.pics npx cap sync",
-    "cap:prod": "npm run build && npx cap sync",
+    "cap:sync": "npm run build && npx cap sync",
     "cap:ios": "npx cap open ios",
     "cap:android": "npx cap open android"
   },

@@ -14,7 +14,9 @@ import { getNativePlatform, isNativeApp } from "@/shared/lib/native/platform";
 const ALLOWED_HOSTS = new Set([
     "ditto.pics",       // 정본. 앱·웹 모두 이 호스트를 본다
     "www.ditto.pics",   // CloudFront 에서 아펙스로 301 되지만 링크가 이 형태로 올 수 있다
-    "test.ditto.pics",  // staging
+    // alpha.ditto.pics 를 도입하면 여기에 추가한다(2026-08-26 시점에는 없다).
+    // 존재하지 않는 호스트를 미리 넣지 않는다 — 딥링크 payload 가 통과하는 집합이라
+    // 그대로 공격 표면이 된다.
 ]);
 
 type AppShellOptions = {

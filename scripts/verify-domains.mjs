@@ -96,14 +96,18 @@ function placeholderParents(root = OUT_DIR, found = []) {
 
 console.log(`\n\x1b[1mDNS\x1b[0m`);
 
-const hosts = [PRIMARY, `www.${PRIMARY}`, `test.${PRIMARY}`, `api.${PRIMARY}`];
+// staging 환경은 두지 않는다(2026-08-26). alpha.ditto.pics 를 도입하면
+// --also alpha.ditto.pics 로 넘겨 함께 검사한다.
+const alsoIndex = process.argv.indexOf("--also");
+const extraHosts = alsoIndex > -1 ? process.argv.slice(alsoIndex + 1).filter((a) => !a.startsWith("--")) : [];
+
+const hosts = [PRIMARY, `www.${PRIMARY}`, `api.${PRIMARY}`, ...extraHosts];
 for (const host of hosts) {
     const up = await resolves(host);
     const target = await cnameTarget(host);
     const via = target ? ` → ${target}` : "";
     if (!up) {
-        if (host.startsWith("test.")) bad(`${host} 해석 실패 — staging 이 죽어 있다`);
-        else bad(`${host} 해석 실패`);
+        bad(`${host} 해석 실패`);
         continue;
     }
     if (host.startsWith("api.")) {
