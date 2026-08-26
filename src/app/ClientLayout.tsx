@@ -13,6 +13,7 @@ import { tryRefreshToken } from "@/shared/lib/api/client";
 import { normalizePathname } from "@/shared/lib/routePath";
 import { initAppShell } from "@/shared/lib/native/appShell";
 import { initPushNotifications } from "@/shared/lib/native/pushNotifications";
+import { initLocalNotifications } from "@/shared/lib/native/localNotifications";
 import { usePathname, useRouter } from "next/navigation";
 import Script from "next/script";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -73,6 +74,22 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       });
     return () => dispose?.();
   }, [router]);
+
+  // 로컬 알림. BE 발송 인프라 없이 동작한다 — 주간 리추얼(목: 매칭 결과 공개,
+  // 일: 채팅 마감)이 고정 일정이라 기기가 스스로 예약할 수 있다.
+  // iOS에서는 이 권한이 원격 푸시 권한과 같아서, 나중에 BE 푸시가 붙어도 재요청이 없다.
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    let dispose: (() => void) | undefined;
+    initLocalNotifications({ navigate: (target) => router.push(target) })
+      .then((cleanup) => {
+        dispose = cleanup;
+      })
+      .catch((err: unknown) => {
+        console.error("[native] 로컬 알림 초기화 실패:", err);
+      });
+    return () => dispose?.();
+  }, [isLoggedIn, router]);
 
   // 푸시 알림은 로그인 이후에만 초기화한다. 디바이스 토큰 등록 API가 인증을
   // 요구하므로 비로그인 상태에서 부르면 401이 난다.
