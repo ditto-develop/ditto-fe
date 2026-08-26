@@ -69,6 +69,59 @@ CAPACITOR_SERVER_URL=https://test.ditto.pics npx cap sync
 
 ---
 
+## 2.1 앱이 서빙받을 도메인 — `app.ditto.pics`
+
+앱은 웹(`ditto.pics` / `www`)과 **분리된 호스트**를 쓴다. 이유:
+
+- **CloudFront 함수를 건드리지 않아도 된다.** 실측 결과 배포판은 *알 수 없는 호스트를
+  prod 콘텐츠로* 서빙한다. `app.ditto.pics` 는 함수의 www 분기(301)에도 apex 분기에도
+  걸리지 않고 기본값으로 떨어진다. 함수 수술이 이 작업에서 가장 위험한 부분인데 그걸 피한다.
+- 앱/웹 트래픽이 분리되어 나중에 캐싱·분석 정책을 따로 줄 수 있다.
+- 아펙스/www 정본 결정(§4.1)과 독립적으로 진행할 수 있다.
+
+### 살리는 데 필요한 것
+
+| # | 작업 | 어디서 | 상태 |
+|---|---|---|---|
+| 1 | `app` CNAME → `d28wm0h79feewt.cloudfront.net` | HOSTING.KR | 서브도메인이라 CNAME 가능 |
+| 2 | CloudFront **대체 도메인 이름**에 `app.ditto.pics` 추가 | AWS 콘솔 | **필수** |
+| 3 | 딥링크 허용 호스트에 추가 | 코드 | ✅ 완료 |
+| 4 | 카카오 JS SDK 플랫폼 도메인 등록 | 카카오 콘솔 | 확인 필요 |
+
+**2번을 빠뜨리면 DNS 만으로는 동작하지 않는다.** 인증서는 `ditto.pics` + `*.ditto.pics`
+와일드카드라 재발급이 필요 없지만, CloudFront 는 **별칭으로 등록된 호스트에만 인증서를
+제시한다.** 등록 전에는 HTTP 응답조차 오지 않고 TLS 핸드셰이크 단계에서 끊긴다:
+
+```
+$ curl --resolve app.ditto.pics:443:<CF-IP> https://app.ditto.pics/
+* sslv3 alert handshake failure
+```
+
+### 살아났는지 확인
+
+```bash
+dig +short @8.8.8.8 app.ditto.pics                  # CloudFront 도메인이 나와야 한다
+curl -s -o /dev/null -w "%{http_code}\n" https://app.ditto.pics/    # 200
+```
+
+`capacitor.config.ts` 의 기본 `server.url` 은 이미 `https://app.ditto.pics` 다.
+1·2번이 끝나기 전까지 개발·테스트는 `npm run cap:staging`(→ `test.ditto.pics`)을 쓴다.
+
+### ⚠️ 도메인을 바꾸기 전에 BE 에 확인할 것
+
+카카오 OAuth 의 `redirect_uri` 는 **BE 자신**을 가리켜서 FE 도메인과 무관하다(확인함):
+
+```
+redirect_uri=https://api.ditto.pics/api/v1/users/social-login/KAKAO/callback
+```
+
+문제는 그다음이다. BE 가 카카오에서 돌아온 뒤 **FE 의 `/auth/callback` 으로 리다이렉트할 때
+쓰는 호스트**는 BE 설정이라 밖에서 확인할 수 없다. `https://ditto.pics` 로 하드코딩돼 있으면
+`app.ditto.pics` 에서 로그인해도 **죽은 도메인에 떨어진다.** www 정본화를 택해도 같은 문제라,
+어느 쪽으로 가든 이 답을 먼저 받아야 한다. → BE 요청서 §C-3.
+
+---
+
 ## 3. 앱에서 확인해야 할 것 (기기 스모크)
 
 웹에서는 재현되지 않고 **기기에서만 드러나는** 항목이다. 순서대로 확인한다.

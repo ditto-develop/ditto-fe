@@ -11,7 +11,12 @@ import { getNativePlatform, isNativeApp } from "@/shared/lib/native/platform";
  * 호스트가 통과해 공격자가 앱을 임의 경로로 끌고 갈 수 있다. 반드시 호스트
  * 전체를 정확히 비교한다.
  */
-const ALLOWED_HOSTS = new Set(["ditto.pics", "www.ditto.pics", "test.ditto.pics"]);
+const ALLOWED_HOSTS = new Set([
+    "app.ditto.pics",   // 앱이 서빙받는 정본 호스트
+    "test.ditto.pics",  // staging
+    "ditto.pics",       // 웹. 기존 공유 링크가 이 호스트로 들어올 수 있다
+    "www.ditto.pics",
+]);
 
 type AppShellOptions = {
     /** 앱 내부 라우팅. Next 라우터의 push를 넘긴다. */
