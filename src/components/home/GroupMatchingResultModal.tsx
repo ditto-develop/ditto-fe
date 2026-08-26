@@ -533,6 +533,8 @@ const BottomActions = styled.div`
   left: 0;
   right: 0;
   padding: 16px;
+  /* viewport 고정 하단 바. BottomActionArea와 동일한 인셋 규칙을 따른다. */
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   background-color: var(--color-semantic-background-normal-normal);
   border-top: 1px solid var(--color-semantic-line-normal-normal);
   z-index: 10;

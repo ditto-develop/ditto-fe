@@ -245,9 +245,24 @@ dig +short @8.8.8.8 test.ditto.pics     → d28wm0h79feewt.cloudfront.net ✅
 
 - [ ] **푸시 활성화** — BE의 A·B 도착 후 `NEXT_PUBLIC_PUSH_ENABLED=true`.
       배포 워크플로의 `Build` 스텝 `env:`에도 추가해야 한다.
-- [ ] **safe-area 잔여 적용** — 하단 고정 요소가 20여 개 파일에 흩어져 있다.
-      공용 프리미티브 2개(`MainBottomNav`, `BottomActionArea`)만 적용됐다.
-      나머지는 실제 기기에서 확인하며 batch로 처리한다 (추측으로 일괄 적용하지 말 것).
+- [x] **safe-area 완료.** 코드베이스에 이미 24개 파일이 `env(safe-area-inset-*)`를
+      쓰고 있었고, `viewport-fit=cover`가 없어 전부 0으로 계산되던 것을 살린 것이
+      이번 수정이다. 나머지를 전수 점검한 결과 **실제로 필요한 것은 2개뿐**이었다:
+
+      - `shared/ui/BottomSheet` — 하단 앵커(`align-items: flex-end`)라 시트가 바닥에 붙는다 ✅
+      - `components/home/GroupMatchingResultModal` — viewport 고정 하단 액션 바 ✅
+
+      **일부러 적용하지 않은 것** (적용하면 오히려 나빠진다):
+
+      - `AlertModal` · `QuizModal` — `align-items: center`로 수직 중앙 정렬이라
+        하단 가장자리에 닿지 않는다. 인셋을 넣으면 중앙이 어긋난다.
+      - `FullScreenModal` — 자식이 임의인 범용 컨테이너다. 컨테이너에 패딩을 주면
+        자체 하단 바를 가진 소비자(`GroupMatchingResultModal`)와 이중으로 적용된다.
+        소비자 쪽에서 각자 처리하는 것이 맞다.
+      - `ProfileDetailModal` — `padding: 0 16px 34px`로 이미 34px(아이폰 홈 인디케이터
+        높이)를 수동 확보해 두었다. 깨진 상태가 아니고, 적응형으로 바꿀지는
+        **실기기로 눈으로 봐야 판단할 수 있다.** 추측으로 건드리지 않는다.
+
 - [ ] **네이티브 카카오 로그인** — BE의 D 도착 후. 1차 출시는 기존 리다이렉트로 충분하다.
 - [ ] **스토어 심사 대비** — 원격 URL만 로드하는 순수 래퍼는 App Store 4.2
       (minimum functionality) 리젝 사유가 된다. **푸시·딥링크가 붙은 뒤에 심사를 넣을 것.**

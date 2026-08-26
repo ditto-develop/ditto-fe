@@ -10,6 +10,7 @@ import { SETTINGS_EXTERNAL_LINKS } from "@/features/settings/model/externalLinks
 import type { NotificationSettingKey } from "@/features/settings/model/types";
 import { clearToken } from "@/shared/lib/api/client";
 import { logoutExternal } from "@/shared/lib/api/externalApi";
+import { WEB_APP_VERSION, getAppVersion } from "@/shared/lib/native/appVersion";
 import {
   ActionArea,
   ActionExtra,
@@ -19,7 +20,7 @@ import {
   Switch,
   TopNavigation,
 } from "@/shared/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type RowConfig = {
   label: string;
@@ -37,6 +38,18 @@ export function SettingsContainer() {
   const { showToast } = useToast();
   const { currentUser, notificationSettings, loading, error, updateSetting } = useSettings();
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+  // 네이티브 셸에서는 스토어 빌드 버전을, 웹에서는 기존 표시값을 그대로 쓴다.
+  const [appVersion, setAppVersion] = useState(WEB_APP_VERSION);
+
+  useEffect(() => {
+    let alive = true;
+    getAppVersion().then((version) => {
+      if (alive) setAppVersion(version);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const showPreparingToast = () => {
     showToast("준비 중입니다.", "info");
@@ -133,7 +146,7 @@ export function SettingsContainer() {
           ))}
           <StaticRow>
             <ActionTitle>앱 버전</ActionTitle>
-            <ValueText>v1.0.0</ValueText>
+            <ValueText>v{appVersion}</ValueText>
           </StaticRow>
         </Section>
 

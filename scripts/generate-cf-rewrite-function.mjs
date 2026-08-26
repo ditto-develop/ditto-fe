@@ -14,8 +14,9 @@
 import { readdirSync, statSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname, relative, sep } from "node:path";
 
-const OUT_DIR = "out";
-const TARGET = "infra/cloudfront/rewrite-dynamic-routes.js";
+// 테스트에서 픽스처 트리를 물릴 수 있도록 주입 가능하게 둔다. 기본값은 실제 빌드 산출물.
+const OUT_DIR = process.env.CF_REWRITE_OUT_DIR ?? "out";
+const TARGET = process.env.CF_REWRITE_TARGET ?? "infra/cloudfront/rewrite-dynamic-routes.js";
 const PLACEHOLDER = "placeholder";
 
 /** out/ 아래의 모든 placeholder 디렉터리를 찾는다. */

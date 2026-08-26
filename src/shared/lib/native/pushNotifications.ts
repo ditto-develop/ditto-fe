@@ -2,6 +2,7 @@ import type { PluginListenerHandle } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 
 import { externalApiFetch } from "@/shared/lib/api/externalClient";
+import type { NativePlatform } from "@/shared/lib/native/platform";
 import { getNativePlatform, isNativeApp } from "@/shared/lib/native/platform";
 import { toInternalPath } from "@/shared/lib/native/appShell";
 
@@ -16,20 +17,30 @@ import { toInternalPath } from "@/shared/lib/native/appShell";
  */
 const isPushEnabled = (): boolean => process.env.NEXT_PUBLIC_PUSH_ENABLED === "true";
 
+export type DevicePlatform = "IOS" | "ANDROID";
+
 type DeviceRegistrationBody = {
     token: string;
-    platform: "IOS" | "ANDROID";
+    platform: DevicePlatform;
 };
+
+/**
+ * Capacitor 플랫폼 문자열을 BE 계약의 enum으로 바꾼다.
+ * BE는 대문자 IOS/ANDROID만 받는다(BE-Request-App §A-1).
+ * 웹은 등록 대상이 아니므로 null이며, 호출부가 요청을 건너뛴다.
+ */
+export function toDevicePlatform(platform: NativePlatform): DevicePlatform | null {
+    if (platform === "ios") return "IOS";
+    if (platform === "android") return "ANDROID";
+    return null;
+}
 
 /** BE 계약: 같은 토큰 재등록은 멱등이어야 한다. */
 function registerDeviceToken(token: string): Promise<unknown> {
-    const platform = getNativePlatform();
-    if (platform === "web") return Promise.resolve(null);
+    const platform = toDevicePlatform(getNativePlatform());
+    if (!platform) return Promise.resolve(null);
 
-    const body: DeviceRegistrationBody = {
-        token,
-        platform: platform === "ios" ? "IOS" : "ANDROID",
-    };
+    const body: DeviceRegistrationBody = { token, platform };
 
     return externalApiFetch<unknown>("/api/v1/notifications/devices", {
         method: "POST",

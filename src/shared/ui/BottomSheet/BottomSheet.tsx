@@ -96,6 +96,8 @@ const SheetContainer = styled.div`
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
   padding: 24px 20px 40px 20px;
+  /* 하단 앵커라 시트 바닥이 홈 인디케이터에 가린다. 40px 여백에 인셋을 더한다. */
+  padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
   box-shadow: var(--style-semantic-shadow-heavy);
   
   display: flex;
