@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "627846094330",
+    "project_id": "ditto-b780e",
+    "storage_bucket": "ditto-b780e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:627846094330:android:b64d679fd2321bfa359843",
+        "android_client_info": {
+          "package_name": "pics.ditto.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDg4E6KJJDTmDFHxiuRc1dPAk7fEPRnBY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
