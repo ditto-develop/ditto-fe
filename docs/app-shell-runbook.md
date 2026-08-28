@@ -486,10 +486,32 @@ CF_REWRITE_FUNCTION_NAME = www-to-apex-ditto-pics
 로그의 `Publish CloudFront rewrite function` 스텝이 `skipped` 다). 따라서 이 저장소의
 함수는 **아직 한 번도 배포판에 붙은 적이 없다.**
 
-### 배포 IAM 롤에 추가로 필요한 권한
+### 배포 IAM 권한 — 지금 **없다** (2026-08-28 확인)
 
-`cloudfront:DescribeFunction`, `cloudfront:UpdateFunction`, `cloudfront:PublishFunction`
-(최초 연결을 CLI로 한다면 `cloudfront:UpdateDistribution`도)
+배포는 롤이 아니라 IAM 사용자 `github-actions-deployer` 의 액세스 키로 돈다.
+인라인 정책 `ditto-fe-deploy` 를 읽어 보니 S3 3종 + `cloudfront:CreateInvalidation`
+뿐이고 **함수 권한이 하나도 없다.**
+
+→ 이 상태로 `CF_REWRITE_FUNCTION_NAME` 을 설정하면 배포 잡의 퍼블리시 스텝이
+AccessDenied 로 죽는다(`set -euo pipefail`). S3 동기화·무효화는 그 앞이라 사이트는
+갱신되지만 잡은 빨간불이 된다. **변수 설정 전에 권한을 먼저 붙일 것.**
+
+```json
+{
+  "Sid": "CloudFrontFunction",
+  "Effect": "Allow",
+  "Action": [
+    "cloudfront:DescribeFunction",
+    "cloudfront:UpdateFunction",
+    "cloudfront:PublishFunction"
+  ],
+  "Resource": "arn:aws:cloudfront::247842832483:function/www-to-apex-ditto-pics"
+}
+```
+
+`aws iam get-user-policy --user-name github-actions-deployer --policy-name ditto-fe-deploy`
+로 현재 문서를 받아 위 Statement 를 추가한 뒤 `put-user-policy` 로 되돌려 넣는다.
+배포판 연결은 이미 돼 있으므로 `UpdateDistribution` 은 필요 없다.
 
 ### ⚠️ 실측 결과 (2026-08-26) — 문서의 전제가 틀렸다
 
