@@ -84,35 +84,50 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     return () => dispose?.();
   }, [router]);
 
-  // 로컬 알림. BE 발송 인프라 없이 동작한다 — 주간 리추얼(목: 매칭 결과 공개,
-  // 일: 채팅 마감)이 고정 일정이라 기기가 스스로 예약할 수 있다.
-  // iOS에서는 이 권한이 원격 푸시 권한과 같아서, 나중에 BE 푸시가 붙어도 재요청이 없다.
+  /**
+   * 알림 초기화. **로그인 이후에만** 돈다 — 디바이스 토큰 등록 API가 인증을
+   * 요구하므로 비로그인 상태에서 부르면 401이다.
+   *
+   * 로컬(주간 리추얼) → 원격 푸시(FCM) 순서로 **직렬**이다. 둘 다 OS 알림 권한을
+   * 요청하는데 안드로이드 13+ 는 런타임 권한 대화상자를 동시에 두 개 띄우지 못한다.
+   * 병렬로 부르면 나중 요청이 대화상자도 없이 거부로 떨어지고, 그게 푸시 쪽이면
+   * FCM 토큰을 못 받아 BE 등록이 통째로 빠진다(=이 기기로 푸시가 영영 안 온다).
+   * 로컬이 먼저 권한을 받아 두면 푸시의 요청은 대화상자 없이 granted로 끝난다.
+   *
+   * - 로컬: BE 발송 인프라 없이 동작한다. 목(매칭 결과)·일(채팅 마감)이 고정 일정이라
+   *   기기가 스스로 예약할 수 있다.
+   * - 푸시: 언제 올지 모르는 이벤트(새 메시지, 매칭 성사)를 BE가 밀어 넣는다.
+   */
   useEffect(() => {
     if (!isLoggedIn) return;
-    let dispose: (() => void) | undefined;
-    initLocalNotifications({ navigate: (target) => router.push(target) })
-      .then((cleanup) => {
-        dispose = cleanup;
-      })
-      .catch((err: unknown) => {
-        console.error("[native] 로컬 알림 초기화 실패:", err);
-      });
-    return () => dispose?.();
-  }, [isLoggedIn, router]);
 
-  // 푸시 알림은 로그인 이후에만 초기화한다. 디바이스 토큰 등록 API가 인증을
-  // 요구하므로 비로그인 상태에서 부르면 401이 난다.
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    let dispose: (() => void) | undefined;
-    initPushNotifications({ navigate: (target) => router.push(target) })
-      .then((cleanup) => {
-        dispose = cleanup;
-      })
-      .catch((err: unknown) => {
+    let disposed = false;
+    const cleanups: Array<() => void> = [];
+    const navigate = (target: string) => router.push(target);
+
+    // 초기화가 끝나기 전에 effect가 정리되면 늦게 도착한 정리 함수를 즉시 실행한다.
+    const track = (dispose: () => void) => {
+      if (disposed) dispose();
+      else cleanups.push(dispose);
+    };
+
+    void (async () => {
+      try {
+        track(await initLocalNotifications({ navigate }));
+      } catch (err: unknown) {
+        console.error("[native] 로컬 알림 초기화 실패:", err);
+      }
+      try {
+        track(await initPushNotifications({ navigate }));
+      } catch (err: unknown) {
         console.error("[native] 푸시 초기화 실패:", err);
-      });
-    return () => dispose?.();
+      }
+    })();
+
+    return () => {
+      disposed = true;
+      cleanups.forEach((dispose) => dispose());
+    };
   }, [isLoggedIn, router]);
 
   // 쓰레기 토큰 감시: 주기적 + 탭 간 storage 변경 시 제거·동기화

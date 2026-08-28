@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  Push Notifications capability.
+
+	  이 키가 없으면 iOS 가 APNs 등록을 거부하고, Firebase 는 APNs 토큰을 못 받아
+	  FCM 등록 토큰도 못 만든다 — 빌드는 성공하고 토큰만 조용히 안 나온다.
+
+	  값은 `development` 로 둔다. 자동 서명(CODE_SIGN_STYLE = Automatic)에서는
+	  Xcode 가 배포용 아카이브를 만들 때 프로비저닝 프로필에 맞춰 `production` 으로
+	  바꿔 준다. 손으로 고치지 말 것.
+	-->
+	<key>aps-environment</key>
+	<string>development</string>
+</dict>
+</plist>

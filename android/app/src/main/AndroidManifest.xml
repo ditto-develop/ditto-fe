@@ -25,6 +25,18 @@
 
         </activity>
 
+        <!--
+          푸시 알림 상태바 아이콘.
+
+          지정하지 않으면 안드로이드가 런처 아이콘을 쓰는데, 시스템이 알파만 남기고
+          전부 흰색으로 칠하기 때문에 꽉 찬 타일인 우리 런처 아이콘은 **흰 사각형**이
+          되어 버린다. 워드마크 모양만 남긴 자산을 따로 둔다
+          (scripts/generate-app-assets.mjs 가 생성 — 손으로 만들지 말 것).
+        -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_ditto" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

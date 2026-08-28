@@ -1,14 +1,17 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 /**
- * 푸시 모듈에서 지켜야 하는 안전 속성 두 가지를 고정한다.
+ * 푸시 모듈이 BE 위키 `Frontend-Push-Guide` 계약을 지키는지 고정한다.
  *
  * 1. 플래그가 꺼져 있거나 웹이면 **네트워크를 치지 않고 권한도 묻지 않는다.**
- *    BE에 디바이스 토큰 등록 API가 아직 없는데 권한 팝업을 띄우면 승인률만 태운다.
- * 2. BE 계약(BE-Request-App §A-1)이 요구하는 대문자 enum으로 플랫폼을 보낸다.
+ *    킬 스위치가 진짜 스위치여야 하고, 웹 방문자에게 권한 팝업이 뜨면 안 된다.
+ * 2. 등록은 대문자 enum(`IOS`/`ANDROID`)으로 나간다(§1).
+ * 3. 알림 탭은 `deepLink` 이동 + `notificationId` 읽음 처리, 포그라운드 수신은
+ *    읽음 처리 없이 재조회만 한다(§3 · §앱 구현 노트).
  */
 
-const externalApiFetch = vi.fn();
+// 실제 클라이언트는 항상 Promise 다. 등록 응답 형태는 BE 위키 §1(`registered`).
+const externalApiFetch = vi.fn(async () => ({ registered: true }));
 vi.mock("@/shared/lib/api/externalClient", () => ({
   externalApiFetch: (...args: unknown[]) => externalApiFetch(...args),
 }));
@@ -27,17 +30,56 @@ vi.mock("@capacitor-firebase/messaging", () => ({
 }));
 
 const isNativePlatform = vi.fn(() => false);
+const getPlatform = vi.fn(() => "web");
 vi.mock("@capacitor/core", () => ({
   Capacitor: {
     isNativePlatform: () => isNativePlatform(),
-    getPlatform: () => "web",
+    getPlatform: () => getPlatform(),
   },
 }));
 
+const markNotificationRead = vi.fn(async () => undefined);
+vi.mock("@/features/notification/api/notificationApi", () => ({
+  markNotificationRead: (...a: unknown[]) => markNotificationRead(...(a as [])),
+}));
+
+/**
+ * 이 스위트는 node 환경에서 돈다(vitest.config.ts — DOM 이 필요 없는 순수 로직 전용).
+ * 푸시 모듈이 `window` 를 쓰는 곳은 두 군데뿐이다: 네이티브 판정(platform.ts 의
+ * `typeof window`)과 포그라운드 수신 이벤트 발행. EventTarget 하나면 둘 다 충족되므로
+ * jsdom 을 devDependency 로 끌어오지 않는다.
+ */
+beforeAll(() => {
+  Object.assign(globalThis, { window: new EventTarget() });
+});
+
+afterAll(() => {
+  Reflect.deleteProperty(globalThis, "window");
+});
+
 afterEach(() => {
   vi.clearAllMocks();
+  getPlatform.mockReturnValue("web");
   delete process.env.NEXT_PUBLIC_PUSH_ENABLED;
 });
+
+/** 네이티브 + 플래그 ON 상태에서 초기화하고, 등록된 리스너를 이름으로 꺼내 준다. */
+async function initOnNative(navigate = vi.fn()) {
+  isNativePlatform.mockReturnValue(true);
+  getPlatform.mockReturnValue("ios");
+  process.env.NEXT_PUBLIC_PUSH_ENABLED = "true";
+
+  const push = await import("@/shared/lib/native/pushNotifications");
+  const dispose = await push.initPushNotifications({ navigate });
+
+  const listenerFor = (event: string) => {
+    const call = addListener.mock.calls.find(([name]) => name === event);
+    if (!call) throw new Error(`리스너 미등록: ${event}`);
+    return call[1] as (payload: unknown) => void;
+  };
+
+  return { dispose, listenerFor, navigate };
+}
 
 describe("toDevicePlatform", () => {
   it.each([
@@ -115,5 +157,81 @@ describe("extractDeepLink", () => {
     expect(extractDeepLink({})).toBeNull();
     expect(extractDeepLink(null)).toBeNull();
     expect(extractDeepLink("문자열")).toBeNull();
+  });
+});
+
+describe("extractNotificationId", () => {
+  it("FCM data 는 전부 문자열이므로 숫자로 되돌린다", async () => {
+    const { extractNotificationId } = await import("@/shared/lib/native/pushNotifications");
+    expect(extractNotificationId({ notificationId: "8821" })).toBe(8821);
+  });
+
+  it("없거나 숫자가 아니면 null — 읽음 처리만 건너뛰고 이동은 막지 않는다", async () => {
+    const { extractNotificationId } = await import("@/shared/lib/native/pushNotifications");
+    expect(extractNotificationId({ notificationId: "abc" })).toBeNull();
+    expect(extractNotificationId({ notificationId: "0" })).toBeNull();
+    expect(extractNotificationId({})).toBeNull();
+    expect(extractNotificationId(null)).toBeNull();
+  });
+});
+
+describe("네이티브 초기화 이후 동작", () => {
+  it("최초 토큰을 BE 계약대로 등록한다(대문자 platform)", async () => {
+    await initOnNative();
+
+    expect(requestPermissions).toHaveBeenCalled();
+    expect(externalApiFetch).toHaveBeenCalledWith("/api/v1/notifications/devices", {
+      method: "POST",
+      body: { token: "fcm-token", platform: "IOS" },
+    });
+  });
+
+  it("tokenReceived 로 토큰이 갱신되면 다시 등록한다", async () => {
+    const { listenerFor } = await initOnNative();
+    externalApiFetch.mockClear();
+
+    listenerFor("tokenReceived")({ token: "rotated-token" });
+
+    expect(externalApiFetch).toHaveBeenCalledWith("/api/v1/notifications/devices", {
+      method: "POST",
+      body: { token: "rotated-token", platform: "IOS" },
+    });
+  });
+
+  it("알림 탭: deepLink 로 이동하고 notificationId 를 읽음 처리한다", async () => {
+    const { listenerFor, navigate } = await initOnNative();
+
+    listenerFor("notificationActionPerformed")({
+      notification: {
+        data: { notificationId: "8821", type: "CHAT_MESSAGE", deepLink: "/chat/one-on-one/305/" },
+      },
+    });
+
+    expect(navigate).toHaveBeenCalledWith("/chat/one-on-one/305/");
+    expect(markNotificationRead).toHaveBeenCalledWith(8821);
+  });
+
+  it("알림 탭: deepLink 키가 없으면 이동 없이 읽음 처리만 한다", async () => {
+    const { listenerFor, navigate } = await initOnNative();
+
+    listenerFor("notificationActionPerformed")({
+      notification: { data: { notificationId: "8821", type: "SYSTEM_NOTICE" } },
+    });
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(markNotificationRead).toHaveBeenCalledWith(8821);
+  });
+
+  it("포그라운드 수신은 읽음 처리 없이 재조회 이벤트만 쏜다", async () => {
+    const { listenerFor } = await initOnNative();
+    const onPush = vi.fn();
+    const { PUSH_RECEIVED_EVENT } = await import("@/shared/lib/native/pushNotifications");
+    window.addEventListener(PUSH_RECEIVED_EVENT, onPush);
+
+    listenerFor("notificationReceived")({ notification: { data: { notificationId: "1" } } });
+
+    expect(onPush).toHaveBeenCalled();
+    expect(markNotificationRead).not.toHaveBeenCalled();
+    window.removeEventListener(PUSH_RECEIVED_EVENT, onPush);
   });
 });

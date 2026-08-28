@@ -9,6 +9,7 @@ import { API_ERROR_CODE, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { clearToken } from "@/shared/lib/api/client";
 import { leaveExternalUser } from "@/shared/lib/api/externalApi";
 import { clearTokens } from "@/shared/lib/auth";
+import { registerDeviceToken, releasePushToken } from "@/shared/lib/native/pushNotifications";
 import { AlertModal, Select, TopNavigation } from "@/shared/ui";
 
 type WithdrawStep = "notice" | "reason";
@@ -61,10 +62,20 @@ export function WithdrawContainer() {
   const handleWithdraw = async () => {
     if (!rawProfile?.userId || !reason) return;
 
+    /**
+     * 푸시는 **탈퇴 요청 전에** 끊어야 한다. 탈퇴가 끝나면 보유 토큰이 전부 무효(6012)라
+     * 해제 API를 부를 수 없고, 그러면 BE에 남은 디바이스 토큰으로 이 기기에 계속
+     * 알림이 간다(BE 위키 Frontend-Push-Guide §2).
+     */
+    await releasePushToken();
+
     try {
       await leaveExternalUser(rawProfile.userId, reason, reasonDetail.trim() || undefined);
       setDialog("success");
     } catch (err: unknown) {
+      // 탈퇴가 막히면(6011 등) 사용자는 로그인 상태로 남는다. 방금 끊은 푸시를 되돌린다.
+      void registerDeviceToken();
+
       if (hasApiErrorCode(err, API_ERROR_CODE.LEAVE_BLOCKED)) {
         const attempts = blockedAttempts + 1;
         setBlockedAttempts(attempts);

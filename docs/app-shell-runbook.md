@@ -108,14 +108,14 @@ S3 의 `staging/` 프리픽스는 현재 고아 상태다. alpha 를 붙일 때 
 
 ---
 
-## 2.2 알림 — 로컬은 동작, 원격 푸시는 BE 대기
+## 2.2 알림 — 로컬·원격 둘 다 동작
 
 알림은 **두 갈래**이고 의존성이 전혀 다르다. 혼동하지 말 것.
 
 | | 로컬 알림 | 원격 푸시 |
 |---|---|---|
 | 서버 필요 | ❌ 없음 | ✅ BE 발송 인프라 |
-| 상태 | **동작 중** | 플래그로 꺼둠 |
+| 상태 | **동작 중** | **켬**(`NEXT_PUBLIC_PUSH_ENABLED`) — iOS 는 APNs 키 업로드 후 실제 도달 |
 | 커버 | 고정 일정 | 임의 시점 이벤트 |
 
 ### 로컬 알림 (BE 없이 동작)
@@ -157,38 +157,49 @@ Android는 `POST_NOTIFICATIONS`(13+)만 있으면 되고 이미 매니페스트�
 JS가 아예 돌지 않으며 STOMP 소켓도 끊긴다. 서버가 깨워주는 수밖에 없다 —
 이것이 앱으로 가는 진짜 이유다. 그룹 결성·재매칭 성사·시스템 공지도 동일하다.
 
-### 원격 푸시 (FCM) — 배선 완료, BE 대기
+### 원격 푸시 (FCM) — 배선 완료, 기기 스모크만 남음
 
 `@capacitor-firebase/messaging` 을 쓴다. `@capacitor/push-notifications` 는
 **제거했다** — 둘 다 APNs 델리게이트를 잡아서 함께 두면 충돌한다.
 
+계약 정본은 BE 위키 [`Frontend-Push-Guide`](https://github.com/ditto-develop/ditto-server/wiki/Frontend-Push-Guide)
+다. 토큰 등록/해제(A)는 머지돼 라이브고, 발송·payload(B)는 BE 리뷰 중이다(PR #156).
+
 | 단계 | 상태 |
 |---|---|
-| 권한 요청 · 토큰 획득 · 갱신 감지 | ✅ |
-| 알림 탭 → `data.deepLink` 딥링크 | ✅ (호스트 검증 포함) |
-| 로그아웃 시 BE 해제 + 토큰 폐기 | ✅ |
-| BE 디바이스 토큰 등록 API | ❌ **없음** |
-| Firebase 설정 파일 | ❌ **없음** |
+| 권한 요청 · 토큰 획득 · 갱신(`tokenReceived`) 재등록 | ✅ |
+| BE 등록/해제 `POST·DELETE /api/v1/notifications/devices` | ✅ (위키 §1·§2) |
+| 알림 탭 → `data.deepLink` 이동 + `notificationId` 읽음 처리 | ✅ (호스트 검증 포함) |
+| 포그라운드 수신 → 알림 센터 재조회 | ✅ (`ditto:push-received` 이벤트) |
+| 로그아웃·탈퇴 시 BE 해제 + 기기 토큰 폐기 | ✅ |
+| Firebase 설정 파일 (Android · iOS) | ✅ 커밋 + iOS 타겟 등록까지 |
+| iOS Push capability (`App.entitlements`) | ✅ `aps-environment` |
+| iOS AppDelegate APNs 브리지 | ✅ (없으면 iOS 만 조용히 토큰 미발급) |
+| Android 상태바 아이콘 (`ic_stat_ditto`) | ✅ 매니페스트 배선 |
+| APNs 인증 키(.p8) → Firebase 업로드 | ✅ 2026-08-28 업로드 완료 |
 
-**남은 것 둘:**
+**남은 것은 기기 확인뿐이다.** 코드·설정·자격증명이 다 갖춰졌으므로 이제부터는
+실제 기기에서 §3 의 푸시 스모크를 밟아야 한다. 시뮬레이터는 APNs 를 못 받으니
+**실기기**여야 한다.
 
-1. **BE `/api/v1/notifications/devices`** — 2026-08-26 라이브 스펙(54개 경로)에
-   존재하지 않음을 확인했다. 이게 없으면 BE가 우리 토큰을 알 수 없어 발송 대상이 없다.
-   → BE 요청서 §A.
-2. **Firebase 설정 파일** — Firebase 콘솔에서 받아 각 위치에 둔다.
-   - `android/app/google-services.json`
-   - `ios/App/App/GoogleService-Info.plist` — **파일만 두면 안 되고 Xcode 에서
-     타겟의 Copy Bundle Resources 에 들어가야 한다.**
-   - iOS 는 추가로 Xcode 에서 **Push Notifications capability** 를 켜고,
-     Firebase 콘솔에 **APNs 인증 키**를 올려야 한다.
-   - Gradle 쪽 배선은 Capacitor 템플릿에 이미 있다(`google-services` classpath +
-     파일 존재 시에만 apply). **파일이 없어도 빌드는 깨지지 않고** 경고만 남는다.
+`NEXT_PUBLIC_PUSH_ENABLED=true` 는 배포 워크플로 `Build` 스텝 `env:` 에 이미
+들어가 있다. 문제가 생기면 **그 줄만 지우면** 등록·권한 요청까지 통째로 꺼진다.
 
-둘 다 준비되면 `NEXT_PUBLIC_PUSH_ENABLED=true` 로 켠다.
-배포 워크플로의 `Build` 스텝 `env:` 에도 추가해야 한다.
+> iOS 권한은 로컬 알림과 **같은 권한**이다. 그래서 `ClientLayout` 은 로컬 →
+> 푸시 순서로 **직렬** 초기화한다. 안드로이드 13+ 는 런타임 권한 대화상자를 동시에
+> 두 개 띄우지 못해, 병렬로 부르면 나중 요청(=푸시)이 대화상자도 없이 거부로
+> 떨어지고 FCM 토큰을 영영 못 받는다.
 
-> iOS 권한은 로컬 알림과 **같은 권한**이라, 로컬 알림에서 이미 승인을 받았다면
-> 푸시가 켜질 때 재요청이 없다.
+#### 아직 안 한 것 (의도적)
+
+- **인앱 벨 배지** — 홈 헤더(`MainHeader`)에는 미읽음 배지가 없다. 푸시가 오면
+  알림 센터가 스스로 재조회하지만, 홈에 떠 있으면 표시되는 변화가 없다.
+  `getUnreadNotificationCount` 는 이미 있으므로 배지 UI 만 붙이면 된다.
+- **iOS 앱 아이콘 배지 초기화** — 배지 수는 payload 로 실려 오는데(위키 §3),
+  인앱에서 알림을 읽어도 아이콘 배지는 다음 푸시까지 그대로다. 내리려면 별도
+  플러그인(`@capawesome/capacitor-badge` 등)이 필요해서 미뤘다.
+- **알림 채널 분리(Android)** — FCM 기본 채널을 쓴다. 매칭/채팅을 따로 끄고
+  싶다는 요구가 나오면 그때 나눈다(지금은 BE 알림 토글이 그 역할을 한다).
 
 ---
 
@@ -212,8 +223,10 @@ JS가 아예 돌지 않으며 STOMP 소켓도 끊긴다. 서버가 깨워주는 
 - ⚠️ **파일만 두면 동작하지 않는다.** Xcode 에서 App 타겟에 추가해
   Build Phases → Copy Bundle Resources 에 들어가야 한다.
   (Xcode 좌측 트리의 `App` 폴더로 드래그 → "Copy items if needed" + App 타겟 체크)
+- ✅ 지금 프로젝트는 **끝난 상태**다(`project.pbxproj` 에 등록돼 있다). 파일을
+  새로 받아 갈아끼우기만 하면 되고, 타겟 등록을 다시 할 필요는 없다.
 
-**③ APNs 인증 키** — iOS 푸시에 필수
+**③ APNs 인증 키** — iOS 푸시에 필수 (✅ 2026-08-28 업로드 완료)
 
 1. Apple Developer → Certificates, Identifiers & Profiles → **Keys** → 새 키,
    **Apple Push Notifications service (APNs)** 체크 → `.p8` 다운로드
@@ -222,8 +235,16 @@ JS가 아예 돌지 않으며 STOMP 소켓도 끊긴다. 서버가 깨워주는 
 3. Firebase 콘솔 → 프로젝트 설정 → **클라우드 메시징** → Apple 앱 구성 →
    APNs 인증 키 업로드
 
-**④ Xcode 에서 Push Notifications capability** — App 타겟 →
-Signing & Capabilities → + Capability → Push Notifications
+**④ Push Notifications capability** — ✅ 이미 배선돼 있다.
+`ios/App/App/App.entitlements` 의 `aps-environment` 와 pbxproj 의
+`CODE_SIGN_ENTITLEMENTS` 가 그것이며, Xcode 의 Signing & Capabilities 에도
+"Push Notifications" 로 보인다. 자동 서명이라 아카이브 시 Xcode 가
+`development` → `production` 으로 바꿔 준다 — **손으로 고치지 말 것.**
+
+같이 봐야 하는 것: `AppDelegate.swift` 의 APNs 브리지 세 메서드
+(`didRegisterForRemoteNotificationsWithDeviceToken` 등)가
+NotificationCenter 로 토큰을 넘긴다. **이게 없으면 빌드는 성공하고 iOS 에서만
+FCM 토큰이 안 나온다**(`getToken()` 이 "No APNS token specified" 로 실패).
 
 **⑤ BE 에 전달할 것** — 서비스 계정 키
 
@@ -252,8 +273,102 @@ npm run cap:sync
 Gradle 배선은 Capacitor 템플릿에 이미 있어 `google-services.json` 이 있으면
 자동으로 `com.google.gms.google-services` 플러그인이 적용된다.
 
+> iOS 의존성은 CocoaPods 가 아니라 **SwiftPM** 이다(`ios/App/CapApp-SPM/Package.swift`).
+> Xcode 가 패키지 해석에서 *package identity collision* 을 뱉으면 플러그인 README 의
+> 우회를 쓴다 — `capacitor.config.ts` 에
+> `experimental.ios.spm.packageOptions["@capacitor-firebase/messaging"].symlink = true`
+> 를 넣고 `cap sync` 를 다시 돌린다(CLI 8.4.0+ 필요, 현재 8.5.0). 지금은 충돌이
+> 없어 넣지 않았다 — 넣으면 `CapApp-SPM/symlinks/` 생성물이 따라온다.
+
+### iOS 가 실제로 배선됐는지 확인하는 법
+
+**이건 반드시 확인해야 한다.** iOS 는 plist 가 번들에 없어도 빌드가 성공하고,
+Firebase 초기화만 조용히 실패한다 — 즉 "빌드 됐으니 됐겠지" 가 통하지 않는다.
+
+레포에서 한 줄로 볼 수 있다. 등록돼 있으면 1 이상이 나온다:
+
+```bash
+grep -c "GoogleService-Info" ios/App/App.xcodeproj/project.pbxproj
+```
+
+기기/시뮬레이터에서는 Xcode 콘솔에 이 줄이 뜨면 성공이다:
+
+```
+[FirebaseMessaging] ... FIRMessaging registration token ...
+```
+
+`Could not locate configuration file: 'GoogleService-Info.plist'` 가 뜨면
+타겟 등록이 안 된 것이다. Xcode → App 타겟 → Build Phases → **Copy Bundle Resources**
+목록에 파일이 있는지 본다.
+
 **푸시를 실제로 켜는 것은 BE 의 디바이스 토큰 API(§A)가 배포된 뒤다.**
 그때 `NEXT_PUBLIC_PUSH_ENABLED=true` 를 배포 워크플로 `Build` 스텝 `env:` 에 추가한다.
+
+---
+
+## 2.4 앱 아이콘 · 스플래시 (생성물이다 — 손으로 만들지 말 것)
+
+네이티브 아이콘/스플래시 PNG 는 **전부 생성물**이고 소스는 웹이 쓰는 브랜드 에셋 둘뿐이다.
+
+| 소스 | 무엇 |
+|---|---|
+| `public/logo/icon.svg` | 디자인된 앱 아이콘. 둥근 `#E9E6E2` 타일 + ditto 워드마크 |
+| `public/assets/logo/ditto.svg` | 워드마크 단독. 웹 스플래시(`components/splash/Splash.tsx`)가 쓰는 바로 그 파일 |
+
+```bash
+npm run assets:app     # scripts/generate-app-assets.mjs
+```
+
+`cap sync` 는 필요 없다 — 네이티브 리소스 디렉터리를 직접 쓴다.
+브랜드가 바뀌면 위 SVG 두 개만 갈고 이 명령을 다시 돌린다.
+**생성된 PNG 를 직접 편집하면 다음 실행에서 조용히 덮인다.**
+
+### 대상마다 마스크가 달라서 배율이 다르다
+
+한 장을 그대로 리사이즈하면 안 되는 이유다. 각 값의 근거는 스크립트 상단 `MARK_RATIO` 주석에 있다.
+
+| 대상 | 워드마크 폭 | 왜 |
+|---|---|---|
+| iOS `AppIcon-512@2x.png` | 79% (원본 그대로) | 시스템이 모서리를 깎으므로 **각진 정사각형·알파 없음**으로 넣는다. 둥근 소스를 그대로 넣으면 이중으로 깎여 모서리가 빈다 |
+| Android `ic_launcher.png` | 79% (원본 그대로) | 레거시 런처(API 24~25). 둥근 타일을 그대로 쓴다 |
+| Android `ic_launcher_round.png` | 70% | 원형 마스크. 대각선이 원 안에 들어와야 한다 |
+| Android `ic_launcher_foreground.png` | 60% | 어댑티브 아이콘. 108dp 중 **가운데 72dp만 보장**된다. 워드마크 종횡비 2.105 기준 √(0.60² + (0.60/2.105)²) × 108 = 71.6dp — 딱 맞는다. **올리면 런처에 따라 양끝이 잘린다** |
+| 스플래시 | 짧은 변의 40% | 웹 스플래시가 393px 뷰포트에서 160px 로고를 쓴다(= 40.7%). 같은 비율 |
+
+iOS 스플래시만 2732 정사각 기준 19% 다. `LaunchScreen.storyboard` 가 `scaleAspectFill`
+로 깔아서 폰에서는 가운데 폭 1260 단위만 보이기 때문이다 — 그 크롭을 거치면 화면 폭의 40.7% 가 된다.
+
+### 스플래시는 안드로이드 버전에 따라 다른 경로를 탄다
+
+- **API 31+ (Android 12 이상)** — 시스템이 직접 그린다. `values/styles.xml` 의
+  `android:background="@drawable/splash"` 는 View 속성이라 **여기서는 무시된다.**
+  그래서 `values-v31/styles.xml` 에 `windowSplashScreenBackground` 를 따로 뒀다.
+  아이콘은 일부러 지정하지 않았다 — 비우면 런처 아이콘(어댑티브 = `brand_background`
+  + 워드마크)을 쓰는데 배경색이 같아 워드마크만 떠 보인다. 웹 스플래시와 같은 그림이다.
+- **API 24~30** — 기존대로 `@drawable/splash` PNG 다. 이 경로는 PNG 가 화면 비율로
+  **늘어난다**(가로 스케일과 세로 스케일이 다르다). 1280×1920 자산이 1080×2400 기기에
+  깔리면 워드마크가 세로로 약 1.5배 늘어난다. 실측상 알아볼 수 있는 수준이라 두었다.
+  거슬리면 `drawable/splash.xml` 을 layer-list(단색 + `gravity="center"` bitmap)로
+  바꿔야 하고, 그때는 `drawable*/splash.png` 를 전부 지워야 한다(같은 이름 충돌).
+
+### 색은 한 곳에서만 산다
+
+`#E9E6E2` 는 웹 토큰 `color-atomic-neutral-95`(= `color-semantic-background-normal-normal`)
+의 복제값이다. 네이티브는 CSS 토큰을 읽을 수 없어 값을 옮겨 적을 수밖에 없다.
+**토큰이 바뀌면 아래 세 곳을 함께 바꾼다:**
+
+- `android/app/src/main/res/values/colors.xml` 의 `brand_background`
+  (`ic_launcher_background` 가 이걸 참조하고, `values-v31/styles.xml` 도 참조한다)
+- `capacitor.config.ts` 의 `android.backgroundColor`
+- `scripts/generate-app-assets.mjs` 의 `BG`
+
+> ⚠️ Android 리소스 XML 주석에는 `--` 를 쓸 수 없다. CSS 변수명(`--color-...`)을
+> 주석에 그대로 붙여 넣으면 **빌드가 아니라 XML 파싱에서 깨진다.**
+
+### 검증
+
+로컬에 Android SDK 가 없으면 리소스 컴파일을 확인할 수 없다. 아이콘/스플래시를 건드린 뒤에는
+**Android Studio 에서 한 번 빌드해서** `values-v31` · `colors.xml` 이 실제로 컴파일되는지 볼 것.
 
 ---
 
@@ -279,6 +394,28 @@ Gradle 배선은 Capacitor 템플릿에 이미 있어 `google-services.json` 이
       **나머지 하단 고정 요소는 아직 미적용** — §5 참고.
 - [ ] **STOMP 채팅 소켓** — 앱을 백그라운드로 보냈다 복귀했을 때 재연결되는지.
       백그라운드 동안 온 메시지는 **푸시가 없으면 못 받는다**(BE 요청서 §B).
+
+### 원격 푸시 (위 항목과 별도로 순서대로)
+
+- [ ] **권한 대화상자가 한 번만** 뜨는지. 두 번 뜨거나, 한 번 뜨고 푸시가 조용히
+      거부되면 로컬↔푸시 직렬화(`ClientLayout`)가 깨진 것이다.
+- [ ] **토큰이 FCM 등록 토큰인지.** 콜론이 섞인 150~170자여야 한다.
+      **64자 hex 면 APNs 토큰**이고, 그건 iOS 배선(plist/entitlements/AppDelegate)이
+      덜 됐다는 뜻이다 — BE 등록은 성공하고 발송만 전부 실패한다(위키 §공통 경고).
+      iOS: Xcode 콘솔 `FIRMessaging registration token` / Android: `adb logcat -s FirebaseMessaging`
+- [ ] **BE 등록 왕복** — `POST /api/v1/notifications/devices` 가 `success: true` 인지.
+      `registered: false` 는 **실패가 아니다**(이미 내 토큰인 재호출).
+- [ ] **백그라운드 수신 → 탭** — 배너가 뜨고, 탭하면 `deepLink` 화면으로 가고,
+      알림 센터의 그 행이 읽음으로 바뀌어 있는지.
+- [ ] **앱을 완전히 종료한 상태에서 탭** — 콜드 스타트에서도 같은 이동이 되는지.
+      (플러그인이 이벤트를 `retainUntilConsumed` 로 물고 있다가 리스너가 붙으면 흘린다)
+- [ ] **포그라운드 수신** — 앱을 켜 둔 채 받으면 배너가 없을 수 있다. 이때
+      알림 센터가 **스스로 갱신**되는지(`ditto:push-received`).
+- [ ] **Android 상태바 아이콘** — 흰 사각형이 아니라 `ditto` 워드마크인지.
+      사각형이면 `ic_stat_ditto` 배선이 빠진 것이다.
+- [ ] **로그아웃 → 이전 계정 푸시 없음** — 로그아웃 뒤 그 계정으로 알림이 생겨도
+      이 기기에 오면 안 된다. (해제 + 토큰 폐기)
+- [ ] **탈퇴** — 탈퇴 직전에 해제가 나가는지. 탈퇴 후에는 인증이 막혀 못 부른다.
 
 ---
 

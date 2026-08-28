@@ -77,6 +77,11 @@ jobs:
           NEXT_PUBLIC_KAKAO_JS_KEY: ${{ secrets.NEXT_PUBLIC_KAKAO_JS_KEY }}
           NEXT_PUBLIC_REDIRECT_URI: ${{ secrets.NEXT_PUBLIC_REDIRECT_URI }}
           NEXT_PUBLIC_DITTO_API_KEY: ${{ secrets.NEXT_PUBLIC_DITTO_API_KEY }}
+          # 원격 푸시(FCM) 킬 스위치. BE 디바이스 토큰 API 가 라이브라 켜 둔다
+          # (POST/DELETE /api/v1/notifications/devices). 진입점이 전부
+          # isNativeApp() 로 막혀 있어 웹 방문자에게는 영향이 없다.
+          # 되돌릴 일이 생기면 이 줄만 지우면 된다.
+          NEXT_PUBLIC_PUSH_ENABLED: 'true'
 
       - name: Verify CloudFront rewrite function is in sync with build output
         # 새 동적 라우트가 추가됐는데 함수를 재생성하지 않으면 그 라우트의 딥링크가

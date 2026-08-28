@@ -16,6 +16,7 @@ import type {
   NotificationItem,
   NotificationSection,
 } from "@/features/notification/model/types";
+import { PUSH_RECEIVED_EVENT } from "@/shared/lib/native/pushNotifications";
 import { parseServerDateTime } from "@/shared/lib/serverDateTime";
 
 /**
@@ -79,6 +80,20 @@ export function useNotifications(): UseNotificationsResult {
   const [error, setError] = useState(false);
   // 목록에 없는(다른 카테고리 탭의) 알림까지 세야 하므로 전용 API 값을 쓴다.
   const [unreadCount, setUnreadCount] = useState(0);
+  /**
+   * 다시 읽어야 할 때 올리는 값. 목록과 미읽음 수 두 effect의 의존성에 함께 걸린다.
+   *
+   * 앱이 떠 있는 동안 푸시가 오면 OS가 배너를 안 띄울 수 있어(BE 위키
+   * Frontend-Push-Guide §앱 구현 노트), 열려 있는 알림 센터가 스스로 최신을 받아야 한다.
+   */
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // 웹에서는 이 이벤트가 발생하지 않는다(푸시 진입점 전체가 네이티브로 막혀 있다).
+  useEffect(() => {
+    const onPushReceived = () => setReloadKey((previous) => previous + 1);
+    window.addEventListener(PUSH_RECEIVED_EVENT, onPushReceived);
+    return () => window.removeEventListener(PUSH_RECEIVED_EVENT, onPushReceived);
+  }, []);
 
   // 필터는 서버 파라미터다(category). 탭이 바뀌면 그 카테고리만 다시 받아 온다.
   useEffect(() => {
@@ -102,7 +117,7 @@ export function useNotifications(): UseNotificationsResult {
     return () => {
       active = false;
     };
-  }, [filter]);
+  }, [filter, reloadKey]);
 
   useEffect(() => {
     let active = true;
@@ -117,7 +132,7 @@ export function useNotifications(): UseNotificationsResult {
     return () => {
       active = false;
     };
-  }, []);
+  }, [reloadKey]);
 
   const visibleItems = useMemo(
     () => [...items].sort((left, right) => toTimestamp(right.createdAt) - toTimestamp(left.createdAt)),
