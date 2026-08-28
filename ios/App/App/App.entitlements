@@ -12,6 +12,21 @@
 	  Xcode 가 배포용 아카이브를 만들 때 프로비저닝 프로필에 맞춰 `production` 으로
 	  바꿔 준다. 손으로 고치지 말 것.
 	-->
+	<!--
+	  유니버설 링크. `https://ditto.pics/auth/callback?accessToken=...` 이 사파리가
+	  아니라 이 앱에서 열리게 한다 — 카카오톡 앱을 거치는 로그인의 복귀 경로다.
+	  이게 없으면 카카오톡이 인증을 마쳐도 세션이 사파리에 떨어지고 앱은 비로그인으로 남는다.
+
+	  받는 쪽은 `appShell.ts` 의 `appUrlOpen` 리스너이며 호스트 검증을 이미 한다.
+	  대응하는 AASA 파일은 `public/.well-known/apple-app-site-association` 이고,
+	  경로를 `/auth/callback*` 로 좁혔다 — 전체 경로를 주장하면 웹 링크가 전부
+	  앱으로 끌려온다.
+	-->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:ditto.pics</string>
+		<string>applinks:www.ditto.pics</string>
+	</array>
 	<key>aps-environment</key>
 	<string>development</string>
 </dict>

@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["LU3B2D6B99.pics.ditto.app"],
+        "components": [
+          {
+            "/": "/auth/callback*",
+            "comment": "카카오 로그인 복귀. BE 가 accessToken 을 쿼리로 붙여 이 경로로 돌려보내는데, 카카오톡 앱을 거치면 그 리다이렉트가 사파리로 새 버린다. 이 항목이 그걸 앱으로 되돌린다."
+          }
+        ]
+      }
+    ]
+  }
+}

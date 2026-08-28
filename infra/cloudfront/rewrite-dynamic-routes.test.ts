@@ -111,4 +111,11 @@ describe("호스트 처리와 S3 프리픽스", () => {
   it("이미 프리픽스가 붙은 URI 는 두 번 붙이지 않는다", () => {
     expect(serve("/prod/home/index.html").uri).toBe("/prod/home/index.html");
   });
+
+  it("/.well-known/ 은 index.html 을 붙이지 않는다 — 붙으면 유니버설 링크가 죽는다", () => {
+    expect(serve("/.well-known/apple-app-site-association").uri).toBe(
+      "/prod/.well-known/apple-app-site-association",
+    );
+    expect(serve("/.well-known/assetlinks.json").uri).toBe("/prod/.well-known/assetlinks.json");
+  });
 });

@@ -98,6 +98,17 @@ jobs:
       - name: S3 Sync to prod prefix
         run: aws s3 sync ./out s3://${{ secrets.S3_BUCKET }}/prod --delete
 
+      - name: Fix apple-app-site-association content type
+        # 이 파일은 확장자가 없어서 `s3 sync` 가 binary/octet-stream 으로 올린다.
+        # 애플은 AASA 를 application/json 으로 요구하므로 다시 올려 타입만 고친다.
+        # 실패해도 배포를 막지 않는다 — 유니버설 링크만 안 걸리고 앱은 동작한다.
+        continue-on-error: true
+        run: |
+          aws s3 cp \
+            s3://${{ secrets.S3_BUCKET }}/prod/.well-known/apple-app-site-association \
+            s3://${{ secrets.S3_BUCKET }}/prod/.well-known/apple-app-site-association \
+            --content-type application/json --metadata-directive REPLACE
+
       - name: CloudFront Invalidation
         run: |
           aws cloudfront create-invalidation \

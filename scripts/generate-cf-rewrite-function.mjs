@@ -133,6 +133,14 @@ function handler(event) {
     return request;
   }
 
+  // /.well-known/ 은 파일을 그대로 줘야 한다. 확장자가 없어서(예:
+  // apple-app-site-association) 아래 규칙에 걸리면 '/index.html' 이 붙어 404 가 되고,
+  // 그러면 유니버설 링크가 조용히 죽는다 — 애플은 이 경로를 그 이름 그대로만 읽는다.
+  if (uri.indexOf('/.well-known/') === 0) {
+    request.uri = prefix + uri;
+    return request;
+  }
+
   // 디렉터리 URI 는 index.html 로. 확장자가 있으면 그대로 둔다(정적 자산).
   if (uri.endsWith('/')) {
     uri += 'index.html';

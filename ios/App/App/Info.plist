@@ -61,6 +61,24 @@
 	</array>
 	<!-- 그룹채팅 장소 지도(PlaceMapPage)의 navigator.geolocation 용.
 	     이 키가 없으면 위치 요청 시점에 iOS가 앱을 즉시 종료시킨다. -->
+	<!--
+	  카카오 로그인의 앱 전환(간편로그인)에 필요하다.
+
+	  카카오 인증 페이지는 iOS 웹뷰에서 `useSimpleLogin: true` 로 내려오며
+	  `kakaokompassauth://authorize` 스킴으로 카카오톡을 띄우려 한다. Capacitor 는
+	  http(s) 가 아닌 스킴을 만나면 `canOpenURL` 로 물어보고 true 일 때만 OS 에
+	  넘기는데, iOS 9+ 는 **여기 선언되지 않은 스킴에 무조건 false** 를 준다.
+	  그러면 웹뷰가 그 스킴을 직접 열려다 실패하고
+	  (`cannot find host` / `WebContent Couldn't open ...`) 사용자에게는
+	  "카카오로 계속하기 버튼이 안 눌린다"로 보인다. 2026-08-28 실기기에서 재현.
+	-->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>kakaokompassauth</string>
+		<string>kakaotalk</string>
+		<string>kakaolink</string>
+		<string>kakaoplus</string>
+	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>주변 장소를 추천하기 위해 현재 위치를 사용합니다.</string>
 	<!-- 채팅·신고 사진 첨부(<input type="file">)에서 사진/카메라를 고를 때. -->
