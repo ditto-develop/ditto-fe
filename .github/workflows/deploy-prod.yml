@@ -105,8 +105,11 @@ jobs:
             --paths "/*"
 
       - name: Publish CloudFront rewrite function
-        # CF_REWRITE_FUNCTION_NAME 변수가 설정되기 전(= 함수 최초 생성/배포판 연결
-        # 전)에는 건너뛴다. 일회성 설정 절차는 docs/app-shell-runbook.md 참고.
+        # CF_REWRITE_FUNCTION_NAME 변수가 설정되기 전에는 건너뛴다.
+        # 값은 `www-to-apex-ditto-pics` — 배포판에 이미 붙어 있는 함수이며 새로
+        # 만드는 것이 아니라 내용을 교체한다. 이 함수는 rewrite 뿐 아니라
+        # www→아펙스 301 과 S3 프리픽스까지 담당하므로, 커밋된 소스가 곧 함수 전체다.
+        # 일회성 설정 절차는 docs/app-shell-runbook.md §4 참고.
         if: vars.CF_REWRITE_FUNCTION_NAME != ''
         run: |
           set -euo pipefail
@@ -115,7 +118,7 @@ jobs:
           aws cloudfront update-function \
             --name "$FN" \
             --if-match "$ETAG" \
-            --function-config Comment="ditto dynamic route rewrite",Runtime=cloudfront-js-2.0 \
+            --function-config Comment="www->apex 301 + host prefix routing + static export dynamic route rewrite",Runtime=cloudfront-js-2.0 \
             --function-code fileb://infra/cloudfront/rewrite-dynamic-routes.js
           NEW_ETAG=$(aws cloudfront describe-function --name "$FN" --query 'ETag' --output text)
           aws cloudfront publish-function --name "$FN" --if-match "$NEW_ETAG"

@@ -35,12 +35,13 @@ function generate(files: string[]): string {
   return readFileSync(target, "utf8");
 }
 
-/** 생성된 함수를 실행해 rewrite 결과를 얻는다. */
+/**
+ * 생성된 소스에서 rewrite 표만 꺼내 쓴다.
+ * handler 는 호스트→프리픽스까지 하므로 스캔 검증에는 rewriteDynamicRoute 가 맞다
+ * (프리픽스·301 은 rewrite-dynamic-routes.test.ts 가 본다).
+ */
 function rewriterFrom(source: string): (uri: string) => string {
-  const handler = new Function(`${source}; return handler;`)() as (e: {
-    request: { uri: string };
-  }) => { uri: string };
-  return (uri) => handler({ request: { uri } }).uri;
+  return new Function(`${source}; return rewriteDynamicRoute;`)() as (uri: string) => string;
 }
 
 afterEach(() => {

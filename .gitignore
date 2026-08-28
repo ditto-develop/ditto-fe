@@ -79,3 +79,6 @@ amplifytools.xcconfig
 **/serviceAccountKey*.json
 **/firebase-adminsdk-*.json
 **/*.p8
+
+# Claude Code local machine settings (AWS profile 등 로컬 전용)
+.claude/settings.local.json

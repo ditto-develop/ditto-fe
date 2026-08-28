@@ -444,28 +444,40 @@ node scripts/generate-cf-rewrite-function.mjs      # infra/cloudfront/rewrite-dy
 로직 회귀는 `infra/cloudfront/rewrite-dynamic-routes.test.ts`가 막는다
 (특히 `/profile/edit/` 같은 **형제 정적 라우트가 rewrite 되지 않는지**).
 
-### 일회성 AWS 설정
+### 일회성 AWS 설정 (2026-08-28 정정 — 함수를 새로 만들면 안 된다)
+
+**배포판에는 이미 `www-to-apex-ditto-pics` 함수가 붙어 있다.** 새로 만들어 연결하는
+것이 아니라 **그 함수의 내용을 교체**한다. 이름을 유지하면 연결(association)을 건드릴
+필요가 없어 가장 안전하다.
 
 ```bash
-# 1) 함수 생성
-aws cloudfront create-function \
-  --name ditto-rewrite-dynamic-routes \
-  --function-config Comment="ditto dynamic route rewrite",Runtime=cloudfront-js-2.0 \
+# 1) DEVELOPMENT 스테이지에 올린다 (LIVE 는 그대로 — 트래픽 영향 없음)
+ETAG=$(aws cloudfront describe-function --name www-to-apex-ditto-pics --query 'ETag' --output text)
+aws cloudfront update-function \
+  --name www-to-apex-ditto-pics --if-match "$ETAG" \
+  --function-config Comment="www->apex 301 + host prefix routing + static export dynamic route rewrite",Runtime=cloudfront-js-2.0 \
   --function-code fileb://infra/cloudfront/rewrite-dynamic-routes.js
 
-# 2) 퍼블리시
-ETAG=$(aws cloudfront describe-function --name ditto-rewrite-dynamic-routes --query 'ETag' --output text)
-aws cloudfront publish-function --name ditto-rewrite-dynamic-routes --if-match "$ETAG"
+# 2) 배포 없이 입력별 출력을 확인한다 (test-function 은 DEVELOPMENT 를 친다)
+#    최소한 이 셋은 봐야 한다: 딥링크 rewrite · 형제 정적 라우트 · /prod 프리픽스
+DEV_ETAG=$(aws cloudfront describe-function --name www-to-apex-ditto-pics --stage DEVELOPMENT --query 'ETag' --output text)
+aws cloudfront test-function --name www-to-apex-ditto-pics --stage DEVELOPMENT \
+  --if-match "$DEV_ETAG" --event-object fileb://event.json
 
-# 3) 배포판 기본 behavior 의 viewer-request 에 연결
-#    (콘솔에서 하는 편이 안전하다: CloudFront > E2IAN5BWR5D33B > Behaviors > Default > Function associations)
+# 3) 통과하면 LIVE 로
+DEV_ETAG=$(aws cloudfront describe-function --name www-to-apex-ditto-pics --stage DEVELOPMENT --query 'ETag' --output text)
+aws cloudfront publish-function --name www-to-apex-ditto-pics --if-match "$DEV_ETAG"
 ```
+
+`event.json` 은 `{"version":"1.0","context":{"eventType":"viewer-request"},"viewer":{"ip":"1.2.3.4"},
+"request":{"method":"GET","uri":"<경로>","headers":{"host":{"value":"ditto.pics"}},"querystring":{},"cookies":{}}}`
+형태다.
 
 그 다음 GitHub 저장소 변수에 이름을 등록하면 이후 배포부터 자동 갱신된다:
 
 ```
 Settings > Secrets and variables > Actions > Variables
-CF_REWRITE_FUNCTION_NAME = ditto-rewrite-dynamic-routes
+CF_REWRITE_FUNCTION_NAME = www-to-apex-ditto-pics
 ```
 
 변수가 비어 있으면 워크플로의 퍼블리시 스텝은 조용히 건너뛴다 — 설정 전에 배포가 깨지지 않게 하기 위함이다.
@@ -515,41 +527,30 @@ behavior당 viewer-request 함수를 하나만 붙일 수 있어, 기존 함수�
 
 ---
 
-### 기존 함수 역설계 초안
+### 기존 함수의 실제 내용 (2026-08-28 소스 확인)
 
-배포판에 이미 붙어 있는 viewer-request 함수의 소스를 볼 수 없어(AWS 자격증명 없음),
-외부 관측으로 동작을 역설계한 초안이 `infra/cloudfront/viewer-request.draft.js` 다.
+AWS 자격증명이 생겨 `get-function` 으로 **실제 소스를 읽었다.** 역설계 초안
+(`infra/cloudfront/viewer-request.draft.js`)은 역할을 다해 삭제했다.
 
-관측된 기존 동작:
+읽어 보니 초안이 "확인 못 했다"고 남겨 둔 항목의 답이 **가장 중요했다**:
 
-| 요청 | 결과 | 의미 |
+> **S3 프리픽스는 origin path 가 아니라 이 함수가 붙인다.**
+
+즉 생성기가 만들던 rewrite 전용 함수를 그대로 붙였으면 `/prod` 가 사라져
+**사이트 전 경로가 404** 났다. 그래서 생성기가 **함수 전체**(301 + 프리픽스 +
+index.html + rewrite)를 만들도록 바꿨다. 지금 `rewrite-dynamic-routes.js` 는
+배포판에 붙는 것과 같은 파일이다.
+
+기존 함수가 하던 일과 바뀐 점:
+
+| | 기존(2026-06-17) | 지금 |
 |---|---|---|
-| `test.ditto.pics/` | staging 콘텐츠 | 호스트→프리픽스 라우팅 존재 |
-| `ditto.pics/` | prod 콘텐츠 | |
-| 알 수 없는 호스트 | prod 콘텐츠 | 기본값 prod |
-| `www.ditto.pics/` | 301 → `https://ditto.pics/` | **죽은 아펙스로 보냄** |
-| `/home` 과 `/home/` | 동일 응답 | 트레일링 슬래시 정규화 존재 |
-| `/profile/{무엇이든}/` | placeholder | **과매칭** |
-| `test.ditto.pics/nope/` | **prod 의 index.html** | **404 폴백에 프리픽스 누락** |
-
-초안이 고치는 것 3가지:
-
-1. **www→apex 301 을 뒤집는다.** 아펙스에 DNS 레코드가 없으므로(§4.1) 기존 방향은
-   실사용자를 존재하지 않는 도메인으로 보낸다. Route53 이전이 끝나면 이 분기가
-   그대로 apex→www 가 되어 일관된다.
-2. **숫자 id 가드**로 형제 정적 라우트 과매칭을 막는다.
-3. 404 폴백 프리픽스 누락은 **함수로 못 고친다** — CloudFront 커스텀 오류 응답은
-   호스트를 모른다. 배포판을 staging/prod 두 개로 분리하거나 오류 응답 경로를
-   재검토해야 한다. 별도 과제로 남긴다.
-
-⚠️ **이 초안을 그대로 붙이지 말 것.** 프리픽스를 함수가 붙이는지 origin path 가
-붙이는지, 보안 헤더 등 부가 로직이 있는지 확인하지 못했다. 대조용이다.
-
-> 💡 CloudFront 콘솔의 Function **TEST 탭**을 쓰면 배포 없이 입력 URI 별 출력을 볼 수 있다.
-> **기존 함수를 TEST 에 걸어보면 위 미확인 항목이 바로 드러난다.** 이것이 소스를
-> 확인하는 가장 빠른 방법이다.
-
----
+| www → 아펙스 301 | ✅ | ✅ 그대로 |
+| host → `/prod`·`/staging` 프리픽스 | ✅ | ✅ 그대로 |
+| 디렉터리 URI → `index.html` | ✅ | ✅ 그대로 |
+| 동적 라우트 rewrite | ⚠️ 과매칭 — id 자리에 뭐가 오든 매칭 | ✅ 숫자 id 만 |
+| `.../rate/` 딥링크 | ❌ 모름(두 세그먼트만 봄) | ✅ 접미 세그먼트 지원 |
+| 라우트 목록 출처 | 콘솔에만 존재(드리프트) | `out/` 스캔 생성물 |
 
 ## 4.1 ⚠️ 프로덕션 DNS 장애 (2026-08-26 발견, 이 작업과 무관)
 
