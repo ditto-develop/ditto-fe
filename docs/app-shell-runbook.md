@@ -482,19 +482,20 @@ CF_REWRITE_FUNCTION_NAME = www-to-apex-ditto-pics
 
 변수가 비어 있으면 워크플로의 퍼블리시 스텝은 조용히 건너뛴다 — 설정 전에 배포가 깨지지 않게 하기 위함이다.
 
-**2026-08-28 현재 이 변수는 설정돼 있지 않다**(`gh variable list` 가 비어 있고, 배포
-로그의 `Publish CloudFront rewrite function` 스텝이 `skipped` 다). 따라서 이 저장소의
-함수는 **아직 한 번도 배포판에 붙은 적이 없다.**
+**2026-08-28 설정 완료** — `CF_REWRITE_FUNCTION_NAME = www-to-apex-ditto-pics`.
+같은 날 수동 배포로 `Publish CloudFront rewrite function` 스텝이 실제로 도는 것까지
+확인했다(`skipped` → `success`). 이제 **커밋된 소스가 곧 라이브 함수**이며, 배포마다
+동기화된다.
 
-### 배포 IAM 권한 — 지금 **없다** (2026-08-28 확인)
+### 배포 IAM 권한 (2026-08-28 추가 완료)
 
 배포는 롤이 아니라 IAM 사용자 `github-actions-deployer` 의 액세스 키로 돈다.
-인라인 정책 `ditto-fe-deploy` 를 읽어 보니 S3 3종 + `cloudfront:CreateInvalidation`
-뿐이고 **함수 권한이 하나도 없다.**
+인라인 정책은 `ditto-fe-deploy` 이고, 원래 S3 3종 + `cloudfront:CreateInvalidation`
+뿐이라 함수 권한이 없었다. 아래 Statement 를 추가해 해결했다.
 
-→ 이 상태로 `CF_REWRITE_FUNCTION_NAME` 을 설정하면 배포 잡의 퍼블리시 스텝이
-AccessDenied 로 죽는다(`set -euo pipefail`). S3 동기화·무효화는 그 앞이라 사이트는
-갱신되지만 잡은 빨간불이 된다. **변수 설정 전에 권한을 먼저 붙일 것.**
+> 권한 없이 `CF_REWRITE_FUNCTION_NAME` 만 켜면 퍼블리시 스텝이 AccessDenied 로
+> 죽는다(`set -euo pipefail`). S3 동기화·무효화는 그 앞이라 **사이트는 갱신되는데
+> 잡만 빨간불**이 되어 원인을 찾기 헷갈린다. 순서는 권한 → 변수다.
 
 ```json
 {
@@ -509,9 +510,8 @@ AccessDenied 로 죽는다(`set -euo pipefail`). S3 동기화·무효화는 그 
 }
 ```
 
-`aws iam get-user-policy --user-name github-actions-deployer --policy-name ditto-fe-deploy`
-로 현재 문서를 받아 위 Statement 를 추가한 뒤 `put-user-policy` 로 되돌려 넣는다.
-배포판 연결은 이미 돼 있으므로 `UpdateDistribution` 은 필요 없다.
+`get-user-policy` 로 현재 문서를 받아 위 Statement 를 붙이고 `put-user-policy` 로
+되돌려 넣는 방식이다. 배포판 연결은 이미 돼 있으므로 `UpdateDistribution` 은 필요 없다.
 
 ### ⚠️ 실측 결과 (2026-08-26) — 문서의 전제가 틀렸다
 
@@ -679,21 +679,27 @@ Route53 레코드 변경 직후, CloudFront 함수 배포 직후에 돌릴 것.
 이 비교는 어느 빌드가 올라가 있든 유효하다. 라우트 목록은 `out/**/placeholder`
 스캔으로 만들기 때문에 새 동적 라우트가 생겨도 자동으로 포함된다.
 
-### 2026-08-28 기준 결과
+### 2026-08-28 기준 결과 — **전체 통과** (실패 0건)
 
 ```
 DNS      ditto.pics ✓   www ✓   api ✓
 HTTP     apex 200 ✓     www 301 → apex ✓
 딥링크    4/4 rewrite 동작 ✓
-과매칭    /profile/edit/ · /profile/intro-note/ · /quiz/current/ ✗
+과매칭    /profile/edit/ · /profile/intro-note/ · /quiz/current/ ✓ 정상 복구
 ```
 
-남은 실패 3건은 전부 **하나의 원인**이다 — 배포판에 붙어 있는 기존 viewer-request
-함수가 숫자 id 가드 없이 과매칭한다. 이 저장소의 함수로 교체하면 같이 해결된다(§4).
+함수 교체 전후 실측(응답 크기):
+
+| 경로 | 이전 | 지금 |
+|---|---|---|
+| `/profile/edit/` | 9521b (placeholder) | **16759b** (진짜 페이지) |
+| `/profile/intro-note/` | 9521b | **16555b** |
+| `/quiz/current/` | 9489b | **9895b** |
+| `/chat/one-on-one/{id}/rate/` | 12721b (로그인 화면) | **10447b** (placeholder rate) |
 
 `test.ditto.pics` 는 검증 대상에서 빠졌다(staging 폐지, §2.1).
 
-### ⚠️ `.../rate/` 딥링크는 rewrite 되지 않는다 (2026-08-28 실측)
+### `.../rate/` 딥링크 — 깨져 있었고 2026-08-28 고쳤다
 
 `verify:domains` 가 보는 4계열 밖이라 그동안 안 잡혔다. 실측:
 
@@ -706,7 +712,7 @@ HTTP     apex 200 ✓     www 301 → apex ✓
 즉 **평가 요청 푸시(`REVIEW_REQUEST`)의 딥링크가 콜드 오픈에서 로그인 첫 화면으로
 떨어진다.** BE 위키 §deepLink 규칙의 `/chat/{type}/{roomId}/rate/` 가 그것이다.
 
-기존 함수가 `p + id` 두 세그먼트만 보고 뒤에 붙는 `rate` 를 모르기 때문이다.
-이 저장소의 함수는 접미 세그먼트(`s: ["rate"]`)를 포함해 생성되므로 연결하면 해결된다.
-**즉 §4 의 함수 연결은 과매칭 수정이자 푸시 딥링크 수정이다** — 푸시를 켠 지금은
-우선순위가 올라갔다.
+원인은 기존 함수가 `부모 + id` 두 세그먼트만 보고 뒤에 붙는 `rate` 를 몰랐던 것이다.
+지금 함수는 접미 세그먼트(`s: ["rate"]`)를 포함해 생성되며, 교체 후 `10447b` 로
+placeholder rate 페이지와 정확히 일치한다. **§4 의 함수 교체는 과매칭 수정이자
+푸시 딥링크 수정이었다.**
