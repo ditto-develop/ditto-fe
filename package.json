@@ -21,6 +21,7 @@
     "cf:rewrite": "node scripts/generate-cf-rewrite-function.mjs",
     "cf:rewrite:check": "node scripts/generate-cf-rewrite-function.mjs --check",
     "verify:domains": "node scripts/verify-domains.mjs",
+    "assets:app": "node scripts/generate-app-assets.mjs",
     "cap:sync": "npm run build && npx cap sync",
     "cap:ios": "npx cap open ios",
     "cap:android": "npx cap open android"

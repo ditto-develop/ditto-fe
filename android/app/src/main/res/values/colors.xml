@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      브랜드 배경. 웹 토큰 color-atomic-neutral-95
+      (= color-semantic-background-normal-normal) 의 복제값이다.
+      네이티브는 CSS 토큰을 읽을 수 없어 값을 그대로 옮겨 적는다.
+      토큰이 바뀌면 여기와 capacitor.config.ts 의 android.backgroundColor,
+      scripts/generate-app-assets.mjs 의 BG 를 함께 바꿔야 한다.
+    -->
+    <color name="brand_background">#E9E6E2</color>
+</resources>

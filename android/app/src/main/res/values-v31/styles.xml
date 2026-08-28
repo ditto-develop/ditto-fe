@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+      Android 12+ 는 시스템 스플래시를 직접 그린다. values/styles.xml 의
+      android:background="@drawable/splash" 는 View 속성이라 여기서는 무시되고,
+      지정하지 않으면 기본 windowBackground(흰색/검정)가 깔린다.
+
+      windowSplashScreenAnimatedIcon 은 일부러 두지 않는다 — 비우면 런처 아이콘
+      (어댑티브 = brand_background + 워드마크)을 그대로 쓰는데, 배경색이 같아
+      워드마크만 떠 보인다. 웹 스플래시(components/splash/Splash.tsx)와 같은 그림이다.
+
+      postSplashScreenTheme 도 두지 않는다. Capacitor 의 BridgeActivity 가
+      onCreate 에서 직접 setTheme 을 부르므로 중복이다.
+    -->
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/brand_background</item>
+    </style>
+</resources>
