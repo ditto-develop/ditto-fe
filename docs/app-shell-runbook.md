@@ -470,6 +470,10 @@ CF_REWRITE_FUNCTION_NAME = ditto-rewrite-dynamic-routes
 
 변수가 비어 있으면 워크플로의 퍼블리시 스텝은 조용히 건너뛴다 — 설정 전에 배포가 깨지지 않게 하기 위함이다.
 
+**2026-08-28 현재 이 변수는 설정돼 있지 않다**(`gh variable list` 가 비어 있고, 배포
+로그의 `Publish CloudFront rewrite function` 스텝이 `skipped` 다). 따라서 이 저장소의
+함수는 **아직 한 번도 배포판에 붙은 적이 없다.**
+
 ### 배포 IAM 롤에 추가로 필요한 권한
 
 `cloudfront:DescribeFunction`, `cloudfront:UpdateFunction`, `cloudfront:PublishFunction`
@@ -652,14 +656,34 @@ Route53 레코드 변경 직후, CloudFront 함수 배포 직후에 돌릴 것.
 이 비교는 어느 빌드가 올라가 있든 유효하다. 라우트 목록은 `out/**/placeholder`
 스캔으로 만들기 때문에 새 동적 라우트가 생겨도 자동으로 포함된다.
 
-### 2026-08-26 기준 결과
+### 2026-08-28 기준 결과
 
 ```
-DNS      ditto.pics ✓   www ✓   api ✓   test ✗ (Route53 누락)
+DNS      ditto.pics ✓   www ✓   api ✓
 HTTP     apex 200 ✓     www 301 → apex ✓
 딥링크    4/4 rewrite 동작 ✓
 과매칭    /profile/edit/ · /profile/intro-note/ · /quiz/current/ ✗
 ```
 
-남은 실패 4건은 전부 AWS 작업이다 — `test` 레코드 재생성(§2.1)과
-CloudFront 함수의 숫자 id 가드(§4).
+남은 실패 3건은 전부 **하나의 원인**이다 — 배포판에 붙어 있는 기존 viewer-request
+함수가 숫자 id 가드 없이 과매칭한다. 이 저장소의 함수로 교체하면 같이 해결된다(§4).
+
+`test.ditto.pics` 는 검증 대상에서 빠졌다(staging 폐지, §2.1).
+
+### ⚠️ `.../rate/` 딥링크는 rewrite 되지 않는다 (2026-08-28 실측)
+
+`verify:domains` 가 보는 4계열 밖이라 그동안 안 잡혔다. 실측:
+
+```
+/chat/one-on-one/305/rate/   → 12721b   ← 존재하지 않는 경로와 같은 크기(SPA 폴백)
+/chat/one-on-one/placeholder/rate/ → 10447b
+/definitely-not-a-real-path/ → 12721b
+```
+
+즉 **평가 요청 푸시(`REVIEW_REQUEST`)의 딥링크가 콜드 오픈에서 로그인 첫 화면으로
+떨어진다.** BE 위키 §deepLink 규칙의 `/chat/{type}/{roomId}/rate/` 가 그것이다.
+
+기존 함수가 `p + id` 두 세그먼트만 보고 뒤에 붙는 `rate` 를 모르기 때문이다.
+이 저장소의 함수는 접미 세그먼트(`s: ["rate"]`)를 포함해 생성되므로 연결하면 해결된다.
+**즉 §4 의 함수 연결은 과매칭 수정이자 푸시 딥링크 수정이다** — 푸시를 켠 지금은
+우선순위가 올라갔다.
