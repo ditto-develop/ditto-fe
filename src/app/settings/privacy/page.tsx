@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { privacyPolicy } from "@/features/settings/model/policies";
+import { getPolicyBackPath } from "@/features/settings/lib/policyNavigation";
 import { PolicyDocument } from "@/features/settings/ui/PolicyDocument";
 import { TopNavigation } from "@/shared/ui";
 
@@ -11,7 +12,7 @@ export default function PrivacyPage() {
 
   return (
     <Page>
-      <TopNavigation label={privacyPolicy.title} onBack={() => router.push("/settings")} />
+      <TopNavigation label={privacyPolicy.title} onBack={() => router.push(getPolicyBackPath())} />
       <Content>
         <PolicyDocument blocks={privacyPolicy.blocks} />
       </Content>

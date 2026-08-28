@@ -52,10 +52,21 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const isOAuthFlowPath = path === '/oauth' || path.startsWith('/oauth/') || isAuthCallbackPath;
   // 제재 안내: OAuth 콜백으로 넘어온 제재 회원은 토큰이 아예 없으므로 공개 경로여야 한다.
   const isSanctionPath = path === '/sanction' || path.startsWith('/sanction/');
+  /**
+   * 약관·개인정보처리방침·위치기반 약관은 **로그인 없이 열려야 한다.**
+   * 카카오 비즈앱 검수·앱스토어 심사에 이 URL 을 그대로 제출하는데, 보호 경로면
+   * 심사자가 링크를 눌렀을 때 로그인 화면으로 튕겨 내용 자체를 볼 수 없다.
+   * 세 화면 모두 정적 텍스트라 API 호출이 없어 비로그인으로 열려도 문제가 없다.
+   */
+  const isPolicyPath =
+    path === '/settings/terms' ||
+    path === '/settings/privacy' ||
+    path === '/settings/location-terms';
   const isPublicPath =
     path === "/" ||
     isOAuthFlowPath ||
     isSanctionPath ||
+    isPolicyPath ||
     path === '/localogin';
   // 관리자 경로: ClientLayout 리다이렉트/스플래시 완전 제외
   const isAdminPath = path === '/admin' || path.startsWith('/admin/');
@@ -197,10 +208,13 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     // OAuth 콜백 경로는 KakaoCallback이 라우팅을 담당하므로 제외하고,
     // /localogin도 제외한다.
     // 제재 화면은 토큰이 살아 있는 403(6006/6007) 진입도 있으므로 /home으로 되돌리지 않는다.
+    // 약관 화면은 로그인 상태에서도 그대로 머물러야 한다 — 설정에서 들어오는
+    // 정상 경로라 /home 으로 되돌리면 로그인 사용자는 약관을 아예 못 본다.
     const isHomeRedirectCandidate =
       isPublicPath &&
       !isOAuthFlowPath &&
       !isSanctionPath &&
+      !isPolicyPath &&
       path !== '/localogin';
 
     if (!isHomeRedirectCandidate) return;
@@ -231,6 +245,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     isPublicPath,
     isOAuthFlowPath,
     isSanctionPath,
+    isPolicyPath,
     isAdminPath,
     path,
     router,
@@ -246,6 +261,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     // 폼을 영구히 덮을 수 있으므로, 이 경로에서는 ClientLayout Splash를 띄우지 않는다.
     if (isOAuthFlowPath) return false;
     if (isSanctionPath) return false;               // 제재 안내: 자체 로딩 문구 사용
+    // 약관 화면은 링크로 바로 들어오는 사람(심사자 등)이 본다. 정적 텍스트라
+    // 기다릴 것이 없는데 3초 스플래시가 덮으면 그냥 안 뜨는 화면처럼 보인다.
+    if (isPolicyPath) return false;
     if (!isLoggedIn) return !splashDone;            // 비로그인: 3초 타이머
     // 홈은 첫 진입에서만 Splash가 받는다. 재진입·탭 전환은 홈 자체 스켈레톤이 받는다.
     if (path === '/home' && !initialSplashDone) return !isHomeReady && !homeSplashExpired;

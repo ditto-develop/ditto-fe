@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { locationTerms } from "@/features/settings/model/policies";
+import { getPolicyBackPath } from "@/features/settings/lib/policyNavigation";
 import { PolicyDocument } from "@/features/settings/ui/PolicyDocument";
 import { TopNavigation } from "@/shared/ui";
 
@@ -11,7 +12,7 @@ export default function LocationTermsPage() {
 
   return (
     <Page>
-      <TopNavigation label={locationTerms.title} onBack={() => router.push("/settings")} />
+      <TopNavigation label={locationTerms.title} onBack={() => router.push(getPolicyBackPath())} />
       <Content>
         <PolicyDocument blocks={locationTerms.blocks} />
       </Content>

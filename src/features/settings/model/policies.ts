@@ -92,7 +92,7 @@ function parsePolicy(source: string): PolicyBlock[] {
 }
 
 const termsOfServiceSource = `
-# [서비스명] 이용약관
+# Ditto 이용약관
 **시행일자**: 2025년 [월] [일] / **최종 수정일**: 2025년 [월] [일]
 
 ### 제1조 (목적)
@@ -244,7 +244,7 @@ const termsOfServiceSource = `
 `;
 
 const privacyPolicySource = `
-# [서비스명] 개인정보처리방침
+# Ditto 개인정보처리방침
 **시행일자**: 2025년 [월] [일] / **최종 수정일**: 2025년 [월] [일]
 
 ### 1. 개인정보 처리방침의 의의
