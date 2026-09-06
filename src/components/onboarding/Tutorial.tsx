@@ -1,4 +1,4 @@
-/** 카카오 로그인시 받아오는 정보 miss; */
+/** 소셜 로그인에서 받아오는 정보로 회원가입 폼을 채운다. */
 
 "use client";
 
@@ -9,6 +9,7 @@ import {
 } from "@/context/ToastContext";
 
 import { createExternalUser, saveExternalIntroNote } from "@/shared/lib/api/externalApi";
+import { calculateAge, toAgeBucket } from "@/shared/lib/age";
 import type { CreateExternalUserBody } from "@/shared/lib/api/externalApi";
 import { INTRO_NOTE_FIELDS } from "@/features/profile/model/introNotes";
 
@@ -61,17 +62,6 @@ import {
 
 import type {
 
-  Step1Ref
-
-} from "./step/Step_1";
-import {
-
-  Step1Identity
-
-} from "./step/Step_1";
-
-import type {
-
   Step2Ref
 
 } from "./step/Step_2";
@@ -94,17 +84,6 @@ import {
 
 interface TutorialProps {
   initialData?: KakaoLoginResult;
-}
-
-/** "25-29" → 27, "40-45" → 43, "60+" → 60 처럼 나이 범위 문자열을 중앙값 정수로 변환한다. */
-function parseAgeMedian(age: string | null): number {
-  if (!age) return 0;
-  const range = age.match(/^(\d+)\s*-\s*(\d+)$/);
-  if (range) {
-    return Math.round((Number(range[1]) + Number(range[2])) / 2);
-  }
-  const open = age.match(/^(\d+)\+?$/);
-  return open ? Number(open[1]) : 0;
 }
 
 /**
@@ -140,21 +119,17 @@ export function Tutorial({ initialData }: TutorialProps) {
   const [controlButton, setControlButton] = useState<ControlButtonVariant>("disabled");
 
   // --- Refs ---
-  const step1Ref = useRef<Step1Ref>(null);      // Step 1: 본인인증 1
-  const step2Ref = useRef<Step2Ref>(null);      // Step 2: 프로필
-  const step3Ref = useRef<Step3Ref>(null);      // Step 3: 소개
+  // 본인인증 스텝을 없애 온보딩은 2단계다(2026-08-30). 컴포넌트 파일명(Step_2/Step_3)은
+  // 그대로라 ref 이름도 컴포넌트를 따르고, 화면 번호와는 하나씩 어긋난다.
+  const step2Ref = useRef<Step2Ref>(null);      // 1단계: 프로필
+  const step3Ref = useRef<Step3Ref>(null);      // 2단계: 소개 노트
 
   // --- Form Data ---
   const [formData, setFormData] = useState<FormData>({
-    name: initialData?.name || "",
-    // /api/v1/users/me에서 받아온 전화번호로 채운다. 없으면 빈 값으로 직접 입력받는다.
-    phone: initialData?.phoneNumber || "",
-    code: "",
     email: initialData?.email || "",
     pic: initialData?.profileImage || "m1",
     nickname: initialData?.nickname || "",
     gender: toFormGender(initialData?.gender, null),
-    age: null,
     interest: [],
     birthDate: initialData?.birthDate || "",
     place: null,
@@ -172,8 +147,6 @@ export function Tutorial({ initialData }: TutorialProps) {
     if (initialData) {
       setFormData((prev) => ({
         ...prev,
-        name: initialData.name || prev.name,
-        phone: initialData.phoneNumber || prev.phone,
         email: initialData.email || prev.email,
         birthDate: initialData.birthDate || prev.birthDate,
         pic: initialData.profileImage || prev.pic,
@@ -199,8 +172,6 @@ export function Tutorial({ initialData }: TutorialProps) {
       setFormData((prev) => ({
         ...prev,
         kakaoId: loginResult.kakaoId,
-        name: loginResult.name || prev.name,
-        phone: loginResult.phoneNumber || prev.phone,
         nickname: loginResult.nickname || prev.nickname,
         pic: loginResult.profileImage || prev.pic,
         email: loginResult.email || prev.email,
@@ -213,16 +184,21 @@ export function Tutorial({ initialData }: TutorialProps) {
 
   // --- 페이지 이동 로직 ---
   const goNextStep = async () => {
-    // Step 1~3: 단순 페이지 이동
-    if (step < 3) {
+    // 1단계(프로필) → 2단계(소개 노트): 단순 페이지 이동
+    if (step < 2) {
       setControlButton("disabled");
       setStep((prev) => prev + 1);
     } 
-    // Step 3: 최종 회원가입 요청
+    // 2단계: 최종 회원가입 요청
     else {
       try {
-        // 1. 나이 처리: "25-29" 같은 범위 문자열을 중앙값 정수로 변환
-        const parsedAge = parseAgeMedian(formData.age);
+        /*
+         * 1. 나이 처리: 생년월일에서 만 나이를 구해 BE 가 받는 연령대(하한)로 내린다.
+         *    예전에는 구간 선택값의 중앙값(예: 27)을 보냈는데, 라이브 스펙과
+         *    `formatAgeRange` 는 둘 다 하한값(20·25·30…)을 전제한다.
+         */
+        const age = calculateAge(formData.birthDate ?? "");
+        const parsedAge = age === null ? 0 : toAgeBucket(age);
 
         // 2. 성별 처리: 백엔드 스펙(MALE/FEMALE)에 맞춰 대문자 변환
         let parsedGender = formData.gender || "";
@@ -231,13 +207,17 @@ export function Tutorial({ initialData }: TutorialProps) {
 
         // 3. 회원가입 payload 생성 (인증은 Authorization 헤더로 처리되므로 provider 정보는 보내지 않는다)
         const createUserDto: CreateExternalUserBody = {
-          name: formData.name,
           nickname: formData.nickname,
 
-          // BE는 "010-1234-5678" 형태(하이픈 2개)를 검증한다. Step1의 포맷 결과를 그대로 전송.
-          phoneNumber: formData.phone,
+          // 전화번호는 수집하지 않는다(2026-08-30). 본인인증을 빼면서 유일한 수집
+          // 경로가 사라졌고, 소셜 로그인도 번호를 주지 않는다. 라이브 스펙상 nullable.
+          phoneNumber: null,
 
-          // 이메일은 유효한 문자열만 보내고, 비어 있으면 null로 전송
+          // 이름도 수집하지 않는다(2026-09-06). 라이브 스펙상 nullable 이라 아예
+          // 싣지 않는다 — 개인정보처리방침의 필수 수집 항목에 없다.
+
+          // 이메일은 Step2 의 필수 입력이다. 그래도 공백만 들어온 경우를 대비해
+          // 라이브 스펙상 nullable 인 점을 살려 빈 값은 null 로 보낸다.
           email: formData.email.trim() || null,
 
           gender: parsedGender,
@@ -287,17 +267,15 @@ export function Tutorial({ initialData }: TutorialProps) {
   const handleNext = () => {
     // ✅ 각 단계별 Ref 검증 로직 분리
     if (step === 1) {
-      if (step1Ref.current && !step1Ref.current.handleSubmit()) return;
-    } else if (step === 2) {
       if (step2Ref.current && !step2Ref.current.handleSubmit()) return;
-    } else if (step === 3) {
+    } else if (step === 2) {
       if (step3Ref.current && !step3Ref.current.handleSubmit()) return;
     }
     goNextStep();
   };
 
   const handleSkip = () => {
-    if (step === 3) {
+    if (step === 2) {
       showToast(
         <div>
            <Body2Normal $color="white" style={{ fontSize: "14px" }}>매칭 신청을 위해 프로필이 필요해요.</Body2Normal>
@@ -329,29 +307,7 @@ export function Tutorial({ initialData }: TutorialProps) {
         return (
           <OnboardingLayout
             step={1}
-            totalSteps={3}
-            title="간편하게 인증하기"
-            buttonText="인증했어요"
-            variant={controlButton}
-            onNext={handleNext}
-            onPrev={goPrevStep}
-            description={
-              <>
-                <Label1Normal>
-                  안전한 이용을 위해 최초 1회 본인인증이 필요해요.
-                </Label1Normal>
-                <Label1Normal>디토는 19세 이상만 참여할 수 있어요.</Label1Normal>
-              </>
-            }
-          >
-            <Step1Identity ref={step1Ref} data={formData} onChange={handleInputChange} setControlButton={setControlButton} />
-          </OnboardingLayout>
-        );
-      case 2:
-        return (
-          <OnboardingLayout
-            step={2}
-            totalSteps={3}
+            totalSteps={2}
             title="프로필 작성하기"
             variant={controlButton}
             buttonText="다음"
@@ -362,6 +318,7 @@ export function Tutorial({ initialData }: TutorialProps) {
                 <Label1Normal>
                   나랑 같은 답을 한 사람에게만 정보가 공개돼요.
                 </Label1Normal>
+                <Label1Normal>디토는 만 19세 이상만 참여할 수 있어요.</Label1Normal>
                 <Label1Normal>
                   허위 정보를 기재하면 신고당할 수 있어요.
                 </Label1Normal>
@@ -371,11 +328,11 @@ export function Tutorial({ initialData }: TutorialProps) {
             <Step2Profile ref={step2Ref} data={formData} onChange={handleInputChange} setControlButton={setControlButton} />
           </OnboardingLayout>
         );
-      case 3:
+      case 2:
         return (
           <OnboardingLayout
-            step={3}
-            totalSteps={3}
+            step={2}
+            totalSteps={2}
             title="소개 노트 작성하기"
             buttonText="다 작성했어요"
             variant={controlButton}

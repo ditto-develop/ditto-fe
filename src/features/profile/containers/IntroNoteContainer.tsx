@@ -13,8 +13,12 @@ import {
     acceptMatchRequest,
     rejectMatchRequest,
 } from "@/features/matching/api/matchingApi";
-import type { UserRatingSummaryDto } from "@/shared/lib/api/generated";
-import { getUserIntroNotes, type IntroNoteAnswer } from "@/features/profile/api/profileApi";
+import {
+    getUserIntroNotes,
+    getUserRatingSummary,
+    type IntroNoteAnswer,
+} from "@/features/profile/api/profileApi";
+import type { RatingSummary } from "@/features/profile/model/types";
 import { API_ERROR_CODE, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { useToast } from "@/context/ToastContext";
 import { ProfileIntroView } from "@/features/profile/ui/ProfileIntroView";
@@ -55,18 +59,21 @@ export function IntroNoteContainer({
     const [acting, setActing] = useState(false);
     const [showModal, setShowModal] = useState<"request" | "accept" | "reject" | null>(null);
     const [introNotes, setIntroNotes] = useState<IntroNoteAnswer[]>([]);
-    const [ratingSummary] = useState<UserRatingSummaryDto | null>(null);
+    const [ratingSummary, setRatingSummary] = useState<RatingSummary | null>(null);
 
     useEffect(() => {
         setState(initialState);
     }, [userId]);
 
     useEffect(() => {
-        // 받은 평가 요약(GET /api/v1/users/{id}/ratings)은 라이브 BE에 계약이 없다.
-        // 생기면 setRatingSummary를 되살린다(INTEGRATION-TODO.md §A-3).
         getUserIntroNotes(userId)
             .then(setIntroNotes)
             .catch(() => {/* 무시 */});
+
+        // 받은 평가는 프로필과 같은 권한 규칙을 따른다. 실패해도 소개노트는 그대로 보여준다.
+        getUserRatingSummary(userId)
+            .then(setRatingSummary)
+            .catch(() => setRatingSummary(null));
     }, [userId]);
 
     async function confirmRequest() {

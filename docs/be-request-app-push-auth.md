@@ -242,24 +242,38 @@ X-API-Key: <key>
 Content-Type: application/json
 ```
 
+> **정정 (2026-09-03)** — BE는 이 요청을 **`accessToken`** 으로 구현했다.
+> 아래 `kakaoAccessToken` 요청은 받아들여지지 않았다. 정본은 라이브 스펙
+> (`https://api.ditto.pics/docs/openapi.yaml`, `/api/v1/users/social-login/kakao/native`)이며,
+> FE는 `accessToken`으로 보낸다(`loginWithExternalKakaoNative`).
+> 응답도 `sanctionCode`/`suspendedUntil`이 추가된 형태로 내려온다 —
+> 아래 예시보다 넓다. 회귀 방지 테스트: `src/shared/lib/api/externalApi.socialLogin.test.ts`
+
 ```jsonc
 // Request — 네이티브 카카오 SDK가 받은 액세스 토큰
-// ⚠️ 필드명은 `accessToken`이 아니라 `kakaoAccessToken`으로 요청한다.
-//    응답의 `accessToken`(우리 JWT)과 이름이 겹치면 양쪽 다 헷갈린다.
+// ⚠️ 아래는 FE가 요청했던 형태이고, 실제 구현은 `accessToken`이다(위 정정 참고).
 { "kakaoAccessToken": "kakao_sdk_access_token" }
 ```
 
 ```jsonc
 // Response 200 — 기존 리다이렉트 콜백과 동일한 정보를 JSON으로
+// 실제 구현은 제재 상세까지 함께 내려준다. 제재 회원도 success:true 이므로
+// accessToken 의 null 여부가 아니라 `sanctioned` 로 분기해야 한다.
 {
   "success": true,
   "data": {
-    "accessToken": "ditto_jwt",
+    "accessToken": "ditto_jwt",   // 제재 회원은 null
     "signupRequired": false,
-    "sanctioned": false
+    "sanctioned": false,
+    "sanctionCode": null,          // MEMBER_SUSPENDED | MEMBER_BANNED
+    "suspendedUntil": null         // "yyyy-MM-dd HH:mm:ss" (정지일 때만)
   }
 }
 ```
+
+⚠️ `suspendedUntil` 의 형식이 경로마다 다르다. **본문의 것은 `yyyy-MM-dd HH:mm:ss`**,
+리다이렉트 콜백 **쿼리의 것만 ISO-8601** 이다. `parseServerDateTime` 이 둘 다 파싱하므로
+`/sanction` 화면은 양쪽에서 그대로 재사용된다.
 
 **요구사항**
 
@@ -298,6 +312,8 @@ BE 작업 시 FE가 이미 어떤 계약으로 코딩해 뒀는지:
 | `src/shared/lib/native/pushNotifications.ts` | A-1/A-2 호출부 구현 완료. `NEXT_PUBLIC_PUSH_ENABLED` 플래그로 꺼둠 |
 | `src/shared/lib/native/appShell.ts` | B-2의 `deepLink` 파싱 + 호스트 검증 구현 완료 |
 | `src/shared/lib/native/platform.ts` | 웹/앱 분기. 웹에서는 전부 no-op |
+| `src/shared/lib/native/kakaoLogin.ts` | D 호출부 구현 완료. `NEXT_PUBLIC_NATIVE_KAKAO_LOGIN_ENABLED` 플래그를 2026-09-06 에 켰다(앱 한정) |
+| `native-plugins/capacitor-kakao-login/` | 카카오 SDK 로그인만 담당하는 리포 내부 Capacitor 플러그인 |
 | `capacitor.config.ts` | 앱 번들 ID `pics.ditto.app`, 원격 URL 로드 설정 |
 
 스펙에 이견이 있으면 **구현 전에 알려 달라.** FE가 계약에 맞춰 이미 코드를 넣어 둔 상태라

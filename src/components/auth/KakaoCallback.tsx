@@ -5,8 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Body1Normal } from "@/shared/ui";
 import styled from "styled-components";
 import { Tutorial } from "@/components/onboarding/Tutorial";
-import { clearTokens, setTokens } from "@/shared/lib/auth";
-import { getExternalCurrentUser } from "@/shared/lib/api/externalApi";
+import {
+  fetchSignupInitialData,
+  resolveSocialLogin,
+} from "@/features/auth/lib/socialLoginOutcome";
 import type { KakaoLoginResult } from "@/types/kakao";
 
 const LoadingContainer = styled.div`
@@ -25,6 +27,9 @@ function KakaoCallbackContent() {
   // 신규/기존 회원 모두 accessToken을 발급받아 저장한다.
   // - signupRequired=true → 신규 회원 → 회원가입(Tutorial)
   // - 그 외 → 기존 회원 → 로그인(/home)
+  //
+  // 앱의 네이티브 로그인도 토큰을 저장한 뒤 `?signupRequired=true` 로 이 화면에 들어온다.
+  // 그때는 accessToken 쿼리가 없고(토큰을 URL 에 싣지 않는다) 저장된 토큰을 그대로 쓴다.
   const accessToken = searchParams.get("accessToken");
   const signupRequired = searchParams.get("signupRequired") === "true";
   const oauthError = searchParams.get("error");
@@ -32,7 +37,8 @@ function KakaoCallbackContent() {
   // 제재 회원은 토큰이 발급되지 않고 sanctioned=true로 리다이렉트된다.
   // 토큰 저장/회원가입 분기보다 먼저 확인해야 한다.
   const sanctioned = searchParams.get("sanctioned") === "true";
-  const sanctionQuery = searchParams.toString();
+  const sanctionCode = searchParams.get("sanctionCode");
+  const suspendedUntil = searchParams.get("suspendedUntil");
 
   // 신규 회원 진입 시 빈 initialData({})로 Tutorial step 1에서 시작
   const [initialData, setInitialData] = useState<KakaoLoginResult | null>(null);
@@ -48,51 +54,39 @@ function KakaoCallbackContent() {
       return;
     }
 
-    // 제재 회원: 토큰이 없으므로 저장/조회를 시도하지 않고 콜백 쿼리를 그대로 넘긴다.
-    if (sanctioned) {
-      isHandled.current = true;
-      clearTokens();
-      router.replace(`/sanction?${sanctionQuery}`);
+    isHandled.current = true;
+
+    // 토큰 정리·저장과 결말 분기는 네이티브 로그인과 공유한다.
+    const outcome = resolveSocialLogin({
+      accessToken,
+      signupRequired,
+      sanctioned,
+      sanctionCode,
+      suspendedUntil,
+    });
+
+    if (outcome.kind === "sanctioned") {
+      router.replace(`/sanction?${outcome.query}`);
       return;
     }
 
-    isHandled.current = true;
-
-    // 백엔드가 발급한 토큰은 신규/기존 회원 모두 동일하게 저장한다.
-    // 직전 계정의 잔여 토큰이 섞이지 않도록 먼저 비우고 저장한다.
-    if (accessToken) {
-      clearTokens();
-      setTokens(accessToken);
-    }
-
-    if (signupRequired) {
+    if (outcome.kind === "signup") {
       // 신규 회원: 카카오 정보 기반 현재 사용자 정보(이메일/생년월일)를 받아와
       // 회원가입(Tutorial) 단계로 넘긴다. 실패해도 빈 값으로 진입은 가능하게 한다.
-      getExternalCurrentUser()
-        .then((me) => {
-          setInitialData({
-            name: me.name ?? undefined,
-            phoneNumber: me.phoneNumber ?? undefined,
-            gender: me.gender ?? undefined,
-            email: me.email ?? undefined,
-            birthDate: me.birthDate ?? undefined,
-          });
-        })
-        .catch((err) => {
-          console.error("[KakaoCallback] /api/v1/users/me 조회 실패:", err);
-          setInitialData({});
-        });
-    } else {
-      // 기존 회원: 홈으로
-      router.push("/home");
+      void fetchSignupInitialData().then(setInitialData);
+      return;
     }
+
+    // 기존 회원: 홈으로
+    router.push("/home");
   }, [
     accessToken,
     signupRequired,
     oauthError,
     oauthErrorDescription,
     sanctioned,
-    sanctionQuery,
+    sanctionCode,
+    suspendedUntil,
     router,
   ]);
 

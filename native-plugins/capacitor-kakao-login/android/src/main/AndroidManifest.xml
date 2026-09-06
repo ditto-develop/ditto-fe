@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  리다이렉트를 받는 AuthCodeHandlerActivity 는 여기 선언하지 않는다.
+  인텐트 필터의 스킴이 `kakao{네이티브앱키}` 라 앱 키가 필요한데, 그 값은 앱 모듈의
+  Gradle manifestPlaceholder 로만 알 수 있기 때문이다.
+  → android/app/src/main/AndroidManifest.xml 참고.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Android 11+ 패키지 가시성. 없으면 isKakaoTalkLoginAvailable 이 항상 false 가 된다. -->
+    <queries>
+        <package android:name="com.kakao.talk" />
+    </queries>
+</manifest>

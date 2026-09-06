@@ -6,12 +6,13 @@
 > [BE-Request](https://github.com/ditto-develop/ditto-fe/wiki/BE-Request).
 > **2026-08-26 BE 회신**: 그룹 투표 · 채팅방 나가기 · 어드민 시각 조정 수정이 배포됐고,
 > 나머지 요청도 A-3(타인 프로필 보조, P2 — 재현님 담당)만 남기고 전부 반영됐다.
-> **§A-2 · A-4 · A-5 · A-6은 FE 연동까지 끝났다.** 남은 §A 항목은 A-3 · A-7 · A-8뿐이다.
+> **2026-09-03**: A-3도 배포돼 FE 연동까지 끝났다(위키 `Frontend-Native-Login-Peer-Profile-Guide`).
+> **§A-2 · A-3 · A-4 · A-5 · A-6은 FE 연동까지 끝났다.** 남은 §A 항목은 A-7 · A-8뿐이다.
 >
 > ⚠️ 라이브 스펙(`https://api.ditto.pics/docs/openapi.yaml`)이 요청서와 **필드명이 다른 곳이
 > 있다**(§A-5). 연동 전에는 요청서가 아니라 라이브 스펙을 정본으로 대조할 것.
 >
-> §A-2 · §A-3 · §A-5 번호는 코드 주석 15곳이 참조하므로 그대로 둔다.
+> §A-2 · §A-5 번호는 코드 주석이 참조하므로 그대로 둔다. §A-3 주석은 연동과 함께 지웠다.
 
 | 출처 | URL |
 |---|---|
@@ -124,16 +125,46 @@ BE 배포 완료(위키 `Frontend-Vote-Guide`). FE 이관도 끝났다.
 의존해 테스트 환경에서 결정적이지 않다. 생성 진입점의 노출/숨김 규칙만 검증한다.
 실기기·스테이징에서 눈으로 확인할 것.
 
-### A-3. 타인 프로필 보조 — ⏸️ P2, 재현님 담당 (BE 회신 2026-08-26)
+### A-3. 타인 프로필 보조 — ✅ 연동 완료 (2026-09-03)
 
-**둘 다 원문은 노출하지 않는 방향으로 확정.**
+BE 배포 완료. 정본은 위키
+[`Frontend-Native-Login-Peer-Profile-Guide`](https://github.com/ditto-develop/ditto-server/wiki/Frontend-Native-Login-Peer-Profile-Guide)
+2번이고, 라이브 스펙에도 두 엔드포인트가 다 올라와 있다.
 
-- **평가 코멘트**: 주당 평가 인원이 1~2명이라 코멘트가 사실상 익명이 아니다.
-  → `averageScore` + `totalCount`만 별도 엔드포인트로. `noShowCount`도 타인 화면에는 내리지 않는다.
-  - 도착 시: `ProfileDetailModal`·`IntroNoteContainer`의 `ratingSummary: null` 되살리기 +
-    `cypress/e2e/matching-profile/02-intro-note.cy.ts`의 '받은 평가 없음' 기대 뒤집기.
-- **퀴즈 답변**: 원문 대신 **서버가 계산한 일치 개수만** 내린다.
-  - 도착 시: `GroupMemberListPage`의 유사도 배지 복구.
+**2026-08-26 회신과 달라진 점이 둘 있다 — 그쪽이 아니라 아래가 정본이다.**
+
+- **평가 코멘트는 공개된다.** "평균+총건수만"이 아니라 `GET /users/me/ratings`와 **완전히 같은
+  스키마**(`noShowCount`·`ratings[].comment` 포함)로 내려온다. 그래서 타입도 하나를 공유한다
+  (`RatingSummary` — 이름에서 `My`를 뗐다).
+- **퀴즈 답변은 일치 "요약"이다.** 상대의 선택지 원문은 없고
+  `quizSetId / matchedCount / totalCount / matchRate`뿐이다. 화면이 쓰는 건 일치 개수와 등급
+  라벨뿐이라 요청서의 "일치 개수만 줘도 된다" 쪽으로 확정됐다.
+
+| 연동 | 위치 |
+|---|---|
+| `GET /users/{id}/ratings` | `getUserRatingSummary()` — `features/profile/api/profileApi.ts` |
+| `GET /users/{id}/answers` | `getUserAnswerMatch()` — 같은 파일. `quizSetId`를 문자열로 정규화 |
+| 받은 평가 카드 | `ProfileDetailModal` · `IntroNoteContainer` → `ProfileIntroView` |
+| 답변 일치 배지 | `GroupMemberListPage` (그룹 채팅 멤버 전체보기) |
+
+- **공개 여부 플래그는 없다.** 서버가 `isPublic`을 주지 않으므로 화면은
+  `totalCount >= publicThreshold`로만 판정한다. 내 프로필(`ReceivedRatingsCard`)과 같은 기준이라
+  두 화면이 어긋나지 않는다. 미달이면 서버가 평균·노쇼를 0, `ratings`를 빈 배열로 내린다.
+  → `ProfileIntroView`가 들고 있던 `isPublic` 기반 로컬 타입을 지우고 공용 타입을 쓴다.
+- **등급 라벨 문구는 FE가 정본이다.** 서버는 수치만 준다. `getMatchBadgeInfo`를 그대로 쓴다
+  (서버가 문자열까지 내려주면 정본이 둘이 된다 — BE와 합의한 사항).
+- **함께 완주한 퀴즈셋이 없으면 `quizSetId: null`, 나머지 0이다. 403이 아니다** → 배지를 숨긴다.
+- 열람 권한은 공개 프로필과 동일하다. 매칭 성사 전에는 `/profile`이 403이라
+  `useUserProfile`이 후보 목록으로 폴백하는데, 이때 `/ratings`도 같이 403이라 평가 섹션이
+  자연히 숨는다(의도된 동작).
+- `PublicProfileResponse.rating`이 이제 평균 별점으로 채워진다(공개 기준 미달이면 여전히 null).
+  FE는 이미 `dto.rating`을 읽고 있어 **변경 없음**. 평균만 필요한 자리는 `/ratings`를 따로
+  부르지 않는다.
+- `preferredMinAge` · `preferredMaxAge`는 여전히 미사용(null)이다.
+- 목업: `src/mocks/fixtures/user-ratings.json` · `user-answer-match.json` + 핸들러 2개
+  (이전엔 `success([])`를 돌려주고 있었다). Cypress 픽스처도 같은 파일을 복제해 쓴다.
+- E2E: `cypress/e2e/matching-profile/02-intro-note.cy.ts`(받은 평가 공개/비공개),
+  `cypress/e2e/chat/group.cy.ts`(멤버 목록 배지 노출/숨김).
 
 ### A-4. 그룹 채팅 개별 이탈 + 인원 부족 종료 — ✅ 연동 완료 (2026-08-26)
 

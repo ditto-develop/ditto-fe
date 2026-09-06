@@ -3,18 +3,12 @@
 import { useMemo } from "react";
 import styled from "styled-components";
 
+import type { RatingSummary } from "@/features/profile/model/types";
+
 type IntroNotePreviewItem = {
     questionCode?: string;
     question: string;
     answer: string;
-};
-
-type RatingSummary = {
-    averageScore: number;
-    totalCount: number;
-    isPublic: boolean;
-    publicThreshold: number;
-    ratings?: Array<{ comment?: string }>;
 };
 
 export interface ProfileIntroViewProps {
@@ -39,9 +33,12 @@ export function ProfileIntroView({
     hasBottomButton = true,
 }: ProfileIntroViewProps) {
     const previewNotes = useMemo(() => selectIntroNotePreview(introNotes), [introNotes]);
-    const publicRatingSummary = ratingSummary?.isPublic && ratingSummary.totalCount >= ratingSummary.publicThreshold
-        ? ratingSummary
-        : null;
+    // 서버는 공개 여부 플래그를 주지 않는다 — 기준은 totalCount >= publicThreshold 하나뿐이고,
+    // 내 프로필(ReceivedRatingsCard)과 같은 판정이라 두 화면이 어긋나지 않는다.
+    const publicRatingSummary =
+        ratingSummary && ratingSummary.totalCount >= ratingSummary.publicThreshold
+            ? ratingSummary
+            : null;
     const ratingComments = publicRatingSummary?.ratings
         ?.map((item) => item.comment?.trim())
         .filter((comment): comment is string => Boolean(comment))

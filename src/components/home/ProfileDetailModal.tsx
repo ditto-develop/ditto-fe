@@ -7,8 +7,13 @@ import { Nav } from "@/shared/ui";
 import { AlertModal } from "@/shared/ui";
 import { ProfileIntroView } from '@/features/profile/ui/ProfileIntroView';
 import { ActionButton, ActionSheet } from "@/components/input/Action";
-import { getUserProfile, getUserIntroNotes, type IntroNoteAnswer } from '@/features/profile/api/profileApi';
-import type { UserRatingSummaryDto } from "@/shared/lib/api/generated";
+import {
+  getUserProfile,
+  getUserIntroNotes,
+  getUserRatingSummary,
+  type IntroNoteAnswer,
+} from '@/features/profile/api/profileApi';
+import type { RatingSummary } from '@/features/profile/model/types';
 import { toLocationLabel, toOccupationLabel, toInterestLabel } from '@/shared/lib/profileLabels';
 import { useToast } from '@/context/ToastContext';
 
@@ -33,7 +38,7 @@ interface ProfileDetailData {
   introNotes: IntroNoteAnswer[];
   interests: string[];
   rating?: number;
-  ratingSummary?: UserRatingSummaryDto | null;
+  ratingSummary?: RatingSummary | null;
   occupation?: string;
 }
 
@@ -73,16 +78,17 @@ export function ProfileDetailModal({
     Promise.all([
       getUserProfile(profileId).catch(() => null),
       getUserIntroNotes(profileId).catch(() => []),
-    ]).then(([dto, notes]) => {
+      // 열람 권한은 프로필과 같다 — 프로필이 보이는데 평가만 403인 경우는 없다.
+      // 그래도 평가 하나 때문에 화면 전체를 비우지는 않는다.
+      getUserRatingSummary(profileId).catch(() => null),
+    ]).then(([dto, notes, ratingSummary]) => {
       if (cancelled) return;
       setDetailData({
         profileId,
         introNotes: notes,
         interests: (dto?.interests ?? []).map(toInterestLabel),
         rating: dto?.rating,
-        // 상대가 받은 평가 요약은 라이브 BE에 계약이 없다(me만 존재).
-        // GET /api/v1/users/{id}/ratings가 생기면 되살린다(INTEGRATION-TODO.md §A-3).
-        ratingSummary: null,
+        ratingSummary,
         occupation: dto?.occupation ? toOccupationLabel(dto.occupation) : undefined,
       });
     });

@@ -177,7 +177,7 @@ export function getExternalSystemState(): Promise<SystemStateDto> {
     return externalApiFetch<SystemStateDto>("/api/v1/system/state");
 }
 
-// 회원가입 payload: name/nickname/phoneNumber/gender/age + nullable email/birthDate
+// 회원가입 payload: name/nickname/gender/age + nullable email/birthDate/phoneNumber
 // + interests/location/job/caricature(프로필).
 // provider/providerUserId는 더 이상 body로 보내지 않는다(인증은 Authorization 헤더로 처리).
 // generated CreateUserDto는 email/birthDate를 optional string으로만 정의하지만,
@@ -192,10 +192,13 @@ export function getExternalSystemState(): Promise<SystemStateDto> {
 // 답변으로 저장된다. 나머지 소개노트 9개는 가입 후 PUT /users/me/intro-notes/{code}로 보낸다.
 export type CreateExternalUserBody = Omit<
     CreateUserDto,
-    "email" | "birthDate" | "provider" | "providerUserId"
+    "name" | "email" | "birthDate" | "phoneNumber" | "provider" | "providerUserId"
 > & {
     email: string | null;
     birthDate: string | null;
+    // 라이브 스펙(`/api/v1/users`)에서 nullable 이다. 본인인증을 빼면서 수집을
+    // 중단했으므로 항상 null 로 나간다(2026-08-30).
+    phoneNumber: string | null;
     interests: string[];
     location: string;
     job: string;
@@ -204,10 +207,11 @@ export type CreateExternalUserBody = Omit<
 };
 
 // 카카오 로그인 직후 BE가 카카오 정보를 바탕으로 채워둔 현재 사용자 정보.
-// 회원가입 단계에서 이름/전화번호/성별/이메일/생년월일을 받아와 폼을 미리 채운다.
+// 회원가입 단계에서 성별/생년월일로 폼을 미리 채우고, 이메일은 설정 화면이 읽는다.
+//
+// BE 는 name/phoneNumber 도 함께 내려주지만 FE 는 더 이상 쓰지 않는다(2026-09-06).
+// 이름은 수집을 중단했고 전화번호는 본인인증을 빼면서(2026-08-30) 쓰임이 사라졌다.
 export type CurrentUserInfo = {
-    name: string | null;
-    phoneNumber: string | null;
     gender: string | null;
     email: string | null;
     birthDate: string | null;
@@ -216,8 +220,6 @@ export type CurrentUserInfo = {
 export async function getExternalCurrentUser(): Promise<CurrentUserInfo> {
     const data = await externalApiFetch<Partial<CurrentUserInfo>>("/api/v1/users/me");
     return {
-        name: data?.name ?? null,
-        phoneNumber: data?.phoneNumber ?? null,
         gender: data?.gender ?? null,
         email: data?.email ?? null,
         birthDate: data?.birthDate ?? null,
@@ -285,6 +287,54 @@ export function startExternalSocialLogin(provider: string): void {
     const url = `${process.env.NEXT_PUBLIC_API_BASE || "https://api.ditto.pics"}/api/v1/users/social-login/${provider}`;
     if (isCypressRuntime()) return;
     window.location.href = url;
+}
+
+/**
+ * POST /api/v1/users/social-login/kakao/native 응답 data.
+ *
+ * 리다이렉트 콜백이 쿼리스트링으로 주던 것과 같은 정보를 JSON 으로 받는다.
+ * 제재 회원도 HTTP 200 / success:true 로 내려오므로 `sanctioned` 로 분기해야 한다
+ * (accessToken 이 null 이라는 사실로 판단하지 말 것).
+ */
+export type NativeSocialLoginResult = {
+    /** 우리 서비스 JWT. 제재 회원은 null. */
+    accessToken?: string | null;
+    signupRequired: boolean;
+    sanctioned: boolean;
+    /** MEMBER_SUSPENDED | MEMBER_BANNED. 제재가 아니면 null. */
+    sanctionCode?: string | null;
+    /**
+     * 정지 해제 예정 일시. 정지일 때만 값이 있다.
+     *
+     * ⚠️ 이 값은 **본문**이라 `yyyy-MM-dd HH:mm:ss` 다. ISO-8601 인 것은
+     * 리다이렉트 콜백 쿼리의 suspendedUntil 뿐이다. parseServerDateTime 이
+     * 두 형식을 모두 받으므로 /sanction 화면은 그대로 재사용된다.
+     */
+    suspendedUntil?: string | null;
+};
+
+/**
+ * 네이티브 카카오 SDK 가 받아온 카카오 accessToken 을 우리 JWT 로 교환한다(앱 전용).
+ *
+ * ⚠️ **이 요청은 반드시 웹뷰(JS)에서 나가야 한다.** 네이티브 코드가 직접 호출하면
+ * 응답의 `Set-Cookie: refreshToken` 이 네이티브 쿠키 저장소로 들어가 웹뷰가 보지 못하고,
+ * 이후 /auth/refresh 가 항상 실패해 **며칠 뒤 원인 모를 로그아웃**이 난다.
+ * 네이티브가 맡는 것은 카카오 SDK 로그인 한 조각뿐이다.
+ *
+ * ⚠️ 요청 바디 필드명은 `accessToken` 이다. docs/be-request-app-push-auth.md §D 는
+ * `kakaoAccessToken` 으로 요청했지만 BE 는 `accessToken` 으로 구현했고 라이브 스펙이 정본이다.
+ *
+ * `credentials: "include"` 가 없으면 refreshToken 쿠키가 저장되지 않는다 —
+ * externalApiFetch 의 기본값이 아니므로 명시해야 한다.
+ */
+export function loginWithExternalKakaoNative(
+    kakaoAccessToken: string,
+): Promise<NativeSocialLoginResult> {
+    return externalApiFetch<NativeSocialLoginResult>("/api/v1/users/social-login/kakao/native", {
+        method: "POST",
+        body: { accessToken: kakaoAccessToken },
+        credentials: "include",
+    });
 }
 
 export async function getExternalMatchCandidates(): Promise<GetMatchCandidatesResponse> {

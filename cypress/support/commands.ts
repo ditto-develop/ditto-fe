@@ -177,7 +177,11 @@ Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
   mockFixture("POST", ["**/api/v1/users", "**/api/users"], "user.json", "createUser");
   mockFixture("GET", ["**/api/users/*/profile", "**/api/v1/users/*/profile"], "public-profile.json", "getUserProfile");
   mockFixture("GET", ["**/api/users/*/intro-notes", "**/api/v1/users/*/intro-notes"], "intro-notes.json", "getUserIntroNotes");
-mockFixture("GET", ["**/api/users/*/ratings", "**/api/v1/users/*/ratings"], "user-ratings.json", "getUserRatings");
+  // 타인 프로필 보조 2종(BE 위키 Frontend-Native-Login-Peer-Profile-Guide 2).
+  // ratings는 /users/me/ratings와 스키마가 같고, answers는 일치 개수 요약만 준다.
+  // 라이브 경로(/api/v1)를 먼저 둔다 — mockFixture는 첫 URL에만 기본 별칭을 붙인다.
+  mockFixture("GET", ["**/api/v1/users/*/ratings", "**/api/users/*/ratings"], "user-ratings.json", "getUserRatings");
+  mockFixture("GET", ["**/api/v1/users/*/answers", "**/api/users/*/answers"], "user-answer-match.json", "getUserAnswerMatch");
 
   // 1:1 채팅(PR #103/#105). 방 생성·상세·나가기 엔드포인트는 사라졌고,
   // 메시지 전송은 REST가 아니라 STOMP라 여기서 목킹하지 않는다.

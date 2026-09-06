@@ -72,6 +72,27 @@
 	  (`cannot find host` / `WebContent Couldn't open ...`) 사용자에게는
 	  "카카오로 계속하기 버튼이 안 눌린다"로 보인다. 2026-08-28 실기기에서 재현.
 	-->
+	<!--
+	  카카오 네이티브 로그인이 카카오톡에서 앱으로 돌아올 때 쓰는 커스텀 스킴.
+
+	  ⚠️ 아래 문자열의 `kakao` 뒤는 **카카오 개발자 콘솔의 네이티브 앱 키**다. 이 값이
+	  실제 키와 다르면 `loginWithKakaoTalk` 이 카카오톡으로 넘어갔다가 **영영 돌아오지
+	  못한다** (앱은 멈춘 것처럼 보인다).
+
+	  ⚠️ **여기만 자동화되지 않는다.** SDK 초기화 키(capacitor.config.ts)와 Android
+	  리다이렉트 스킴(app/build.gradle)은 `.env.local` / 환경변수에서 읽어 가지만,
+	  plist 는 손으로 넣어야 한다. 키를 바꾸면 세 곳을 함께 고칠 것.
+	  절차: docs/app-shell-runbook.md §5
+	-->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>kakao85619e14592ca71c5a06361e81aacdf5</string>
+			</array>
+		</dict>
+	</array>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>kakaokompassauth</string>

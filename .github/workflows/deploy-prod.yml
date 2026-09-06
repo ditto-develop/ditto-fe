@@ -82,6 +82,11 @@ jobs:
           # isNativeApp() 로 막혀 있어 웹 방문자에게는 영향이 없다.
           # 되돌릴 일이 생기면 이 줄만 지우면 된다.
           NEXT_PUBLIC_PUSH_ENABLED: 'true'
+          # 앱의 카카오 네이티브 SDK 로그인 킬 스위치. 진입점이 isNativeApp() 로 막혀
+          # 있어 웹 방문자는 기존 리다이렉트 로그인 그대로다. 네이티브가 취소 아닌
+          # 이유로 실패하면 리다이렉트 로그인으로 폴백하므로 앱에서도 로그인이 막히지
+          # 않는다. 되돌릴 일이 생기면 이 줄만 지우면 된다.
+          NEXT_PUBLIC_NATIVE_KAKAO_LOGIN_ENABLED: 'true'
 
       - name: Verify CloudFront rewrite function is in sync with build output
         # 새 동적 라우트가 추가됐는데 함수를 재생성하지 않으면 그 라우트의 딥링크가

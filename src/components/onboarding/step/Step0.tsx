@@ -14,13 +14,14 @@ import {
 } from "@/components/onboarding/OnboardingContainer";
 import {
   Caption1,
-  UnderlineBoldSpan,
   Body1Normal,
   Headline1,
 } from "@/shared/ui";
 import { SplashCarousel } from "@/components/onboarding/Carousel";
 import { KakaoLogin } from "@/components/auth/KakaoLogin";
+import { BUSINESS_INFO } from "@/shared/lib/businessInfo";
 import type { KakaoLoginResult } from "@/types/kakao";
+import { useRouter } from "next/navigation";
 
 // --- Styled Components ---
 const TmpContainer = styled.div`
@@ -38,6 +39,41 @@ const TmpContainer = styled.div`
   padding-top: calc(40px + env(safe-area-inset-top, 0px));
 `;
 
+/**
+ * 로그인 버튼 아래 영역. 공용 `ButtonContainer`는 높이가 160px로 고정이라
+ * 약관·사업자 정보 문구가 붙으면 잘린다. 이 화면에서만 높이를 내용에 맡긴다.
+ */
+const LoginFooter = styled(ButtonContainer)`
+  height: auto;
+  min-height: 160px;
+  padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  gap: var(--space-3);
+`;
+
+const PolicyLink = styled.button`
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-decoration-line: underline;
+  cursor: pointer;
+`;
+
+const BusinessArea = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+`;
+
+const ContactLink = styled.a`
+  color: inherit;
+  font: inherit;
+  text-decoration-line: underline;
+`;
+
 interface Step0Props {
   onLoginComplete: (result: KakaoLoginResult) => void; // This prop is kept for Tutorial.tsx but the logic inside is now empty
 }
@@ -46,6 +82,7 @@ export function Step0({ onLoginComplete }: Step0Props) {
   // All logic related to handleKakaoFlow, useEffect, and state has been removed
   // as it is now handled by /app/auth/callback/page.tsx.
   // This component is now only responsible for displaying the initial UI.
+  const router = useRouter();
 
   return (
     <>
@@ -103,17 +140,49 @@ export function Step0({ onLoginComplete }: Step0Props) {
             </TopProgressContainer>
           </TopConatiner>
 
-          <ButtonContainer>
+          <LoginFooter>
             <KakaoLogin onLoginComplete={onLoginComplete} />
             <Caption1
               $color="var(--color-semantic-label-alternative)"
+              $align="center"
             >
               회원가입 시{" "}
-              <UnderlineBoldSpan>이용약관</UnderlineBoldSpan> 및{" "}
-              <UnderlineBoldSpan>개인정보처리방침</UnderlineBoldSpan>
+              <PolicyLink type="button" onClick={() => router.push("/settings/terms")}>
+                이용약관
+              </PolicyLink>{" "}
+              및{" "}
+              <PolicyLink type="button" onClick={() => router.push("/settings/privacy")}>
+                개인정보처리방침
+              </PolicyLink>
               에 동의하는 것으로 간주됩니다.
             </Caption1>
-          </ButtonContainer>
+            {/*
+              사업자 정보와 문의처는 **로그인 전 화면에서 보이고 눌려야 한다.** 카카오
+              비즈앱 심사자는 로그인을 통과하지 못한 상태로 사이트를 확인하므로, 설정
+              안에만 두면 "사이트 내 사업자 정보가 확인되지 않는다"로 다시 반려된다.
+              나머지 항목(소재지·업태·종목 등)은 아래 '사업자 정보'에서 이어진다.
+            */}
+            <BusinessArea>
+              <Caption1 $color="var(--color-semantic-label-alternative)" $align="center">
+                {BUSINESS_INFO.companyName} · 대표 {BUSINESS_INFO.representative} ·
+                사업자등록번호 {BUSINESS_INFO.registrationNumber}
+              </Caption1>
+              <Caption1 $color="var(--color-semantic-label-alternative)" $align="center">
+                <ContactLink href={`mailto:${BUSINESS_INFO.contactEmail}`}>
+                  {BUSINESS_INFO.contactEmail}
+                </ContactLink>
+                {" · "}
+                <ContactLink href={`tel:${BUSINESS_INFO.contactPhone.replace(/-/g, "")}`}>
+                  {BUSINESS_INFO.contactPhone}
+                </ContactLink>
+              </Caption1>
+              <Caption1 $color="var(--color-semantic-label-alternative)" $align="center">
+                <PolicyLink type="button" onClick={() => router.push("/settings/business")}>
+                  사업자 정보
+                </PolicyLink>
+              </Caption1>
+            </BusinessArea>
+          </LoginFooter>
         </MainContainer>
       </TmpContainer>
     </>

@@ -1,28 +1,36 @@
 // Signup E2E: bypasses Kakao OAuth by visiting the callback URL directly
-// with signupRequired=true, which puts Tutorial into step-1 mode.
+// with signupRequired=true, which puts Tutorial into the first signup step.
+//
+// 본인인증 스텝을 없애 온보딩은 2단계다(2026-08-30): 프로필 작성 → 소개 노트.
+// 나이는 생년월일 입력에서 계산하며 만 19세 미만은 여기서 막힌다.
 
 const OAUTH_ENTRY = "/oauth/kakao?accessToken=e2e-token&refreshToken=e2e-refresh&signupRequired=true";
+
+/** 만 19세를 넉넉히 넘는 생년월일. 기준 시각이 흘러도 계속 성인이다. */
+const ADULT_BIRTH_DATE = "1998-03-15";
+/** 만 19세 미만. 연령 게이트 검증용. */
+const MINOR_BIRTH_DATE = "2015-03-15";
 
 function selectFromBottomSheet(labelText: string, optionText: string) {
   cy.get(`button[aria-label="${labelText}"]`).click();
   cy.contains("li", optionText, { timeout: 4000 }).click();
 }
 
-function fillStep1() {
-  cy.get('input[placeholder="이름"]').type("이테스트");
-  cy.get('input[placeholder="010-0000-0000"]').type("01012345678");
-  cy.get('input[placeholder="인증번호를 입력해주세요."]').type("123456");
-}
+/** 카카오가 이메일을 주지 않으므로 가입 폼에서 직접 받는다(2026-09-06). */
+const EMAIL = "e2e@example.com";
 
-function fillStep2() {
+function fillProfile(birthDate: string = ADULT_BIRTH_DATE) {
   // Nickname
   cy.get('input[placeholder="사용할 닉네임을 입력해주세요"]').type("테스트닉");
   cy.contains("button", "저장").click();
   cy.wait("@checkNickname");
 
-  // Gender, Age
+  // Email
+  cy.get('input[placeholder="이메일을 입력해주세요"]').type(EMAIL);
+
+  // Gender, Birth date
   selectFromBottomSheet("성별", "남자");
-  selectFromBottomSheet("나이", "25 ~ 29");
+  cy.get('input[type="date"]').type(birthDate);
 
   // 5 interests
   cy.contains("💪 운동").click();
@@ -51,73 +59,66 @@ describe("signup flow", () => {
     cy.on("uncaught:exception", () => false);
   });
 
-  it("renders step 1 (identity) when entering via oauth callback with signupRequired=true", () => {
+  it("renders the profile step when entering via oauth callback with signupRequired=true", () => {
     cy.visit(OAUTH_ENTRY);
-
-    cy.contains("간편하게 인증하기", { timeout: 6000 }).should("be.visible");
-    cy.contains("안전한 이용을 위해 최초 1회 본인인증이 필요해요.").should("be.visible");
-  });
-
-  it("blocks step 1 → 2 transition when required fields are empty", () => {
-    cy.visit(OAUTH_ENTRY);
-
-    cy.contains("간편하게 인증하기", { timeout: 6000 }).should("be.visible");
-    cy.contains("button", "인증했어요").click();
-
-    // Should still be on step 1
-    cy.contains("간편하게 인증하기").should("be.visible");
-    cy.contains("프로필 작성하기").should("not.exist");
-  });
-
-  it("advances from step 1 to step 2 when all fields are filled", () => {
-    cy.visit(OAUTH_ENTRY);
-
-    cy.contains("간편하게 인증하기", { timeout: 6000 }).should("be.visible");
-    fillStep1();
-    cy.contains("button", "인증했어요").click();
 
     cy.contains("프로필 작성하기", { timeout: 6000 }).should("be.visible");
+    cy.contains("디토는 만 19세 이상만 참여할 수 있어요.").should("be.visible");
+    // 본인인증 스텝은 사라졌다.
+    cy.contains("간편하게 인증하기").should("not.exist");
+    cy.contains("1/2단계").should("be.visible");
   });
 
-  it("blocks step 2 → 3 transition when profile is incomplete", () => {
+  it("blocks the profile step when required fields are empty", () => {
     cy.visit(OAUTH_ENTRY);
 
-    cy.contains("간편하게 인증하기", { timeout: 6000 });
-    fillStep1();
-    cy.contains("button", "인증했어요").click();
-
     cy.contains("프로필 작성하기", { timeout: 6000 }).should("be.visible");
-    // Try to advance without filling anything
     cy.contains("button", "다음").click();
 
-    // Should still be on step 2 (nickname not saved toast or remain)
     cy.contains("프로필 작성하기").should("be.visible");
     cy.contains("소개 노트 작성하기").should("not.exist");
   });
 
-  it("advances from step 2 to step 3 when profile is complete", () => {
+  it("blocks the profile step when the email is malformed", () => {
     cy.visit(OAUTH_ENTRY);
 
-    cy.contains("간편하게 인증하기", { timeout: 6000 });
-    fillStep1();
-    cy.contains("button", "인증했어요").click();
+    cy.contains("프로필 작성하기", { timeout: 6000 }).should("be.visible");
+    fillProfile();
+    // 형식이 깨진 값으로 덮어쓴다. 카카오가 이메일을 주지 않으므로 여기가 유일한 수집 경로다.
+    cy.get('input[placeholder="이메일을 입력해주세요"]').clear().type("not-an-email");
+    cy.contains("button", "다음").click();
 
-    cy.contains("프로필 작성하기", { timeout: 6000 });
-    fillStep2();
+    cy.contains("이메일 형식이 올바르지 않아요.", { timeout: 6000 }).should("be.visible");
+    cy.contains("소개 노트 작성하기").should("not.exist");
+  });
+
+  it("blocks signup when the user is under 19", () => {
+    cy.visit(OAUTH_ENTRY);
+
+    cy.contains("프로필 작성하기", { timeout: 6000 }).should("be.visible");
+    fillProfile(MINOR_BIRTH_DATE);
+    cy.contains("button", "다음").click();
+
+    cy.contains("만 19세 이상만 가입할 수 있어요.", { timeout: 6000 }).should("be.visible");
+    cy.contains("소개 노트 작성하기").should("not.exist");
+  });
+
+  it("advances to the intro note step when the profile is complete", () => {
+    cy.visit(OAUTH_ENTRY);
+
+    cy.contains("프로필 작성하기", { timeout: 6000 }).should("be.visible");
+    fillProfile();
     cy.contains("button", "다음").click();
 
     cy.contains("소개 노트 작성하기", { timeout: 6000 }).should("be.visible");
+    cy.contains("2/2단계").should("be.visible");
   });
 
   it("completes signup when user skips intro notes", () => {
     cy.visit(OAUTH_ENTRY);
 
-    cy.contains("간편하게 인증하기", { timeout: 6000 });
-    fillStep1();
-    cy.contains("button", "인증했어요").click();
-
     cy.contains("프로필 작성하기", { timeout: 6000 });
-    fillStep2();
+    fillProfile();
     cy.contains("button", "다음").click();
 
     cy.contains("소개 노트 작성하기", { timeout: 6000 });
@@ -126,7 +127,15 @@ describe("signup flow", () => {
     // Confirmation toast appears — click 확인 to proceed
     cy.contains("확인", { timeout: 4000 }).click();
 
-    cy.wait("@createUser");
+    cy.wait("@createUser").its("request.body").should((body) => {
+      // 전화번호는 수집하지 않으므로 항상 null 이고, 나이는 생년월일에서 계산한 연령대다.
+      expect(body.phoneNumber, "phoneNumber").to.equal(null);
+      expect(body.age, "age").to.be.a("number").and.to.be.at.least(20);
+      expect(body.birthDate, "birthDate").to.contain(ADULT_BIRTH_DATE);
+      // 이름은 더 이상 싣지 않고, 이메일은 폼 입력값이 그대로 나간다(2026-09-06).
+      expect(body, "name").to.not.have.property("name");
+      expect(body.email, "email").to.equal(EMAIL);
+    });
     cy.location("pathname", { timeout: 6000 }).should("match", /^\/onboarding\/complete\/?$/);
     cy.contains("만남 준비 완료!", { timeout: 6000 }).should("be.visible");
     clickNavigationButton("시작하기");
@@ -138,12 +147,8 @@ describe("signup flow", () => {
 
     cy.visit(OAUTH_ENTRY);
 
-    cy.contains("간편하게 인증하기", { timeout: 6000 });
-    fillStep1();
-    cy.contains("button", "인증했어요").click();
-
     cy.contains("프로필 작성하기", { timeout: 6000 });
-    fillStep2();
+    fillProfile();
     cy.contains("button", "다음").click();
 
     cy.contains("소개 노트 작성하기", { timeout: 6000 });

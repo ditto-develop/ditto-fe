@@ -29,11 +29,37 @@ describe("3.2 소개노트", () => {
       cy.contains("대화가 시작되면 더 많은 질문과 답변을 볼 수 있어요").should("be.visible");
       cy.contains("대화 신청하기").should("be.visible");
     });
+  });
 
-    // '받은 평가' 섹션은 GET /api/v1/users/{id}/ratings가 있어야 뜬다. 라이브 BE에는 me만
-    // 있어서 이 섹션은 아직 그려지지 않는다(INTEGRATION-TODO.md §A-3). 목업만 보고 "된다"고
-    // 판단하지 않도록 없음을 명시적으로 고정한다.
-    it("받은 평가 섹션은 BE 계약이 생기기 전까지 노출되지 않는다", () => {
+  // GET /api/v1/users/{id}/ratings — /users/me/ratings와 스키마도 공개 기준도 같다.
+  // 서버가 공개 여부 플래그를 주지 않으므로 totalCount >= publicThreshold 로만 판정한다.
+  describe("받은 평가", () => {
+    it("공개 기준을 넘으면 평균·건수·코멘트 칩이 노출된다", () => {
+      cy.visit(`${PROFILE}&state=before_request`);
+      cy.wait("@getUserRatings");
+
+      cy.contains("받은 평가", { timeout: 6000 }).should("be.visible");
+      cy.contains("4.5").should("be.visible");
+      cy.contains("(12)").should("be.visible");
+      cy.contains("대화가 편하고 좋았어요").should("be.visible");
+      cy.contains("약속 시간 잘 지켜요").should("be.visible");
+    });
+
+    it("공개 기준(3건) 미만이면 섹션 자체가 뜨지 않는다", () => {
+      cy.intercept("GET", "**/api/v1/users/*/ratings", {
+        success: true,
+        data: {
+          averageScore: 0,
+          totalCount: 2,
+          publicThreshold: 3,
+          noShowCount: 0,
+          ratings: [],
+        },
+      }).as("getUserRatingsPrivate");
+
+      cy.visit(`${PROFILE}&state=before_request`);
+      cy.wait("@getUserRatingsPrivate");
+
       cy.contains("수민", { timeout: 6000 }).should("be.visible");
       cy.contains("받은 평가").should("not.exist");
     });

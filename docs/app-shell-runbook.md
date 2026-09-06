@@ -716,3 +716,105 @@ HTTP     apex 200 ✓     www 301 → apex ✓
 지금 함수는 접미 세그먼트(`s: ["rate"]`)를 포함해 생성되며, 교체 후 `10447b` 로
 placeholder rate 페이지와 정확히 일치한다. **§4 의 함수 교체는 과매칭 수정이자
 푸시 딥링크 수정이었다.**
+
+---
+
+## 5. 카카오 네이티브 로그인 (배선 완료, 앱 키 대기 중)
+
+앱에서 카카오 SDK 로 로그인해 **카카오톡 앱으로 바로 전환**되게 하는 경로다.
+BE 위키 `Frontend-Native-Login-Peer-Profile-Guide` §1, 요청서 `docs/be-request-app-push-auth.md` §D.
+
+### 현재 상태
+
+코드는 전부 들어갔고 **킬 스위치가 꺼져 있다**. 카카오 개발자 콘솔 작업이 끝나기 전에는
+앱도 기존 리다이렉트 로그인을 그대로 탄다.
+
+| 조각 | 위치 | 상태 |
+|---|---|---|
+| 네이티브 플러그인 | `native-plugins/capacitor-kakao-login/` | 작성 완료 (iOS Swift / Android Kotlin) |
+| JS 게이트 | `src/shared/lib/native/kakaoLogin.ts` | 완료 |
+| 토큰 교환 | `loginWithExternalKakaoNative` (`externalApi.ts`) | 완료 |
+| 결말 분기 공유 | `src/features/auth/lib/socialLoginOutcome.ts` | 완료 (리다이렉트 콜백과 공유) |
+| 앱 키 | `.env.local` / `Info.plist` | 발급 완료(2026-09-06). 콘솔 **플랫폼 등록은 별도 확인 필요** |
+| 실기기 빌드 검증 | — | **미실시** (Xcode / Android Studio 필요) |
+
+### 역할 분담 — 여기가 이 기능의 핵심이다
+
+네이티브가 맡는 것은 **카카오 SDK 로그인 한 조각뿐**이다. 받아온 카카오 accessToken 을
+웹뷰로 넘기면 **웹뷰(JS)가** `POST /api/v1/users/social-login/kakao/native` 를 호출한다.
+
+네이티브가 이 API 를 직접 부르면 응답의 `Set-Cookie: refreshToken` 이 네이티브 쿠키
+저장소로 들어가 **웹뷰가 그 쿠키를 보지 못한다.** 증상은 며칠 쓰다가 원인 없이 로그아웃되는
+것이고, 추적이 매우 어렵다. 절대 옮기지 말 것.
+
+### 켜는 절차
+
+1. **카카오 개발자 콘솔** (기존 앱에 추가하는 것이다 — 새 앱을 만들지 말 것)
+   - 앱 키 > **네이티브 앱 키** 복사
+   - 플랫폼 > iOS: 번들 ID `pics.ditto.app`
+   - 플랫폼 > Android: 패키지명 `pics.ditto.app`, **키 해시**(디버그·릴리스 각각)
+     - 디버그: `keytool -exportcert -alias androiddebugkey -keystore ~/.android/debug.keystore -storepass android -keypass android | openssl sha1 -binary | openssl base64`
+   - 카카오 로그인 활성화 ON
+
+2. **앱 키를 두 곳에 넣는다** (둘이 어긋나면 카카오톡에서 앱으로 돌아오지 못한다)
+
+   | 곳 | 값 |
+   |---|---|
+   | `.env.local` (또는 빌드 환경변수) | `KAKAO_NATIVE_APP_KEY=<네이티브 앱 키>` — `capacitor.config.ts` 와 Android Gradle 이 **같은 우선순위로** 읽는다: 환경변수 → `android/gradle.properties` → 리포 루트 `.env.local` |
+   | `ios/App/App/Info.plist` | `CFBundleURLSchemes` 의 `kakao<네이티브 앱 키>` — **여기만 자동화되지 않는다. 손으로 넣어야 한다** |
+
+   `NEXT_PUBLIC_` 접두사를 붙이지 않는다 — 이 앱은 원격 URL 로드라 웹 번들이 곧 공개
+   자산이고, 앱 키를 번들에 넣으면 APK 를 뜯을 필요도 없이 읽힌다. 카카오맵용
+   `NEXT_PUBLIC_KAKAO_JS_KEY` 와는 **다른 키다** — `.env.local` 에 둘 다 있어야 한다.
+
+3. **동기화 후 빌드**
+
+   ```bash
+   npm run cap:sync     # 키는 .env.local 에서 읽는다. 덮어쓰려면 앞에 환경변수를 붙인다
+   npm run cap:ios      # Xcode 에서 실기기 빌드
+   npm run cap:android  # Android Studio 에서 실기기 빌드
+   ```
+
+   동기화가 끝나면 네이티브 설정에 키가 실제로 박혔는지 확인한다 — 비어 있어도 빌드는
+   통과하고 런타임에만 실패하기 때문이다:
+
+   ```bash
+   grep -o '"KakaoLogin":{[^}]*}' ios/App/App/capacitor.config.json
+   grep -o '"KakaoLogin":{[^}]*}' android/app/src/main/assets/capacitor.config.json
+   ```
+
+   iOS 는 첫 빌드에서 SPM 이 `kakao-ios-sdk` 를 새로 내려받는다.
+
+4. **실기기 스모크** — 카카오톡 설치/미설치 두 기기에서 각각
+   - 신규 회원 → 회원가입(Tutorial) 진입
+   - 기존 회원 → `/home`
+   - 제재 회원 → `/sanction` (정지 해제 일시가 제대로 보이는지)
+   - 카카오 화면에서 **취소** → 아무 일도 일어나지 않아야 한다.
+     리다이렉트 로그인 창이 새로 뜨면 폴백 분기가 잘못된 것이다.
+
+5. **플래그를 켠다** — `.github/workflows/deploy-prod.yml` 의 Build 스텝에
+   `NEXT_PUBLIC_NATIVE_KAKAO_LOGIN_ENABLED: 'true'` 를 추가한다.
+   푸시 플래그와 같은 방식이라 되돌릴 때는 그 줄만 지우면 된다.
+   **2026-09-06 에 추가했다.** 4번 실기기 스모크는 아직 남아 있다.
+
+### 실패해도 로그인이 막히지 않는다
+
+`KakaoLogin.tsx` 는 네이티브가 **취소가 아닌 이유로 실패하면 기존 리다이렉트 로그인으로
+폴백**한다. 앱 키가 틀렸거나 콘솔 등록이 안 됐어도 사용자는 로그인할 수 있다.
+취소만 폴백에서 제외한다 — 취소했는데 로그인 창이 새로 뜨면 안 되기 때문이다.
+
+### 왜 npm 플러그인을 쓰지 않았나
+
+`native-plugins/capacitor-kakao-login/README.md` 에 후보 비교표가 있다. 요약하면
+`@capgo/capacitor-social-login` 은 카카오를 지원하지 않고,
+`@team-lepisode/capacitor-kakao-login@8.0.0` 은 **iOS 에서 카카오톡 앱 전환이 아예 일어나지
+않는 버그**가 있어(두 분기 모두 `loginWithKakaoAccount` 호출) 이 작업의 목적이 사라진다.
+
+### iOS 에서 확인이 필요한 지점
+
+`ios/App/App/SceneDelegate.swift` 가 `import CapacitorKakaoLogin` 으로 플러그인 모듈을
+직접 참조한다. 카카오톡에서 돌아오는 `kakao{앱키}://oauth` 를 SDK 로 넘기기 위한 것으로,
+이게 없으면 `loginWithKakaoTalk` 의 콜백이 영영 완료되지 않는다.
+SPM 전이 의존성이라 **Xcode 실빌드로 한 번 확인해야 한다** — 아직 확인하지 못했다.
+만약 모듈을 찾지 못하면, `CapApp-SPM/Package.swift` 는 CLI 생성물이므로 손대지 말고
+App 타깃에 `CapacitorKakaoLogin` 을 직접 링크하는 쪽으로 해결한다.

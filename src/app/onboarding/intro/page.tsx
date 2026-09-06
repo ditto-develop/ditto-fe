@@ -24,8 +24,8 @@ export default function IntroNotePage() {
   const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
-    name: "", phone: "", code: "", email: "", pic: "",
-    nickname: "", gender: null, age: null, interest: [],
+    email: "", pic: "",
+    nickname: "", gender: null, interest: [],
     birthDate: "", place: null, job: null,
     introduce: EMPTY_INTRO,
     kakaoId: undefined,
@@ -84,8 +84,8 @@ export default function IntroNotePage() {
 
   return (
     <OnboardingLayout
-      step={3}
-      totalSteps={3}
+      step={2}
+      totalSteps={2}
       title="소개 노트 작성하기"
       buttonText="다 작성했어요"
       variant={saving ? "disabled" : controlButton}

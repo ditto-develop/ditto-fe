@@ -11,14 +11,10 @@ import { BottomActionArea, Button, TopNavigation } from "@/shared/ui";
 import type { ControlButtonVariant, FormData, OnChange } from "@/types/type";
 
 const EMPTY_FORM_DATA: FormData = {
-    name: "",
-    phone: "",
-    code: "",
     email: "",
     pic: "",
     nickname: "",
     gender: null,
-    age: null,
     interest: [],
     place: null,
     job: null,

@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import type { CapacitorConfig } from "@capacitor/cli";
 
 /**
@@ -27,6 +30,39 @@ import type { CapacitorConfig } from "@capacitor/cli";
  * `CAPACITOR_SERVER_URL=https://alpha.ditto.pics npm run cap:sync` 로 빌드한다.
  */
 const SERVER_URL = process.env.CAPACITOR_SERVER_URL ?? "https://ditto.pics";
+
+/**
+ * 카카오 네이티브 앱 키를 읽는다.
+ *
+ * `npx cap sync` 는 Next 가 아니라 Capacitor CLI 가 이 파일을 평가하므로 `.env.local`
+ * 이 자동으로 로드되지 않는다(dotenv 미설치). 키를 매번 인라인 환경변수로 넘기게 하면
+ * 빠뜨리기 쉬워서 — 빠뜨려도 빌드는 통과하고 런타임에만 실패한다 — 프로젝트 관례대로
+ * `.env.local` 한 곳을 보게 한다. 환경변수가 있으면 그쪽이 항상 우선한다(CI).
+ *
+ * 이름에 `NEXT_PUBLIC_` 을 붙이지 않는다 — 이 앱은 원격 URL 로드라 웹 번들이 곧 공개
+ * 자산이고, 이 키는 클라이언트 코드에서 절대 참조하지 않는다.
+ *
+ * 같은 값을 android/app/build.gradle 이 한 번 더 읽는다(리다이렉트 스킴용).
+ * 두 곳이 어긋나면 카카오톡에서 앱으로 돌아오지 못하므로 우선순위를 똑같이 맞췄다.
+ */
+const KAKAO_APP_KEY_VAR = "KAKAO_NATIVE_APP_KEY";
+
+function readKakaoNativeAppKey(): string {
+    const fromEnv = process.env[KAKAO_APP_KEY_VAR];
+    if (fromEnv) return fromEnv;
+
+    try {
+        const lines = readFileSync(resolve(process.cwd(), ".env.local"), "utf8").split("\n");
+        const hit = lines.find((line) => line.trimStart().startsWith(`${KAKAO_APP_KEY_VAR}=`));
+        if (hit) {
+            return hit.slice(hit.indexOf("=") + 1).trim().replace(/^["']|["']$/g, "");
+        }
+    } catch {
+        // .env.local 이 없는 환경(CI 등)에서는 환경변수만 쓴다.
+    }
+
+    return "";
+}
 
 const config: CapacitorConfig = {
     appId: "pics.ditto.app",
@@ -64,6 +100,21 @@ const config: CapacitorConfig = {
         backgroundColor: "#E9E6E2",
     },
     plugins: {
+        /**
+         * 카카오 네이티브 로그인(native-plugins/capacitor-kakao-login)의 앱 키.
+         *
+         * 값의 출처와 우선순위는 readKakaoNativeAppKey() 를 볼 것. 이 앱은 **원격 URL
+         * 로드**라 웹 번들이 곧 공개 자산이므로, 이 키는 클라이언트 코드에서 절대
+         * 참조하지 않는다 — `npm run cap:sync` 시점에 네이티브 프로젝트 안의
+         * capacitor.config.json 으로만 들어간다.
+         *
+         * 값이 비어 있으면 플러그인이 초기화를 거부하고 JS 는 기존 리다이렉트 로그인으로
+         * 폴백한다. 카카오 개발자 콘솔에서 네이티브 앱 키를 발급받고 플랫폼(iOS bundle id /
+         * Android 패키지·키해시)을 등록한 뒤에 채운다 — docs/app-shell-runbook.md §5 참고.
+         */
+        KakaoLogin: {
+            appKey: readKakaoNativeAppKey(),
+        },
         /**
          * 원격 푸시는 `@capacitor-firebase/messaging` 이 담당한다.
          * `@capacitor/push-notifications` 는 설치돼 있지 않다 — iOS 에서 APNs

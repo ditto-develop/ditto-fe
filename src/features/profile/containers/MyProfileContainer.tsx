@@ -7,7 +7,7 @@ import styled from "styled-components";
 import { MainBottomNav } from "@/app/home/MainBottomNav";
 import { getMyRatingSummary, getMyStats } from "@/features/profile/api/profileApi";
 import { useMyProfile } from "@/features/profile/hooks/useMyProfile";
-import type { MyRatingSummary, MyStats } from "@/features/profile/model/types";
+import type { RatingSummary, MyStats } from "@/features/profile/model/types";
 import { ReceivedRatingsCard } from "@/features/profile/ui/ReceivedRatingsCard";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import { Avatar, Button, TopNavigation } from "@/shared/ui";
@@ -16,7 +16,7 @@ export function MyProfileContainer() {
     const router = useRouter();
     const { profile, loading, error } = useMyProfile();
     const [stats, setStats] = useState<MyStats | null>(null);
-    const [ratingSummary, setRatingSummary] = useState<MyRatingSummary | null>(null);
+    const [ratingSummary, setRatingSummary] = useState<RatingSummary | null>(null);
 
     useEffect(() => {
         Promise.all([

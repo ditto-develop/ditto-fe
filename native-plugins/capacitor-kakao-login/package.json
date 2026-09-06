@@ -1,0 +1,18 @@
+{
+  "name": "capacitor-kakao-login",
+  "version": "1.0.0",
+  "description": "Ditto 전용 카카오 네이티브 로그인 Capacitor 플러그인 (리포 내부 패키지)",
+  "license": "UNLICENSED",
+  "private": true,
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    },
+    "android": {
+      "src": "android"
+    }
+  },
+  "peerDependencies": {
+    "@capacitor/core": "^8.0.0"
+  }
+}

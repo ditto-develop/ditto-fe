@@ -8,7 +8,7 @@ import {
 } from "@/shared/lib/api/externalApi";
 import { externalApiFetch } from "@/shared/lib/api/externalClient";
 import { INTRO_NOTE_FIELDS } from "@/features/profile/model/introNotes";
-import type { MyRatingSummary, MyStats } from "@/features/profile/model/types";
+import type { AnswerMatchSummary, MyStats, RatingSummary } from "@/features/profile/model/types";
 
 // --- BE DTO ---
 
@@ -103,8 +103,44 @@ export function getMyStats(): Promise<MyStats> {
     return externalApiFetch<MyStats>("/api/v1/users/me/stats");
 }
 
-export function getMyRatingSummary(): Promise<MyRatingSummary> {
-    return externalApiFetch<MyRatingSummary>("/api/v1/users/me/ratings");
+export function getMyRatingSummary(): Promise<RatingSummary> {
+    return externalApiFetch<RatingSummary>("/api/v1/users/me/ratings");
+}
+
+/**
+ * 상대가 받은 평가. `/users/me/ratings` 와 스키마가 완전히 같다.
+ *
+ * 열람 권한은 공개 프로필과 동일하다 — 매칭이 성사된 상대나 같은 그룹채팅 참여자만 볼 수
+ * 있고, 아니면 0003(403)이다. 프로필은 보이는데 평점만 403인 상황은 없다.
+ */
+export function getUserRatingSummary(userId: string): Promise<RatingSummary> {
+    return externalApiFetch<RatingSummary>(`/api/v1/users/${userId}/ratings`);
+}
+
+/**
+ * `GET /users/{id}/answers` 원형. quizSetId는 int64로 내려오고, 함께 완주한
+ * 퀴즈셋이 없으면 null이다.
+ */
+type ExternalAnswerMatch = {
+    quizSetId?: number | string | null;
+    matchedCount?: number | null;
+    totalCount?: number | null;
+    matchRate?: number | null;
+};
+
+/**
+ * 상대와 나의 답변 일치 요약("나와 같은 답").
+ *
+ * 등급 라벨 문구는 서버가 주지 않는다 — FE의 `getMatchBadgeInfo`가 정본이다.
+ * 그룹의 "평균 일치 수"도 멤버별로 이 API를 부른 뒤 FE가 평균을 낸다.
+ */
+export function getUserAnswerMatch(userId: string): Promise<AnswerMatchSummary> {
+    return externalApiFetch<ExternalAnswerMatch>(`/api/v1/users/${userId}/answers`).then((raw) => ({
+        quizSetId: raw.quizSetId != null ? String(raw.quizSetId) : null,
+        matchedCount: raw.matchedCount ?? 0,
+        totalCount: raw.totalCount ?? 0,
+        matchRate: raw.matchRate ?? 0,
+    }));
 }
 
 export async function getUserIntroNotes(userId: string): Promise<IntroNoteAnswer[]> {

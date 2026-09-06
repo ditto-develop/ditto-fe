@@ -2,7 +2,7 @@
 
 import styled from "styled-components";
 import { Avatar } from "@/shared/ui";
-import { formatBlockedDate } from "@/features/settings/lib/formatPhone";
+import { formatBlockedDate } from "@/features/settings/lib/formatBlockedDate";
 import type { BlockedUser } from "@/features/settings/model/types";
 
 type BlockedUserItemProps = {

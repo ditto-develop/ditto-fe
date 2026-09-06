@@ -1,10 +1,10 @@
 "use client";
 
 import styled from "styled-components";
-import type { MyRatingSummary } from "@/features/profile/model/types";
+import type { RatingSummary } from "@/features/profile/model/types";
 
 interface ReceivedRatingsCardProps {
-    ratingSummary: MyRatingSummary | null;
+    ratingSummary: RatingSummary | null;
 }
 
 export function ReceivedRatingsCard({ ratingSummary }: ReceivedRatingsCardProps) {

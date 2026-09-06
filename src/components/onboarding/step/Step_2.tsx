@@ -26,6 +26,7 @@ import {
   TextField
 } from "@/shared/ui";
 import { checkExternalNicknameAvailability } from "@/shared/lib/api/externalApi";
+import { MIN_SIGNUP_AGE, isEligibleAge } from "@/shared/lib/age";
 import {
   DefaultContainer,
   DivideContainer,
@@ -69,6 +70,7 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
   
   const [profile, setProfile] = useState(data.pic);
   const [nickerr, setNickerr] = useState<string[]>([]);
+  const [emailerr, setEmailerr] = useState<string[]>([]);
   const [nickset, setNickset] = useState<boolean>(false);
   const [profileModal, setProfileModal] = useState<boolean>(false);
 
@@ -103,6 +105,30 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
     }
     
     setNickerr(newErrors);
+    return newErrors.length === 0;
+  };
+
+  /**
+   * 이메일 검증.
+   *
+   * 카카오에서 더 이상 이메일을 받지 않으므로(동의항목 축소, 2026-09-06) 여기가 유일한
+   * 수집 경로다. 개인정보처리방침이 이메일을 **필수 수집 항목**으로 고지하고 있어
+   * 선택 입력으로 두지 않는다.
+   *
+   * 형식 검사는 일부러 느슨하게 둔다 — RFC 를 흉내 낸 정규식은 정상 주소를 거절하는
+   * 쪽으로 틀리기 쉽고, 실제 도달 여부는 어차피 여기서 판정할 수 없다.
+   */
+  const validateEmail = (email: string): boolean => {
+    const trimmed = email.trim();
+    const newErrors: string[] = [];
+
+    if (trimmed.length === 0) {
+      newErrors.push("· 이메일을 입력해주세요.");
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      newErrors.push("· 이메일 형식이 올바르지 않아요. (예: ditto@example.com)");
+    }
+
+    setEmailerr(newErrors);
     return newErrors.length === 0;
   };
 
@@ -141,9 +167,12 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
         setNickset(true); 
       }
 
+      // 이메일은 형식까지 봐야 하므로 빈칸 검사보다 먼저 돌린다.
+      if (!validateEmail(data.email)) return false;
+
       const isComplete = 
         !!data.gender &&
-        !!data.age &&
+        !!data.birthDate &&
         data.interest.length === 5 &&
         !!data.place &&
         !!data.job;
@@ -155,9 +184,16 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
 
       if(!isComplete) {
         showToast("빈칸을 채워주세요.","error");
+        return false;
       }
 
-      return isComplete; // true면 부모가 다음 단계로 이동시킴
+      // 연령 게이트. 이용약관이 만 19세 미만의 가입을 거절하므로 여기서 막는다.
+      if (!isEligibleAge(data.birthDate)) {
+        showToast(`디토는 만 ${MIN_SIGNUP_AGE}세 이상만 가입할 수 있어요.`, "error");
+        return false;
+      }
+
+      return true; // 부모가 다음 단계로 이동시킴
     }
   }));
 
@@ -167,8 +203,9 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
     // 여기서는 보수적으로 '모든 필드가 채워졌는지'만 확인하여 버튼 색상 변경
     const isFormFilled =
       data.nickname.length >= 2 &&
+      data.email.trim().length > 0 &&
       !!data.gender &&
-      !!data.age &&
+      !!data.birthDate &&
       data.interest.length === 5 &&
       !!data.place &&
       !!data.job;
@@ -239,6 +276,30 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
         )}
       </DefaultContainer>
 
+      <DefaultContainer>
+        {/*
+          카카오 동의항목에서 이메일을 뺐다(2026-09-06). 프리필로 채워질 수도 있지만
+          비어 있는 경우가 기본이라 필수 입력으로 둔다 — 개인정보처리방침의 필수
+          수집 항목이다.
+        */}
+        <TextField
+          label="이메일"
+          isessential
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          status={emailerr.length > 0 ? "error" : "default"}
+          placeholder="이메일을 입력해주세요"
+          errmessage={emailerr}
+          value={data.email}
+          onChange={(e) => {
+            onChange("email", e.target.value);
+            // 에러가 떠 있는 동안에만 재검증한다. 입력 첫 글자부터 빨개지지 않게.
+            if (emailerr.length > 0) validateEmail(e.target.value);
+          }}
+        />
+      </DefaultContainer>
+
       <DivideContainer>
         <DividedInner>
           <Select
@@ -255,22 +316,17 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
         </DividedInner>
 
         <DividedInner>
-          <Select
-            label="나이"
+          {/*
+            나이 구간 선택을 생년월일 입력으로 바꿨다. 본인인증을 붙이지 않기로 해
+            (2026-08-30) 나이의 출처가 여기뿐이고, 구간 선택으로는 만 19세 경계를
+            판정할 수 없었다. BE 에 보낼 연령대는 Tutorial 이 이 값에서 계산한다.
+          */}
+          <TextField
+            label="생년월일"
             isessential
-            bottomSheetTitle="나이"
-            value={data.age}
-            onChange={(v) => onChange("age", v)}
-            options={[
-              { label: "20 ~ 24", value: "20-24" },
-              { label: "25 ~ 29", value: "25-29" },
-              { label: "30 ~ 34", value: "30-34" },
-              { label: "35 ~ 39", value: "35-39" },
-              { label: "40 ~ 45", value: "40-45" },
-              { label: "45 ~ 49", value: "45-49" },
-              { label: "50 ~ 59", value: "50-59" },
-              { label: "60 이상", value: "60+" },
-            ]}
+            type="date"
+            value={data.birthDate ?? ""}
+            onChange={(e) => onChange("birthDate", e.target.value)}
           />
         </DividedInner>
       </DivideContainer>

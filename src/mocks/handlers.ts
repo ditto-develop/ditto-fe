@@ -37,6 +37,8 @@ import quizProgressCurrent from "@/mocks/fixtures/quiz-progress-current.json";
 import quizSetWithProgress from "@/mocks/fixtures/quiz-set-with-progress.json";
 import systemState from "@/mocks/fixtures/system-state.json";
 import user from "@/mocks/fixtures/user.json";
+import userAnswerMatch from "@/mocks/fixtures/user-answer-match.json";
+import userRatings from "@/mocks/fixtures/user-ratings.json";
 import memberReviews from "@/mocks/fixtures/member-reviews.json";
 import mySanction from "@/mocks/fixtures/my-sanction.json";
 import {
@@ -326,8 +328,10 @@ export const handlers = [
   http.get(apiPath("/users/[^/]+/intro-notes"), () => HttpResponse.json(success(introNotes))),
   http.get(apiPath("/users/me/intro-notes"), () => HttpResponse.json(success(introNotes))),
   http.put(apiPath("/users/me/intro-notes/[^/]+"), () => HttpResponse.json(success(introNotes))),
-  http.get(apiPath("/users/[^/]+/answers"), () => HttpResponse.json(success([]))),
-  http.get(apiPath("/users/[^/]+/ratings"), () => HttpResponse.json(success([]))),
+  // 타인 프로필 보조 2종. 상대 답변 원문은 내려오지 않는다 — 일치 개수 요약뿐이다.
+  // 평가는 /users/me/ratings와 스키마가 같다(위 핸들러보다 뒤에 있어야 me가 먼저 잡힌다).
+  http.get(apiPath("/users/[^/]+/answers"), () => HttpResponse.json(success(userAnswerMatch))),
+  http.get(apiPath("/users/[^/]+/ratings"), () => HttpResponse.json(success(userRatings))),
   http.post(apiPath("/users/[^/]+/ratings"), () => HttpResponse.json(success(null))),
   http.post(apiPath("/auth/kakao/callback"), () => HttpResponse.json(success(localLogin))),
 

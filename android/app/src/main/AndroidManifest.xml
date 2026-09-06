@@ -37,6 +37,26 @@
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_stat_ditto" />
 
+        <!--
+          카카오 네이티브 로그인 리다이렉트 수신기.
+
+          카카오계정(웹) 로그인은 커스텀 탭에서 `kakao{네이티브앱키}://oauth` 로 돌아오는데,
+          이 액티비티가 선언돼 있지 않으면 **로그인 창은 뜨지만 앱으로 결과가 돌아오지 않는다**.
+          스킴의 앱 키는 app/build.gradle 의 manifestPlaceholder 에서 채워진다.
+        -->
+        <activity
+            android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="oauth"
+                    android:scheme="kakao${kakaoNativeAppKey}" />
+            </intent-filter>
+        </activity>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

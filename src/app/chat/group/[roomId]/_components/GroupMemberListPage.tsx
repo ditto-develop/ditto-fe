@@ -3,18 +3,22 @@
 import { useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import type { CounterpartProfile } from "@/features/chat";
+import { getMatchBadgeInfo } from "@/features/matching";
 import {
   getMyProfile,
+  getUserAnswerMatch,
   getUserProfile,
   type PublicProfileDto,
 } from "@/features/profile/api/profileApi";
+import type { AnswerMatchSummary } from "@/features/profile/model/types";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import { toLocationLabel } from "@/shared/lib/profileLabels";
-import { TopNavigation } from "@/shared/ui";
+import { ContentBadge, TopNavigation } from "@/shared/ui";
 
 interface MemberData {
   member: CounterpartProfile;
   profile: PublicProfileDto | null;
+  answerMatch: AnswerMatchSummary | null;
 }
 
 interface GroupMemberListPageProps {
@@ -25,8 +29,11 @@ interface GroupMemberListPageProps {
 }
 
 /**
- * 퀴즈 답변 비교 배지(`🌟 당신과 가장 비슷해요` 등)는 라이브 BE에 계약이 없어 빠져 있다.
- * `GET /api/v1/users/{id}/answers`가 생기면 되살린다(INTEGRATION-TODO.md §A-3).
+ * 퀴즈 답변 비교 배지(`🌟 당신과 가장 비슷해요` 등)는 `GET /api/v1/users/{id}/answers`의
+ * 일치 개수로 그린다. 서버는 상대가 무엇을 골랐는지도, 등급 문구도 주지 않는다 —
+ * 문구는 `getMatchBadgeInfo`(FE)가 정본이다.
+ *
+ * 함께 완주한 퀴즈셋이 없으면 quizSetId가 null로 오고(403이 아니다) 배지를 숨긴다.
  */
 export function GroupMemberListPage({
   members,
@@ -49,16 +56,25 @@ export function GroupMemberListPage({
     let active = true;
 
     void (async () => {
-      const [mine, profiles] = await Promise.all([
+      const [mine, profiles, answerMatches] = await Promise.all([
         getMyProfile().catch(() => null),
         Promise.all(
           members.map((member) => getUserProfile(String(member.userId)).catch(() => null)),
+        ),
+        Promise.all(
+          members.map((member) => getUserAnswerMatch(String(member.userId)).catch(() => null)),
         ),
       ]);
 
       if (!active) return;
       setMyProfile(mine);
-      setOtherData(members.map((member, index) => ({ member, profile: profiles[index] })));
+      setOtherData(
+        members.map((member, index) => ({
+          member,
+          profile: profiles[index],
+          answerMatch: answerMatches[index],
+        })),
+      );
       setLoading(false);
     })();
 
@@ -114,9 +130,21 @@ export function GroupMemberListPage({
           <Section>
             <SectionLabel>상대방({otherData.length}명)</SectionLabel>
             <OtherList>
-              {otherData.map(({ member, profile }) => {
+              {otherData.map(({ member, profile, answerMatch }) => {
+                const badge =
+                  answerMatch && answerMatch.quizSetId && answerMatch.totalCount > 0
+                    ? getMatchBadgeInfo(answerMatch.matchedCount, answerMatch.totalCount)
+                    : null;
+
                 return (
                   <OtherEntry key={member.userId}>
+                    {badge && (
+                      <BadgeRow>
+                        <ContentBadge variant={badge.variant}>{badge.label}</ContentBadge>
+                        <MatchCountText>{badge.matchDescription}</MatchCountText>
+                      </BadgeRow>
+                    )}
+
                     {/* 멤버 카드 */}
                     <MemberCard onClick={() => onMemberClick(member)}>
                       <CardRow>
@@ -232,6 +260,20 @@ const OtherEntry = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
+`;
+
+const BadgeRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+`;
+
+const MatchCountText = styled.span`
+  font-size: var(--typography-caption-1-font-size);
+  font-weight: var(--typography-caption-1-font-weight);
+  line-height: var(--typography-caption-1-line-height);
+  letter-spacing: var(--typography-caption-1-letter-spacing);
+  color: var(--color-semantic-label-alternative);
 `;
 
 

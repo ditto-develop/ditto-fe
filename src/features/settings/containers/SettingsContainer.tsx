@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { useToast } from "@/context/ToastContext";
 import { useSettings } from "@/features/settings/hooks/useSettings";
-import { formatMaskedPhoneNumber } from "@/features/settings/lib/formatPhone";
 import { SETTINGS_EXTERNAL_LINKS } from "@/features/settings/model/externalLinks";
 import type { NotificationSettingKey } from "@/features/settings/model/types";
 import { clearToken } from "@/shared/lib/api/client";
@@ -72,6 +71,7 @@ export function SettingsContainer() {
     { label: "서비스 이용약관", onClick: () => router.push("/settings/terms") },
     { label: "개인정보 처리방침", onClick: () => router.push("/settings/privacy") },
     { label: "위치기반 서비스 이용약관", onClick: () => router.push("/settings/location-terms") },
+    { label: "사업자 정보", onClick: () => router.push("/settings/business") },
   ];
 
   const handleToggle = async (key: NotificationSettingKey, checked: boolean) => {
@@ -100,13 +100,13 @@ export function SettingsContainer() {
 
         <Section>
           <SectionLabel>계정</SectionLabel>
+          {/*
+            휴대폰 번호 행은 없앴다(2026-08-30). 본인인증을 빼면서 수집을 중단했고,
+            소셜 로그인도 번호를 주지 않아 항상 비어 있었다.
+          */}
           <StaticRow>
             <ActionTitle>이메일</ActionTitle>
             <ValueText>{currentUser?.email ?? "-"}</ValueText>
-          </StaticRow>
-          <StaticRow>
-            <ActionTitle>휴대폰 번호</ActionTitle>
-            <ValueText>{formatMaskedPhoneNumber(currentUser?.phoneNumber)}</ValueText>
           </StaticRow>
         </Section>
 
