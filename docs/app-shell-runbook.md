@@ -818,3 +818,144 @@ BE 위키 `Frontend-Native-Login-Peer-Profile-Guide` §1, 요청서 `docs/be-req
 SPM 전이 의존성이라 **Xcode 실빌드로 한 번 확인해야 한다** — 아직 확인하지 못했다.
 만약 모듈을 찾지 못하면, `CapApp-SPM/Package.swift` 는 CLI 생성물이므로 손대지 말고
 App 타깃에 `CapacitorKakaoLogin` 을 직접 링크하는 쪽으로 해결한다.
+
+---
+
+## 6. 애플 로그인 (배선 완료, BE 대기 중)
+
+### 왜 넣었나 — 선택 기능이 아니다
+
+App Store 가이드라인 **4.8**: 제3자 소셜 로그인으로 계정을 만드는 앱은 *동등한* 로그인
+수단을 하나 더 제공해야 한다. 그 수단은 ① 이름·이메일만 수집하고 ② 이메일을 비공개로
+둘 수 있어야 하며 ③ 광고 목적으로 앱 내 행동을 수집하지 않아야 한다.
+**카카오는 ②를 제공하지 않는다.** 카카오 하나만으로 제출하면 규칙상 리젝된다.
+
+부수 효과가 하나 더 있다. 심사용 데모 계정 문제가 같이 풀린다 — 지금은 리뷰어에게
+카카오 가입을 시켜야 하는데, 애플 로그인이 있으면 리뷰어가 자기 Apple ID 로 들어온다.
+
+### 현재 상태
+
+카카오 네이티브와 **같은 구조로 전부 배선했고 킬 스위치가 꺼져 있다.**
+
+| 조각 | 위치 | 상태 |
+|---|---|---|
+| 네이티브 플러그인 | `native-plugins/capacitor-apple-login/` | 작성 완료 (iOS Swift) |
+| JS 게이트 | `src/shared/lib/native/appleLogin.ts` | 완료 |
+| 토큰 교환 | `loginWithExternalAppleNative` (`externalApi.ts`) | 완료 — **계약 미확인** |
+| 버튼 | `src/components/auth/AppleLogin.tsx` → `Step0` | 완료 (iOS 앱에서만 렌더) |
+| entitlement | `ios/App/App/App.entitlements` | 완료 |
+| BE 엔드포인트 | `POST /api/v1/users/social-login/apple/native` | **대기 중** |
+| Apple Developer 포털 | App ID 에 Sign in with Apple ON | **미실시** |
+| 실기기 검증 | — | **미실시** |
+
+### ⚠️ 이 계약은 아직 확인되지 않았다
+
+`/api/v1/users/social-login/apple/native` 는 **카카오 네이티브와 같은 자리·같은 응답
+모양을 전제로 미리 배선한 것**이다. BE 가 구현 중이고 위키가 오면 대조해야 한다.
+
+```jsonc
+// 요청 (FE 가정)
+{ "identityToken": "<Apple JWT>", "authorizationCode": "<1회성 code>",
+  "nonce": "<네이티브가 만든 원본>", "fullName": "홍길동" }  // fullName 은 최초 1회만
+
+// 응답 — /kakao/native 와 같은 필드여야 한다(NativeSocialLoginResult 를 공유한다)
+{ "accessToken": "...", "signupRequired": false,
+  "sanctioned": false, "sanctionCode": null, "suspendedUntil": null }
+```
+
+**스펙이 다르면 고칠 곳은 `loginWithExternalAppleNative` 하나다.** 응답 타입과 결말
+분기(`resolveSocialLogin`)는 카카오와 공유하므로 건드릴 필요가 없다.
+회귀 방지 테스트: `src/shared/lib/api/externalApi.socialLogin.test.ts`
+
+### BE 가 해야 하는 것 (요청 시 이대로 넘길 것)
+
+1. **identityToken 검증** — `appleid.apple.com/auth/keys` JWKS 로 RS256 서명(키 로테이션
+   대비 캐시), `iss` · `aud`(=`pics.ditto.app`) · `exp`, 그리고 **nonce 대조**.
+   nonce 를 안 보면 탈취한 토큰을 그대로 재사용하는 공격이 열린다.
+2. **계정 키는 `sub`. 이메일로 매칭하지 말 것** — 애플은 `@privaterelay.appleid.com`
+   릴레이 주소를 준다. 카카오 이메일과 절대 일치하지 않는다. `(provider, providerUserId)`
+   분리가 필요하고, **여기가 유일하게 스키마를 건드리는 지점**이다.
+3. **이메일·이름은 최초 1회만 온다.** 이름은 토큰에도 없이 요청 바디로만 한 번 온다.
+   첫 로그인에 저장하지 않으면 영영 못 받는다.
+4. **탈퇴 시 `POST appleid.apple.com/auth/revoke` 로 토큰 폐기 — 애플의 의무다.**
+   가이드라인 5.1.1(v)와 묶여 있어 빠뜨리면 리젝 사유다. 폐기에는 refresh token 이
+   필요하므로 최초 로그인 때 `authorizationCode` 를 `/auth/token` 으로 교환해 보관해야
+   한다. FE 가 `authorizationCode` 를 보내는 이유가 이것뿐이다.
+5. **client secret JWT** — Sign in with Apple 전용 `.p8`(푸시용 APNs 키와 **다른 키**)로
+   ES256 서명. 수명 최대 6개월이라 갱신 경로가 필요하다.
+6. (선택) Server-to-Server Notifications — 사용자가 애플 설정에서 계정을 지우거나 이메일
+   전달을 끄면 통보받는다. 없으면 유령 계정이 쌓인다.
+7. **웹에도 넣을지는 결정 사항이다.** 4.8 은 iOS 앱에만 적용된다. 앱만 지원하면 `aud`
+   하나만 검증하면 되고, 웹까지 지원하려면 Services ID 를 **같은 Primary App ID 아래**
+   묶어야 `sub` 가 앱·웹에서 일치한다. 안 묶으면 같은 사람이 다른 계정이 된다.
+
+### 역할 분담 — 카카오와 같다
+
+네이티브는 `ASAuthorizationController` 로 identityToken 을 받아오는 **한 조각만** 맡는다.
+우리 JWT 로 교환하는 요청은 **웹뷰(JS)가** 보낸다. 네이티브가 교환하면
+`Set-Cookie: refreshToken` 이 네이티브 쿠키 저장소로 들어가 웹뷰가 보지 못한다.
+
+### nonce 는 네이티브가 만든다
+
+원본을 JS 로 돌려주고 애플에는 SHA-256 해시를 보낸다. 서버는 받은 원본을 해시해 토큰의
+`nonce` 클레임과 대조한다. 웹뷰에서 만들지 않는 이유는 이 앱이 원격 URL 로드라
+웹 번들이 곧 공개 자산이기 때문이다.
+
+### 켜는 절차
+
+1. **Apple Developer → App ID `pics.ditto.app` 에 Sign in with Apple capability ON.**
+   이걸 안 켜면 `App.entitlements` 만으로는 **빌드 자체가 서명 단계에서 실패한다**
+   (런타임 실패가 아니다).
+2. Sign in with Apple 키(`.p8`) 발급 → **BE 에 안전한 경로로 전달.** 리포에 커밋하지
+   말 것(`.gitignore` 가 `*.p8` 을 막고 있다).
+3. BE 엔드포인트 배포 확인 후 라이브 스펙과 위 계약 대조.
+4. 실기기 스모크 — 신규/기존/제재 회원, 그리고 **애플 시트에서 취소** 시 아무 일도
+   일어나지 않는지(다른 로그인 창이 뜨면 분기가 잘못된 것이다).
+5. 플래그를 켠다 — `.github/workflows/deploy-prod.yml` Build 스텝에
+   `NEXT_PUBLIC_NATIVE_APPLE_LOGIN_ENABLED: 'true'`. 되돌릴 때는 그 줄만 지운다.
+
+### 실패해도 로그인이 막히지는 않는다 — 다만 폴백은 없다
+
+카카오는 네이티브가 실패하면 리다이렉트 로그인으로 흘려보낸다. **애플은 그 경로가
+유일해서 폴백이 없다.** 그래서 실패는 토스트로 알리고 화면에 머문다 — 사용자는 카카오
+버튼으로 계속할 수 있다. 취소는 조용히 무시한다.
+
+---
+
+## 7. 앱스토어 제출 준비 (2026-09-07)
+
+심사에서 걸리는 자리를 코드 쪽에서 미리 막아 둔 것들이다. 나머지(App Store Connect
+등록·스크린샷·심사 노트)는 코드 밖 작업이다.
+
+| 항목 | 조치 | 왜 |
+|---|---|---|
+| iPad 타깃 | `TARGETED_DEVICE_FAMILY = 1` | 웹 레이아웃이 393px 모바일 전용인데 iPad 에서도 심사한다. iPad 스크린샷 요구도 사라진다. 되돌리려면 `"1,2"` 로 (`Info.plist` 의 `UISupportedInterfaceOrientations~ipad` 는 남겨 뒀다) |
+| 수출 규정 | `ITSAppUsesNonExemptEncryption = false` | 없으면 **업로드하는 빌드마다** ASC 가 묻고, 답하기 전에는 TestFlight·심사에 못 넣는다. HTTPS 만 쓰므로 면제 |
+| 프라이버시 매니페스트 | `ios/App/App/PrivacyInfo.xcprivacy` 신규 + 타깃 등록 | 없으면 업로드 후 경고 메일. **ASC 의 앱 개인정보 표시와 값이 일치해야 한다** — 어긋나면 그건 리젝 사유다 |
+| 오프라인 폴백 | `server.errorPath` → `public/app-offline.html` | 원격 URL 로드라 서버를 못 열면 리뷰어가 흰 화면을 본다(2.1 리젝의 단골). 번들 안 화면으로 바꿔 준다. **외부 리소스를 참조하면 안 된다** — 네트워크가 끊긴 상황이 존재 이유다 |
+| Sign in with Apple | §6 | 4.8. 카카오 하나로는 통과하지 못한다 |
+
+### 아직 남은 것
+
+- **Apple Developer 포털** — App ID 에 Sign in with Apple capability
+- **App Store Connect** — 앱 레코드·이름 선점, 연령 등급(데이팅은 최고 등급),
+  개인정보처리방침 URL(앱 내 `/settings/privacy` 가 비로그인으로 열리므로 그 주소를
+  쓸 수 있는지 확인), 지원 URL·연락처(1.2 UGC 요건), 6.9" 스크린샷, 프라이버시 표시,
+  심사 노트(데모 계정 + 원격 웹뷰 구조 + 네이티브 기능 목록)
+- **4.2 최소 기능 방어** — 심사 노트에 네이티브 기능을 명시한다: FCM 원격 푸시,
+  로컬 알림, 카카오 SDK 네이티브 로그인, 유니버설 링크, 위치. 원격 URL 로드는
+  "웹사이트 재포장"으로 읽힐 수 있다
+- **실기기 빌드 자체가 아직 없다** — §3 스모크 전부 미실시. 내부 TestFlight 는 베타
+  심사를 거치지 않으므로 지금 바로 팀 배포로 확인할 수 있다
+
+### 팀원 테스트 — TestFlight
+
+배포(=심사) 전에 팀원이 써 볼 수 있다. 두 갈래다.
+
+| | 대상 | 심사 | 준비 |
+|---|---|---|---|
+| **내부(Internal)** | ASC 사용자로 초대한 최대 100명 | **없음** | 팀원을 ASC 사용자로 추가. 빌드 업로드 즉시 배포 |
+| **외부(External)** | 이메일/공개 링크로 최대 10,000명 | **베타 앱 심사 있음** | 첫 빌드만 심사. 이후 빌드는 대체로 자동 통과 |
+
+내부 테스트가 지금 필요한 것이다 — 심사가 없어 4.8(애플 로그인)이 없어도 올라간다.
+팀원은 Apple ID 로 ASC 에 초대되고 TestFlight 앱으로 설치한다. 빌드는 90일 뒤 만료된다.

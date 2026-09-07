@@ -22,6 +22,17 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<!--
+	  수출 규정(암호화) 자진 신고.
+
+	  없으면 업로드하는 **빌드마다** App Store Connect 가 "암호화를 쓰는가"를 묻고,
+	  답하기 전에는 그 빌드를 TestFlight 나 심사에 넣지 못한다. 이 앱이 쓰는 암호화는
+	  HTTPS(운영체제 제공 표준 암호화)뿐이라 면제 대상이다.
+
+	  ⚠️ 자체 암호화를 추가하면(로컬 DB 암호화 등) 이 값을 다시 검토해야 한다.
+	-->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

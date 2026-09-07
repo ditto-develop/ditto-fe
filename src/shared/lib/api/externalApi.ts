@@ -337,6 +337,43 @@ export function loginWithExternalKakaoNative(
     });
 }
 
+/**
+ * 네이티브 Sign in with Apple 이 받아온 identityToken 을 우리 JWT 로 교환한다(iOS 앱 전용).
+ *
+ * ⚠️ **이 계약은 아직 라이브 스펙으로 확인되지 않았다.** BE 가 구현 중이며 위키가 오면
+ * 대조해야 한다. 카카오 네이티브(`/kakao/native`)와 같은 자리·같은 응답 모양을 전제로
+ * 미리 배선해 둔 것이고, 응답 타입(NativeSocialLoginResult)과 결말 분기
+ * (resolveSocialLogin)를 그대로 공유한다. 스펙이 다르면 **고칠 곳은 이 함수 하나**다.
+ *
+ * 요청 필드가 카카오보다 많은 이유:
+ * - `identityToken` — 서버가 애플 JWKS 로 검증하는 본체.
+ * - `authorizationCode` — 서버가 `/auth/token` 으로 교환해 refresh token 을 보관한다.
+ *   **탈퇴 시 애플 토큰 폐기(`/auth/revoke`)에 필요하고, 그건 애플의 의무 사항이다.**
+ * - `nonce` — 네이티브가 만든 원본. 서버가 해시해 토큰의 nonce 클레임과 대조한다.
+ * - `fullName` — **최초 인증 1회만** 오고 토큰에는 들어 있지 않다. 서버가 첫 로그인에
+ *   저장하지 않으면 영영 받을 수 없다. 이메일은 토큰 안에 있으므로 보내지 않는다.
+ *
+ * ⚠️ 교환 요청이 웹뷰(JS)에서 나가야 하는 이유는 카카오와 같다 —
+ * loginWithExternalKakaoNative 주석 참고.
+ */
+export function loginWithExternalAppleNative(params: {
+    identityToken: string;
+    authorizationCode: string | null;
+    nonce: string;
+    fullName: string | null;
+}): Promise<NativeSocialLoginResult> {
+    return externalApiFetch<NativeSocialLoginResult>("/api/v1/users/social-login/apple/native", {
+        method: "POST",
+        body: {
+            identityToken: params.identityToken,
+            authorizationCode: params.authorizationCode,
+            nonce: params.nonce,
+            fullName: params.fullName,
+        },
+        credentials: "include",
+    });
+}
+
 export async function getExternalMatchCandidates(): Promise<GetMatchCandidatesResponse> {
     const data = await externalApiFetch<ExternalMatchCandidateList>("/api/v1/matches/1on1");
     const quizSetId = toId(data.quizSetId) || getStoredQuizSetId();

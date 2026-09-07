@@ -18,6 +18,7 @@ import {
   Headline1,
 } from "@/shared/ui";
 import { SplashCarousel } from "@/components/onboarding/Carousel";
+import { AppleLogin } from "@/components/auth/AppleLogin";
 import { KakaoLogin } from "@/components/auth/KakaoLogin";
 import { BUSINESS_INFO } from "@/shared/lib/businessInfo";
 import type { KakaoLoginResult } from "@/types/kakao";
@@ -142,6 +143,12 @@ export function Step0({ onLoginComplete }: Step0Props) {
 
           <LoginFooter>
             <KakaoLogin onLoginComplete={onLoginComplete} />
+            {/*
+              iOS 앱에서만 나타난다(웹·안드로이드에서는 null 을 렌더한다). App Store
+              가이드라인 4.8 이 요구하는 "동등한 로그인 수단"이라 카카오 버튼과 크기·모서리를
+              맞춘다 — 애플 HIG 는 이 버튼이 다른 소셜 버튼보다 덜 눈에 띄는 것을 금지한다.
+            */}
+            <AppleLogin />
             <Caption1
               $color="var(--color-semantic-label-alternative)"
               $align="center"

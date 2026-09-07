@@ -29,5 +29,20 @@
 	</array>
 	<key>aps-environment</key>
 	<string>development</string>
+	<!--
+	  Sign in with Apple.
+
+	  App Store 가이드라인 4.8 — 제3자 소셜 로그인(카카오)으로 계정을 만드는 앱은
+	  이름·이메일만 수집하고 이메일을 비공개로 둘 수 있는 로그인 수단을 하나 더 줘야 한다.
+	  카카오는 이메일 비공개를 제공하지 않아 요건을 못 채운다. 없으면 심사에서 막힌다.
+
+	  ⚠️ 이 키만으로는 동작하지 않는다. Apple Developer 포털의 App ID `pics.ditto.app` 에
+	  Sign in with Apple capability 를 켜야 프로비저닝 프로필이 이 권한을 담는다.
+	  안 켜진 상태로 빌드하면 서명 단계에서 실패한다(런타임 실패가 아니라 빌드 실패다).
+	-->
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
 </dict>
 </plist>

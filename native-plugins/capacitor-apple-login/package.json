@@ -1,0 +1,15 @@
+{
+  "name": "capacitor-apple-login",
+  "version": "1.0.0",
+  "description": "Ditto 전용 Sign in with Apple Capacitor 플러그인 (리포 내부 패키지, iOS 전용)",
+  "license": "UNLICENSED",
+  "private": true,
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "peerDependencies": {
+    "@capacitor/core": "^8.0.0"
+  }
+}

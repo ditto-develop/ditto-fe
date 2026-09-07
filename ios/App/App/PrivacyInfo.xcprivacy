@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  앱 레벨 프라이버시 매니페스트.
+
+  App Store Connect 의 "앱 개인정보 보호"(영양성분표)와 **값이 일치해야 한다.** 어긋나면
+  업로드는 되지만 심사에서 지적된다. 새 데이터를 수집하기 시작하면 두 곳을 함께 고칠 것.
+
+  이 앱은 원격 URL 로드라 실제 수집은 웹뷰 안 화면(가입 폼·채팅·신고·장소 지도)에서
+  일어난다. 네이티브 셸이 직접 수집하는 것은 FCM 등록 토큰(기기 식별자)뿐이지만,
+  매니페스트는 **앱이 수집하는 전부**를 적는 자리다.
+
+  서드파티 SDK 는 각자 매니페스트를 싣는다(Capacitor · Firebase). 여기 적지 않는다.
+-->
+<plist version="1.0">
+<dict>
+	<!--
+	  광고·측정 목적의 추적을 하지 않는다. 이 값이 true 가 되는 순간
+	  NSUserTrackingUsageDescription 과 ATT 동의 요청이 함께 필요해진다.
+	-->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+
+	<!--
+	  required reason API. 우리 앱 타깃 코드(AppDelegate · SceneDelegate · 리포 내부
+	  플러그인 둘)는 UserDefaults·파일 타임스탬프·디스크 여유공간 API 를 직접 쓰지 않는다.
+	  쓰기 시작하면 여기에 카테고리와 사유 코드를 추가해야 한다.
+	-->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array/>
+
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array>
+		<!-- 가입 시 입력받는 이메일. 설정 > 계정에 노출된다. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeEmailAddress</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!--
+		  Sign in with Apple 이 최초 1회 주는 이름. 가입 폼에서는 받지 않는다
+		  (카카오 일반 앱 전환으로 이름 수집을 걷어냈다).
+		-->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeName</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!-- 회원 식별자(우리 서비스 계정). -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeUserID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!-- 푸시 발송용 FCM 등록 토큰. 로그아웃·탈퇴 시 서버에서 해제한다. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeDeviceID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!-- 프로필 사진, 채팅·신고 첨부 이미지. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypePhotosorVideos</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!-- 채팅 메시지, 퀴즈 답변, 평가 코멘트, 신고 내용. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!--
+		  그룹 채팅의 만남 장소 지도(PlaceMapPage)에서 navigator.geolocation 으로 읽는다.
+		  주변 장소 검색에 쓰이고 서버에 보관하지 않는다.
+		-->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypePreciseLocation</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!--
+		  ⚠️ 성별과 성별 선호(매칭 하드 필터). 애플의 "민감 정보"에는 성적 지향이 포함되고,
+		  이성/동성 선호를 받는 매칭 서비스는 여기 해당한다고 보는 쪽이 안전하다.
+		  과소 신고가 과대 신고보다 위험해 포함했다 — 법무 검토로 빼기로 하면
+		  App Store Connect 의 영양성분표와 함께 지울 것.
+		-->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeSensitiveInfo</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!-- 나이·관심사·직업·활동 지역·캐리커처 등 매칭에 쓰는 프로필 항목. -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherDataTypes</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

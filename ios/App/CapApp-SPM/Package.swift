@@ -17,6 +17,7 @@ let package = Package(
         .package(name: "CapacitorKeyboard", path: "../../../node_modules/@capacitor/keyboard"),
         .package(name: "CapacitorLocalNotifications", path: "../../../node_modules/@capacitor/local-notifications"),
         .package(name: "CapacitorStatusBar", path: "../../../node_modules/@capacitor/status-bar"),
+        .package(name: "CapacitorAppleLogin", path: "../../../native-plugins/capacitor-apple-login"),
         .package(name: "CapacitorKakaoLogin", path: "../../../native-plugins/capacitor-kakao-login")
     ],
     targets: [
@@ -30,6 +31,7 @@ let package = Package(
                 .product(name: "CapacitorKeyboard", package: "CapacitorKeyboard"),
                 .product(name: "CapacitorLocalNotifications", package: "CapacitorLocalNotifications"),
                 .product(name: "CapacitorStatusBar", package: "CapacitorStatusBar"),
+                .product(name: "CapacitorAppleLogin", package: "CapacitorAppleLogin"),
                 .product(name: "CapacitorKakaoLogin", package: "CapacitorKakaoLogin")
             ]
         )

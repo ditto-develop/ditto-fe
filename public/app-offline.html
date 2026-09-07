@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>연결할 수 없어요</title>
+<!--
+  네이티브 셸이 원격 URL(ditto.pics)을 열지 못했을 때 대신 보여주는 화면.
+  capacitor.config.ts 의 `server.errorPath` 가 이 파일을 가리킨다.
+
+  ⚠️ **이 파일은 앱 번들 안에서 로컬로 열린다.** 네트워크가 끊긴 상황이 존재 이유이므로
+  외부 폰트·이미지·스크립트를 절대 참조하면 안 된다. 색도 CSS 토큰 파일을 불러올 수 없어
+  값을 복제한다 — capacitor.config.ts 의 android.backgroundColor 와 같은 이유다.
+  토큰이 바뀌면 여기도 함께 바꿔야 한다.
+-->
+<style>
+  :root {
+    /* --color-atomic-neutral-95 (= --color-semantic-background-normal-normal) */
+    --bg: #E9E6E2;
+    /* --color-atomic-neutral-20 (= --color-semantic-label-normal) */
+    --fg: #1A1815;
+    /* --color-atomic-neutral-40 (= --color-semantic-label-alternative 계열) */
+    --fg-soft: #4B4642;
+    /* --color-atomic-neutral-99 */
+    --on-primary: #F3F1EF;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    /* 번들에 웹폰트를 넣지 않는다. 시스템 한글 폰트로 충분하다. */
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding:
+      calc(24px + env(safe-area-inset-top, 0px))
+      24px
+      calc(24px + env(safe-area-inset-bottom, 0px));
+    text-align: center;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: -0.02em;
+  }
+
+  p {
+    margin: 0;
+    max-width: 320px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--fg-soft);
+  }
+
+  button {
+    margin-top: 12px;
+    min-width: 200px;
+    height: 48px;
+    padding: 0 24px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--fg);
+    color: var(--on-primary);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:active { opacity: 0.85; }
+</style>
+</head>
+<body>
+  <h1>연결할 수 없어요</h1>
+  <p>네트워크 상태를 확인한 뒤 다시 시도해 주세요.<br>잠시 후 저절로 연결될 수도 있어요.</p>
+  <button type="button" id="retry">다시 시도</button>
+
+  <script>
+    // 앱이 원래 열어야 할 주소. capacitor.config.ts 의 server.url 과 같아야 한다.
+    var HOME = "https://ditto.pics/";
+    document.getElementById("retry").addEventListener("click", function () {
+      window.location.replace(HOME);
+    });
+  </script>
+</body>
+</html>

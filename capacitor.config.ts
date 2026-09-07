@@ -74,6 +74,17 @@ const config: CapacitorConfig = {
         cleartext: false,
         androidScheme: "https",
         /**
+         * 원격 URL 을 열지 못했을 때 대신 띄우는 **번들 안** 화면.
+         *
+         * 없으면 웹뷰의 기본 오류 페이지(흰 화면 + 영문 에러)가 그대로 보인다. 심사망이
+         * 느리거나 CloudFront 가 흔들리는 순간이 하필 리뷰 시점이면 "앱이 실행되지 않는다"
+         * (가이드라인 2.1)로 리젝된다 — 원격 URL 로드 앱에서 가장 흔한 사고다.
+         *
+         * `public/app-offline.html` → 빌드 시 `out/` 로 복사되고 `cap sync` 가 네이티브
+         * 번들에 넣는다. 경로는 webDir 기준이다.
+         */
+        errorPath: "app-offline.html",
+        /**
          * 웹뷰 안에서 그대로 열려야 하는 도메인.
          * 카카오 소셜 로그인은 BE(api.ditto.pics) → 카카오 → /auth/callback 으로
          * 이어지는 리다이렉트 체인이라, 중간 도메인이 외부 브라우저로 빠지면
