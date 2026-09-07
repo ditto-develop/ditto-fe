@@ -22,6 +22,27 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * 로그에 남길 수 있는 형태로 요약한다.
+ *
+ * `console.error("...", err)` 로 에러 객체를 그대로 넘기면 **앱 웹뷰 콘솔에서 `{}` 로 찍힌다**
+ * — Error 의 name·message 가 열거 불가라 직렬화에서 사라지고, 네트워크 실패(TypeError)는
+ * 애초에 담을 필드가 없다. 2026-09-07 기기 디버깅에서 실패 원인을 못 본 이유가 이것이다.
+ * 사람이 읽을 문자열로 바꿔서 넘긴다.
+ */
+export function describeError(err: unknown): string {
+  if (err instanceof ApiError) {
+    return `ApiError code=${err.code || "-"} status=${err.status} message=${err.message}`;
+  }
+  if (err instanceof Error) return `${err.name}: ${err.message}`;
+  if (typeof err === "string") return err;
+  try {
+    return JSON.stringify(err) ?? String(err);
+  } catch {
+    return String(err);
+  }
+}
+
 export const API_ERROR_CODE = {
   /** 잘못된 요청값(필수값·파일 규칙·reason/source) */
   INVALID_REQUEST: "0001",

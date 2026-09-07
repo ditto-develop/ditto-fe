@@ -94,13 +94,30 @@ public class KakaoLoginPlugin: CAPPlugin, CAPBridgedPlugin {
 
                     if let error {
                         print("[KakaoLoginPlugin] loginWithKakaoTalk 실패: \(error)")
+
                         // 사용자가 스스로 취소한 것은 실패가 아니다. 계정 로그인으로 끌고 가면
                         // "취소했는데 또 로그인 창이 뜬다"가 된다.
                         if Self.isCancelled(error) {
                             call.reject(Self.cancelledMessage)
                             return
                         }
-                        // 그 밖의 실패(카카오톡 미로그인 상태 등)는 계정 로그인으로 폴백한다.
+
+                        /*
+                         * 설정 오류는 **폴백하지 않는다.**
+                         *
+                         * 계정 로그인도 같은 앱 키·같은 번들 ID 를 쓰므로 똑같이 실패한다.
+                         * 폴백하면 사용자는 카카오톡에서 한 번, 웹에서 또 한 번 로그인하고도
+                         * 결국 실패한다 — 2026-09-07 실기기에서 실제로 그렇게 나왔다
+                         * (KOE009 "IOS bundleId validation failed", 카카오 콘솔에 iOS 플랫폼
+                         * 번들 ID 미등록). 바로 실패시켜 JS 가 리다이렉트 로그인으로 넘기게 한다.
+                         */
+                        if Self.isMisconfigured(error) {
+                            call.reject("카카오 앱 설정이 올바르지 않습니다(콘솔의 iOS 플랫폼 번들 ID 등록을 확인하세요): \(error.localizedDescription)")
+                            return
+                        }
+
+                        // 그 밖의 실패(카카오톡에 로그인돼 있지 않은 상태 등)만 계정 로그인으로
+                        // 폴백한다. 이 경우는 웹에서 로그인하면 실제로 풀린다.
                         self.loginWithAccount(call)
                         return
                     }
@@ -145,8 +162,22 @@ public class KakaoLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     private static func isCancelled(_ error: Error) -> Bool {
-        guard let sdkError = error as? SdkError, sdkError.isClientFailed else { return false }
-        return sdkError.getClientError().reason == .Cancelled
+        guard let sdkError = error as? SdkError else { return false }
+
+        // 카카오톡 화면에서 뒤로 나온 경우.
+        if sdkError.isClientFailed, sdkError.getClientError().reason == .Cancelled { return true }
+
+        // 동의 화면에서 "취소"를 누른 경우. SDK 는 이걸 AuthFailed(.AccessDenied) 로 준다.
+        // 사용자의 명시적 거절이므로 취소와 같이 다뤄야 한다 — 폴백해서 또 물으면 안 된다.
+        if sdkError.isAuthFailed, sdkError.getAuthError().reason == .AccessDenied { return true }
+
+        return false
+    }
+
+    /// 앱 키·번들 ID·콘솔 설정이 어긋나 **어느 경로로 가도 실패하는** 오류인지.
+    private static func isMisconfigured(_ error: Error) -> Bool {
+        guard let sdkError = error as? SdkError, sdkError.isAuthFailed else { return false }
+        return sdkError.getAuthError().reason == .Misconfigured
     }
 
     /// 카카오 세션만 끊는다. 우리 서비스 세션(JWT/refreshToken)과는 무관하다.

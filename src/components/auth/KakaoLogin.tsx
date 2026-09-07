@@ -10,6 +10,7 @@ import {
   startExternalSocialLogin,
 } from "@/shared/lib/api/externalApi";
 import { loginWithKakaoSdk } from "@/shared/lib/native/kakaoLogin";
+import { describeError } from "@/shared/lib/api/apiError";
 import { resolveSocialLogin } from "@/features/auth/lib/socialLoginOutcome";
 import type { KakaoLoginResult } from "@/types/kakao";
 
@@ -91,7 +92,7 @@ export const KakaoLogin = (_props: KakaoLoginProps) => {
           router.replace("/auth/callback?signupRequired=true");
           return;
         } catch (err: unknown) {
-          console.error("[KakaoLogin] 네이티브 토큰 교환 실패, 리다이렉트 로그인으로 폴백:", err);
+          console.error("[KakaoLogin] 네이티브 토큰 교환 실패, 리다이렉트 로그인으로 폴백:", describeError(err));
         }
       }
 
