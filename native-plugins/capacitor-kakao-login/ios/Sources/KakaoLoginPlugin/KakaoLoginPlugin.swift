@@ -67,9 +67,11 @@ public class KakaoLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         if didInitializeSdk { return true }
 
         guard let appKey = getConfig().getString("appKey"), !appKey.isEmpty else {
+            print("[KakaoLoginPlugin] appKey 가 비어 있다 — capacitor.config.json 의 plugins.KakaoLogin.appKey 확인")
             return false
         }
 
+        print("[KakaoLoginPlugin] SDK 초기화. appKey 앞 6자리=\(appKey.prefix(6))")
         KakaoSDK.initSDK(appKey: appKey)
         didInitializeSdk = true
         return true
@@ -83,12 +85,15 @@ public class KakaoLoginPlugin: CAPPlugin, CAPBridgedPlugin {
 
         // 카카오 SDK 의 로그인 진입점은 UI 를 띄우므로 메인 스레드에서 불러야 한다.
         DispatchQueue.main.async {
-            if UserApi.isKakaoTalkLoginAvailable() {
+            let talkAvailable = UserApi.isKakaoTalkLoginAvailable()
+            print("[KakaoLoginPlugin] login() 진입. isKakaoTalkLoginAvailable=\(talkAvailable)")
+            if talkAvailable {
                 // 카카오톡 앱으로 전환하는 간편 로그인. 이 경로가 이 작업의 목적이다.
                 UserApi.shared.loginWithKakaoTalk { [weak self] token, error in
                     guard let self else { return }
 
                     if let error {
+                        print("[KakaoLoginPlugin] loginWithKakaoTalk 실패: \(error)")
                         // 사용자가 스스로 취소한 것은 실패가 아니다. 계정 로그인으로 끌고 가면
                         // "취소했는데 또 로그인 창이 뜬다"가 된다.
                         if Self.isCancelled(error) {
@@ -110,10 +115,12 @@ public class KakaoLoginPlugin: CAPPlugin, CAPBridgedPlugin {
 
     /// 카카오계정(웹) 로그인. 카카오톡이 없거나 간편 로그인이 실패했을 때 쓴다.
     private func loginWithAccount(_ call: CAPPluginCall) {
+        print("[KakaoLoginPlugin] loginWithKakaoAccount 로 넘어감")
         UserApi.shared.loginWithKakaoAccount { [weak self] token, error in
             guard let self else { return }
 
             if let error {
+                print("[KakaoLoginPlugin] loginWithKakaoAccount 실패: \(error)")
                 if Self.isCancelled(error) {
                     call.reject(Self.cancelledMessage)
                 } else {

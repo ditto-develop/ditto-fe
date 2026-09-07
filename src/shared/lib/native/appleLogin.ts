@@ -1,3 +1,5 @@
+import { registerPlugin } from "@capacitor/core";
+
 import { getNativePlatform, isNativeApp } from "@/shared/lib/native/platform";
 
 /**
@@ -75,19 +77,13 @@ export function isNativeAppleLoginAvailable(): boolean {
 }
 
 /**
- * 플러그인 프록시. 웹 번들에도 같은 코드가 실려 있으므로 **게이트를 통과한 뒤에만** 만든다.
- * registerPlugin 은 정적 평가 시점에 Capacitor 전역을 건드리므로 모듈 최상단에 두지 않는다.
+ * 플러그인 프록시.
+ *
+ * ⚠️ **동적 import 로 만들지 말 것.** 카카오 플러그인에서 같은 패턴이
+ * `import("@capacitor/core")` 가 앱 웹뷰에서 영영 resolve 되지 않아 버튼을 죽였다
+ * — `kakaoLogin.ts` 의 같은 주석 참고.
  */
-let pluginPromise: Promise<AppleLoginPlugin> | null = null;
-
-function loadPlugin(): Promise<AppleLoginPlugin> {
-    if (!pluginPromise) {
-        pluginPromise = import("@capacitor/core").then(({ registerPlugin }) =>
-            registerPlugin<AppleLoginPlugin>(PLUGIN_NAME),
-        );
-    }
-    return pluginPromise;
-}
+const plugin = registerPlugin<AppleLoginPlugin>(PLUGIN_NAME);
 
 function toMessage(err: unknown): string {
     if (err instanceof Error) return err.message;
@@ -103,7 +99,6 @@ export async function loginWithAppleSdk(): Promise<NativeAppleLoginOutcome> {
     if (!isNativeAppleLoginAvailable()) return { status: "unavailable" };
 
     try {
-        const plugin = await loadPlugin();
         const { identityToken, rawNonce, name } = await plugin.login();
 
         if (!identityToken) {

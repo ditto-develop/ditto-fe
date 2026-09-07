@@ -58,7 +58,16 @@ export const KakaoLogin = (_props: KakaoLoginProps) => {
     isRunning.current = true;
 
     try {
-      const outcome = await loginWithKakaoSdk();
+      /**
+       * `loginWithKakaoSdk` 는 던지지 않기로 되어 있지만, 그 약속이 깨지면 이 함수가
+       * 통째로 예외로 빠져나가 **폴백도 못 타고 연타 방지 래치도 안 풀린다**
+       * (2026-09-07 실기기: 그래서 버튼이 영구히 죽었다). 여기서 한 번 더 받아
+       * 어떤 경우에도 아래 폴백까지는 도달하게 한다.
+       */
+      const outcome = await loginWithKakaoSdk().catch((err: unknown) => {
+        console.error("[KakaoLogin] 네이티브 로그인 호출이 예외로 끝났습니다:", err);
+        return { status: "failed" as const, message: "네이티브 로그인 호출 실패" };
+      });
 
       // 사용자가 카카오 화면에서 스스로 취소했다. 리다이렉트로 끌고 가면 안 된다.
       if (outcome.status === "cancelled") return;

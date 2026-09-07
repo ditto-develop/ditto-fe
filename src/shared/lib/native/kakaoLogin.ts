@@ -1,3 +1,5 @@
+import { registerPlugin } from "@capacitor/core";
+
 import { isNativeApp } from "@/shared/lib/native/platform";
 
 /**
@@ -56,19 +58,19 @@ export function isNativeKakaoLoginAvailable(): boolean {
 }
 
 /**
- * 플러그인 프록시. 웹 번들에도 같은 코드가 실려 있으므로 **게이트를 통과한 뒤에만** 만든다.
- * registerPlugin 은 정적 평가 시점에 Capacitor 전역을 건드리므로 모듈 최상단에 두지 않는다.
+ * 플러그인 프록시.
+ *
+ * ⚠️ **동적 import 로 만들지 말 것.** 예전에는 `import("@capacitor/core")` 로 지연 로드했는데,
+ * 그 Promise 가 **앱 웹뷰에서 영영 resolve 되지 않아** 로그인 버튼이 죽었다
+ * (2026-09-07 실기기에서 확인: 네이티브 호출도 폴백 이동도 없고, 호출부의 연타 방지 래치가
+ * true 로 굳어 이후 탭이 전부 무시됐다).
+ *
+ * 지연 로드의 명분이었던 "registerPlugin 이 정적 평가 시점에 Capacitor 전역을 건드린다"는
+ * 전제부터 틀렸다 — `platform.ts` 가 이미 `@capacitor/core` 를 정적 import 하므로 모듈은
+ * 어차피 처음부터 평가된다. 웹에서도 registerPlugin 자체는 안전하고, 실제 호출은
+ * 게이트(`isNativeKakaoLoginAvailable`) 뒤에서만 일어난다.
  */
-let pluginPromise: Promise<KakaoLoginPlugin> | null = null;
-
-function loadPlugin(): Promise<KakaoLoginPlugin> {
-    if (!pluginPromise) {
-        pluginPromise = import("@capacitor/core").then(({ registerPlugin }) =>
-            registerPlugin<KakaoLoginPlugin>(PLUGIN_NAME),
-        );
-    }
-    return pluginPromise;
-}
+const plugin = registerPlugin<KakaoLoginPlugin>(PLUGIN_NAME);
 
 function toMessage(err: unknown): string {
     if (err instanceof Error) return err.message;
@@ -84,7 +86,6 @@ export async function loginWithKakaoSdk(): Promise<NativeKakaoLoginOutcome> {
     if (!isNativeKakaoLoginAvailable()) return { status: "unavailable" };
 
     try {
-        const plugin = await loadPlugin();
         const { accessToken } = await plugin.login();
         if (!accessToken) return { status: "failed", message: "카카오 accessToken 이 비어 있습니다." };
         return { status: "success", accessToken };
