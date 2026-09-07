@@ -1034,30 +1034,53 @@ ls "$APP/public/app-offline.html"            # 오프라인 폴백
 내부 테스트가 지금 필요한 것이다 — 심사가 없어 4.8(애플 로그인)이 없어도 올라간다.
 팀원은 Apple ID 로 ASC 에 초대되고 TestFlight 앱으로 설치한다. 빌드는 90일 뒤 만료된다.
 
-#### 업로드 — 자격증명이 필요하다 (미보유)
+#### 업로드 — ✅ 2026-09-07 성공
 
-IPA 는 만들어졌지만 **업로드는 App Store Connect 자격증명 없이 불가능하다.** 이 기기에는
-없다(`~/.appstoreconnect/private_keys/` 가 비어 있다).
+App Store Connect 앱 레코드와 API 키가 생기면서 CLI 만으로 업로드까지 끝났다.
 
-1. **앱 레코드** — App Store Connect 에 `pics.ditto.app` 앱이 먼저 있어야 한다.
-   없으면 업로드가 "no suitable application record found" 로 거절된다.
-2. **API 키** — 사용자 및 액세스 → 통합 → App Store Connect API → 키 생성(App Manager 이상).
-   `.p8` 은 **한 번만 내려받을 수 있다.** Key ID 와 Issuer ID 를 함께 기록한다.
-   ```bash
-   mkdir -p ~/.appstoreconnect/private_keys
-   mv ~/Downloads/AuthKey_XXXXXXXXXX.p8 ~/.appstoreconnect/private_keys/
-   ```
-3. **검증 후 업로드**
-   ```bash
-   xcrun altool --validate-app -f build/export/App.ipa -t ios \
-     --apiKey <KEY_ID> --apiIssuer <ISSUER_ID>
-   xcrun altool --upload-app  -f build/export/App.ipa -t ios \
-     --apiKey <KEY_ID> --apiIssuer <ISSUER_ID>
-   ```
-4. 업로드 후 ASC 에서 처리(10~30분)되면 TestFlight 탭에 뜬다. **내부 테스터는 베타 심사
-   없이** 바로 배포된다. 수출 규정은 `ITSAppUsesNonExemptEncryption` 로 이미 답해 뒀다.
+| 항목 | 값 |
+|---|---|
+| ASC 앱 ID | `6809342012` |
+| App Store 표시 이름 | **`Ditto - 퀴즈로 만나는 인연`** |
+| 번들 ID · SKU | `pics.ditto.app` · `ditto-ios-001` |
+| 기본 언어 | 한국어 |
 
-`.p8` 은 절대 리포에 넣지 않는다(`.gitignore` 가 `*.p8` 을 막는다).
+⚠️ **앱 이름이 `Ditto` 가 아니다.** 그 이름은 이미 선점돼 있었다. 앱 아이콘 밑에 뜨는
+이름(`CFBundleDisplayName = Ditto`)과 App Store 목록에 뜨는 이름은 별개이고, 지금은
+의도적으로 다르다. 스토어 이름을 바꿀 일이 생겨도 plist 는 건드릴 필요 없다.
+
+```bash
+# 자격증명 확인 겸 앱 레코드 조회
+xcrun altool --list-apps --apiKey <KEY_ID> --apiIssuer <ISSUER_ID>
+
+# 업로드 전 검증 (여기서 걸리면 업로드해도 어차피 거절된다)
+xcrun altool --validate-app -f build/export/App.ipa -t ios \
+  --apiKey <KEY_ID> --apiIssuer <ISSUER_ID>
+
+xcrun altool --upload-app -f build/export/App.ipa -t ios \
+  --apiKey <KEY_ID> --apiIssuer <ISSUER_ID>
+```
+
+`<KEY_ID>` · `<ISSUER_ID>` 는 App Store Connect → 사용자 및 액세스 → 통합에서 확인한다.
+**값도 `.p8` 도 리포에 넣지 않는다.** `.p8` 은 `~/.appstoreconnect/private_keys/` 에 두면
+`--apiKey` 만으로 자동으로 찾는다(`.gitignore` 가 `*.p8` 을 막는다).
+
+#### 처리 상태를 CLI 로 보는 법
+
+`altool` 에는 빌드 목록 명령이 없다. 업로드 성공과 **TestFlight 에 뜨는 것은 다른 사건**이고
+(처리 중 실패하면 메일만 오고 목록에는 영영 안 뜬다), 상태는 App Store Connect API 로 본다.
+
+```bash
+curl -s -H "Authorization: Bearer <JWT>" \
+  "https://api.appstoreconnect.apple.com/v1/builds?filter%5Bapp%5D=6809342012&limit=5"
+```
+
+`<JWT>` 는 `.p8` 로 ES256 서명한 토큰이다(만료 최대 20분, `aud` 는 `appstoreconnect-v1`).
+이 맥에는 PyJWT·cryptography 가 없어서 `openssl dgst -sha256 -sign` 으로 서명하고
+DER → JOSE(r‖s, 각 32바이트) 변환만 직접 해 주면 된다.
+
+`processingState` 가 `PROCESSING` → `VALID` 이 되면 TestFlight 에 뜬다.
+`INVALID` / `FAILED` 면 그 빌드는 버리고 다시 올려야 한다.
 
 ---
 
