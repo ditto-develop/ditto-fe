@@ -46,7 +46,20 @@ export function buildSanctionQuery(result: SocialLoginResult): string {
  * - accessToken 이 있으면 직전 계정의 잔여 토큰이 섞이지 않도록 먼저 비우고 저장한다.
  * - accessToken 이 없어도(네이티브 경로처럼 이미 저장해 둔 경우) 저장된 토큰은 건드리지 않는다.
  */
-export function resolveSocialLogin(result: SocialLoginResult): SocialLoginOutcome {
+export function resolveSocialLogin(result: SocialLoginResult | null | undefined): SocialLoginOutcome {
+  /*
+   * 응답이 비어 있으면(`data: null`) 여기서 그대로 터진다 —
+   * `TypeError: null is not an object (evaluating 'result.sanctioned')`.
+   *
+   * 그 예외는 호출부의 catch 로 떨어져 "네이티브 교환 실패"로 보고되고, 앱 웹뷰 콘솔에는
+   * `{}` 로만 찍혀 **원인을 추적할 수 없다**(2026-09-07 기기 디버깅에서 실제로 겪었다).
+   * 서버가 무엇을 주든 로그인 흐름은 예측 가능하게 끝나야 하므로, 빈 응답은 "실패"로
+   * 명시해 던진다 — 호출부가 리다이렉트 로그인으로 폴백한다.
+   */
+  if (!result) {
+    throw new Error("소셜 로그인 응답이 비어 있습니다(data: null).");
+  }
+
   if (result.sanctioned) {
     clearTokens();
     return { kind: "sanctioned", query: buildSanctionQuery(result) };

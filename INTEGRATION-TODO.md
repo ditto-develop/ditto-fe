@@ -258,6 +258,44 @@ client_secret JWT 가 필요하다. 이 앱은 원격 URL 로드라 웹 번들�
 ⚠️ **애플 로그인 플래그를 켜기 전에 결론이 나야 한다.** 켜 두고 탈퇴가 폐기 없이 돌면
 심사에서 걸린다.
 
+### A-12. 🔴 CORS 허용 origin 에 프로덕션 도메인이 없다 — **웹·앱 모두 차단 중 (2026-09-07)**
+
+BE 가 `https://ditto.pics` 를 CORS 에서 거부한다. **브라우저/웹뷰에서 나가는 모든 API 요청이
+막힌다.** Origin 헤더 없이(=curl 기본) 부르면 정상 200 이라 서버 로그만으로는 드러나지 않는다.
+
+| Origin | 결과 |
+|---|---|
+| `https://ditto.pics` | **403 Invalid CORS request** |
+| `https://www.ditto.pics` | **403** |
+| `https://test.ditto.pics` | 401 (CORS 통과 — 인증만 실패) |
+| `http://localhost:3000` | 401 (CORS 통과) |
+
+```bash
+curl -o /dev/null -w "%{http_code}\n" https://api.ditto.pics/api/v1/system/state \
+  -H "Origin: https://ditto.pics" -H "X-API-Key: <key>"    # 403
+curl -o /dev/null -w "%{http_code}\n" https://api.ditto.pics/api/v1/system/state \
+  -H "X-API-Key: <key>"                                     # 200
+```
+
+허용 목록이 **2026-08-26 Route53 이전 때 폐기된 `test.ditto.pics`** 에 머물러 있다.
+그때 운영 도메인이 아펙스(`ditto.pics`)로 옮겨갔는데 CORS 만 따라오지 않았다 —
+요청서 §C-4("도메인 확정 후 CORS 허용 origin 확인")가 처리되지 않은 것이다.
+
+**증상**
+
+- **앱**: 웹뷰 origin 이 `https://ditto.pics` 라 네이티브 로그인의 토큰 교환이
+  `TypeError: Load failed` 로 죽는다 → 리다이렉트 폴백 → **카카오 로그인 화면이 두 번 뜬다.**
+  네이티브 구간(카카오톡 전환·복귀·카카오 accessToken 발급)은 실기기에서 전부 검증했다.
+- **웹**: 브라우저의 모든 API 호출 실패. 로그인 리다이렉트만 최상위 내비게이션이라 CORS 를
+  타지 않아 살아 있었다.
+
+**요청**: 허용 origin 에 `https://ditto.pics` · `https://www.ditto.pics` 추가.
+`credentials: 'include'` 를 쓰므로 `allowCredentials: true` + **명시적 origin** 이어야 한다
+(와일드카드 불가). 앱은 원격 URL 로드라 `capacitor://localhost` 는 필요 없다.
+
+⚠️ 이것과 별개로 **웹 리다이렉트 콜백이 500/9999** 를 낸다(진짜 카카오 code 로 재현).
+CORS 와 무관한 서버 내부 오류다.
+
 ---
 
 ## B. BE 무관 — 지금 할 수 있는 것

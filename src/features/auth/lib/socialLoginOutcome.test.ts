@@ -96,3 +96,18 @@ describe("buildSanctionQuery", () => {
     );
   });
 });
+
+/**
+ * 빈 응답에서 `result.sanctioned` 를 읽다 TypeError 로 터지면, 그 예외가 호출부의
+ * "교환 실패" catch 로 떨어지고 콘솔에는 `{}` 로만 남아 원인을 추적할 수 없다.
+ * 2026-09-07 기기 디버깅에서 실제로 겪은 실패 모드다.
+ */
+describe("resolveSocialLogin — 빈 응답", () => {
+  it("null 응답은 읽을 수 있는 메시지로 던진다", () => {
+    expect(() => resolveSocialLogin(null)).toThrow(/비어 있습니다/);
+  });
+
+  it("undefined 응답도 같다", () => {
+    expect(() => resolveSocialLogin(undefined)).toThrow(/비어 있습니다/);
+  });
+});
