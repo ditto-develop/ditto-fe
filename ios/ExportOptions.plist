@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  아카이브를 App Store Connect 용 ipa 로 내보낼 때 쓰는 설정.
+
+    xcodebuild -project ios/App/App.xcodeproj -scheme App \
+      -destination 'generic/platform=iOS' -configuration Release \
+      -archivePath build/App.xcarchive archive
+
+    xcodebuild -exportArchive -archivePath build/App.xcarchive \
+      -exportOptionsPlist ios/ExportOptions.plist -exportPath build/export
+
+  TestFlight 업로드는 별도다(docs/app-shell-runbook.md §7 참고).
+-->
+<plist version="1.0">
+<dict>
+	<!-- Xcode 15+ 의 이름. 예전 이름은 `app-store` 였다. -->
+	<key>method</key>
+	<string>app-store-connect</string>
+
+	<key>teamID</key>
+	<string>LU3B2D6B99</string>
+
+	<!--
+	  자동 서명. 프로비저닝 프로필을 손으로 관리하지 않는다(프로젝트가
+	  CODE_SIGN_STYLE = Automatic 이다).
+
+	  ⚠️ App ID `pics.ditto.app` 에 Push Notifications · Associated Domains ·
+	  **Sign in with Apple** 이 켜져 있어야 프로필이 발급된다. 하나라도 빠지면
+	  런타임이 아니라 **아카이브 서명 단계에서** 실패한다.
+	-->
+	<key>signingStyle</key>
+	<string>automatic</string>
+
+	<!-- 크래시 리포트를 심볼화하려면 필요하다. -->
+	<key>uploadSymbols</key>
+	<true/>
+
+	<!--
+	  비트코드는 Xcode 14 에서 폐지됐다. 남겨 두면 경고만 난다.
+	  `manageAppVersionAndBuildNumber` 는 켜지 않는다 — Xcode 가 빌드 번호를
+	  멋대로 올리면 로컬 프로젝트와 어긋나 추적이 어려워진다.
+	-->
+	<key>manageAppVersionAndBuildNumber</key>
+	<false/>
+</dict>
+</plist>

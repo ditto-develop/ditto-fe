@@ -1,6 +1,5 @@
 import UIKit
 import Capacitor
-import CapacitorKakaoLogin
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
@@ -16,12 +15,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
-        // 카카오톡 간편 로그인의 복귀 URL(`kakao{앱키}://oauth`)은 카카오 SDK 가 처리해야
-        // loginWithKakaoTalk 의 콜백이 완료된다. Capacitor 프록시로 넘기면 아무도 받지 않는다.
-        if let url = URLContexts.first?.url, KakaoLoginUrlHandler.handle(url) {
-            return
-        }
-
+        // 카카오톡 간편 로그인의 복귀 URL(`kakao{앱키}://oauth`)도 그냥 프록시로 넘긴다.
+        //
+        // 프록시가 `.capacitorSceneOpenURL` 을 post 하고 KakaoLoginPlugin 이 그걸 듣는다.
+        // 예전에는 여기서 `import CapacitorKakaoLogin` 으로 플러그인을 직접 불렀는데,
+        // 그 모듈은 앱 타깃의 전이 의존성이라 **import 자체가 해석되지 않는다**
+        // (`unable to resolve module dependency`). 앱 타깃은 플러그인을 몰라야 한다.
         SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
     }
 

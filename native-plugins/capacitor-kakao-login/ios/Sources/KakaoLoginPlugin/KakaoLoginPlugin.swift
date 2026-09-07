@@ -23,6 +23,44 @@ public class KakaoLoginPlugin: CAPPlugin, CAPBridgedPlugin {
 
     private var didInitializeSdk = false
 
+    /// 카카오톡에서 앱으로 돌아오는 커스텀 스킴(`kakao{앱키}://oauth`)을 SDK 로 넘긴다.
+    ///
+    /// **이걸 놓치면 `loginWithKakaoTalk` 은 영영 완료되지 않는다** — 카카오톡으로 넘어갔다가
+    /// 돌아왔는데 아무 일도 일어나지 않는 증상이 된다.
+    ///
+    /// 예전에는 앱 타깃의 `SceneDelegate` 가 `import CapacitorKakaoLogin` 으로 이 플러그인을
+    /// 직접 불렀는데, 그 모듈은 앱 타깃의 **전이 의존성**이라 import 가 해석되지 않는다
+    /// (`unable to resolve module dependency: 'CapacitorKakaoLogin'`).
+    /// Capacitor 가 열어 둔 확장점을 쓰면 앱 타깃이 이 플러그인을 알 필요가 없다.
+    override public func load() {
+        // 앱이 씬을 쓰므로(Info.plist UIApplicationSceneManifest) 실제로 오는 것은 scene 쪽이다.
+        // 씬 없는 구성으로 되돌아갈 경우를 위해 구형 경로도 함께 듣는다. 두 번 불려도
+        // 대기 중인 인증 요청이 없으면 SDK 가 그냥 false 를 돌려주므로 해롭지 않다.
+        for name in [Notification.Name.capacitorSceneOpenURL, .capacitorOpenURL] {
+            NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { notification in
+                guard let url = Self.extractURL(from: notification) else { return }
+                // queue: .main 이라 이미 메인 스레드지만, 컴파일러는 그 사실을 모른다.
+                // (`MainActor.assumeIsolated` 는 iOS 17+ 라 배포 타깃 15.0 에서 못 쓴다.)
+                Task { @MainActor in
+                    Self.handleKakaoLoginUrl(url)
+                }
+            }
+        }
+    }
+
+    /// `capacitorSceneOpenURL` 은 `userInfo`, 구형 `capacitorOpenURL` 은 `object` 에 담아 준다.
+    private static func extractURL(from notification: Notification) -> URL? {
+        if let url = notification.userInfo?["url"] as? URL { return url }
+        if let payload = notification.object as? [String: Any], let url = payload["url"] as? URL { return url }
+        return nil
+    }
+
+    @MainActor
+    private static func handleKakaoLoginUrl(_ url: URL) {
+        guard AuthApi.isKakaoTalkLoginUrl(url) else { return }
+        _ = AuthController.handleOpenUrl(url: url)
+    }
+
     /// capacitor.config.ts 의 `plugins.KakaoLogin.appKey` 를 읽어 한 번만 초기화한다.
     /// 앱 키를 JS 에서 넘기지 않는 이유: 이 앱은 원격 URL 로드라 웹 번들이 곧 공개 자산이다.
     private func initializeSdkIfNeeded() -> Bool {
@@ -121,14 +159,5 @@ public class KakaoLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 }
 
-/// 카카오톡에서 앱으로 돌아오는 커스텀 스킴(`kakao{앱키}://oauth`)을 SDK 로 넘긴다.
-///
-/// **SceneDelegate 가 이걸 부르지 않으면 `loginWithKakaoTalk` 은 영영 완료되지 않는다**
-/// — 카카오톡으로 넘어갔다가 앱으로 돌아왔는데 아무 일도 일어나지 않는 증상이 된다.
-/// 앱 타깃이 카카오 SDK 를 직접 import 하지 않도록 여기서 감싸 둔다.
-@objc public class KakaoLoginUrlHandler: NSObject {
-    @objc public static func handle(_ url: URL) -> Bool {
-        guard AuthApi.isKakaoTalkLoginUrl(url) else { return false }
-        return AuthController.handleOpenUrl(url: url)
-    }
-}
+/// (구 `KakaoLoginUrlHandler` 는 제거했다 — 앱 타깃이 이 모듈을 import 할 수 없어
+/// 애초에 부를 수 없었다. URL 처리는 이제 위의 `load()` 가 노티피케이션으로 받는다.)

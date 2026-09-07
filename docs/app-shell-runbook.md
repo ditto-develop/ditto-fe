@@ -810,14 +810,46 @@ BE 위키 `Frontend-Native-Login-Peer-Profile-Guide` §1, 요청서 `docs/be-req
 `@team-lepisode/capacitor-kakao-login@8.0.0` 은 **iOS 에서 카카오톡 앱 전환이 아예 일어나지
 않는 버그**가 있어(두 분기 모두 `loginWithKakaoAccount` 호출) 이 작업의 목적이 사라진다.
 
-### iOS 에서 확인이 필요한 지점
+### iOS 복귀 URL 처리 — 실빌드로 확인했고, 방식이 바뀌었다 (2026-09-07)
 
-`ios/App/App/SceneDelegate.swift` 가 `import CapacitorKakaoLogin` 으로 플러그인 모듈을
-직접 참조한다. 카카오톡에서 돌아오는 `kakao{앱키}://oauth` 를 SDK 로 넘기기 위한 것으로,
-이게 없으면 `loginWithKakaoTalk` 의 콜백이 영영 완료되지 않는다.
-SPM 전이 의존성이라 **Xcode 실빌드로 한 번 확인해야 한다** — 아직 확인하지 못했다.
-만약 모듈을 찾지 못하면, `CapApp-SPM/Package.swift` 는 CLI 생성물이므로 손대지 말고
-App 타깃에 `CapacitorKakaoLogin` 을 직접 링크하는 쪽으로 해결한다.
+이 자리에는 원래 "`SceneDelegate.swift` 가 `import CapacitorKakaoLogin` 으로 플러그인 모듈을
+직접 참조한다. SPM 전이 의존성이라 실빌드로 한 번 확인해야 한다"라고 적혀 있었다.
+**확인했고, 안 된다.**
+
+```
+ios/App/App/SceneDelegate.swift:3:8: error:
+  unable to resolve module dependency: 'CapacitorKakaoLogin'
+```
+
+앱 타깃은 `CapApp-SPM` 하나만 링크하고, 플러그인들은 그 **전이 의존성**이다.
+전이 의존성의 모듈은 import 할 수 없다.
+
+**해결은 앱 타깃에 직접 링크하는 쪽이 아니라 반대 방향이었다** — Capacitor 가 이미 열어 둔
+확장점을 쓰면 앱 타깃이 플러그인을 알 필요가 없다.
+
+- `SceneDelegateProxy` 는 `openURLContexts` 를 받으면 `.capacitorSceneOpenURL` 을 post 한다
+  (`userInfo["url"]`). 구형 경로는 `.capacitorOpenURL` 이고 `object` 에 담아 준다.
+- 그래서 `KakaoLoginPlugin.load()` 가 두 노티를 듣고 스스로 `AuthController.handleOpenUrl`
+  을 부른다. `SceneDelegate` 는 그냥 프록시로 넘기기만 한다.
+- 앱 타깃에서 `import CapacitorKakaoLogin` 과 `KakaoLoginUrlHandler` 를 **둘 다 지웠다.**
+
+pbxproj 를 만져 플러그인을 직접 링크하는 방법도 있지만, 그러면 같은 로컬 패키지가 그래프에
+두 번 들어가고 플러그인이 늘 때마다 반복해야 한다. 이쪽이 Capacitor 가 의도한 방식이다.
+
+### Swift 6 동시성 — `@MainActor` 가 필요하다
+
+카카오 SDK 의 `AuthController.handleOpenUrl` 은 메인 액터에 격리돼 있다. 표시하지 않으면
+컴파일이 거부된다:
+
+```
+error: call to main actor-isolated static method 'handleOpenUrl(url:options:)'
+       in a synchronous nonisolated context
+```
+
+`NotificationCenter` 옵저버를 `queue: .main` 으로 달아도 컴파일러는 그 사실을 모른다.
+`MainActor.assumeIsolated` 는 iOS 17+ 라 배포 타깃(15.0)에서 못 쓰므로
+`Task { @MainActor in ... }` 로 넘긴다. 한 런루프 늦게 실행되지만 대기 중인 인증 콜백을
+깨우는 일이라 문제되지 않는다.
 
 ---
 
@@ -959,3 +991,71 @@ App Store 가이드라인 **4.8**: 제3자 소셜 로그인으로 계정을 만�
 
 내부 테스트가 지금 필요한 것이다 — 심사가 없어 4.8(애플 로그인)이 없어도 올라간다.
 팀원은 Apple ID 로 ASC 에 초대되고 TestFlight 앱으로 설치한다. 빌드는 90일 뒤 만료된다.
+
+---
+
+## 8. 로컬 Capacitor 플러그인 — SPM 핀 함정 (2026-09-07 실빌드에서 발견)
+
+리포 안의 플러그인(`native-plugins/*`)은 `Package.swift` 에서 Capacitor 를 직접 의존한다.
+**여기 `branch: "main"` 을 쓰면 앱 전체가 깨진다.**
+
+```swift
+// ❌ 절대 쓰지 말 것
+.package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", branch: "main")
+
+// ✅ 퍼스트파티 플러그인들과 같게
+.package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", from: "8.0.0")
+```
+
+### 왜
+
+`capacitor-swift-pm` 은 소스가 아니라 **XCFramework 바이너리를 vend 하는 저장소**다.
+그리고 그 저장소의 `main` 은 릴리스 태그보다 **한참 뒤처져 있다** — 2026-09-07 시점에
+main HEAD(`fd80ee6`)가 가리키는 바이너리는 **Capacitor 6.2.2** 였다. 앱이 쓰는 8.5.0 이 아니다.
+
+SPM 은 한 패키지를 그래프 전체에서 **하나의 버전으로 통일**하는데, **브랜치 요구사항이
+버전 요구사항을 이긴다.** 그래서 로컬 플러그인 하나가 main 을 물면:
+
+- `CapApp-SPM/Package.swift` 의 `exact: "8.5.0"` 이 무시되고
+- 퍼스트파티 플러그인의 `from: "8.0.0"` 도 무시되고
+- **앱 전체가 6.2.2 로 끌려간다** (두 메이저 아래)
+
+### 증상이 엉뚱한 곳에서 난다
+
+우리 플러그인이 아니라 **남의 플러그인**이 깨진다. 실제로 본 것:
+
+```
+@capacitor/status-bar/.../StatusBar.swift:22:75: error:
+  type 'NSNotification.Name?' has no member 'capacitorViewDidAppear'
+```
+
+`capacitorViewDidAppear` 는 Capacitor 8 에 있고 6.2.2 에는 없다. status-bar 8.0.3 은
+아무 잘못이 없는데 혼자 실패해서, 원인을 그 플러그인에서 찾게 된다.
+**`Package.resolved` 를 열어 `capacitor-swift-pm` 이 branch 로 잡혀 있는지 먼저 볼 것.**
+
+```bash
+grep -A5 capacitor-swift-pm ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+# "branch": "main" 이 보이면 이 문제다. "version": "8.5.0" 이어야 한다.
+```
+
+### 고친 뒤에는 DerivedData 를 비운다
+
+핀만 고치고 다시 빌드하면 **이전 버전으로 만든 모듈 캐시가 남아** 또 다른 오류가 난다:
+
+```
+error: file '.../Cordova.framework/Headers/CDVPlugin.h' has been modified
+       since the module file '.../Capacitor-....pcm' was built
+error: failed to build module 'Capacitor'; this SDK is not supported by the compiler
+```
+
+두 번째 줄(Swift 버전 불일치)은 진짜 툴체인 문제처럼 보이지만 캐시 오염의 2차 증상이다.
+
+```bash
+rm -rf ~/Library/Developer/Xcode/DerivedData/App-*
+```
+
+### 왜 여태 몰랐나
+
+**iOS 프로젝트를 한 번도 빌드한 적이 없었다.** 카카오 플러그인(2026-09-06)에 들어간
+`branch: "main"` 이 그대로 있었고, 애플 플러그인을 만들면서 같은 줄을 복사해 두 개가 됐다.
+`npm run lint && build && tsc` 는 이 문제를 절대 잡지 못한다 — 웹 빌드에는 Swift 가 없다.
