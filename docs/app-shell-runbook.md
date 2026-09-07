@@ -853,7 +853,7 @@ error: call to main actor-isolated static method 'handleOpenUrl(url:options:)'
 
 ---
 
-## 6. 애플 로그인 (배선 완료, BE 대기 중)
+## 6. 애플 로그인 (배선 완료, BE 배포 대기)
 
 ### 왜 넣었나 — 선택 기능이 아니다
 
@@ -862,95 +862,104 @@ App Store 가이드라인 **4.8**: 제3자 소셜 로그인으로 계정을 만�
 둘 수 있어야 하며 ③ 광고 목적으로 앱 내 행동을 수집하지 않아야 한다.
 **카카오는 ②를 제공하지 않는다.** 카카오 하나만으로 제출하면 규칙상 리젝된다.
 
-부수 효과가 하나 더 있다. 심사용 데모 계정 문제가 같이 풀린다 — 지금은 리뷰어에게
-카카오 가입을 시켜야 하는데, 애플 로그인이 있으면 리뷰어가 자기 Apple ID 로 들어온다.
+부수 효과가 하나 더 있다. 심사용 데모 계정 문제가 같이 풀린다 — 리뷰어가 자기 Apple ID 로
+들어온다.
 
-### 현재 상태
+### 경로가 둘이다
 
-카카오 네이티브와 **같은 구조로 전부 배선했고 킬 스위치가 꺼져 있다.**
+계약 정본은 BE 위키 [`Frontend-Apple-Login-Guide`](https://github.com/ditto-develop/ditto-server/wiki/Frontend-Apple-Login-Guide).
+
+| | 방식 | FE 코드 |
+|---|---|---|
+| **iOS 앱** | 네이티브 `ASAuthorizationController` → identityToken → 웹뷰가 교환 | `appleLogin.ts` + 로컬 플러그인 |
+| **웹 · 안드로이드 앱** | 카카오와 **똑같은 리다이렉트** (`/api/v1/users/social-login/APPLE`) | `startExternalSocialLogin("APPLE")` 한 줄 |
+
+웹은 `/auth/callback` 이 그대로 받는다 — **콜백 처리 코드를 고칠 필요가 없다.**
+중간에 애플이 우리 서버로 POST 콜백(`response_mode=form_post`)을 보내는데 FE 가 볼 일은 없다.
+
+### 현재 상태 — 플래그 OFF
 
 | 조각 | 위치 | 상태 |
 |---|---|---|
-| 네이티브 플러그인 | `native-plugins/capacitor-apple-login/` | 작성 완료 (iOS Swift) |
+| 네이티브 플러그인 | `native-plugins/capacitor-apple-login/` | 완료 (iOS Swift) |
 | JS 게이트 | `src/shared/lib/native/appleLogin.ts` | 완료 |
-| 토큰 교환 | `loginWithExternalAppleNative` (`externalApi.ts`) | 완료 — **계약 미확인** |
-| 버튼 | `src/components/auth/AppleLogin.tsx` → `Step0` | 완료 (iOS 앱에서만 렌더) |
-| entitlement | `ios/App/App/App.entitlements` | 완료 |
-| BE 엔드포인트 | `POST /api/v1/users/social-login/apple/native` | **대기 중** |
-| Apple Developer 포털 | App ID 에 Sign in with Apple ON | **미실시** |
-| 실기기 검증 | — | **미실시** |
+| 토큰 교환 | `loginWithExternalAppleNative` (`externalApi.ts`) | 완료 |
+| 버튼 + 안내 문구 | `src/components/auth/AppleLogin.tsx` → `Step0` | 완료 |
+| entitlement | `ios/App/App/App.entitlements` | 완료 (아카이브 서명에 실제로 포함됨) |
+| 포털 capability | Apple Developer App ID | ✅ 자동 프로비저닝이 등록함 |
+| **BE 엔드포인트** | `/api/v1/users/social-login/apple/native` | **미배포** |
+| **웹 Services ID** | 애플 개발자 콘솔 | **미확인** |
 
-### ⚠️ 이 계약은 아직 확인되지 않았다
+🔴 **2026-09-07 기준 라이브 스펙에 `apple` 이 없다.** 앱(PR #164)·웹(PR #166) 둘 다 리뷰 중이다.
 
-`/api/v1/users/social-login/apple/native` 는 **카카오 네이티브와 같은 자리·같은 응답
-모양을 전제로 미리 배선한 것**이다. BE 가 구현 중이고 위키가 오면 대조해야 한다.
-
-```jsonc
-// 요청 (FE 가정)
-{ "identityToken": "<Apple JWT>", "authorizationCode": "<1회성 code>",
-  "nonce": "<네이티브가 만든 원본>", "fullName": "홍길동" }  // fullName 은 최초 1회만
-
-// 응답 — /kakao/native 와 같은 필드여야 한다(NativeSocialLoginResult 를 공유한다)
-{ "accessToken": "...", "signupRequired": false,
-  "sanctioned": false, "sanctionCode": null, "suspendedUntil": null }
+```bash
+curl -s https://api.ditto.pics/docs/openapi.yaml | grep -ci apple   # 0 이면 아직이다
 ```
 
-**스펙이 다르면 고칠 곳은 `loginWithExternalAppleNative` 하나다.** 응답 타입과 결말
-분기(`resolveSocialLogin`)는 카카오와 공유하므로 건드릴 필요가 없다.
-회귀 방지 테스트: `src/shared/lib/api/externalApi.socialLogin.test.ts`
+### 계약 (위키 §1)
 
-### BE 가 해야 하는 것 (요청 시 이대로 넘길 것)
+```jsonc
+POST /api/v1/users/social-login/apple/native
+{
+  "identityToken": "eyJraWQiOi...",  // 필수 — 이것만으로 인증이 끝난다
+  "rawNonce": "a1b2c3...",           // 선택이지만 **보낸다**. 없으면 재생 공격 검증을 건너뛴다
+  "name": "홍길동"                    // 선택 — 최초 인가 1회만 온다
+}
+```
 
-1. **identityToken 검증** — `appleid.apple.com/auth/keys` JWKS 로 RS256 서명(키 로테이션
-   대비 캐시), `iss` · `aud`(=`pics.ditto.app`) · `exp`, 그리고 **nonce 대조**.
-   nonce 를 안 보면 탈취한 토큰을 그대로 재사용하는 공격이 열린다.
-2. **계정 키는 `sub`. 이메일로 매칭하지 말 것** — 애플은 `@privaterelay.appleid.com`
-   릴레이 주소를 준다. 카카오 이메일과 절대 일치하지 않는다. `(provider, providerUserId)`
-   분리가 필요하고, **여기가 유일하게 스키마를 건드리는 지점**이다.
-3. **이메일·이름은 최초 1회만 온다.** 이름은 토큰에도 없이 요청 바디로만 한 번 온다.
-   첫 로그인에 저장하지 않으면 영영 못 받는다.
-4. **탈퇴 시 `POST appleid.apple.com/auth/revoke` 로 토큰 폐기 — 애플의 의무다.**
-   가이드라인 5.1.1(v)와 묶여 있어 빠뜨리면 리젝 사유다. 폐기에는 refresh token 이
-   필요하므로 최초 로그인 때 `authorizationCode` 를 `/auth/token` 으로 교환해 보관해야
-   한다. FE 가 `authorizationCode` 를 보내는 이유가 이것뿐이다.
-5. **client secret JWT** — Sign in with Apple 전용 `.p8`(푸시용 APNs 키와 **다른 키**)로
-   ES256 서명. 수명 최대 6개월이라 갱신 경로가 필요하다.
-6. (선택) Server-to-Server Notifications — 사용자가 애플 설정에서 계정을 지우거나 이메일
-   전달을 끄면 통보받는다. 없으면 유령 계정이 쌓인다.
-7. **웹에도 넣을지는 결정 사항이다.** 4.8 은 iOS 앱에만 적용된다. 앱만 지원하면 `aud`
-   하나만 검증하면 되고, 웹까지 지원하려면 Services ID 를 **같은 Primary App ID 아래**
-   묶어야 `sub` 가 앱·웹에서 일치한다. 안 묶으면 같은 사람이 다른 계정이 된다.
+응답은 `/kakao/native` 와 **완전히 같다.** `NativeSocialLoginResult` 와 결말 분기
+(`resolveSocialLogin`)를 그대로 공유한다.
 
-### 역할 분담 — 카카오와 같다
+**FE 가 먼저 배선하며 가정했던 이름 셋이 실제와 달랐다** — `nonce`→`rawNonce`,
+`fullName`→`name`, 그리고 `authorizationCode` 는 **서버가 쓰지 않는다**(인가 코드 교환을
+하지 않는다). 회귀 방지: `src/shared/lib/api/externalApi.socialLogin.test.ts`
 
-네이티브는 `ASAuthorizationController` 로 identityToken 을 받아오는 **한 조각만** 맡는다.
-우리 JWT 로 교환하는 요청은 **웹뷰(JS)가** 보낸다. 네이티브가 교환하면
-`Set-Cookie: refreshToken` 이 네이티브 쿠키 저장소로 들어가 웹뷰가 보지 못한다.
+### ⚠️ 탈퇴 시 애플 토큰 폐기 — 확인 필요
 
-### nonce 는 네이티브가 만든다
+애플은 Sign in with Apple 을 쓰면서 계정 삭제를 제공하는 앱에
+`POST appleid.apple.com/auth/revoke` 로 토큰 폐기를 요구한다(가이드라인 5.1.1(v) 와 묶여 있다).
+그러려면 인가 코드 교환이 필요한데 **BE 는 하지 않는다**(위키 §2).
 
-원본을 JS 로 돌려주고 애플에는 SHA-256 해시를 보낸다. 서버는 받은 원본을 해시해 토큰의
-`nonce` 클레임과 대조한다. 웹뷰에서 만들지 않는 이유는 이 앱이 원격 URL 로드라
-웹 번들이 곧 공개 자산이기 때문이다.
+플러그인은 그때를 위해 `authorizationCode` 를 계속 돌려주고 있다 — 정책이 문제되면
+JS 한 줄만 고쳐 실어 보낼 수 있다. **탈퇴 흐름을 심사에 넣기 전에 BE 와 확인할 것.**
+
+### 알아둘 것 (위키 §3)
+
+- **카카오와 애플은 별도 회원이다.** 같은 사람이 카카오로 가입한 뒤 애플로 로그인하면
+  새 계정이 된다(이메일이 같아도). 애플 릴레이 주소를 신뢰할 수 없고 이메일 일치를 계정
+  병합 근거로 삼는 건 계정 탈취 경로라서다. → 로그인 화면에 안내 문구를 넣어 뒀다
+  (`AppleLogin.tsx`). 없으면 "가입했는데 처음부터 다시 하라고 한다"는 문의가 된다.
+- **이메일이 없거나 릴레이 주소일 수 있다.** 설정 > 계정은 `?? "-"` 로 이미 대비돼 있다.
+- **성별·나이는 애플도 주지 않는다.** `signupRequired: true` 면 기존 온보딩을 그대로 탄다.
+
+### 역할 분담 · nonce — 카카오와 같다
+
+네이티브는 identityToken 을 받아오는 **한 조각만** 맡고, 교환 요청은 **웹뷰(JS)가** 보낸다.
+네이티브가 교환하면 `Set-Cookie: refreshToken` 이 네이티브 쿠키 저장소로 들어가 웹뷰가
+보지 못한다.
+
+nonce 원본은 **네이티브가 만든다.** 애플에는 SHA-256 을 보내고 원본을 JS 로 돌려준다.
+서버가 원본을 해시해 토큰의 `nonce` 클레임과 대조한다.
 
 ### 켜는 절차
 
-1. **Apple Developer → App ID `pics.ditto.app` 에 Sign in with Apple capability ON.**
-   이걸 안 켜면 `App.entitlements` 만으로는 **빌드 자체가 서명 단계에서 실패한다**
-   (런타임 실패가 아니다).
-2. Sign in with Apple 키(`.p8`) 발급 → **BE 에 안전한 경로로 전달.** 리포에 커밋하지
-   말 것(`.gitignore` 가 `*.p8` 을 막고 있다).
-3. BE 엔드포인트 배포 확인 후 라이브 스펙과 위 계약 대조.
-4. 실기기 스모크 — 신규/기존/제재 회원, 그리고 **애플 시트에서 취소** 시 아무 일도
-   일어나지 않는지(다른 로그인 창이 뜨면 분기가 잘못된 것이다).
-5. 플래그를 켠다 — `.github/workflows/deploy-prod.yml` Build 스텝에
-   `NEXT_PUBLIC_NATIVE_APPLE_LOGIN_ENABLED: 'true'`. 되돌릴 때는 그 줄만 지운다.
+1. **라이브 스펙에 `apple` 이 뜨는지 확인** (위 curl). 뜨기 전에는 켜지 말 것.
+2. **웹까지 켤 거면** 애플 개발자 콘솔에 **Services ID · Return URL** 등록 여부를 BE 에
+   확인한다. 등록 전에는 애플이 인가 요청을 거부해 버튼만 보이고 안 된다.
+3. 실기기 스모크 — 신규/기존/제재 회원, 그리고 **애플 시트에서 취소** 시 아무 일도
+   일어나지 않는지. 이름은 **최초 인가 1회만** 오므로, 다시 받으려면 iOS 설정 >
+   Apple 계정 > 로그인 및 보안 > Apple로 로그인에서 ditto 를 지우고 다시 로그인한다.
+4. 플래그를 켠다 — 배포 워크플로 Build 스텝에
+   `NEXT_PUBLIC_APPLE_LOGIN_ENABLED: 'true'`. **앱·웹 양쪽에 함께 적용된다.**
 
 ### 실패해도 로그인이 막히지는 않는다 — 다만 폴백은 없다
 
-카카오는 네이티브가 실패하면 리다이렉트 로그인으로 흘려보낸다. **애플은 그 경로가
-유일해서 폴백이 없다.** 그래서 실패는 토스트로 알리고 화면에 머문다 — 사용자는 카카오
-버튼으로 계속할 수 있다. 취소는 조용히 무시한다.
+카카오는 네이티브가 실패하면 리다이렉트로 흘려보낸다. **애플은 그 경로가 유일해서 폴백이
+없다.** 그래서 실패는 토스트로 알리고 화면에 머문다 — 사용자는 카카오 버튼으로 계속할 수
+있다. 취소는 조용히 무시한다.
+
+실패 코드(위키 §4): `1002`(토큰 검증 실패 — 재시도로 풀린다) · `0001`(필수값 누락·이름 50자
+초과) · `0003`(API Key) · `9999`(애플 공개키 서버 장애).
 
 ---
 

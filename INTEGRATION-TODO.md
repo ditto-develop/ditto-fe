@@ -215,18 +215,21 @@ BE 배포 완료. 정본은 위키
 | STOMP 전송 실패 응답 | 같은 묶음. 오면 에코 타임아웃(`SEND_ECHO_TIMEOUT_MS`)을 교체 |
 | 성사·개방 푸시 알림 | **이번 분기 밖** — FCM 인프라 자체가 없다. 폴링 유지 |
 
-### A-10. 애플 로그인 — **BE 구현 중, FE 선배선 완료 (2026-09-07)**
+### A-10. 애플 로그인 — **BE 리뷰 중, FE 배선 완료 (2026-09-07)**
 
-App Store 가이드라인 4.8 때문에 **없으면 심사를 통과하지 못한다**(카카오는 이메일 비공개를
-제공하지 않아 "동등한 로그인 수단" 요건을 못 채운다). BE 가 맡기로 했고 위키가 오면 대조한다.
+App Store 가이드라인 4.8 때문에 **없으면 심사를 통과하지 못한다.** 계약 정본은 BE 위키
+[[Frontend-Apple-Login-Guide]]이고, FE 는 그 계약대로 **앱·웹 양쪽을 배선한 뒤 플래그를 꺼 뒀다.**
+절차·주의점은 `docs/app-shell-runbook.md` §6.
 
-FE 는 카카오 네이티브와 같은 구조로 **전부 배선해 두고 킬 스위치를 꺼 뒀다.**
-계약·BE 작업 항목·켜는 절차는 `docs/app-shell-runbook.md` §6.
+🔴 **아직 배포되지 않았다.** 라이브 스펙에 `apple` 이 없다(앱 PR #164 · 웹 PR #166 리뷰 중).
+`curl -s https://api.ditto.pics/docs/openapi.yaml | grep -ci apple` 이 0 이면 켜면 안 된다.
 
-⚠️ `POST /api/v1/users/social-login/apple/native` 의 요청/응답은 **카카오 네이티브와 같은
-모양이라고 가정한 것**이다. 위키가 오면 `loginWithExternalAppleNative` 하나만 대조하면 된다 —
-응답 타입과 결말 분기는 카카오와 공유한다.
-
+- 요청 필드는 `identityToken` · `rawNonce` · `name` 셋이다. FE 가 먼저 가정했던 이름
+  (`nonce`·`fullName`)과 달랐고, `authorizationCode` 는 **서버가 쓰지 않는다.**
+- **탈퇴 시 애플 토큰 폐기(`/auth/revoke`)를 BE 가 하지 않는다.** 애플은 계정 삭제를
+  제공하는 앱에 이를 요구한다(5.1.1(v)). 플러그인이 `authorizationCode` 를 계속 돌려주고
+  있어 필요해지면 JS 한 줄로 실어 보낼 수 있다. **탈퇴 흐름을 심사에 넣기 전 확인 필요.**
+- 웹은 Services ID · Return URL 등록이 끝나야 동작한다. 켜기 전 BE 에 확인할 것.
 
 ---
 

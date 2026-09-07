@@ -1,17 +1,16 @@
 import { getNativePlatform, isNativeApp } from "@/shared/lib/native/platform";
 
 /**
- * Sign in with Apple (iOS 앱 전용).
+ * Sign in with Apple.
  *
  * 왜 넣는가: App Store 가이드라인 4.8 은 제3자 소셜 로그인으로 계정을 만드는 앱에
- * **동등한 로그인 수단**을 하나 더 요구한다. 그 수단은 이름·이메일만 수집하고, 이메일을
- * 비공개로 둘 수 있어야 하며, 광고 목적으로 앱 내 행동을 수집하지 않아야 한다. 카카오는
- * 이메일 비공개를 제공하지 않아 요건을 못 채운다. 즉 이건 선택 기능이 아니라 **심사 통과
- * 조건**이다.
+ * **동등한 로그인 수단**을 하나 더 요구한다. 카카오는 이메일 비공개를 제공하지 않아 요건을
+ * 못 채운다. 즉 이건 선택 기능이 아니라 **심사 통과 조건**이다.
  *
- * 구조는 카카오 네이티브 로그인(kakaoLogin.ts)과 같다. 네이티브가 맡는 것은 애플
- * identityToken 을 받아오는 한 조각뿐이고, 우리 JWT 로 교환하는 요청은 웹뷰(JS)가 보낸다
- * (loginWithExternalAppleNative 주석 참고).
+ * 경로가 둘이다 (BE 위키 `Frontend-Apple-Login-Guide`):
+ * - **iOS 앱** — 네이티브 SDK 로 identityToken 을 받아 웹뷰(JS)가 교환한다. 이 파일이 그 몫이다.
+ * - **웹 · 안드로이드 앱** — 카카오와 똑같은 리다이렉트(`startExternalSocialLogin("APPLE")`).
+ *   네이티브 조각이 필요 없어 이 파일을 거치지 않는다.
  *
  * 네이티브 구현은 리포 안의 로컬 플러그인이다: native-plugins/capacitor-apple-login/
  */
@@ -25,54 +24,54 @@ const CANCELLED_MESSAGE = "USER_CANCELLED";
 type AppleLoginPlugin = {
     /**
      * 애플 인증 시트를 띄운다. 성공하면 서버가 검증할 재료를 준다.
-     * nonce 는 네이티브가 만든 **원본**이다(애플에는 그 SHA-256 이 갔다).
+     * `rawNonce` 는 네이티브가 만든 **원본**이다(애플에는 그 SHA-256 이 갔다).
      */
     login(): Promise<{
         identityToken: string;
+        rawNonce: string;
+        /** 최초 인가 1회만 값이 있다. 재로그인에서는 null. */
+        name?: string | null;
+        /** 서버가 쓰지 않는다. 폐기(revoke) 정책이 생기면 쓰려고 남겨 둔 값. */
         authorizationCode?: string | null;
-        nonce: string;
-        fullName?: string | null;
     }>;
 };
 
 export type NativeAppleLoginOutcome =
     /** identityToken 확보. 이제 웹뷰가 우리 JWT 로 교환한다. */
-    | {
-          status: "success";
-          identityToken: string;
-          authorizationCode: string | null;
-          nonce: string;
-          fullName: string | null;
-      }
-    /** 사용자가 스스로 취소했다. **폴백하지 말 것** — 카카오 로그인으로 끌고 가면 안 된다. */
+    | { status: "success"; identityToken: string; rawNonce: string; name: string | null }
+    /** 사용자가 스스로 취소했다. **폴백하지 말 것** — 다른 로그인 창을 띄우면 안 된다. */
     | { status: "cancelled" }
-    /** 웹이거나, iOS 가 아니거나, 플래그가 꺼져 있다. 버튼 자체를 감춘다. */
+    /** 웹이거나, iOS 가 아니거나, 플래그가 꺼져 있다. */
     | { status: "unavailable" }
     /** 네이티브에서 실패했다. 호출부가 안내만 하고 다른 로그인 수단을 남겨 둔다. */
     | { status: "failed"; message: string };
 
 /**
- * 애플 로그인 킬 스위치.
+ * 애플 로그인 킬 스위치. **앱·웹 양쪽에 함께 적용된다.**
  *
- * ⚠️ **BE 의 `/api/v1/users/social-login/apple/native` 가 배포되기 전에는 켜지 않는다.**
- * 켜면 버튼이 보이고, 누르면 교환 단계에서 실패한다 — 카카오와 달리 폴백할 다른 애플
- * 경로가 없어 사용자에게 그대로 실패로 보인다.
+ * ⚠️ **BE 가 배포되기 전에는 켜지 않는다.** 2026-09-07 기준 라이브 스펙
+ * (`https://api.ditto.pics/docs/openapi.yaml`)에 `apple` 이 아직 없다 —
+ * 앱(PR #164)·웹(PR #166) 둘 다 리뷰 중이다.
+ *
+ * 웹 경로는 그 위에 조건이 하나 더 있다: 애플 개발자 콘솔에 **Services ID 와 Return URL**
+ * 이 등록돼야 애플이 인가 요청을 받아 준다(BE 위키 §6). 등록 전에 켜면 버튼이 보이고
+ * 누르면 애플 화면에서 거절된다.
  *
  * 켜는 법은 푸시·카카오와 같다: 배포 워크플로 Build 스텝 `env:` 에
- * `NEXT_PUBLIC_NATIVE_APPLE_LOGIN_ENABLED: 'true'` 한 줄을 더하고, 되돌릴 때 그 줄을 지운다.
+ * `NEXT_PUBLIC_APPLE_LOGIN_ENABLED: 'true'` 한 줄을 더하고, 되돌릴 때 그 줄을 지운다.
  */
-const isNativeAppleLoginEnabled = (): boolean =>
-    process.env.NEXT_PUBLIC_NATIVE_APPLE_LOGIN_ENABLED === "true";
+export function isAppleLoginEnabled(): boolean {
+    return process.env.NEXT_PUBLIC_APPLE_LOGIN_ENABLED === "true";
+}
 
 /**
- * iOS 앱이면서 플래그가 켜져 있을 때만 노출한다.
+ * 네이티브 SDK 경로를 탈 수 있는지. **iOS 앱에서만 true.**
  *
- * 안드로이드에서는 false 다 — Sign in with Apple 은 4.8 을 만족시키려고 넣는 것이고
- * 그 요구는 App Store 에만 있다. 안드로이드에 웹 흐름을 얹으면 계정 체계만 복잡해진다.
- * 웹에서도 항상 false — 웹은 카카오 리다이렉트 하나로 유지한다.
+ * 안드로이드 앱과 웹은 false 다 — 리다이렉트 경로를 탄다. 안드로이드에서 네이티브
+ * Sign in with Apple 은 존재하지 않는다.
  */
 export function isNativeAppleLoginAvailable(): boolean {
-    return isNativeApp() && getNativePlatform() === "ios" && isNativeAppleLoginEnabled();
+    return isNativeApp() && getNativePlatform() === "ios" && isAppleLoginEnabled();
 }
 
 /**
@@ -105,19 +104,13 @@ export async function loginWithAppleSdk(): Promise<NativeAppleLoginOutcome> {
 
     try {
         const plugin = await loadPlugin();
-        const { identityToken, authorizationCode, nonce, fullName } = await plugin.login();
+        const { identityToken, rawNonce, name } = await plugin.login();
 
         if (!identityToken) {
             return { status: "failed", message: "Apple identityToken 이 비어 있습니다." };
         }
 
-        return {
-            status: "success",
-            identityToken,
-            authorizationCode: authorizationCode ?? null,
-            nonce,
-            fullName: fullName ?? null,
-        };
+        return { status: "success", identityToken, rawNonce, name: name ?? null };
     } catch (err: unknown) {
         const message = toMessage(err);
         if (message.includes(CANCELLED_MESSAGE)) return { status: "cancelled" };

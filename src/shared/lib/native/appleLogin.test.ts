@@ -19,13 +19,14 @@ async function loadModule() {
   return import("@/shared/lib/native/appleLogin");
 }
 
-const originalFlag = process.env.NEXT_PUBLIC_NATIVE_APPLE_LOGIN_ENABLED;
+const originalFlag = process.env.NEXT_PUBLIC_APPLE_LOGIN_ENABLED;
 
 const APPLE_RESPONSE = {
   identityToken: "애플-토큰",
+  rawNonce: "원본-논스",
+  name: "홍길동",
+  // 서버로 보내지 않는 값. 플러그인은 계속 돌려준다(폐기 정책이 생길 때를 위해).
   authorizationCode: "인가-코드",
-  nonce: "원본-논스",
-  fullName: "홍길동",
 };
 
 beforeEach(() => {
@@ -36,7 +37,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  process.env.NEXT_PUBLIC_NATIVE_APPLE_LOGIN_ENABLED = originalFlag;
+  process.env.NEXT_PUBLIC_APPLE_LOGIN_ENABLED = originalFlag;
   vi.restoreAllMocks();
 });
 
@@ -44,9 +45,9 @@ afterEach(() => {
  * 이 게이트가 잘못 열리면 존재하지 않는 네이티브 플러그인을 부르게 된다.
  * 웹은 카카오 리다이렉트가 유일한 경로이고, 안드로이드에는 Sign in with Apple 이 없다.
  */
-describe("isNativeAppleLoginAvailable", () => {
+describe("isNativeAppleLoginAvailable — 네이티브 SDK 경로는 iOS 앱뿐이다", () => {
   it("웹에서는 플래그가 켜져 있어도 false", async () => {
-    process.env.NEXT_PUBLIC_NATIVE_APPLE_LOGIN_ENABLED = "true";
+    process.env.NEXT_PUBLIC_APPLE_LOGIN_ENABLED = "true";
     isNativeApp.mockReturnValue(false);
     getNativePlatform.mockReturnValue("web");
 
@@ -55,8 +56,8 @@ describe("isNativeAppleLoginAvailable", () => {
     expect(isNativeAppleLoginAvailable()).toBe(false);
   });
 
-  it("안드로이드 앱에서는 false — 4.8 요구는 App Store 에만 있다", async () => {
-    process.env.NEXT_PUBLIC_NATIVE_APPLE_LOGIN_ENABLED = "true";
+  it("안드로이드 앱에서는 false — 리다이렉트 경로를 타야 한다", async () => {
+    process.env.NEXT_PUBLIC_APPLE_LOGIN_ENABLED = "true";
     isNativeApp.mockReturnValue(true);
     getNativePlatform.mockReturnValue("android");
 
@@ -66,7 +67,7 @@ describe("isNativeAppleLoginAvailable", () => {
   });
 
   it("iOS 앱이어도 플래그가 꺼져 있으면 false", async () => {
-    delete process.env.NEXT_PUBLIC_NATIVE_APPLE_LOGIN_ENABLED;
+    delete process.env.NEXT_PUBLIC_APPLE_LOGIN_ENABLED;
     isNativeApp.mockReturnValue(true);
     getNativePlatform.mockReturnValue("ios");
 
@@ -76,7 +77,7 @@ describe("isNativeAppleLoginAvailable", () => {
   });
 
   it("iOS 앱이면서 플래그가 켜져 있을 때만 true", async () => {
-    process.env.NEXT_PUBLIC_NATIVE_APPLE_LOGIN_ENABLED = "true";
+    process.env.NEXT_PUBLIC_APPLE_LOGIN_ENABLED = "true";
     isNativeApp.mockReturnValue(true);
     getNativePlatform.mockReturnValue("ios");
 
@@ -88,7 +89,7 @@ describe("isNativeAppleLoginAvailable", () => {
 
 describe("loginWithAppleSdk", () => {
   beforeEach(() => {
-    process.env.NEXT_PUBLIC_NATIVE_APPLE_LOGIN_ENABLED = "true";
+    process.env.NEXT_PUBLIC_APPLE_LOGIN_ENABLED = "true";
     isNativeApp.mockReturnValue(true);
     getNativePlatform.mockReturnValue("ios");
   });
@@ -110,9 +111,8 @@ describe("loginWithAppleSdk", () => {
     expect(await loginWithAppleSdk()).toEqual({
       status: "success",
       identityToken: "애플-토큰",
-      authorizationCode: "인가-코드",
-      nonce: "원본-논스",
-      fullName: "홍길동",
+      rawNonce: "원본-논스",
+      name: "홍길동",
     });
   });
 
@@ -121,16 +121,15 @@ describe("loginWithAppleSdk", () => {
    * 요청 바디에서 필드가 사라져 BE 계약과 어긋난다.
    */
   it("이름이 없으면 null 로 정규화한다 — 재로그인의 정상 경로다", async () => {
-    login.mockResolvedValue({ identityToken: "애플-토큰", nonce: "원본-논스" });
+    login.mockResolvedValue({ identityToken: "애플-토큰", rawNonce: "원본-논스" });
 
     const { loginWithAppleSdk } = await loadModule();
 
     expect(await loginWithAppleSdk()).toEqual({
       status: "success",
       identityToken: "애플-토큰",
-      authorizationCode: null,
-      nonce: "원본-논스",
-      fullName: null,
+      rawNonce: "원본-논스",
+      name: null,
     });
   });
 

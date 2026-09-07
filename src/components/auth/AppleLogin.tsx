@@ -5,9 +5,16 @@ import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
 import { useToast } from "@/context/ToastContext";
-import { Headline1 } from "@/shared/ui";
-import { loginWithExternalAppleNative } from "@/shared/lib/api/externalApi";
-import { isNativeAppleLoginAvailable, loginWithAppleSdk } from "@/shared/lib/native/appleLogin";
+import { Caption1, Headline1 } from "@/shared/ui";
+import {
+  loginWithExternalAppleNative,
+  startExternalSocialLogin,
+} from "@/shared/lib/api/externalApi";
+import {
+  isAppleLoginEnabled,
+  isNativeAppleLoginAvailable,
+  loginWithAppleSdk,
+} from "@/shared/lib/native/appleLogin";
 import { resolveSocialLogin } from "@/features/auth/lib/socialLoginOutcome";
 
 /**
@@ -48,14 +55,30 @@ const ButtonInnerContainer = styled.div`
 `;
 
 /**
- * Sign in with Apple 버튼 (iOS 앱 전용).
+ * 버튼과 안내 문구를 한 덩어리로 묶는다. 문구가 버튼보다 부모의 gap 만큼 떨어지면
+ * 서로 다른 항목처럼 보인다.
+ */
+const AppleArea = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+`;
+
+/**
+ * Sign in with Apple 버튼.
  *
- * 웹·안드로이드에서는 **아무것도 렌더하지 않는다.** 노출 조건은
- * `isNativeAppleLoginAvailable()` 한 곳에만 있다.
+ * App Store 가이드라인 4.8 이 요구하는 "동등한 로그인 수단"이다. 경로가 둘이다
+ * (BE 위키 `Frontend-Apple-Login-Guide`):
  *
- * 카카오와 달리 **폴백 경로가 없다.** 카카오는 네이티브가 실패하면 리다이렉트 로그인으로
- * 흘려보낼 수 있지만, 애플은 이 경로가 유일하다. 그래서 실패는 토스트로 알리고 화면에
- * 그대로 머문다 — 사용자는 카카오 버튼으로 계속할 수 있다.
+ * - **iOS 앱** — 네이티브 SDK 로 identityToken 을 받아 웹뷰가 교환한다.
+ * - **웹 · 안드로이드 앱** — 카카오와 똑같은 리다이렉트. `/auth/callback` 이 그대로 받는다.
+ *
+ * 노출 조건은 `isAppleLoginEnabled()` 한 곳이고, 그 안에서 경로만 갈린다.
+ *
+ * 네이티브 경로에는 **폴백이 없다.** 카카오는 실패하면 리다이렉트로 흘려보낼 수 있지만
+ * 애플은 이 경로가 유일하다. 그래서 실패는 토스트로 알리고 화면에 머문다 — 사용자는
+ * 카카오 버튼으로 계속할 수 있다.
  */
 export const AppleLogin = () => {
   const router = useRouter();
@@ -64,17 +87,25 @@ export const AppleLogin = () => {
   const [pending, setPending] = useState(false);
 
   /**
-   * 정적 export 라 프리렌더 시점에는 항상 웹(=false)이다. 마운트 후에 판정하지 않으면
-   * 앱에서 버튼이 영영 나타나지 않거나 하이드레이션이 어긋난다.
+   * 정적 export 라 프리렌더 시점에는 플래그만 보이고 플랫폼은 알 수 없다. 마운트 후에
+   * 판정하지 않으면 앱에서 네이티브 경로를 영영 타지 못하거나 하이드레이션이 어긋난다.
    */
   const [available, setAvailable] = useState(false);
+  const [useNative, setUseNative] = useState(false);
   useEffect(() => {
-    setAvailable(isNativeAppleLoginAvailable());
+    setAvailable(isAppleLoginEnabled());
+    setUseNative(isNativeAppleLoginAvailable());
   }, []);
 
   if (!available) return null;
 
   const handleLogin = async () => {
+    // 웹·안드로이드는 리다이렉트 한 줄이다. 카카오와 같은 경로를 provider 만 바꿔 탄다.
+    if (!useNative) {
+      startExternalSocialLogin("APPLE");
+      return;
+    }
+
     if (isRunning.current) return;
     isRunning.current = true;
     setPending(true);
@@ -94,9 +125,8 @@ export const AppleLogin = () => {
         // 교환은 반드시 웹뷰에서. 그래야 refreshToken 쿠키를 웹뷰가 갖는다.
         const result = await loginWithExternalAppleNative({
           identityToken: outcome.identityToken,
-          authorizationCode: outcome.authorizationCode,
-          nonce: outcome.nonce,
-          fullName: outcome.fullName,
+          rawNonce: outcome.rawNonce,
+          name: outcome.name,
         });
         const resolved = resolveSocialLogin(result);
 
@@ -122,13 +152,25 @@ export const AppleLogin = () => {
   };
 
   return (
-    <ButtonContainer type="button" onClick={handleLogin} disabled={pending}>
-      <ButtonInnerContainer>
-        <img src="/assets/logo/apple.svg" alt="" aria-hidden="true" />
-        <Headline1 $weight="semibold" $color="var(--color-semantic-static-white)">
-          Apple로 계속하기
-        </Headline1>
-      </ButtonInnerContainer>
-    </ButtonContainer>
+    <AppleArea>
+      <ButtonContainer type="button" onClick={handleLogin} disabled={pending}>
+        <ButtonInnerContainer>
+          <img src="/assets/logo/apple.svg" alt="" aria-hidden="true" />
+          <Headline1 $weight="semibold" $color="var(--color-semantic-static-white)">
+            Apple로 계속하기
+          </Headline1>
+        </ButtonInnerContainer>
+      </ButtonContainer>
+      {/*
+        카카오와 애플은 **별도 회원**이다. 같은 사람이 카카오로 가입한 뒤 애플로 로그인하면
+        새 계정이 된다 — 애플의 비공개 릴레이 주소는 신뢰할 수 없고, 이메일 일치를 계정 병합
+        근거로 삼는 것은 계정 탈취 경로라 BE 가 잇지 않기로 했다
+        (위키 Frontend-Apple-Login-Guide §3). 안내가 없으면 "가입했는데 처음부터 다시
+        하라고 한다"는 문의가 된다.
+      */}
+      <Caption1 $color="var(--color-semantic-label-alternative)" $align="center">
+        이전에 카카오로 시작하셨다면 카카오로 로그인해 주세요.
+      </Caption1>
+    </AppleArea>
   );
 };

@@ -96,6 +96,13 @@ const config: CapacitorConfig = {
             "kauth.kakao.com",
             "accounts.kakao.com",
             "*.kakao.com",
+            /**
+             * 애플 로그인의 **리다이렉트** 경로(웹·안드로이드 앱)가 지나는 도메인.
+             * iOS 는 네이티브 시트를 쓰므로 웹뷰를 타지 않지만, 안드로이드 앱은 웹과 같은
+             * 리다이렉트를 타므로 여기가 없으면 인증 화면이 외부 브라우저로 빠지고
+             * 콜백이 앱으로 돌아오지 못한다 — 카카오 도메인을 등록한 것과 같은 이유다.
+             */
+            "appleid.apple.com",
         ],
     },
     ios: {
