@@ -980,6 +980,48 @@ App Store 가이드라인 **4.8**: 제3자 소셜 로그인으로 계정을 만�
 - **실기기 빌드 자체가 아직 없다** — §3 스모크 전부 미실시. 내부 TestFlight 는 베타
   심사를 거치지 않으므로 지금 바로 팀 배포로 확인할 수 있다
 
+### 실빌드 · 아카이브 · 배포 (2026-09-07 여기까지 통과)
+
+CLI 만으로 IPA 까지 나온다. Xcode GUI 를 열 필요가 없다.
+
+```bash
+# 0) 웹 자산 동기화 — 이걸 빼면 예전 번들이 들어간다
+npm run cap:sync
+
+# 1) 컴파일 검증 (서명 문제와 분리해서 본다)
+xcodebuild -project ios/App/App.xcodeproj -scheme App \
+  -destination 'generic/platform=iOS' -configuration Debug \
+  CODE_SIGNING_ALLOWED=NO build
+
+# 2) 아카이브 — `-allowProvisioningUpdates` 가 App ID capability 와 프로필을 자동 등록한다
+xcodebuild -project ios/App/App.xcodeproj -scheme App \
+  -destination 'generic/platform=iOS' -configuration Release \
+  -archivePath build/App.xcarchive -allowProvisioningUpdates archive
+
+# 3) App Store Connect 용 IPA 로 내보낸다(배포 인증서로 재서명된다)
+xcodebuild -exportArchive -archivePath build/App.xcarchive \
+  -exportOptionsPlist ios/ExportOptions.plist \
+  -exportPath build/export -allowProvisioningUpdates
+```
+
+`build/` 는 gitignore 돼 있다.
+
+**아카이브 결과물을 반드시 확인할 것** — 빌드가 성공해도 조용히 빠지는 것들이 있다:
+
+```bash
+APP=build/App.xcarchive/Products/Applications/App.app
+codesign -d --entitlements :- "$APP"        # applesignin · associated-domains · aps-environment
+ls "$APP" | grep -i privacy                  # PrivacyInfo.xcprivacy
+ls "$APP/public/app-offline.html"            # 오프라인 폴백
+```
+
+#### `aps-environment` 는 아카이브가 아니라 **export 에서** 바뀐다
+
+이 문서는 원래 "자동 서명이면 Xcode 가 배포용 아카이브에서 `production` 으로 바꿔 준다"고
+적어 뒀는데, 정확히는 **export 시점**이다. 아카이브 자체는 키체인에 있는 개발 인증서로
+서명돼 `development` 로 남는다. 놀라지 말 것 — `-exportArchive` 를 거친 IPA 를 확인하면
+`production` 이고 `beta-reports-active`(TestFlight 용)도 함께 들어가 있다.
+
 ### 팀원 테스트 — TestFlight
 
 배포(=심사) 전에 팀원이 써 볼 수 있다. 두 갈래다.
@@ -991,6 +1033,31 @@ App Store 가이드라인 **4.8**: 제3자 소셜 로그인으로 계정을 만�
 
 내부 테스트가 지금 필요한 것이다 — 심사가 없어 4.8(애플 로그인)이 없어도 올라간다.
 팀원은 Apple ID 로 ASC 에 초대되고 TestFlight 앱으로 설치한다. 빌드는 90일 뒤 만료된다.
+
+#### 업로드 — 자격증명이 필요하다 (미보유)
+
+IPA 는 만들어졌지만 **업로드는 App Store Connect 자격증명 없이 불가능하다.** 이 기기에는
+없다(`~/.appstoreconnect/private_keys/` 가 비어 있다).
+
+1. **앱 레코드** — App Store Connect 에 `pics.ditto.app` 앱이 먼저 있어야 한다.
+   없으면 업로드가 "no suitable application record found" 로 거절된다.
+2. **API 키** — 사용자 및 액세스 → 통합 → App Store Connect API → 키 생성(App Manager 이상).
+   `.p8` 은 **한 번만 내려받을 수 있다.** Key ID 와 Issuer ID 를 함께 기록한다.
+   ```bash
+   mkdir -p ~/.appstoreconnect/private_keys
+   mv ~/Downloads/AuthKey_XXXXXXXXXX.p8 ~/.appstoreconnect/private_keys/
+   ```
+3. **검증 후 업로드**
+   ```bash
+   xcrun altool --validate-app -f build/export/App.ipa -t ios \
+     --apiKey <KEY_ID> --apiIssuer <ISSUER_ID>
+   xcrun altool --upload-app  -f build/export/App.ipa -t ios \
+     --apiKey <KEY_ID> --apiIssuer <ISSUER_ID>
+   ```
+4. 업로드 후 ASC 에서 처리(10~30분)되면 TestFlight 탭에 뜬다. **내부 테스터는 베타 심사
+   없이** 바로 배포된다. 수출 규정은 `ITSAppUsesNonExemptEncryption` 로 이미 답해 뒀다.
+
+`.p8` 은 절대 리포에 넣지 않는다(`.gitignore` 가 `*.p8` 을 막는다).
 
 ---
 
