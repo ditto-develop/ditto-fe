@@ -193,17 +193,38 @@ export function Tutorial({ initialData }: TutorialProps) {
     else {
       try {
         /*
-         * 1. 나이 처리: 생년월일에서 만 나이를 구해 BE 가 받는 연령대(하한)로 내린다.
-         *    예전에는 구간 선택값의 중앙값(예: 27)을 보냈는데, 라이브 스펙과
-         *    `formatAgeRange` 는 둘 다 하한값(20·25·30…)을 전제한다.
+         * 1. 나이 처리: 생년월일에서 만 나이를 구해 BE 가 받는 연령대 값으로 내린다.
+         *
+         *    ⚠️ 하한값(20·25·30…)과 중앙값(22·27·32…) 중 무엇을 보낼지는 아직
+         *    확정되지 않았다. BE 위키 Frontend-Kakao-General-App-Guide §2 는 중앙값이라고
+         *    하고 현재 코드는 하한값을 보낸다 — INTEGRATION-TODO.md §B-6.
+         *    (표시용 `formatAgeRange` 는 구간으로 분류하므로 둘 중 어느 쪽이 와도 옳게 나온다.)
          */
         const age = calculateAge(formData.birthDate ?? "");
-        const parsedAge = age === null ? 0 : toAgeBucket(age);
 
         // 2. 성별 처리: 백엔드 스펙(MALE/FEMALE)에 맞춰 대문자 변환
         let parsedGender = formData.gender || "";
         if (parsedGender === "man") parsedGender = "MALE";
         if (parsedGender === "woman") parsedGender = "FEMALE";
+
+        /*
+         * 3. 가입 필수값 가드.
+         *
+         * 카카오 일반 앱 전환(BE 위키 Frontend-Kakao-General-App-Guide §2)으로 `gender`·`age`
+         * 가 **필수**가 됐다. 없으면 `0001`(400) 이다. 정상 흐름에서는 Step2 검증이 둘 다
+         * 보장하지만, 그 검증은 `step2Ref.current` 가 있을 때만 도는 조건부 가드라
+         * 참조가 비면 통째로 건너뛴다.
+         *
+         * 예전에는 그 경우 `age: 0` · `gender: ""` 로 요청이 나갔다. 이제는 서버가 거절하고,
+         * 사용자에게는 "회원가입 중 문제가 발생했어요"라는 원인 없는 문구만 보인다.
+         * 요청을 보내지 않고 어디를 고쳐야 하는지 말해 주는 편이 낫다.
+         */
+        if (!parsedGender || age === null) {
+          showToast("성별과 생년월일을 입력해주세요.", "error");
+          return;
+        }
+
+        const parsedAge = toAgeBucket(age);
 
         // 3. 회원가입 payload 생성 (인증은 Authorization 헤더로 처리되므로 provider 정보는 보내지 않는다)
         const createUserDto: CreateExternalUserBody = {
