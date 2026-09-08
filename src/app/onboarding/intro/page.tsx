@@ -22,6 +22,8 @@ export default function IntroNotePage() {
   const [controlButton, setControlButton] = useState<ControlButtonVariant>("disabled");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // 답변 편집 중에는 하단 CTA를 감춘다 — 키보드 위에 겹쳐 입력 영역이 너무 좁아진다.
+  const [editingAnswer, setEditingAnswer] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     email: "", pic: "",
@@ -93,6 +95,7 @@ export default function IntroNotePage() {
       onPrev={() => router.push("/home")}
       subbuttonText="다음에 할래요"
       onSubAction={handleSkip}
+      hideActions={editingAnswer}
       description={
         <>
           <Label1Normal>대화 상대에게만 공개되는 나만의 소개 노트예요.</Label1Normal>
@@ -108,6 +111,7 @@ export default function IntroNotePage() {
         }
         setControlButton={setControlButton}
         onPersist={handlePersistAnswer}
+        onEditingChange={setEditingAnswer}
       />
     </OnboardingLayout>
   );

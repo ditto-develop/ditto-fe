@@ -117,6 +117,8 @@ export function Tutorial({ initialData }: TutorialProps) {
   // ✅ initialData가 존재하면 이미 로그인이 된 상태이므로 Step 1부터 시작
   const [step, setStep] = useState(initialData ? 1 : 0); 
   const [controlButton, setControlButton] = useState<ControlButtonVariant>("disabled");
+  // 소개 노트 답변 편집 중에는 하단 CTA를 감춘다 — 키보드 위에 겹쳐 입력 영역이 너무 좁아진다.
+  const [editingIntroAnswer, setEditingIntroAnswer] = useState(false);
 
   // --- Refs ---
   // 본인인증 스텝을 없애 온보딩은 2단계다(2026-08-30). 컴포넌트 파일명(Step_2/Step_3)은
@@ -360,6 +362,7 @@ export function Tutorial({ initialData }: TutorialProps) {
             onNext={handleNext}
             subbuttonText="다음에 할래요"
             onSubAction={handleSkip}
+            hideActions={editingIntroAnswer}
             onPrev={goPrevStep}
             description={
               <>
@@ -372,7 +375,13 @@ export function Tutorial({ initialData }: TutorialProps) {
               </>
             }
           >
-            <Step3Intro ref={step3Ref} data={formData} onChange={handleInputChange} setControlButton={setControlButton} />
+            <Step3Intro
+              ref={step3Ref}
+              data={formData}
+              onChange={handleInputChange}
+              setControlButton={setControlButton}
+              onEditingChange={setEditingIntroAnswer}
+            />
           </OnboardingLayout>
         );
       default:

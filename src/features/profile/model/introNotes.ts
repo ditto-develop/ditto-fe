@@ -62,3 +62,10 @@ export const INTRO_NOTE_FIELDS = [
 ] as const;
 
 export type IntroNoteCode = (typeof INTRO_NOTE_FIELDS)[number]["code"];
+
+/**
+ * 소개 노트 최소 작성 개수.
+ * 온보딩 "다 작성했어요" 활성 조건이자, 퀴즈 참여의 최소 조건이다.
+ * (온보딩에서 "다음에 할래요"로 건너뛴 사람은 퀴즈 시작 시 이 조건에서 막힌다.)
+ */
+export const MIN_INTRO_NOTE_ANSWERS = 3;

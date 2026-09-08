@@ -1,4 +1,4 @@
-import React, { useState, forwardRef, useImperativeHandle } from "react";
+import React, { useState, forwardRef, useImperativeHandle, useRef } from "react";
 import styled from "styled-components";
 import { Caption1 } from "@/shared/ui";
 
@@ -8,6 +8,8 @@ interface TextAreaWithActionsProps {
   minLength?: number;
   initialValue?: string;
   placeholder?: string;
+  /** 바깥(폼 검증)에서 이 항목을 오류로 표시하고 싶을 때. 내부 error와 별개로 테두리를 강조한다. */
+  invalid?: boolean;
 
   activeId: string | null; // 현재 편집 중인 ID (부모에서 관리)
   onChangeActive: (id: string | null) => void;
@@ -20,6 +22,8 @@ interface TextAreaWithActionsProps {
 export interface TextAreaWithActionsRef {
   save: () => boolean;
   getValue: () => string;
+  /** 편집 중인 입력에서 포커스를 정상적으로 거둔다(키보드를 닫는다). */
+  blur: () => void;
 }
 
 export const TextAreaWithActions = forwardRef<
@@ -30,9 +34,12 @@ export const TextAreaWithActions = forwardRef<
     {
       id,
       maxLength = 100,
-      minLength = 10,
+      // 최소 글자 수 제한은 없앴다(2026-09-08). 짧은 답변도 그대로 저장된다.
+      // 빈 답변만 막는다 — 저장할 내용이 없기 때문.
+      minLength = 0,
       initialValue = "",
       placeholder = "",
+      invalid = false,
       activeId,
       onChangeActive,
       onSave,
@@ -44,19 +51,42 @@ export const TextAreaWithActions = forwardRef<
     const [value, setValue] = useState(initialValue);
     const [savedValue, setSavedValue] = useState(initialValue);
     const [error, setError] = useState<string | null>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const isActive = activeId === id;
     const isSaved = savedValue.length > 0;
+    /** 다른 답변을 편집 중이라 지금은 손댈 수 없는 상태. */
+    const isLocked = activeId !== null && !isActive;
 
     const handleFocus = () => {
       onRequestFocusChange(id);
     };
 
+    /**
+     * 편집 중인 다른 답변이 있을 때는 포커스 자체를 옮기지 않는다.
+     *
+     * readOnly 텍스트필드로 포커스가 튀면 iOS가 키보드를 blur 없이 내리는데,
+     * 이때 키보드 때문에 밀어 올렸던 뷰포트 오프셋이 복구되지 않는다.
+     * 화면이 통째로 아래로 내려가고 위쪽에 빈(검은) 영역이 남는 증상이 이것이다.
+     */
+    const handlePointerDown = (event: React.PointerEvent<HTMLTextAreaElement>) => {
+      if (!isLocked) return;
+      event.preventDefault();
+      onRequestFocusChange(id);
+    };
+
     const handleSave = (): boolean => {
-      if (value.length < minLength) {
-        setError(`10자 이상 작성해주세요`);
+      if (value.trim().length === 0) {
+        setError("내용을 입력해주세요");
         return false;
       }
+      if (value.length < minLength) {
+        setError(`${minLength}자 이상 작성해주세요`);
+        return false;
+      }
+      // 저장하면 이 textarea는 SavedText로 교체된다. 포커스가 남은 채로 사라지면
+      // iOS에서 키보드가 비정상 종료되므로, 사라지기 전에 먼저 포커스를 거둔다.
+      textareaRef.current?.blur();
       setError(null);
       setSavedValue(value);
       onChangeActive(null);
@@ -67,9 +97,11 @@ export const TextAreaWithActions = forwardRef<
     useImperativeHandle(ref, () => ({
       save: handleSave,
       getValue: () => value,
+      blur: () => textareaRef.current?.blur(),
     }));
 
     const handleCancel = () => {
+      textareaRef.current?.blur();
       setValue(savedValue || initialValue);
       setError(null);
       onChangeActive(null);
@@ -83,7 +115,11 @@ export const TextAreaWithActions = forwardRef<
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       if (isActive) {
         setValue(e.target.value);
-        if (error && e.target.value.length >= minLength) {
+        if (
+          error &&
+          e.target.value.trim().length > 0 &&
+          e.target.value.length >= minLength
+        ) {
           setError(null);
         }
       }
@@ -91,17 +127,19 @@ export const TextAreaWithActions = forwardRef<
 
     return (
       <Container>
-        <Wrapper $error={!!error}>
+        <Wrapper $error={!!error || invalid}>
           {isSaved && !isActive ? (
             <SavedText onClick={handleSavedClick}>{savedValue}</SavedText>
           ) : (
             <StyledTextarea
+              ref={textareaRef}
               value={value}
               onChange={handleChange}
               onFocus={handleFocus}
+              onPointerDown={handlePointerDown}
               placeholder={placeholder}
               maxLength={maxLength}
-              readOnly={activeId !== null && !isActive}
+              readOnly={isLocked}
             />
           )}
 
