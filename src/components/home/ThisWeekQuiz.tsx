@@ -1,6 +1,6 @@
 "use client";
 
-import { BottomSheet } from "@/shared/ui";
+import { AlertModal, BottomSheet } from "@/shared/ui";
 import {
   Body1Bold,
   Heading2Bold,
@@ -8,6 +8,10 @@ import {
 } from "@/shared/ui";
 import { Card } from "@/components/display/Card";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
+import {
+  INTRO_NOTE_FIELDS,
+  MIN_INTRO_NOTE_ANSWERS,
+} from "@/features/profile/model/introNotes";
 import { useTargetDayCountdown } from "@/lib/hooks/useKstCountdown";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -96,17 +100,35 @@ const ArrowRightIcon = styled.img`
 
 interface ThisWeekQuizProps {
   iscomplete: boolean;
-  isIntroComplete: boolean;
+  /**
+   * 지금까지 답한 소개 노트 개수. 완료 여부와 퀴즈 참여 가능 여부를 모두 여기서 판단한다.
+   * 조회에 실패해 개수를 모르면 null — 그때는 퀴즈를 막지 않는다.
+   */
+  introNoteCount: number | null;
   participantCount: number;
 }
 
-export function ThisWeekQuiz({ iscomplete, isIntroComplete, participantCount }: ThisWeekQuizProps) {
+export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: ThisWeekQuizProps) {
   const router = useRouter();
   const today = new Date().getDay(); // (KST 변환 로직 필요 시 적용)
   const target = today === 4 ? 5 : 4;
 
   const timeLeft = useTargetDayCountdown(target);
   const [isQuizStart, setIsQuizStart] = useState(false);
+  const [isIntroNoteAlertOpen, setIsIntroNoteAlertOpen] = useState(false);
+
+  const isIntroComplete = introNoteCount === INTRO_NOTE_FIELDS.length;
+  /** 온보딩에서 "다음에 할래요"로 건너뛴 사람은 여기서 소개 노트 작성으로 되돌린다. */
+  const canStartQuiz =
+    introNoteCount === null || introNoteCount >= MIN_INTRO_NOTE_ANSWERS;
+
+  const handleStartQuiz = () => {
+    if (!canStartQuiz) {
+      setIsIntroNoteAlertOpen(true);
+      return;
+    }
+    setIsQuizStart(true);
+  };
 
   if (iscomplete) {
     return (
@@ -161,6 +183,20 @@ export function ThisWeekQuiz({ iscomplete, isIntroComplete, participantCount }: 
 
   return (
     <>
+      <AlertModal
+        isOpen={isIntroNoteAlertOpen}
+        title="소개 노트를 먼저 작성해주세요"
+        message={`퀴즈에 참여하려면 소개 노트를 최소 ${MIN_INTRO_NOTE_ANSWERS}개 이상 작성해야 해요.`}
+        confirmParams={{
+          text: "작성하러 가기",
+          onClick: () => router.push("/onboarding/intro"),
+        }}
+        cancelParams={{
+          text: "닫기",
+          onClick: () => setIsIntroNoteAlertOpen(false),
+        }}
+        onClose={() => setIsIntroNoteAlertOpen(false)}
+      />
       {isQuizStart && (
         <BottomSheet
           title="퀴즈의 종류를 선택하세요"
@@ -251,9 +287,7 @@ export function ThisWeekQuiz({ iscomplete, isIntroComplete, participantCount }: 
           <ActionContainer>
             <ActionSheet>
               <ActionButton
-                onClick={() => {
-                  setIsQuizStart(true);
-                }}
+                onClick={handleStartQuiz}
                 icon={<img src="/icons/action/plus.svg" />}
               >
                 시작하기

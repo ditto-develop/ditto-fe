@@ -12,7 +12,6 @@ import { QuizProgressDto } from "@/shared/lib/api/generated";
 import type { SystemStateDto } from "@/shared/lib/api/generated";
 import { getChatRooms } from "@/features/chat";
 import type { ChatRoom } from "@/features/chat";
-import { INTRO_NOTE_FIELDS } from "@/features/profile/model/introNotes";
 import type { MatchCandidateDto } from "@/features/matching/api/matchingApi";
 import { getMatchCandidates, getMatchingStatus } from "@/features/matching/api/matchingApi";
 import {
@@ -70,7 +69,8 @@ export function MainSection() {
   const [period, setPeriod] = useState<Period | null>(null);
   const [dayIndex] = useState<number>(getKstDayIndex());
   const [isQuizComplete, setIsQuizComplete] = useState(false);
-  const [isIntroComplete, setIsIntroComplete] = useState(false);
+  // null = 소개 노트 조회 실패(개수를 모름). 퀴즈 진입을 막지 않는다.
+  const [introNoteCount, setIntroNoteCount] = useState<number | null>(null);
   const [participantCount, setParticipantCount] = useState(0);
   const [matchType, setMatchType] = useState<MatchingCardType>("beforematch");
   const [candidates, setCandidates] = useState<MatchCandidateDto[]>([]);
@@ -116,7 +116,7 @@ export function MainSection() {
         setPeriod(fetchedPeriod);
 
         if (introNotes) {
-          setIsIntroComplete(introNotes.completedCount === INTRO_NOTE_FIELDS.length);
+          setIntroNoteCount(introNotes.completedCount);
         }
 
         if (fetchedPeriod === "QUIZ") {
@@ -241,7 +241,7 @@ export function MainSection() {
   const ControlSection = () => {
     switch (period) {
       case "QUIZ":
-        return <ThisWeekQuiz iscomplete={isQuizComplete} isIntroComplete={isIntroComplete} participantCount={participantCount} />;
+        return <ThisWeekQuiz iscomplete={isQuizComplete} introNoteCount={introNoteCount} participantCount={participantCount} />;
       case "MATCHING":
         return (
           <MatchingDay
