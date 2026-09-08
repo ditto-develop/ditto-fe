@@ -37,7 +37,10 @@ describe("onboarding flow", () => {
 
     cy.wait("@putIntroNote");
     cy.contains("10자 이상 작성해주세요").should("not.exist");
-    cy.contains("1/10 질문 완료").should("be.visible");
+    // 저장되면 입력창이 저장된 답변 텍스트로 바뀐다.
+    // 버튼을 누르는 사이 목록이 스크롤되므로 화면 안으로 되돌린 뒤 확인한다.
+    cy.contains("커피").scrollIntoView().should("be.visible");
+    cy.contains("1/10 질문 완료").scrollIntoView().should("be.visible");
   });
 
   // 편집 중에는 하단 CTA를 감춘다 — 키보드 위에 겹쳐 입력 영역이 좁아지기 때문.
