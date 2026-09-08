@@ -143,6 +143,81 @@ describe("unregisterDeviceToken 게이팅", () => {
   });
 });
 
+/**
+ * 로그아웃 체감 속도의 회귀 방지(2026-09-08).
+ *
+ * BE 해제(§2)는 세션이 살아 있는 동안 끝나야 하므로 기다리지만, 기기 토큰 폐기는
+ * FCM 왕복이라 여기에 화면 전환을 매달면 로그아웃이 몇 초씩 멈춰 보인다.
+ * 대신 다음 발급이 그 폐기를 기다린다 — 겹치면 새 토큰이 지워진다.
+ */
+describe("releasePushToken", () => {
+  /** 아직 끝나지 않은 폐기를 하나 만들어 둔다. */
+  async function releaseWithPendingDeletion() {
+    isNativePlatform.mockReturnValue(true);
+    getPlatform.mockReturnValue("ios");
+    process.env.NEXT_PUBLIC_PUSH_ENABLED = "true";
+
+    let settled = false;
+    let finish = () => {};
+    const deletion = new Promise<void>((resolve) => {
+      finish = () => {
+        settled = true;
+        resolve();
+      };
+    });
+    deleteToken.mockImplementationOnce(() => deletion);
+
+    const push = await import("@/shared/lib/native/pushNotifications");
+    await push.releasePushToken();
+
+    return { push, deletion, finish, isSettled: () => settled };
+  }
+
+  /** 폐기까지 마무리해 모듈 상태를 다음 테스트로 흘리지 않는다. */
+  async function flush(finish: () => void, deletion: Promise<void>) {
+    finish();
+    await deletion;
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+
+  it("BE 해제는 기다리고, 기기 토큰 폐기는 기다리지 않는다", async () => {
+    const { deletion, finish, isSettled } = await releaseWithPendingDeletion();
+
+    expect(externalApiFetch).toHaveBeenCalledWith("/api/v1/notifications/devices/fcm-token", {
+      method: "DELETE",
+    });
+    expect(deleteToken).toHaveBeenCalled();
+    expect(isSettled()).toBe(false);
+
+    await flush(finish, deletion);
+  });
+
+  it("폐기가 끝나기 전에는 새 토큰을 발급받지 않는다", async () => {
+    const { push, deletion, finish } = await releaseWithPendingDeletion();
+    getToken.mockClear();
+
+    const registering = push.registerDeviceToken();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(getToken).not.toHaveBeenCalled();
+
+    await flush(finish, deletion);
+    await registering;
+    expect(getToken).toHaveBeenCalled();
+  });
+
+  it("웹에서는 아무것도 하지 않는다", async () => {
+    isNativePlatform.mockReturnValue(false);
+    process.env.NEXT_PUBLIC_PUSH_ENABLED = "true";
+
+    const { releasePushToken } = await import("@/shared/lib/native/pushNotifications");
+    await releasePushToken();
+
+    expect(getToken).not.toHaveBeenCalled();
+    expect(deleteToken).not.toHaveBeenCalled();
+    expect(externalApiFetch).not.toHaveBeenCalled();
+  });
+});
+
 describe("extractDeepLink", () => {
   it("data.deepLink 를 내부 경로로 바꾼다", async () => {
     const { extractDeepLink } = await import("@/shared/lib/native/pushNotifications");

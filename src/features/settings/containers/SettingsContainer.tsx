@@ -8,6 +8,7 @@ import { useSettings } from "@/features/settings/hooks/useSettings";
 import { SETTINGS_EXTERNAL_LINKS } from "@/features/settings/model/externalLinks";
 import type { NotificationSettingKey } from "@/features/settings/model/types";
 import { clearToken } from "@/shared/lib/api/client";
+import { clearTokens } from "@/shared/lib/auth";
 import { logoutExternal } from "@/shared/lib/api/externalApi";
 import { WEB_APP_VERSION, getAppVersion } from "@/shared/lib/native/appVersion";
 import { clearScheduledNotifications } from "@/shared/lib/native/localNotifications";
@@ -21,7 +22,7 @@ import {
   Switch,
   TopNavigation,
 } from "@/shared/ui";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type RowConfig = {
   label: string;
@@ -39,6 +40,8 @@ export function SettingsContainer() {
   const { showToast } = useToast();
   const { currentUser, notificationSettings, loading, error, updateSetting } = useSettings();
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+  // 로그아웃은 몇 백 ms~수 초가 걸린다. 그 사이 "확인"이 다시 눌리면 안 된다.
+  const loggingOut = useRef(false);
   // 네이티브 셸에서는 스토어 빌드 버전을, 웹에서는 기존 표시값을 그대로 쓴다.
   const [appVersion, setAppVersion] = useState(WEB_APP_VERSION);
 
@@ -80,15 +83,32 @@ export function SettingsContainer() {
   };
 
   const handleLogout = async () => {
-    await logoutExternal().catch(() => null);
-    // 예약된 로컬 알림을 지운다. 안 지우면 다른 계정으로 로그인해도, 심지어
-    // 로그아웃 상태로 두어도 매칭 알림이 계속 울린다.
-    await clearScheduledNotifications();
-    // 원격 푸시도 끊는다. BE 연결 해제 + 기기 토큰 폐기.
-    await releasePushToken();
-    clearToken();
+    if (loggingOut.current) return;
+    loggingOut.current = true;
+    // 정리 작업을 기다리는 동안 모달을 띄워 두면 눌러도 반응이 없는 것처럼 보인다.
     setLogoutModalOpen(false);
-    router.replace("/");
+
+    try {
+      /**
+       * 원격 푸시 해제가 **로그아웃 요청보다 먼저**다. `logoutExternal`이 끝나면
+       * accessToken이 사라져 해제 API가 무인증 401 → refresh 재시도(최대 8초)
+       * → 실패로 끝나고, BE에 디바이스 토큰이 남아 이 기기로 이전 계정 알림이
+       * 계속 온다. 탈퇴(`WithdrawContainer`)가 같은 이유로 같은 순서를 쓴다.
+       */
+      await releasePushToken();
+      /**
+       * 예약된 로컬 알림을 지운다. 안 지우면 다른 계정으로 로그인해도, 심지어
+       * 로그아웃 상태로 두어도 매칭 알림이 계속 울린다.
+       * 세션과 무관한 기기 로컬 작업이라 화면 전환을 붙잡아 둘 이유가 없다.
+       */
+      void clearScheduledNotifications();
+      await logoutExternal().catch(() => null);
+      clearTokens();
+      clearToken();
+      router.replace("/");
+    } finally {
+      loggingOut.current = false;
+    }
   };
 
   return (

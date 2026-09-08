@@ -290,7 +290,15 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     // 약관·사업자 정보 화면은 링크로 바로 들어오는 사람(심사자 등)이 본다. 정적
     // 텍스트라 기다릴 것이 없는데 3초 스플래시가 덮으면 그냥 안 뜨는 화면처럼 보인다.
     if (isPublicDocPath) return false;
-    if (!isLoggedIn) return !splashDone;            // 비로그인: 3초 타이머
+    /**
+     * 비로그인: 콜드 스타트 브랜드 스플래시(3초 타이머).
+     *
+     * `initialSplashDone`을 함께 본다 — 세션 중 로그아웃으로 "/"에 돌아왔을 때도
+     * 3초를 다시 물리면, 기다릴 것이 아무것도 없는데 로그아웃이 그만큼 느려
+     * 보인다(로그인 상태로 앱을 켠 세션은 타이머가 돈 적이 없어 `splashDone`이
+     * 계속 false라 매번 3초 전부 물렸다).
+     */
+    if (!isLoggedIn) return !splashDone && !initialSplashDone;
     // 홈은 첫 진입에서만 Splash가 받는다. 재진입·탭 전환은 홈 자체 스켈레톤이 받는다.
     if (path === '/home' && !initialSplashDone) return !isHomeReady && !homeSplashExpired;
     return false;                                   // 로그인 + 다른 페이지

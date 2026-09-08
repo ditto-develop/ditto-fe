@@ -38,6 +38,43 @@ async function loadMessaging() {
 }
 
 /**
+ * 진행 중인 기기 토큰 폐기(`deleteToken`).
+ *
+ * 폐기는 FCM 서버 왕복이라 초 단위로 걸릴 수 있는데, 로그아웃 화면 전환을 여기에
+ * 매달 이유가 없다(2026-09-08: 로그아웃이 몇 초씩 멈춰 보이던 원인 중 하나).
+ * 대신 promise를 들고 있다가 **다음 토큰 발급이 시작되기 전에** 기다린다 —
+ * 폐기와 재발급이 겹치면 방금 받은 새 토큰이 지워질 수 있다.
+ */
+let tokenDeletion: Promise<void> | null = null;
+
+/** 폐기가 진행 중이면 끝날 때까지 기다린다. 실패는 발급을 막지 않는다. */
+async function awaitTokenDeletion(): Promise<void> {
+    if (!tokenDeletion) return;
+    await tokenDeletion;
+}
+
+/** 네이티브 브리지가 응답하지 않아도 로그아웃·탈퇴를 이 이상 붙잡지 않는다. */
+const RELEASE_TIMEOUT_MS = 3000;
+
+/**
+ * `promise`를 최대 `ms`만큼만 기다린다.
+ *
+ * 넘어가면 **기다리기를 포기할 뿐 요청을 취소하지는 않는다** — 이미 나간 해제
+ * 요청은 그대로 BE에서 처리된다. 네이티브 브리지(APNs 미배선 등)가 응답하지
+ * 않을 때 로그아웃·탈퇴가 통째로 멈추는 것만 막는 장치다.
+ */
+function waitAtMost(promise: Promise<unknown>, ms: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+        const timer = setTimeout(resolve, ms);
+        const done = () => {
+            clearTimeout(timer);
+            resolve();
+        };
+        promise.then(done, done);
+    });
+}
+
+/**
  * 푸시 등록 기능 플래그 겸 킬 스위치.
  *
  * BE 디바이스 토큰 API는 2026-08-27 라이브 스펙에서 확인된다
@@ -115,6 +152,8 @@ export async function registerDeviceToken(): Promise<void> {
     if (!isNativeApp() || !isPushEnabled()) return;
 
     try {
+        // 직전 로그아웃/탈퇴의 폐기가 아직 돌고 있으면 새 토큰이 그 폐기에 휩쓸린다.
+        await awaitTokenDeletion();
         const FirebaseMessaging = await loadMessaging();
         const { token } = await FirebaseMessaging.getToken();
         if (!token) return;
@@ -225,6 +264,8 @@ export async function initPushNotifications({ navigate }: PushOptions): Promise<
     try {
         const permission = await FirebaseMessaging.requestPermissions();
         if (permission.receive === "granted") {
+            // 계정 전환 직후라면 이전 계정의 토큰 폐기가 끝난 뒤에 발급받아야 한다.
+            await awaitTokenDeletion();
             // tokenReceived 는 갱신 시에만 오므로, 최초 1회는 직접 가져와야 한다.
             const { token } = await FirebaseMessaging.getToken();
             submitToken(token);
@@ -252,17 +293,33 @@ export async function initPushNotifications({ navigate }: PushOptions): Promise<
  *   1. BE에서 토큰-회원 연결 해제 — 안 하면 이 기기로 이전 계정의 알림이 계속 온다
  *   2. 기기의 FCM 토큰 폐기 — 다음 로그인 때 새 토큰을 받는다
  *
- * 어느 쪽이 실패해도 로그아웃 자체는 막지 않는다.
+ * ⚠️ **세션이 아직 살아 있을 때 호출해야 한다.** 1번이 인증을 요구하므로
+ * 로그아웃/탈퇴 요청보다 **먼저** 불러야 한다. 순서가 뒤집히면 401 → refresh
+ * 재시도 → 실패로 끝나 BE에 토큰이 남고, 이 기기로 이전 계정 알림이 계속 온다.
+ *
+ * 기다리는 것은 1번뿐이다(2번은 세션과 무관해 백그라운드로 넘긴다).
+ * 어느 쪽이 실패해도, 응답이 없어도(3초 상한) 로그아웃 자체는 막지 않는다.
  */
 export async function releasePushToken(): Promise<void> {
     if (!isNativeApp()) return;
+    await waitAtMost(unlinkThenDiscardToken(), RELEASE_TIMEOUT_MS);
+}
 
+async function unlinkThenDiscardToken(): Promise<void> {
     try {
         const FirebaseMessaging = await loadMessaging();
         // 해제 요청에 토큰이 필요하므로 폐기 전에 먼저 읽는다.
         const { token } = await FirebaseMessaging.getToken();
+        // BE 해제는 **세션이 살아 있는 동안** 끝내야 하므로 여기서 기다린다.
         await unregisterDeviceToken(token);
-        await FirebaseMessaging.deleteToken();
+        // 기기 토큰 폐기는 세션과 무관하다. 기다리지 않는다(위 tokenDeletion 주석).
+        tokenDeletion = FirebaseMessaging.deleteToken()
+            .catch((err: unknown) => {
+                console.error("[push] 기기 토큰 폐기 실패:", err);
+            })
+            .finally(() => {
+                tokenDeletion = null;
+            });
     } catch (err: unknown) {
         console.error("[push] 토큰 해제 실패:", err);
     }
