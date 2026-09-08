@@ -16,6 +16,19 @@ function selectFromBottomSheet(labelText: string, optionText: string) {
   cy.contains("li", optionText, { timeout: 4000 }).click();
 }
 
+/**
+ * 생년월일 바텀시트: input[type=date] 대신 연/월/일 네이티브 select 3개 + 확인 버튼이다
+ * (일부 인앱 웹뷰에서 input[type=date]는 탭해도 피커가 뜨지 않았다).
+ */
+function selectBirthDate(birthDate: string) {
+  const [year, month, day] = birthDate.split("-").map(Number);
+  cy.get('button[aria-label="생년월일"]').click();
+  cy.get('select[aria-label="연도"]', { timeout: 4000 }).select(String(year));
+  cy.get('select[aria-label="월"]').select(String(month));
+  cy.get('select[aria-label="일"]').select(String(day));
+  cy.contains("button", "확인").click();
+}
+
 /** 카카오가 이메일을 주지 않으므로 가입 폼에서 직접 받는다(2026-09-06). */
 const EMAIL = "e2e@example.com";
 
@@ -30,7 +43,7 @@ function fillProfile(birthDate: string = ADULT_BIRTH_DATE) {
 
   // Gender, Birth date
   selectFromBottomSheet("성별", "남자");
-  cy.get('input[type="date"]').type(birthDate);
+  selectBirthDate(birthDate);
 
   // 5 interests
   cy.contains("💪 운동").click();

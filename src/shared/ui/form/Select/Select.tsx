@@ -1,6 +1,6 @@
 // Select.tsx
 import { Label1Normal } from "@/shared/ui";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import styled, { keyframes } from "styled-components";
 
 /* =========================
@@ -23,7 +23,8 @@ export interface SelectProps<T extends Primitive = string> {
   /** 단일 또는 다중 값 */
   value: T | T[] | null;
   onChange: (value: T | null) => void;
-  options: ReadonlyArray<SelectOption<T>>;
+  /** "date" 필드는 바텀시트 내 연/월/일 선택으로 값을 만들기 때문에 옵션 목록이 필요 없다. */
+  options?: ReadonlyArray<SelectOption<T>>;
 
   error?: boolean;
   errorMessage?: string;
@@ -31,8 +32,11 @@ export interface SelectProps<T extends Primitive = string> {
 
   /**
    * 필드 타입
-   * - "date" | "time" 이면 기본 input[type=date|time] 사용
-   * - 그 외(text, number…)는 바텀시트 Select UI 사용
+   * - "date" 는 바텀시트에서 연/월/일 네이티브 select 3개로 고른다.
+   *   (`input[type=date]` 는 일부 인앱 웹뷰에서 탭해도 피커가 뜨지 않아 선택 자체가
+   *   막히는 문제가 있었다 — 네이티브 select 는 플랫폼 피커가 뜨는 게 보장된다.)
+   * - "time" 은 기본 input[type=time] 사용
+   * - 그 외(text, number…)는 바텀시트 목록 Select UI 사용
    */
   fieldType?: SelectFieldType;
 
@@ -240,6 +244,79 @@ const SheetOption = styled.li<{ $selected?: boolean }>`
   }
 `;
 
+/* ---- Date bottom sheet (연/월/일 네이티브 select) ---- */
+
+const DateColumns = styled.div`
+  display: flex;
+  gap: 8px;
+  padding: 8px 20px 4px;
+`;
+
+const DateColumnSelect = styled.select`
+  flex: 1 1 0;
+  min-width: 0;
+  height: 44px;
+  box-sizing: border-box;
+  padding: 0 8px;
+  border-radius: 8px;
+  text-align: center;
+
+  border: 1px solid var(--color-semantic-line-normal-normal);
+  background: var(--color-semantic-background-normal-normal);
+  color: var(--color-semantic-label-normal);
+  font-size: var(--typography-body-1-normal-font-size);
+`;
+
+const DateConfirmButton = styled.button`
+  width: calc(100% - 40px);
+  margin: 16px 20px 0;
+  height: 48px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+
+  background: var(--color-semantic-primary-normal);
+  color: var(--color-semantic-static-white);
+  font-size: var(--typography-body-1-normal-font-size);
+  font-weight: 600;
+
+  &:disabled {
+    background: var(--color-semantic-interaction-disable);
+    color: var(--color-semantic-label-assistive);
+    cursor: not-allowed;
+  }
+`;
+
+const CURRENT_YEAR = new Date().getFullYear();
+/** 최근 연도부터 100년 치. 생년월일 선택 범위를 넉넉히 잡는다. */
+const YEAR_OPTIONS = Array.from({ length: 100 }, (_, i) => CURRENT_YEAR - i);
+const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
+
+/** year/month 가 아직 안 정해졌을 때는 윤년(29일까지) 기준으로 넉넉히 보여준다. */
+function daysInMonth(year: number | null, month: number | null): number {
+  if (!month) return 31;
+  return new Date(year ?? 2024, month, 0).getDate();
+}
+
+function parseDateValue(value: string): { year: number | null; month: number | null; day: number | null } {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (!match) return { year: null, month: null, day: null };
+  return { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) };
+}
+
+function formatDateValue(year: number, month: number, day: number): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${year}-${pad(month)}-${pad(day)}`;
+}
+
+/** "1998-03-15" → "1998. 03. 15." (네이티브 input[type=date]의 ko-KR 표시 형식과 맞춘다) */
+function formatDisplayDate(value: string): string | null {
+  const { year, month, day } = parseDateValue(value);
+  if (year == null || month == null || day == null) return null;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${year}. ${pad(month)}. ${pad(day)}.`;
+}
+
 /* =========================
  *  Component
  * =======================*/
@@ -250,10 +327,10 @@ export function Select<T extends Primitive = string>(
   const {
     label,
     isessential,
-    placeholder = "선택해주세요.",
+    placeholder,
     value,
     onChange,
-    options,
+    options = [],
     error,
     errorMessage,
     disabled,
@@ -264,6 +341,26 @@ export function Select<T extends Primitive = string>(
   const [open, setOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
+  // 날짜 바텀시트 전용 임시 선택값. 확인을 눌러야 실제 value로 반영된다.
+  const [tempYear, setTempYear] = useState<number | null>(null);
+  const [tempMonth, setTempMonth] = useState<number | null>(null);
+  const [tempDay, setTempDay] = useState<number | null>(null);
+
+  const usesNativeInput = fieldType === "time";
+  const usesDateSheet = fieldType === "date";
+
+  const resolvedPlaceholder =
+    placeholder ?? (usesDateSheet ? "연도. 월. 일." : "선택해주세요.");
+
+  const stringValue =
+    typeof value === "string" || typeof value === "number" ? String(value) : "";
+  const maxDay = daysInMonth(tempYear, tempMonth);
+
+  // 월이 바뀌어 일수가 줄면(예: 31일 → 2월) 선택된 일을 그 달의 마지막 날로 당긴다.
+  useEffect(() => {
+    if (tempDay != null && tempDay > maxDay) setTempDay(maxDay);
+  }, [maxDay, tempDay]);
+
   const handleClose = () => {
     setIsClosing(true);
     setTimeout(() => {
@@ -272,11 +369,22 @@ export function Select<T extends Primitive = string>(
     }, 280);
   };
 
-  const isDateOrTime = fieldType === "date" || fieldType === "time";
-  const useBottomSheet = !isDateOrTime;
+  const openDateSheet = () => {
+    const parsed = parseDateValue(stringValue);
+    setTempYear(parsed.year);
+    setTempMonth(parsed.month);
+    setTempDay(parsed.day);
+    setOpen(true);
+  };
+
+  const handleConfirmDate = () => {
+    if (tempYear == null || tempMonth == null || tempDay == null) return;
+    onChange(formatDateValue(tempYear, tempMonth, tempDay) as T);
+    handleClose();
+  };
 
   const selectedLabels = useMemo(() => {
-    if (value == null) return [];
+    if (usesDateSheet || value == null) return [];
     if (Array.isArray(value)) {
       return value
         .map((v) => options.find((o) => o.value === v)?.label)
@@ -284,26 +392,26 @@ export function Select<T extends Primitive = string>(
     }
     const found = options.find((o) => o.value === value)?.label;
     return found ? [found] : [];
-  }, [value, options]);
+  }, [usesDateSheet, value, options]);
 
   const handleSelect = (item: SelectOption<T>) => {
     onChange(item.value);
     handleClose();
   };
 
-  const displayText =
-    selectedLabels.length > 0 ? selectedLabels.join(", ") : placeholder;
+  const dateDisplay = usesDateSheet ? formatDisplayDate(stringValue) : null;
+  const displayText = usesDateSheet
+    ? dateDisplay ?? resolvedPlaceholder
+    : selectedLabels.length > 0
+    ? selectedLabels.join(", ")
+    : resolvedPlaceholder;
+  const isPlaceholderShown = usesDateSheet ? dateDisplay == null : selectedLabels.length === 0;
 
-  /* ------------ 날짜/시간은 기본 input 사용 ------------- */
-  if (isDateOrTime) {
-    const stringValue =
-      typeof value === "string" || typeof value === "number"
-        ? String(value)
-        : "";
-
+  /* ------------ time: 기본 input 사용 (현재 사용처 없음, 기존 동작 유지) ------------- */
+  if (usesNativeInput) {
     return (
       <SelectWrapper>
-        {label && 
+        {label &&
         <div style={{display: "flex", gap: "4px"}}>
         <FieldLabel>{label}</FieldLabel>
         {isessential && <Label1Normal $color="var(--color-semantic-status-destructive)">*</Label1Normal>}
@@ -322,10 +430,10 @@ export function Select<T extends Primitive = string>(
     );
   }
 
-  /* ------------ 그 외 타입: 바텀시트 Select ------------- */
+  /* ------------ date / 그 외 타입: 바텀시트 Select ------------- */
   return (
     <SelectWrapper>
-      {label && 
+      {label &&
       <div style={{display: "flex", gap: "4px"}}>
       <FieldLabel>{label}</FieldLabel>
       {isessential && <Label1Normal $color="var(--color-semantic-status-destructive)">*</Label1Normal>}
@@ -333,14 +441,14 @@ export function Select<T extends Primitive = string>(
       <SelectTrigger
         type="button"
         aria-label={label ?? bottomSheetTitle}
-        onClick={() => !disabled && setOpen(true)}
+        onClick={() => !disabled && (usesDateSheet ? openDateSheet() : setOpen(true))}
         $error={error}
         $disabled={disabled}
       >
-        <SelectValue $placeholder={selectedLabels.length === 0}>
+        <SelectValue $placeholder={isPlaceholderShown}>
           {displayText}
         </SelectValue>
-        <img 
+        <img
           src="/icons/navigation/textfield-arrow.svg"
           alt=""
         />
@@ -348,7 +456,7 @@ export function Select<T extends Primitive = string>(
 
       {error && errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
 
-      {useBottomSheet && open && (
+      {open && (
         <SheetOverlay $closing={isClosing} onClick={handleClose}>
           <Sheet $closing={isClosing} onClick={(e) => e.stopPropagation()}>
             <SheetHandle />
@@ -360,23 +468,67 @@ export function Select<T extends Primitive = string>(
               </SheetCloseButton>
             </SheetHeader>
 
-            <SheetList>
-              {options.map((opt) => {
-                const selected = Array.isArray(value)
-                  ? value.includes(opt.value)
-                  : value === opt.value;
-
-                return (
-                  <SheetOption
-                    key={String(opt.value)}
-                    $selected={selected}
-                    onClick={() => handleSelect(opt)}
+            {usesDateSheet ? (
+              <>
+                <DateColumns>
+                  <DateColumnSelect
+                    aria-label="연도"
+                    value={tempYear ?? ""}
+                    onChange={(e) => setTempYear(Number(e.target.value))}
                   >
-                    {opt.label}
-                  </SheetOption>
-                );
-              })}
-            </SheetList>
+                    <option value="" disabled>년도</option>
+                    {YEAR_OPTIONS.map((y) => (
+                      <option key={y} value={y}>{y}년</option>
+                    ))}
+                  </DateColumnSelect>
+                  <DateColumnSelect
+                    aria-label="월"
+                    value={tempMonth ?? ""}
+                    onChange={(e) => setTempMonth(Number(e.target.value))}
+                  >
+                    <option value="" disabled>월</option>
+                    {MONTH_OPTIONS.map((m) => (
+                      <option key={m} value={m}>{m}월</option>
+                    ))}
+                  </DateColumnSelect>
+                  <DateColumnSelect
+                    aria-label="일"
+                    value={tempDay ?? ""}
+                    onChange={(e) => setTempDay(Number(e.target.value))}
+                  >
+                    <option value="" disabled>일</option>
+                    {Array.from({ length: maxDay }, (_, i) => i + 1).map((d) => (
+                      <option key={d} value={d}>{d}일</option>
+                    ))}
+                  </DateColumnSelect>
+                </DateColumns>
+                <DateConfirmButton
+                  type="button"
+                  disabled={tempYear == null || tempMonth == null || tempDay == null}
+                  onClick={handleConfirmDate}
+                >
+                  확인
+                </DateConfirmButton>
+              </>
+            ) : (
+              <SheetList>
+                {options.map((opt) => {
+                  const selected = Array.isArray(value)
+                    ? value.includes(opt.value)
+                    : value === opt.value;
+
+                  return (
+                    <SheetOption
+                      key={String(opt.value)}
+                      $selected={selected}
+                      onClick={() => handleSelect(opt)}
+                    >
+                      {opt.label}
+                    </SheetOption>
+                  );
+                })}
+              </SheetList>
+            )}
           </Sheet>
         </SheetOverlay>
       )}

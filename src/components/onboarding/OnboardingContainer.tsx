@@ -118,12 +118,20 @@ export const BodyContainer = styled.div`
 
 export const HeadContainer = styled.div`
   display: flex;
-  padding: 0 var(--space-4, 16px);
+  padding: var(--space-4, 16px) var(--space-4, 16px) 0;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-2, 8px);
   align-self: stretch;
 
+`
+
+/** 설명 문구 줄바꿈 사이 + 마지막 줄 아래에 약간의 숨 쉴 틈을 준다. */
+export const DescriptionGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-bottom: 3px;
 `
 
 export const HeaderTop = styled.div`

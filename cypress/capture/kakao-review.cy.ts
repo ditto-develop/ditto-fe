@@ -216,7 +216,11 @@ describe("카카오 심사 제출용 화면 캡처", () => {
       cy.wait("@checkNickname");
       cy.get('button[aria-label="성별"]').click();
       cy.contains("li", "남자", { timeout: 4000 }).click();
-      cy.get('input[type="date"]').type("1998-03-15");
+      cy.get('button[aria-label="생년월일"]').click();
+      cy.get('select[aria-label="연도"]', { timeout: 4000 }).select("1998");
+      cy.get('select[aria-label="월"]').select("3");
+      cy.get('select[aria-label="일"]').select("15");
+      cy.contains("button", "확인").click();
       ["💪 운동", "🍿 영화/드라마", "💃 공연", "📷 사진", "📚 독서"].forEach((interest) => {
         cy.contains(interest).click();
       });

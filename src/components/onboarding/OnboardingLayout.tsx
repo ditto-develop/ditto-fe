@@ -1,4 +1,4 @@
-import { ActionContainer, BodyContainer, HeadContainer, HeaderTop, PageContainer } from "@/components/onboarding/OnboardingContainer";
+import { ActionContainer, BodyContainer, DescriptionGroup, HeadContainer, HeaderTop, PageContainer } from "@/components/onboarding/OnboardingContainer";
 import { Label1Normal, Title3 } from "@/shared/ui";
 import { Nav } from "@/shared/ui";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
@@ -50,7 +50,7 @@ export function OnboardingLayout({
             {step}/{totalSteps}단계
           </Label1Normal>
         </HeaderTop>
-        <div>{description}</div>
+        <DescriptionGroup>{description}</DescriptionGroup>
       </HeadContainer>
 
       <BodyContainer>
@@ -58,7 +58,8 @@ export function OnboardingLayout({
       </BodyContainer>
 
       <ActionContainer>
-        <ActionSheet>
+        {/* 버튼 하단 여백이 과했다는 피드백으로 세이프에어리어 여유분을 16→8px로 줄인다. */}
+        <ActionSheet safeAreaExtra={8}>
           {/* 메인 버튼: onNext 실행 */}
           <ActionButton 
             variant={variant ? variant : "disabled" }

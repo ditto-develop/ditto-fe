@@ -126,11 +126,12 @@ const RightArea = styled.div<{ $isborder?: boolean }>`
   height: 100%;
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
   padding-left: 12px;
   margin-left: 8px;
   position: relative;
 
-  border-left: ${({ $isborder }) => 
+  border-left: ${({ $isborder }) =>
   $isborder ? "1px solid var(--color-semantic-line-solid-neutral)" : "none"};
 `;
 
@@ -223,7 +224,11 @@ const StyledInput = styled(Body1Normal).attrs({ as: "input" })<{
 
 
 // 버튼 버전 (알약형)
+// InputWrapper가 좁아질 때 두 글자짜리 라벨(예: "수정")이 한 글자씩 줄바꿈되어
+// 세로로 보이던 문제 — 폭이 줄어도 줄바꿈하지 않게 고정한다.
 const RightAddonButton = styled.button`
+  flex-shrink: 0;
+  white-space: nowrap;
   color: var(--Semantic-Label-Normal, var(--color-semantic-label-normal));
 `;
 
@@ -234,6 +239,8 @@ const RightAddonImg = styled.img`
 
 // 단순 텍스트 버전
 const RightAddonTextOnly = styled(Label2)`
+  flex-shrink: 0;
+  white-space: nowrap;
   color: var(--Semantic-Label-Normal, var(--color-semantic-label-normal));
 `;
 

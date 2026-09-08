@@ -19,12 +19,14 @@ interface ActionSheetProps {
   divider?: boolean;
   caption?: string;
   safeArea?: boolean;
-  layout?: "row" | "column"; 
+  /** safeArea일 때 버튼 아래 추가 여백(px). 기본값은 기존 동작과 동일한 16. */
+  safeAreaExtra?: number;
+  layout?: "row" | "column";
 }
 
 // --- Styled Components ---
 
-const Container = styled.div<{ $sticky?: boolean; $divider?: boolean; $safeArea?: boolean }>`
+const Container = styled.div<{ $sticky?: boolean; $divider?: boolean; $safeArea?: boolean; $safeAreaExtra: number }>`
   width: 100%;
   padding: 16px 16px;
   display: flex;
@@ -45,7 +47,7 @@ const Container = styled.div<{ $sticky?: boolean; $divider?: boolean; $safeArea?
   ${(p) =>
     p.$safeArea &&
     `
-    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    padding-bottom: calc(${p.$safeAreaExtra}px + env(safe-area-inset-bottom));
   `}
 `;
 
@@ -160,6 +162,7 @@ export const ActionSheet = ({
   divider = false,
   caption,
   safeArea = true,
+  safeAreaExtra = 16,
   layout, // ✅ layout prop 구조 분해 할당
 }: ActionSheetProps) => {
   const childCount = React.Children.count(children);
@@ -169,7 +172,7 @@ export const ActionSheet = ({
   const finalLayout = layout || (childCount === 1 ? "column" : "row");
 
   return (
-    <Container $sticky={sticky} $divider={divider} $safeArea={safeArea}>
+    <Container $sticky={sticky} $divider={divider} $safeArea={safeArea} $safeAreaExtra={safeAreaExtra}>
       {caption && <Caption>{caption}</Caption>}
 
       {/* ButtonGroup에 결정된 layout 전달 */}

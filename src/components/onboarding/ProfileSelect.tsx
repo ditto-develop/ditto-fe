@@ -1,8 +1,13 @@
 import { ActionContainer } from "@/components/onboarding/OnboardingContainer";
 import { Title3 } from "@/shared/ui";
 import React, { useState } from "react";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
+
+const slideUp = keyframes`
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+`;
 
 /**
  * 화면 전체를 덮는 시트.
@@ -26,6 +31,9 @@ const Wrapper = styled.div`
   margin: 0 auto;
   background: var(--color-semantic-background-normal-normal);
   overflow: hidden;         /* 스크롤은 AvatarScrollArea가 맡는다 */
+
+  /* 인스턴스로 바로 나타나던 걸 바텀시트처럼 아래에서 위로 올라오게. */
+  animation: ${slideUp} 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 `;
 
 const StickyTop = styled.div`

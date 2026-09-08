@@ -320,13 +320,18 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
             나이 구간 선택을 생년월일 입력으로 바꿨다. 본인인증을 붙이지 않기로 해
             (2026-08-30) 나이의 출처가 여기뿐이고, 구간 선택으로는 만 19세 경계를
             판정할 수 없었다. BE 에 보낼 연령대는 Tutorial 이 이 값에서 계산한다.
+
+            input[type=date] 는 일부 인앱 웹뷰에서 탭해도 피커가 뜨지 않아 선택
+            자체가 막혔다 — 연/월/일 네이티브 select 바텀시트(Select fieldType="date")로
+            바꿔 플랫폼 피커가 항상 뜨도록 한다.
           */}
-          <TextField
+          <Select
             label="생년월일"
             isessential
-            type="date"
+            fieldType="date"
+            bottomSheetTitle="생년월일"
             value={data.birthDate ?? ""}
-            onChange={(e) => onChange("birthDate", e.target.value)}
+            onChange={(v) => onChange("birthDate", v ?? "")}
           />
         </DividedInner>
       </DivideContainer>
