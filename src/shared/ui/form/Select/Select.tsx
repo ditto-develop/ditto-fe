@@ -110,7 +110,7 @@ const SelectValue = styled.span<{ $placeholder?: boolean }>`
   color: ${({ $placeholder }) =>
     $placeholder
       ? "var(--color-semantic-label-alternative)"
-      : "var(--color-semantic-line-normal-normal)"};
+      : "var(--color-semantic-label-strong)"};
 `;
 
 const ErrorMessage = styled.div`
