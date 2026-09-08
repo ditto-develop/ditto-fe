@@ -89,9 +89,17 @@ function isCypressRuntime(): boolean {
 }
 
 export function DebugOverlay() {
+  // 정적 export라 빌드 시점엔 window가 없어 isCypressRuntime()이 항상 false로 평가되고,
+  // 그 결과 버튼 마크업이 정적 HTML에 그대로 박힌다(랜딩 페이지 스크롤 오버플로 원인이었다).
+  // 마운트 이후에만 판정해 서버/빌드 산출물에는 아예 렌더하지 않는다(AppleLogin과 같은 패턴).
+  const [shouldRender, setShouldRender] = useState(false);
   const [open, setOpen] = useState(false);
   const [entries, setEntries] = useState<DebugLogEntry[]>([]);
   const [tokenSummary, setTokenSummary] = useState("");
+
+  useEffect(() => {
+    setShouldRender(!isCypressRuntime());
+  }, []);
 
   useEffect(() => {
     setEntries(getDebugLogEntries());
@@ -103,10 +111,7 @@ export function DebugOverlay() {
     setTokenSummary(readTokenSummary());
   }, [open]);
 
-  // 화면 아무 자리에 고정된 버튼이라 E2E가 클릭하려는 요소를 계속 가린다(위치를 옮겨도
-  // 다른 화면에서 또 겹친다). Cypress 실행 중에는 렌더하지 않는다 — 실기기/실제 사용자
-  // 화면에는 영향 없다.
-  if (isCypressRuntime()) return null;
+  if (!shouldRender) return null;
 
   return (
     <>
