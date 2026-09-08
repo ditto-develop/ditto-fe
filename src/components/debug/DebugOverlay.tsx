@@ -84,6 +84,10 @@ function readTokenSummary(): string {
   return `accessToken 있음 (만료됨: ${isAccessTokenExpired()}, 앞 12자: ${token.slice(0, 12)}...)`;
 }
 
+function isCypressRuntime(): boolean {
+  return typeof window !== "undefined" && "Cypress" in window;
+}
+
 export function DebugOverlay() {
   const [open, setOpen] = useState(false);
   const [entries, setEntries] = useState<DebugLogEntry[]>([]);
@@ -98,6 +102,11 @@ export function DebugOverlay() {
     if (!open) return;
     setTokenSummary(readTokenSummary());
   }, [open]);
+
+  // 화면 아무 자리에 고정된 버튼이라 E2E가 클릭하려는 요소를 계속 가린다(위치를 옮겨도
+  // 다른 화면에서 또 겹친다). Cypress 실행 중에는 렌더하지 않는다 — 실기기/실제 사용자
+  // 화면에는 영향 없다.
+  if (isCypressRuntime()) return null;
 
   return (
     <>
