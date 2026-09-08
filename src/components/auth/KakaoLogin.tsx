@@ -11,7 +11,6 @@ import {
 } from "@/shared/lib/api/externalApi";
 import { loginWithKakaoSdk } from "@/shared/lib/native/kakaoLogin";
 import { describeError } from "@/shared/lib/api/apiError";
-import { debugLog } from "@/shared/lib/debugLog";
 import { resolveSocialLogin } from "@/features/auth/lib/socialLoginOutcome";
 import type { KakaoLoginResult } from "@/types/kakao";
 
@@ -67,12 +66,9 @@ export const KakaoLogin = (_props: KakaoLoginProps) => {
        * 어떤 경우에도 아래 폴백까지는 도달하게 한다.
        */
       const outcome = await loginWithKakaoSdk().catch((err: unknown) => {
-        debugLog("[KakaoLogin] 네이티브 로그인 호출이 예외로 끝났습니다:", describeError(err));
+        console.error("[KakaoLogin] 네이티브 로그인 호출이 예외로 끝났습니다:", describeError(err));
         return { status: "failed" as const, message: "네이티브 로그인 호출 실패" };
       });
-
-      // 임시 진단 로그: 네이티브 SDK 단계에서 실제로 어떤 status가 오는지 확인한다.
-      debugLog("[KakaoLogin] 네이티브 SDK 결과:", outcome.status);
 
       // 사용자가 카카오 화면에서 스스로 취소했다. 리다이렉트로 끌고 가면 안 된다.
       if (outcome.status === "cancelled") return;
@@ -96,7 +92,7 @@ export const KakaoLogin = (_props: KakaoLoginProps) => {
           router.replace("/auth/callback?signupRequired=true");
           return;
         } catch (err: unknown) {
-          debugLog("[KakaoLogin] 네이티브 토큰 교환 실패, 리다이렉트 로그인으로 폴백:", describeError(err));
+          console.error("[KakaoLogin] 네이티브 토큰 교환 실패, 리다이렉트 로그인으로 폴백:", describeError(err));
         }
       }
 

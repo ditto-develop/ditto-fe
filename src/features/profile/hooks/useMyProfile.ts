@@ -5,7 +5,6 @@ import { getMyProfile, type PublicProfileDto } from "@/features/profile/api/prof
 import type { ProfileInfo } from "@/features/profile/model/types";
 import { toInterestLabel, toLocationLabel, toOccupationLabel } from "@/shared/lib/profileLabels";
 import { describeError } from "@/shared/lib/api/apiError";
-import { debugLog } from "@/shared/lib/debugLog";
 
 function toGenderKo(gender: string): string {
     if (gender === "MALE") return "남성";
@@ -42,8 +41,7 @@ export function useMyProfile() {
                 setProfile(toProfileInfo(dto));
             })
             .catch((e: unknown) => {
-                // 임시 진단 로그: "프로필도 안 뜬다" 증상의 실제 실패 원인을 확인한다.
-                debugLog("[useMyProfile] 내 프로필 조회 실패:", describeError(e));
+                console.error("[useMyProfile] 내 프로필 조회 실패:", describeError(e));
                 setError(e instanceof Error ? e : new Error("Failed to load my profile"));
             })
             .finally(() => setLoading(false));

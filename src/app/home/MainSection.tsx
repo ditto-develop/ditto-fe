@@ -24,7 +24,6 @@ import { useHomeReady } from "@/context/HomeReadyContext";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useToast } from "@/context/ToastContext";
 import { describeError } from "@/shared/lib/api/apiError";
-import { debugLog } from "@/shared/lib/debugLog";
 
 const MainSectionContainer = styled.div`
   /**
@@ -114,12 +113,6 @@ export function MainSection() {
         ]);
 
         const fetchedPeriod = mapSystemPeriod(systemState.period);
-        // 임시 진단 로그: 기간 조회 자체는 성공했는지, 후보/소개노트 조회는 어땠는지 확인한다.
-        debugLog("[MainSection] 홈 데이터 로딩 성공:", {
-          period: fetchedPeriod,
-          hasCandidateResult: Boolean(candidateResult),
-          hasIntroNotes: Boolean(introNotes),
-        });
         setPeriod(fetchedPeriod);
 
         if (introNotes) {
@@ -185,12 +178,11 @@ export function MainSection() {
           if (latestChatRoom) setChatRoom(latestChatRoom);
         } catch (err: unknown) {
           // 매칭 상태 조회 실패 → failmatch
-          debugLog("[MainSection] 매칭 상태 조회 실패, failmatch로 폴백:", describeError(err));
+          console.error("[MainSection] 매칭 상태 조회 실패, failmatch로 폴백:", describeError(err));
           setMatchType("failmatch");
         }
       } catch (err: unknown) {
-        // 임시 진단 로그: 기간 조회 실패로 카드가 안 뜨는 케이스의 실제 원인을 확인한다.
-        debugLog("[MainSection] 홈 데이터 로딩 실패(카드가 안 뜨는 원인):", describeError(err));
+        console.error("[MainSection] 홈 데이터 로딩 실패:", describeError(err));
       } finally {
         setLoading(false);
         setHomeReady(true);
