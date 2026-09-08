@@ -59,6 +59,13 @@ describe("onboarding flow", () => {
     cy.contains("button", "다 작성했어요").should("not.exist");
     cy.contains("button", "다음에 할래요").should("not.exist");
 
+    // 저장/취소 없이 화면 다른 곳을 눌러 포커스만 잃어도(=키보드가 내려가도) CTA는 돌아온다.
+    cy.contains("소개 노트 작성하기").click();
+    cy.contains("button", "다 작성했어요").should("be.visible");
+
+    // 다시 편집하면 또 감춰지고, 취소하면 돌아온다.
+    cy.get("textarea").first().click();
+    cy.contains("button", "다 작성했어요").should("not.exist");
     cy.contains("button", "취소").click();
     cy.contains("button", "다 작성했어요").should("be.visible");
   });

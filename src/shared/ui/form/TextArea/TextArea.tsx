@@ -14,6 +14,11 @@ interface TextAreaWithActionsProps {
   activeId: string | null; // 현재 편집 중인 ID (부모에서 관리)
   onChangeActive: (id: string | null) => void;
   onRequestFocusChange: (id: string) => void;
+  /**
+   * 입력창이 실제로 포커스를 얻고 잃을 때 알린다(≒ 키보드가 열리고 닫힐 때).
+   * 편집 상태(activeId)와 달리 화면 아무 곳이나 눌러 포커스를 잃으면 곧바로 false가 된다.
+   */
+  onFocusChange?: (focused: boolean) => void;
 
   onSave?: (value: string) => void;
   onCancel?: () => void;
@@ -45,6 +50,7 @@ export const TextAreaWithActions = forwardRef<
       onSave,
       onCancel,
       onRequestFocusChange,
+      onFocusChange,
     },
     ref
   ) => {
@@ -59,7 +65,12 @@ export const TextAreaWithActions = forwardRef<
     const isLocked = activeId !== null && !isActive;
 
     const handleFocus = () => {
+      onFocusChange?.(true);
       onRequestFocusChange(id);
+    };
+
+    const handleBlur = () => {
+      onFocusChange?.(false);
     };
 
     /**
@@ -136,6 +147,7 @@ export const TextAreaWithActions = forwardRef<
               value={value}
               onChange={handleChange}
               onFocus={handleFocus}
+              onBlur={handleBlur}
               onPointerDown={handlePointerDown}
               placeholder={placeholder}
               maxLength={maxLength}
@@ -185,7 +197,7 @@ const Container = styled.div`
   width: 100%;
 `;
 const Wrapper = styled.div<{ $error?: boolean }>`
-  padding: 16px;
+  padding: 12px;
   border-radius: 16px;
   border: 2px solid
     ${({ $error }) =>

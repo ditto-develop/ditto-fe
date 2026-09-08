@@ -1,5 +1,6 @@
 import React, {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useRef,
@@ -39,9 +40,39 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
     const [activeId, setActiveId] = useState<string | null>(null);
     // "다 작성했어요"를 눌렀는데 필수 질문이 비어 있을 때만 켠다.
     const [showRequiredHint, setShowRequiredHint] = useState(false);
+    // 입력창이 실제로 포커스를 쥐고 있는지(≒ 키보드가 떠 있는지).
+    const [inputFocused, setInputFocused] = useState(false);
     const { showToast, removeToast } = useToast();
     const textAreaRefs = useRef<(TextAreaWithActionsRef | null)[]>([]);
     const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
+    const blurTimer = useRef<number | null>(null);
+
+    /**
+     * 포커스를 잃어도 곧바로 확정하지 않는다.
+     * 저장/취소 버튼을 누르면 blur가 먼저 오는데, 그 순간 CTA를 되돌리면 레이아웃이
+     * 움직여 클릭이 빗나간다. 한 박자 기다렸다가 정말 포커스가 떠났을 때만 반영한다.
+     */
+    const handleInputFocusChange = useCallback((focused: boolean) => {
+      if (blurTimer.current !== null) {
+        window.clearTimeout(blurTimer.current);
+        blurTimer.current = null;
+      }
+      if (focused) {
+        setInputFocused(true);
+        return;
+      }
+      blurTimer.current = window.setTimeout(() => {
+        blurTimer.current = null;
+        setInputFocused(false);
+      }, 150);
+    }, []);
+
+    useEffect(
+      () => () => {
+        if (blurTimer.current !== null) window.clearTimeout(blurTimer.current);
+      },
+      [],
+    );
 
     const onRequestFocusChange = (newlyFocusedId: string) => {
       const activeIndex = questions.findIndex(
@@ -59,6 +90,7 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
           {
             id: "save-confirmation",
             actionLabel: "저장",
+            actionColor: "var(--color-semantic-inverse-primary)",
             // 액션(저장)이나 닫기를 누를 때까지 떠 있어야 한다. 자동으로 사라지면
             // 왜 다른 답변으로 넘어가지 않는지 알 수 없다.
             duration: 0,
@@ -136,10 +168,12 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
       if (requiredAnswered) setShowRequiredHint(false);
     }, [requiredAnswered]);
 
-    // 편집 중에는 부모가 하단 CTA를 감춘다(키보드와 겹쳐 입력 영역이 좁아지는 문제).
+    // 키보드가 떠 있는 동안만 부모가 하단 CTA를 감춘다(겹쳐서 입력 영역이 좁아지는 문제).
+    // 편집 상태(activeId)에 묶으면 화면 아무 곳이나 눌러 키보드를 내렸을 때 CTA가
+    // 돌아오지 않는다 — activeId는 저장/취소로만 풀리기 때문.
     useEffect(() => {
-      onEditingChange?.(activeId !== null);
-    }, [activeId, onEditingChange]);
+      onEditingChange?.(inputFocused);
+    }, [inputFocused, onEditingChange]);
 
     useEffect(() => {
       if (activeId !== null) return;
@@ -186,6 +220,7 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
                 activeId={activeId}
                 onChangeActive={setActiveId}
                 onRequestFocusChange={onRequestFocusChange}
+                onFocusChange={handleInputFocusChange}
                 onSave={(v) => {
                   saveIntroduceAt(index, v);
                   onPersist?.(INTRO_NOTE_FIELDS[index].code, v);
@@ -250,7 +285,7 @@ const CardWrapper = styled.div`
   padding: 16px;
   flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
 `;
 const HeaderRow = styled.div`
   margin: 0;
