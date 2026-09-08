@@ -13,6 +13,8 @@ interface ToastOptions {
   id?: string; // ✅ 직접 ID 지정 가능 (옵션)
   actionLabel?: ReactNode;
   actionIcon?: ReactNode;
+  /** 액션 버튼 텍스트 색상. 지정하지 않으면 기본 색상을 쓴다. */
+  actionColor?: string;
   onAction?: () => void;
   duration?: number;
 }
@@ -41,6 +43,7 @@ interface BottomToastProps {
   onClose: () => void;
   actionLabel?: React.ReactNode;
   actionIcon?: React.ReactNode;
+  actionColor?: string;
   onAction?: () => void;
 }
 
@@ -99,7 +102,7 @@ const LeftSection = styled.div`
   opacity: 1;
 `;
 
-const ActionButton = styled.button`
+const ActionButton = styled.button<{ $color?: string }>`
   background: none;
   border: none;
   cursor: pointer;
@@ -111,7 +114,7 @@ const ActionButton = styled.button`
   border-radius: 4px;
   font-size: var(--typography-label-1-normal-font-size);
   font-weight: 600;
-  color: var(--color-semantic-accent-foreground-lightBlue);
+  color: ${({ $color }) => $color ?? 'var(--color-semantic-accent-foreground-lightBlue)'};
   transition: background-color 0.2s, transform 0.1s;
   flex-shrink: 0;
 
@@ -137,6 +140,7 @@ const BottomToast = ({
   onClose,
   actionLabel,
   actionIcon,
+  actionColor,
   onAction,
 }: BottomToastProps) => {
   const getToastIcon = (toastType: ToastType) => {
@@ -183,6 +187,7 @@ const BottomToast = ({
 
       {(actionLabel || actionIcon) && (
         <ActionButton
+          $color={actionColor}
           onClick={(event) => {
             event.stopPropagation();
             onAction?.();
@@ -240,6 +245,7 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
             onClose={() => removeToast(toast.id)}
             actionLabel={toast.options?.actionLabel}
             actionIcon={toast.options?.actionIcon}
+            actionColor={toast.options?.actionColor}
             onAction={toast.options?.onAction}
           />
         ))}

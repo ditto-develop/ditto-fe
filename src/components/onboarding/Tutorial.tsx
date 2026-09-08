@@ -304,10 +304,11 @@ export function Tutorial({ initialData }: TutorialProps) {
            <Body2Normal $color="white" style={{ fontSize: "14px" }}>매칭 신청을 위해 프로필이 필요해요.</Body2Normal>
            <Body2Normal $color="white" style={{ fontSize: "14px" }}>나중에 꼭 완료해주세요!</Body2Normal>
         </div>,
-        "default", 
+        "none",
         {
           id: "confirm-msg",
           actionLabel: "확인",
+          actionColor: "var(--color-semantic-inverse-primary)",
           onAction: () => {
             removeToast("confirm-msg");
             goNextStep();
