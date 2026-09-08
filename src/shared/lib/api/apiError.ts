@@ -89,6 +89,13 @@ export const API_ERROR_CODE = {
    * 실패로 노출하면 안 된다**(BE 위키 Frontend-Push-Guide §2).
    */
   DEVICE_NOT_OWNED: "8301",
+  /**
+   * 세션(accessToken)은 유효하지만 회원가입이 완료되지 않은 계정.
+   * 로그인 응답의 signupRequired와 별개로, 홈 데이터 등 보호 API 쪽에서 이 코드로 막힌 계정이
+   * 실제로 존재한다(2026-09-08 실기기 로그로 확인) — signupRequired:false로 로그인시켜 놓고
+   * 이후 모든 보호 API가 이 코드로 거부해 홈이 카드 없이 빈 화면으로 보였다.
+   */
+  SIGNUP_INCOMPLETE: "3001",
 } as const;
 
 /** 세션 전체를 막는 제재 코드(전역 인터셉트 대상). 6008은 퀴즈 인라인이라 제외한다. */
@@ -109,6 +116,19 @@ export function notifySanctionedIfBlocked(code: string): void {
   if (typeof window === "undefined") return;
   if (!BLOCKING_SANCTION_CODES.includes(code)) return;
   window.dispatchEvent(new CustomEvent(SANCTION_EVENT, { detail: { code } }));
+}
+
+/**
+ * SIGNUP_INCOMPLETE(3001)도 제재와 같은 성격이다 — 특정 화면이 아니라 세션 전체에 걸린다.
+ * api 레이어가 feature/라우터를 직접 알지 않도록 이벤트만 쏘고, SignupIncompleteGate가 받아
+ * 회원가입 화면으로 보낸다.
+ */
+export const SIGNUP_INCOMPLETE_EVENT = "ditto:signup-incomplete";
+
+export function notifySignupIncompleteIfBlocked(code: string): void {
+  if (typeof window === "undefined") return;
+  if (code !== API_ERROR_CODE.SIGNUP_INCOMPLETE) return;
+  window.dispatchEvent(new CustomEvent(SIGNUP_INCOMPLETE_EVENT));
 }
 
 export function isApiError(error: unknown): error is ApiError {

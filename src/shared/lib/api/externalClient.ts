@@ -1,4 +1,4 @@
-import { ApiError, notifySanctionedIfBlocked } from "@/shared/lib/api/apiError";
+import { ApiError, notifySanctionedIfBlocked, notifySignupIncompleteIfBlocked } from "@/shared/lib/api/apiError";
 import { clearTokens, getAccessToken, setTokens } from "@/shared/lib/auth";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -56,6 +56,7 @@ function toApiError(
             : httpStatus;
 
     notifySanctionedIfBlocked(code);
+    notifySignupIncompleteIfBlocked(code);
 
     return new ApiError(getErrorMessage(json?.error, fallback), code, statusCode);
 }

@@ -4,6 +4,7 @@ import { Splash } from "@/components/splash/Splash";
 import { DebugOverlay } from "@/components/debug/DebugOverlay";
 import { useHomeReady } from "@/context/HomeReadyContext";
 import { SanctionGate } from "@/features/sanction";
+import { SignupIncompleteGate } from "@/features/auth/ui/SignupIncompleteGate";
 import { MswProvider } from "@/mocks/MswProvider";
 import {
   ACCESS_TOKEN_KEY,
@@ -300,6 +301,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         onLoad={kakaoInit}
       />
       <SanctionGate />
+      <SignupIncompleteGate />
       {/* children은 항상 마운트 — Splash가 오버레이로 덮음 */}
       <MswProvider>{children}</MswProvider>
       {showSplash && <Splash />}
