@@ -216,9 +216,11 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
     };
 
     setToasts((prev) => {
-      // 2. 중복 방지: 같은 ID가 이미 있다면 제거하고 새로 추가 (내용 갱신 효과)
-      const filtered = prev.filter((t) => t.id !== id);
-      return [...filtered, newToast];
+      // 2. 스택 방지: 이미 떠 있는 토스트가 있으면 새 호출은 무시하고 기존 토스트를 유지
+      if (prev.length > 0) {
+        return prev;
+      }
+      return [newToast];
     });
     
     return id; 
