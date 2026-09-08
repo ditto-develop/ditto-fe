@@ -853,7 +853,7 @@ error: call to main actor-isolated static method 'handleOpenUrl(url:options:)'
 
 ---
 
-## 6. 애플 로그인 (배선 완료, BE 배포 대기)
+## 6. 애플 로그인 (2026-09-08 켰다 — 앱·웹 모두)
 
 ### 왜 넣었나 — 선택 기능이 아니다
 
@@ -877,7 +877,7 @@ App Store 가이드라인 **4.8**: 제3자 소셜 로그인으로 계정을 만�
 웹은 `/auth/callback` 이 그대로 받는다 — **콜백 처리 코드를 고칠 필요가 없다.**
 중간에 애플이 우리 서버로 POST 콜백(`response_mode=form_post`)을 보내는데 FE 가 볼 일은 없다.
 
-### 현재 상태 — 플래그 OFF
+### 현재 상태 — 플래그 ON (2026-09-08)
 
 | 조각 | 위치 | 상태 |
 |---|---|---|
@@ -887,14 +887,25 @@ App Store 가이드라인 **4.8**: 제3자 소셜 로그인으로 계정을 만�
 | 버튼 + 안내 문구 | `src/components/auth/AppleLogin.tsx` → `Step0` | 완료 |
 | entitlement | `ios/App/App/App.entitlements` | 완료 (아카이브 서명에 실제로 포함됨) |
 | 포털 capability | Apple Developer App ID | ✅ 자동 프로비저닝이 등록함 |
-| **BE 엔드포인트** | `/api/v1/users/social-login/apple/native` | **미배포** |
-| **웹 Services ID** | 애플 개발자 콘솔 | **미확인** |
+| BE 엔드포인트 | `/api/v1/users/social-login/apple/native` | ✅ 배포됨 (2026-09-08 확인) |
+| 웹 Services ID | 애플 개발자 콘솔 (`pics.ditto.web`) | ✅ 등록됨 (2026-09-08 확인) |
+| 킬 스위치 | `deploy-prod.yml` Build 스텝 · `.env.development` | ✅ ON |
 
-🔴 **2026-09-07 기준 라이브 스펙에 `apple` 이 없다.** 앱(PR #164)·웹(PR #166) 둘 다 리뷰 중이다.
+확인 방법 — 둘 다 통과해야 켤 수 있다:
 
 ```bash
-curl -s https://api.ditto.pics/docs/openapi.yaml | grep -ci apple   # 0 이면 아직이다
+# 1. 라이브 스펙에 apple 이 있는가 (0 이면 아직이다)
+curl -s https://api.ditto.pics/docs/openapi.yaml | grep -ci apple
+
+# 2. 애플이 우리 Services ID 를 받아 주는가.
+#    302 의 location 을 그대로 열었을 때 애플 로그인 화면이 오면 등록된 것이고,
+#    invalid_client 오류 페이지가 오면 아직이다.
+curl -sI https://api.ditto.pics/api/v1/users/social-login/APPLE | grep -i ^location
 ```
+
+🟡 **남은 것은 실기기 스모크뿐이다.** 앱은 원격 URL 로드라 플래그가 프로덕션에 반영돼야
+기기에서 버튼이 보인다 — 순서가 "켜고 나서 확인"이 맞다. 웹 경로(리다이렉트)는 켜는 즉시
+동작한다. 네이티브 경로는 §"켜는 절차" 3번을 실기기에서 한 번 돌려 볼 것.
 
 ### 계약 (위키 §1)
 
@@ -941,16 +952,21 @@ JS 한 줄만 고쳐 실어 보낼 수 있다. **탈퇴 흐름을 심사에 넣�
 nonce 원본은 **네이티브가 만든다.** 애플에는 SHA-256 을 보내고 원본을 JS 로 돌려준다.
 서버가 원본을 해시해 토큰의 `nonce` 클레임과 대조한다.
 
-### 켜는 절차
+### 켜는 절차 (1·2·4 완료 · 3 남음)
 
-1. **라이브 스펙에 `apple` 이 뜨는지 확인** (위 curl). 뜨기 전에는 켜지 말 것.
-2. **웹까지 켤 거면** 애플 개발자 콘솔에 **Services ID · Return URL** 등록 여부를 BE 에
-   확인한다. 등록 전에는 애플이 인가 요청을 거부해 버튼만 보이고 안 된다.
-3. 실기기 스모크 — 신규/기존/제재 회원, 그리고 **애플 시트에서 취소** 시 아무 일도
+1. ✅ **라이브 스펙에 `apple` 이 뜨는지 확인** (위 curl). 뜨기 전에는 켜지 말 것.
+2. ✅ **웹까지 켤 거면** 애플 개발자 콘솔에 **Services ID · Return URL** 등록 여부를 확인한다.
+   등록 전에는 애플이 인가 요청을 거부해 버튼만 보이고 안 된다.
+3. ⬜ 실기기 스모크 — 신규/기존/제재 회원, 그리고 **애플 시트에서 취소** 시 아무 일도
    일어나지 않는지. 이름은 **최초 인가 1회만** 오므로, 다시 받으려면 iOS 설정 >
    Apple 계정 > 로그인 및 보안 > Apple로 로그인에서 ditto 를 지우고 다시 로그인한다.
-4. 플래그를 켠다 — 배포 워크플로 Build 스텝에
+4. ✅ 플래그를 켠다 — 배포 워크플로 Build 스텝에
    `NEXT_PUBLIC_APPLE_LOGIN_ENABLED: 'true'`. **앱·웹 양쪽에 함께 적용된다.**
+   dev·E2E 도 같은 화면을 보도록 `.env.development` 에 같은 값을 둔다 — 두 곳이 어긋나면
+   `cypress/e2e/flows/apple-login.cy.ts` 가 먼저 깨진다.
+
+되돌리려면 `deploy-prod.yml` 의 그 한 줄만 지우고 다시 푸시한다. 버튼이 사라지고
+카카오 로그인은 영향을 받지 않는다.
 
 ### 실패해도 로그인이 막히지는 않는다 — 다만 폴백은 없다
 

@@ -87,6 +87,15 @@ jobs:
           # 이유로 실패하면 리다이렉트 로그인으로 폴백하므로 앱에서도 로그인이 막히지
           # 않는다. 되돌릴 일이 생기면 이 줄만 지우면 된다.
           NEXT_PUBLIC_NATIVE_KAKAO_LOGIN_ENABLED: 'true'
+          # 애플 로그인 킬 스위치. **앱·웹 양쪽에 함께 적용된다** — 켜는 조건 둘을
+          # 2026-09-08 에 확인하고 켰다(docs/app-shell-runbook.md §6 "켜는 절차"):
+          #   1. 라이브 스펙에 apple 이 있다 — /api/v1/users/social-login/apple/native
+          #      와 /api/v1/users/social-login/{provider} 의 APPLE 이 모두 떴다.
+          #   2. 웹 Services ID·Return URL 이 등록돼 있다 — /social-login/APPLE 이
+          #      client_id=pics.ditto.web 로 302 하고 애플이 인가 화면을 돌려준다
+          #      (미등록이면 invalid_client 오류 페이지가 온다).
+          # 되돌릴 일이 생기면 이 줄만 지우면 된다 — 버튼이 다시 사라진다.
+          NEXT_PUBLIC_APPLE_LOGIN_ENABLED: 'true'
 
       - name: Verify CloudFront rewrite function is in sync with build output
         # 새 동적 라우트가 추가됐는데 함수를 재생성하지 않으면 그 라우트의 딥링크가

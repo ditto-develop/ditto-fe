@@ -33,7 +33,15 @@ const ButtonContainer = styled.button`
   align-items: center;
   padding: 0;
   border-radius: 12px;
-  border: 0;
+  /*
+   * 카카오 버튼과 **같은 상자 계산**을 강제한다. 카카오 쪽은 div 에 1px 테두리를 둔
+   * 361x48 이고, 프로젝트에 전역 box-sizing 리셋이 없어 실제로는 363x50 으로 그려진다.
+   * 반면 button 의 UA 기본값은 border-box 라, 같은 선언을 그대로 두면 애플 버튼만
+   * 361x48 이 되어 2px 작아지고 좌우가 어긋난다 — 애플 HIG 는 이 버튼이 다른 소셜
+   * 버튼보다 작은 것을 금지한다. 테두리 색은 배경과 같아 보이지 않는다.
+   */
+  box-sizing: content-box;
+  border: 1px solid var(--color-semantic-static-black);
   cursor: pointer;
   background-color: var(--color-semantic-static-black);
   transition: opacity 0.2s;

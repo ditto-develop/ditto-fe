@@ -215,21 +215,28 @@ BE 배포 완료. 정본은 위키
 | STOMP 전송 실패 응답 | 같은 묶음. 오면 에코 타임아웃(`SEND_ECHO_TIMEOUT_MS`)을 교체 |
 | 성사·개방 푸시 알림 | **이번 분기 밖** — FCM 인프라 자체가 없다. 폴링 유지 |
 
-### A-10. 애플 로그인 — **BE 리뷰 중, FE 배선 완료 (2026-09-07)**
+### A-10. ✅ 애플 로그인 — **BE 배포됨, 플래그 켰다 (2026-09-08)**
 
 App Store 가이드라인 4.8 때문에 **없으면 심사를 통과하지 못한다.** 계약 정본은 BE 위키
-[[Frontend-Apple-Login-Guide]]이고, FE 는 그 계약대로 **앱·웹 양쪽을 배선한 뒤 플래그를 꺼 뒀다.**
+[[Frontend-Apple-Login-Guide]]이고, FE 는 그 계약대로 앱·웹 양쪽을 배선해 뒀다.
 절차·주의점은 `docs/app-shell-runbook.md` §6.
 
-🔴 **아직 배포되지 않았다.** 라이브 스펙에 `apple` 이 없다(앱 PR #164 · 웹 PR #166 리뷰 중).
-`curl -s https://api.ditto.pics/docs/openapi.yaml | grep -ci apple` 이 0 이면 켜면 안 된다.
+켜기 전 조건 두 개가 2026-09-08 에 모두 충족돼 `NEXT_PUBLIC_APPLE_LOGIN_ENABLED` 를 켰다.
 
+- 라이브 스펙에 `apple` 이 있다 — `/api/v1/users/social-login/apple/native` 와
+  `/{provider}` 의 `APPLE` 이 모두 떴다.
+- 웹 Services ID·Return URL 이 등록됐다 — `/social-login/APPLE` 이
+  `client_id=pics.ditto.web` 로 302 하고 애플이 인가 화면을 돌려준다(미등록이면
+  `invalid_client` 오류 페이지가 온다).
+
+남은 것:
+
+- ⬜ **실기기 스모크(네이티브 경로).** 앱은 원격 URL 로드라 프로덕션 플래그가 켜져야
+  기기에서 버튼이 보인다 — "켜고 나서 확인"이 맞는 순서다. 웹 경로는 이미 동작한다.
 - 요청 필드는 `identityToken` · `rawNonce` · `name` 셋이다. FE 가 먼저 가정했던 이름
   (`nonce`·`fullName`)과 달랐고, `authorizationCode` 는 **서버가 쓰지 않는다.**
-- **탈퇴 시 애플 토큰 폐기(`/auth/revoke`)를 BE 가 하지 않는다.** 애플은 계정 삭제를
-  제공하는 앱에 이를 요구한다(5.1.1(v)). 플러그인이 `authorizationCode` 를 계속 돌려주고
-  있어 필요해지면 JS 한 줄로 실어 보낼 수 있다. **탈퇴 흐름을 심사에 넣기 전 확인 필요.**
-- 웹은 Services ID · Return URL 등록이 끝나야 동작한다. 켜기 전 BE 에 확인할 것.
+- **탈퇴 시 애플 토큰 폐기(`/auth/revoke`)를 BE 가 여전히 하지 않는다** → A-11.
+  플래그가 켜진 지금은 이게 **앱 심사 제출 전 미결 과제**로 남는다.
 
 ### A-11. 🔴 애플 탈퇴 시 토큰 폐기 — **BE 필요, FE 로는 불가능**
 
@@ -255,10 +262,20 @@ client_secret JWT 가 필요하다. 이 앱은 원격 URL 로드라 웹 번들�
 지금은 **일부러 보내지 않는다** — 위키 계약에 없는 필드라 서버 역직렬화 설정에 따라
 로그인 전체가 깨질 수 있고, 서버가 저장하지도 않아 이득이 없다.
 
-⚠️ **애플 로그인 플래그를 켜기 전에 결론이 나야 한다.** 켜 두고 탈퇴가 폐기 없이 돌면
-심사에서 걸린다.
+⚠️ **앱스토어 제출 전에 결론이 나야 한다.** 폐기 없이 탈퇴가 돌면 심사에서 걸린다.
+애플 로그인 플래그는 2026-09-08 에 켰다(A-10) — 웹은 심사 대상이 아니라 지금 문제가 되지
+않지만, **앱 제출 시점에는 미결로 남길 수 없다.**
 
-### A-12. 🔴 CORS 허용 origin 에 프로덕션 도메인이 없다 — **웹·앱 모두 차단 중 (2026-09-07)**
+### A-12. ✅ CORS 허용 origin 에 프로덕션 도메인이 없다 — **해결됨 (2026-09-08 확인)**
+
+> `https://ditto.pics` 가 허용 목록에 들어왔다. 프리플라이트가
+> `access-control-allow-origin: https://ditto.pics` · `allow-credentials: true` 로 응답한다.
+> 애플 네이티브 토큰 교환도 이 위에서 돈다 — 아래는 당시 기록으로 남긴다.
+>
+> ```bash
+> curl -sI -X OPTIONS https://api.ditto.pics/api/v1/users/social-login/apple/native \
+>   -H "Origin: https://ditto.pics" -H "Access-Control-Request-Method: POST" | grep -i allow-origin
+> ```
 
 BE 가 `https://ditto.pics` 를 CORS 에서 거부한다. **브라우저/웹뷰에서 나가는 모든 API 요청이
 막힌다.** Origin 헤더 없이(=curl 기본) 부르면 정상 200 이라 서버 로그만으로는 드러나지 않는다.
