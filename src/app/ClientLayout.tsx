@@ -12,6 +12,8 @@ import {
   hasValidSession,
 } from "@/shared/lib/auth";
 import { tryRefreshToken } from "@/shared/lib/api/client";
+import { getExternalSystemState } from "@/shared/lib/api/externalApi";
+import { API_ERROR_CODE, describeError, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { normalizePathname } from "@/shared/lib/routePath";
 import { initAppShell } from "@/shared/lib/native/appShell";
 import { initPushNotifications } from "@/shared/lib/native/pushNotifications";
@@ -238,18 +240,39 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
     sessionVerifyInFlight.current = true;
     setIsVerifyingSession(true);
-    tryRefreshToken().then((token) => {
+    tryRefreshToken().then(async (token) => {
       sessionVerifyInFlight.current = false;
       setIsVerifyingSession(false);
       // 임시 진단 로그: 루트(/) 진입 시 refresh 검증이 실제로 성공/실패하는지 확인한다.
       debugLog("[ClientLayout] 루트 진입 시 세션 검증(refresh) 결과:", { verified: Boolean(token) });
-      if (token) {
-        sessionVerified.current = true;
-        router.push("/home");
-      } else {
+      if (!token) {
         clearTokens();
         setIsLoggedIn(false);
+        return;
       }
+
+      /**
+       * refresh 성공은 "토큰이 유효하다"만 보장하지, "계정이 실제로 앱을 쓸 수 있다"는
+       * 보장하지 않는다 — 세션은 유효해도 회원가입이 완료되지 않은 계정이 있다
+       * (2026-09-08 실기기 로그로 확인). 이걸 확인 안 하고 바로 홈으로 보내면 홈이
+       * 카드 없이 잠깐 떴다가 회원가입 화면으로 다시 튕기는 깜빡임이 생긴다.
+       * 여기서 먼저 확인해서, 회원가입 미완료면 애초에 로그인 버튼 화면에 그대로 둔다 —
+       * 버튼을 누르면 정상적인 로그인 플로우가 새로 시작돼 회원가입으로 이어진다.
+       */
+      try {
+        await getExternalSystemState();
+      } catch (err: unknown) {
+        debugLog("[ClientLayout] 루트 진입 시 계정 상태 확인 실패:", describeError(err));
+        if (hasApiErrorCode(err, API_ERROR_CODE.SIGNUP_INCOMPLETE)) {
+          // 로그인 버튼 화면에 그대로 둔다. sessionVerified는 세우지 않는다 —
+          // 다음 진입(또는 회원가입 완료 후)에 다시 확인해야 한다.
+          return;
+        }
+        // 그 외 에러(네트워크 등)는 기존처럼 홈으로 보내 MainSection이 처리하게 둔다.
+      }
+
+      sessionVerified.current = true;
+      router.push("/home");
     });
   }, [
     isHydrated,
