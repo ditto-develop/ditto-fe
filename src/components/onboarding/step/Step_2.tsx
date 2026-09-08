@@ -27,6 +27,7 @@ import {
 } from "@/shared/ui";
 import { checkExternalNicknameAvailability } from "@/shared/lib/api/externalApi";
 import { MIN_SIGNUP_AGE, isEligibleAge } from "@/shared/lib/age";
+import { containsForbiddenNicknameWord } from "@/shared/lib/nicknameSafety";
 import {
   DefaultContainer,
   DivideContainer,
@@ -103,7 +104,10 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
     if (!regex.test(nickname)) {
       newErrors.push("· 한글, 영문, 숫자만 사용할 수 있습니다. (특수문자, 공백 불가)");
     }
-    
+    if (containsForbiddenNicknameWord(nickname)) {
+      newErrors.push("· 사용할 수 없는 닉네임입니다.");
+    }
+
     setNickerr(newErrors);
     return newErrors.length === 0;
   };
