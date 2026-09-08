@@ -16,6 +16,7 @@ import {
   loginWithAppleSdk,
 } from "@/shared/lib/native/appleLogin";
 import { describeError } from "@/shared/lib/api/apiError";
+import { debugLog } from "@/shared/lib/debugLog";
 import { resolveSocialLogin } from "@/features/auth/lib/socialLoginOutcome";
 
 /**
@@ -114,6 +115,9 @@ export const AppleLogin = () => {
     try {
       const outcome = await loginWithAppleSdk();
 
+      // 임시 진단 로그: 네이티브 SDK 단계에서 실제로 어떤 status가 오는지 확인한다.
+      debugLog("[AppleLogin] 네이티브 SDK 결과:", outcome.status);
+
       // 사용자가 애플 시트에서 스스로 취소했다. 아무 일도 일어나지 않아야 한다.
       if (outcome.status === "cancelled" || outcome.status === "unavailable") return;
 
@@ -143,7 +147,7 @@ export const AppleLogin = () => {
         // (토큰을 쿼리에 실어 보내지 않는다 — CloudFront 액세스 로그에 남는다).
         router.replace("/auth/callback?signupRequired=true");
       } catch (err: unknown) {
-        console.error("[AppleLogin] 네이티브 토큰 교환 실패:", describeError(err));
+        debugLog("[AppleLogin] 네이티브 토큰 교환 실패:", describeError(err));
         showToast("로그인 처리에 실패했어요. 잠시 후 다시 시도해 주세요.", "error");
       }
     } finally {

@@ -9,6 +9,7 @@ import {
   fetchSignupInitialData,
   resolveSocialLogin,
 } from "@/features/auth/lib/socialLoginOutcome";
+import { debugLog } from "@/shared/lib/debugLog";
 import type { KakaoLoginResult } from "@/types/kakao";
 
 const LoadingContainer = styled.div`
@@ -48,6 +49,15 @@ function KakaoCallbackContent() {
   useEffect(() => {
     if (isHandled.current) return;
 
+    // 임시 진단 로그: 이 화면에 실제로 어떤 쿼리로 들어왔는지 확인한다.
+    debugLog("[KakaoCallback] 쿼리 파라미터:", {
+      hasAccessToken: Boolean(accessToken),
+      signupRequired,
+      oauthError,
+      sanctioned,
+      sanctionCode,
+    });
+
     if (oauthError) {
       isHandled.current = true;
       setError(oauthErrorDescription || `카카오 로그인이 취소되었거나 실패했습니다. (${oauthError})`);
@@ -64,6 +74,8 @@ function KakaoCallbackContent() {
       sanctionCode,
       suspendedUntil,
     });
+
+    debugLog("[KakaoCallback] 라우팅 분기:", outcome.kind);
 
     if (outcome.kind === "sanctioned") {
       router.replace(`/sanction?${outcome.query}`);

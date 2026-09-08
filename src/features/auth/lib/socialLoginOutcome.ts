@@ -1,5 +1,7 @@
 import { getExternalCurrentUser } from "@/shared/lib/api/externalApi";
+import { describeError } from "@/shared/lib/api/apiError";
 import { clearTokens, setTokens } from "@/shared/lib/auth";
+import { debugLog } from "@/shared/lib/debugLog";
 import type { KakaoLoginResult } from "@/types/kakao";
 
 /**
@@ -60,8 +62,16 @@ export function resolveSocialLogin(result: SocialLoginResult | null | undefined)
     throw new Error("소셜 로그인 응답이 비어 있습니다(data: null).");
   }
 
+  // 임시 진단 로그: 로그인/회원가입 분기가 실제로 어떤 입력으로 어떤 결말을 내는지 확인한다.
+  debugLog("[socialLogin] 입력:", {
+    hasAccessToken: Boolean(result.accessToken),
+    signupRequired: result.signupRequired,
+    sanctioned: result.sanctioned,
+  });
+
   if (result.sanctioned) {
     clearTokens();
+    debugLog("[socialLogin] 분기 결과: sanctioned");
     return { kind: "sanctioned", query: buildSanctionQuery(result) };
   }
 
@@ -70,7 +80,9 @@ export function resolveSocialLogin(result: SocialLoginResult | null | undefined)
     setTokens(result.accessToken);
   }
 
-  return result.signupRequired ? { kind: "signup" } : { kind: "home" };
+  const outcome: SocialLoginOutcome = result.signupRequired ? { kind: "signup" } : { kind: "home" };
+  debugLog("[socialLogin] 분기 결과:", outcome.kind);
+  return outcome;
 }
 
 /**
@@ -89,7 +101,7 @@ export async function fetchSignupInitialData(): Promise<KakaoLoginResult> {
       birthDate: me.birthDate ?? undefined,
     };
   } catch (err: unknown) {
-    console.error("[socialLogin] /api/v1/users/me 조회 실패:", err);
+    debugLog("[socialLogin] /api/v1/users/me 조회 실패:", describeError(err));
     return {};
   }
 }

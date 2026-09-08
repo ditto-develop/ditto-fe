@@ -1,6 +1,7 @@
 "use client";
 
 import { Splash } from "@/components/splash/Splash";
+import { DebugOverlay } from "@/components/debug/DebugOverlay";
 import { useHomeReady } from "@/context/HomeReadyContext";
 import { SanctionGate } from "@/features/sanction";
 import { MswProvider } from "@/mocks/MswProvider";
@@ -14,6 +15,7 @@ import { normalizePathname } from "@/shared/lib/routePath";
 import { initAppShell } from "@/shared/lib/native/appShell";
 import { initPushNotifications } from "@/shared/lib/native/pushNotifications";
 import { initLocalNotifications } from "@/shared/lib/native/localNotifications";
+import { debugLog } from "@/shared/lib/debugLog";
 import { usePathname, useRouter } from "next/navigation";
 import Script from "next/script";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -169,6 +171,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     tryRefreshToken().then((token) => {
       sessionVerifyInFlight.current = false;
       setIsVerifyingSession(false);
+      // 임시 진단 로그: /home 직접 진입 시 세션 검증이 실제로 성공/실패하는지 확인한다.
+      debugLog("[ClientLayout] /home 진입 시 세션 검증(refresh) 결과:", { verified: Boolean(token) });
       if (token) {
         sessionVerified.current = true;
       } else {
@@ -195,6 +199,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     // 아직 stale일 수 있다(예: 회원가입 중 토큰 세팅 후 보호 경로로 첫 진입).
     // stale 값으로 잘못 리다이렉트하지 않도록 세션을 즉시 재계산해서 사용한다.
     const loggedIn = hasValidSession();
+    // 임시 진단 로그: 버튼을 누르지 않았는데도 홈으로 가는지 이 게이트에서 직접 확인한다.
+    debugLog("[ClientLayout] 세션 게이트:", { path, loggedIn, isPublicPath });
     if (!loggedIn) {
       if (isPublicPath) {
         // 비로그인 + 공개 경로: 3초 후 스플래시 숨김
@@ -222,6 +228,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     if (!isHomeRedirectCandidate) return;
 
     if (sessionVerified.current) {
+      debugLog("[ClientLayout] 이미 검증된 세션 → /home 이동 (refresh 재호출 없음)");
       router.push("/home");
       return;
     }
@@ -233,6 +240,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     tryRefreshToken().then((token) => {
       sessionVerifyInFlight.current = false;
       setIsVerifyingSession(false);
+      // 임시 진단 로그: 루트(/) 진입 시 refresh 검증이 실제로 성공/실패하는지 확인한다.
+      debugLog("[ClientLayout] 루트 진입 시 세션 검증(refresh) 결과:", { verified: Boolean(token) });
       if (token) {
         sessionVerified.current = true;
         router.push("/home");
@@ -294,6 +303,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       {/* children은 항상 마운트 — Splash가 오버레이로 덮음 */}
       <MswProvider>{children}</MswProvider>
       {showSplash && <Splash />}
+      {/* 임시 진단용 — 원인 파악 후 제거 */}
+      <DebugOverlay />
     </>
   );
 }
