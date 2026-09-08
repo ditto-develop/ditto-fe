@@ -19,10 +19,12 @@ import {
 } from "@/shared/lib/debugLog";
 
 // 디자인 토큰을 쓰지 않는다 — 제품 UI가 아니라 곧 삭제될 진단용 오버레이다.
+// 하단 탭(MainBottomNav, 60px + safe-area)과 겹치면 실기기/E2E에서 "프로필" 탭 클릭을 가린다.
+// 그 위로 띄운다.
 const ToggleButton = styled.button`
   position: fixed;
   right: 8px;
-  bottom: 8px;
+  bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 8px);
   z-index: 99999;
   padding: 6px 10px;
   border-radius: 999px;
@@ -37,7 +39,7 @@ const Panel = styled.div`
   position: fixed;
   left: 8px;
   right: 8px;
-  bottom: 44px;
+  bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 44px);
   z-index: 99999;
   max-height: 50vh;
   overflow-y: auto;
