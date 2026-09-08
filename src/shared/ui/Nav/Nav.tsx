@@ -49,8 +49,13 @@ const NavContainer = styled.div`
   align-items: center;
 
   width: 100%;
-  height: 56px; // 일반적인 모바일 Nav 높이 지정 (필요 시 조절)
-  padding: 0 16px; // 좌우 패딩만 주고 높이는 고정하는 것이 배치에 유리합니다
+  /**
+   * 앱(네이티브 셸)에서는 웹뷰가 상태바 아래로 깔려 있어 그대로 두면 제목이 잘린다.
+   * 인셋만큼 바를 키우고 같은 값으로 위를 비워, 콘텐츠 영역은 56px을 유지한다.
+   * 웹에서는 env()가 0이라 기존과 완전히 동일하다. (TopNavigation과 동일 패턴)
+   */
+  height: calc(56px + env(safe-area-inset-top, 0px)); // 일반적인 모바일 Nav 높이 지정 (필요 시 조절)
+  padding: env(safe-area-inset-top, 0px) 16px 0; // 좌우 패딩만 주고 높이는 고정하는 것이 배치에 유리합니다
   box-sizing: border-box;
 
   background-color: var(--color-semantic-background-normal-normal);

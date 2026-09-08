@@ -172,16 +172,11 @@ export function Step0({ onLoginComplete }: Step0Props) {
             */}
             <BusinessArea>
               <Caption1 $color="var(--color-semantic-label-alternative)" $align="center">
-                {BUSINESS_INFO.companyName} · 대표 {BUSINESS_INFO.representative} ·
-                사업자등록번호 {BUSINESS_INFO.registrationNumber}
+                {BUSINESS_INFO.companyName} · 사업자등록번호 {BUSINESS_INFO.registrationNumber}
               </Caption1>
               <Caption1 $color="var(--color-semantic-label-alternative)" $align="center">
                 <ContactLink href={`mailto:${BUSINESS_INFO.contactEmail}`}>
                   {BUSINESS_INFO.contactEmail}
-                </ContactLink>
-                {" · "}
-                <ContactLink href={`tel:${BUSINESS_INFO.contactPhone.replace(/-/g, "")}`}>
-                  {BUSINESS_INFO.contactPhone}
                 </ContactLink>
               </Caption1>
               <Caption1 $color="var(--color-semantic-label-alternative)" $align="center">

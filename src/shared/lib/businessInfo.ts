@@ -1,21 +1,18 @@
 /**
- * 사업자 정보 — 사업자등록증 기재 내용.
+ * 사업자 정보 — 사업자등록증 기재 내용 중 화면에 게시하는 항목만 담는다.
  *
- * 카카오 비즈앱 심사는 이 값을 **사업자등록증·비즈앱 등록 정보와 글자 단위로 대조**한다
- * (2026-08 반려 사유 2번 "사이트 내 사업자 정보 미확인", 3번 "회사명 불일치").
- * 등록증 / 카카오 콘솔 / 이 파일 세 곳의 표기가 하나라도 다르면 다시 반려되므로
- * 띄어쓰기·괄호까지 등록증 표기 그대로 두고, 보기 좋게 다듬지 않는다.
+ * 대표자·사업장 소재지·전화번호는 화면에서 뺐다(2026-09-08 사용자 요청).
+ * 카카오 비즈앱 심사 대조·전자상거래법 게시 의무는 더 이상 고려하지 않는다.
  *
- * 대표자 생년월일은 등록증에 기재되어 있으나 공개 게시 대상이 아니라 담지 않는다.
+ * 등록증 / 카카오 콘솔 / 이 파일 표기가 다르면 카카오 심사가 다시 반려될 수 있으니
+ * 남은 항목(상호·사업자등록번호 등)은 띄어쓰기·괄호까지 등록증 표기 그대로 둔다.
  *
  * 빈 문자열인 항목은 화면에서 행 자체가 빠진다 — 값이 정해지면 여기만 채우면 된다.
  */
 export const BUSINESS_INFO = {
   /** 상호. 카카오 콘솔 [내 애플리케이션] > [일반] > [기본 정보]의 회사명과 반드시 동일해야 한다. */
   companyName: "카운트제로",
-  representative: "오세영",
   registrationNumber: "291-39-01610",
-  address: "서울특별시 노원구 한글비석로 479, 111동 306호(상계동, 보람아파트)",
   businessType: "도매 및 소매업",
   businessItem: "전자상거래 소매업",
   openedOn: "2026년 08월 08일",
@@ -27,6 +24,12 @@ export const BUSINESS_INFO = {
    */
   mailOrderNumber: "",
   contactEmail: "ditto.apply@gmail.com",
+  /**
+   * 사업자 정보 화면(§getBusinessInfoRows)에는 더 이상 노출하지 않는다(2026-09-08
+   * 사용자 요청). 개인정보 보호책임자 연락처(PRIVACY_OFFICER.phone)로만 쓰이므로
+   * 값 자체는 남겨 둔다 — 이건 사업자 정보 게시 의무가 아니라 개인정보 보호법상
+   * 보호책임자 연락처 게시 의무라 별도다.
+   */
   contactPhone: "010-2936-6989",
 } as const;
 
@@ -61,14 +64,11 @@ export type BusinessInfoRow = {
 export function getBusinessInfoRows(): BusinessInfoRow[] {
   return [
     { label: "상호", value: BUSINESS_INFO.companyName },
-    { label: "대표자", value: BUSINESS_INFO.representative },
     { label: "사업자등록번호", value: BUSINESS_INFO.registrationNumber },
     { label: "통신판매업 신고번호", value: BUSINESS_INFO.mailOrderNumber },
-    { label: "사업장 소재지", value: BUSINESS_INFO.address },
     { label: "업태", value: BUSINESS_INFO.businessType },
     { label: "종목", value: BUSINESS_INFO.businessItem },
     { label: "개업연월일", value: BUSINESS_INFO.openedOn },
     { label: "이메일", value: BUSINESS_INFO.contactEmail },
-    { label: "전화번호", value: BUSINESS_INFO.contactPhone },
   ].filter((row) => row.value.length > 0);
 }
