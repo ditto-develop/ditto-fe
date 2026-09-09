@@ -17,6 +17,7 @@ import { useToast } from "@/context/ToastContext";
 import { getMyMemberId } from "@/shared/lib/auth";
 import { parseServerDateTime } from "@/shared/lib/serverDateTime";
 import { resolveStaticRouteParam } from "@/shared/lib/staticRouteParam";
+import { ChatRoomSkeleton } from "@/app/chat/_components/ChatRoomSkeleton";
 import { GroupChatRoomHeader } from "./GroupChatRoomHeader";
 import { GroupMessageList } from "./GroupMessageList";
 import { GroupChatMenuBottomSheet } from "./GroupChatMenuBottomSheet";
@@ -172,7 +173,7 @@ export function GroupChatRoomPageClient() {
   if (metaLoading || messagesLoading) {
     return (
       <PageContainer>
-        <EmptyMessage>불러오는 중...</EmptyMessage>
+        <ChatRoomSkeleton />
       </PageContainer>
     );
   }

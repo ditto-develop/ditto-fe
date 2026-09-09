@@ -19,6 +19,19 @@ describe("chat list", () => {
     cy.location("pathname", { timeout: 6000 }).should("include", "/chat/one-on-one/1");
   });
 
+  // 로딩 문구 한 줄만 띄우면 데이터 도착 순간 레이아웃이 통째로 바뀌어 화면이 튄다.
+  it("holds the layout with a skeleton while rooms load", () => {
+    cy.intercept("GET", "**/api/**/chat/rooms", (req) => {
+      req.on("response", (res) => res.setDelay(600));
+    }).as("slowChatRooms");
+
+    cy.visit("/chat");
+
+    cy.get("[data-cy=chat-list-skeleton]").should("exist");
+    cy.contains("수민", { timeout: 8000 }).should("be.visible");
+    cy.get("[data-cy=chat-list-skeleton]").should("not.exist");
+  });
+
   it("splits rooms by the derived state (isEnded · expiresAt)", () => {
     cy.visit("/chat");
     cy.wait("@getChatRooms");

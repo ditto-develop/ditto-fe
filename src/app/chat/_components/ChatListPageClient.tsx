@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { MainBottomNav } from "@/app/home/MainBottomNav";
 import { ChatRoomListItem, type ChatRoomListItemData } from "./ChatRoomListItem";
+import { ChatRoomListSkeleton } from "./ChatRoomListSkeleton";
 import { deriveRoomState, getLastMessagePreview, useChatRooms } from "@/features/chat";
 import type { ChatRoomWithCounterpart } from "@/features/chat";
 import { toReviewHref, usePendingReviews } from "@/features/rating/hooks/usePendingReviews";
@@ -77,9 +78,7 @@ export function ChatListPageClient() {
 
       <Body>
         {loading ? (
-          <EmptyState>
-            <EmptyTitle>불러오는 중...</EmptyTitle>
-          </EmptyState>
+          <ChatRoomListSkeleton />
         ) : filteredRooms.length === 0 ? (
           <EmptyState>
             <EmptyTitle>

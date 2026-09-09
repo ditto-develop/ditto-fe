@@ -18,6 +18,7 @@ import { useToast } from "@/context/ToastContext";
 import { getMyMemberId } from "@/shared/lib/auth";
 import { parseServerDateTime } from "@/shared/lib/serverDateTime";
 import { resolveStaticRouteParam } from "@/shared/lib/staticRouteParam";
+import { ChatRoomSkeleton } from "@/app/chat/_components/ChatRoomSkeleton";
 import { ChatRoomHeader } from "./ChatRoomHeader";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
@@ -123,7 +124,7 @@ export function ChatRoomPageClient() {
   if (loading) {
     return (
       <PageContainer>
-        <EmptyMessage>불러오는 중...</EmptyMessage>
+        <ChatRoomSkeleton />
       </PageContainer>
     );
   }
