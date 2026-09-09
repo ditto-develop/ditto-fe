@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { ActionContainer, BodyContainer, DescriptionGroup, HeadContainer, HeaderTop, PageContainer } from "@/components/onboarding/OnboardingContainer";
 import { Label1Normal, Title3 } from "@/shared/ui";
 import { Nav } from "@/shared/ui";
@@ -45,6 +46,17 @@ export function OnboardingLayout({
   onSubAction, // ✅ 구조 분해 할당
   children,
 }: OnboardingLayoutProps) {
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  /*
+   * 단계가 바뀌면 본문 스크롤을 맨 위로 되돌린다.
+   * 프로필 → 소개 노트처럼 같은 레이아웃 안에서 내용만 갈아끼우면 스크롤 컨테이너가 그대로
+   * 남아, 앞 단계에서 내려 둔 스크롤 위치로 다음 단계가 열린다.
+   */
+  useEffect(() => {
+    bodyRef.current?.scrollTo({ top: 0 });
+  }, [step]);
+
   return (
     <>
     <PageContainer>
@@ -60,7 +72,7 @@ export function OnboardingLayout({
         <DescriptionGroup>{description}</DescriptionGroup>
       </HeadContainer>
 
-      <BodyContainer>
+      <BodyContainer ref={bodyRef}>
         {children}
       </BodyContainer>
 

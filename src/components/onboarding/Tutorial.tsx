@@ -264,10 +264,12 @@ export function Tutorial({ initialData }: TutorialProps) {
 
         await createExternalUser(createUserDto);
 
-        // 나머지 소개노트는 가입 후 문항별로 저장한다(Q10은 introduction으로 이미 저장됨).
+        // 소개노트는 가입 후 문항별로 저장한다. Q10 도 포함한다 — introduction 으로도
+        // 보내지만 소개노트 조회(/intro-notes)는 문항별 저장분만 돌려주므로, 여기서 빠지면
+        // 상대 프로필의 필수 노출 문항(Q10)이 비어 보인다.
         // 소개노트 저장이 실패해도 가입 자체는 끝난 상태라 되돌리지 않고 넘어간다.
         await Promise.allSettled(
-          INTRO_NOTE_FIELDS.slice(0, LAST_INTRO_NOTE_INDEX)
+          INTRO_NOTE_FIELDS
             .map((field, index) => ({ code: field.code, answer: formData.introduce[index]?.trim() ?? "" }))
             .filter(({ answer }) => answer.length > 0)
             .map(({ code, answer }) => saveExternalIntroNote(code, answer)),
@@ -382,6 +384,7 @@ export function Tutorial({ initialData }: TutorialProps) {
               onChange={handleInputChange}
               setControlButton={setControlButton}
               onEditingChange={setEditingIntroAnswer}
+              stickyProgress
             />
           </OnboardingLayout>
         );

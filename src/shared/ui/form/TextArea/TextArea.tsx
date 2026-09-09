@@ -142,17 +142,25 @@ export const TextAreaWithActions = forwardRef<
           {isSaved && !isActive ? (
             <SavedText onClick={handleSavedClick}>{savedValue}</SavedText>
           ) : (
-            <StyledTextarea
-              ref={textareaRef}
-              value={value}
-              onChange={handleChange}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              onPointerDown={handlePointerDown}
-              placeholder={placeholder}
-              maxLength={maxLength}
-              readOnly={isLocked}
-            />
+            /*
+             * 입력창 높이는 내용(비어 있으면 예시 문구)의 줄 수를 따라간다.
+             * 같은 글꼴로 같은 글을 그린 가상 요소를 뒤에 겹쳐 두고 그 높이를 빌려 쓴다 —
+             * scrollHeight 를 재는 방식은 예시 문구가 여러 줄일 때 브라우저마다 다르게 잰다.
+             */
+            <GrowWrap data-replicated-value={value || placeholder}>
+              <StyledTextarea
+                ref={textareaRef}
+                rows={1}
+                value={value}
+                onChange={handleChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                onPointerDown={handlePointerDown}
+                placeholder={placeholder}
+                maxLength={maxLength}
+                readOnly={isLocked}
+              />
+            </GrowWrap>
           )}
 
           {isActive ? (
@@ -207,15 +215,49 @@ const Wrapper = styled.div<{ $error?: boolean }>`
   background: var(--color-semantic-background-normal-normal);
 `;
 
-const StyledTextarea = styled.textarea`
+/**
+ * 자동 높이 입력창.
+ * textarea 와 가상 요소(::after)를 같은 그리드 칸에 겹친다. 가상 요소가 실제 글(또는 예시
+ * 문구)을 같은 글꼴·줄간격·폭으로 그려 칸 높이를 만들고, textarea 는 그 높이를 그대로 쓴다.
+ * 그래서 한 줄이면 한 줄 높이, 두 줄로 넘어가면 두 줄 높이가 된다.
+ */
+const GrowWrap = styled.div`
+  display: grid;
   width: 100%;
-  height: 52px;
-  border: none;
+
+  &::after {
+    content: attr(data-replicated-value) " ";
+    white-space: pre-wrap;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  &::after,
+  & > textarea {
+    grid-area: 1 / 1 / 2 / 2;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    /* 좌우 여백은 바깥 Wrapper 가 준다. 여기서 더 주면 양쪽이 달라 보인다. */
+    padding: 0;
+    border: none;
+    font-family: inherit;
+    font-size: var(--typography-body-1-normal-font-size);
+    font-weight: var(--typography-body-1-normal-font-weight);
+    line-height: var(--typography-body-1-normal-line-height);
+    letter-spacing: var(--typography-body-1-normal-letter-spacing);
+    overflow-wrap: break-word;
+  }
+`;
+
+const StyledTextarea = styled.textarea`
+  display: block;
   outline: none;
   resize: none;
+  overflow: hidden;
   background: transparent;
-  font-size: var(--typography-body-1-normal-font-size);
-  line-height: 1.4;
+  color: inherit;
 
   &::placeholder {
     color: var(--color-semantic-label-alternative);

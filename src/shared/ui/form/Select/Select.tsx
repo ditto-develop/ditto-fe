@@ -66,12 +66,18 @@ const FieldLabel = styled.label`
   color: var(--color-semantic-label-normal);
 `;
 
+/*
+ * 높이·모서리·여백·테두리는 TextField(InputWrapper)와 같게 둔다. 프로필 작성 화면에서
+ * 닉네임 입력과 나란히 놓이므로 한 필드처럼 보여야 한다.
+ * 테두리 색 토큰이 정의되지 않은 이름(--color-line-neutral 등)이면 border 선언 전체가
+ * 무효가 되어 테두리가 아예 사라진다 — 반드시 존재하는 시맨틱 토큰만 쓴다.
+ */
 const SelectTrigger = styled.button<SelectTriggerProps>`
   width: 100%;
-  height: 44px;
+  min-height: 48px;
   box-sizing: border-box;
-  padding: 0 12px;
-  border-radius: 8px;
+  padding: 0 16px;
+  border-radius: 12px;
 
   display: flex;
   align-items: center;
@@ -80,21 +86,21 @@ const SelectTrigger = styled.button<SelectTriggerProps>`
 
   background: ${({ $disabled }) =>
     $disabled
-      ? "var(--color-atomic-coolNeutral-50)"
+      ? "var(--color-semantic-interaction-disable)"
       : "var(--color-semantic-background-normal-normal)"};
 
   border: 1px solid
     ${({ $error, $disabled }) =>
       $disabled
-        ? "var(--color-line-disabled)"
+        ? "rgb(from var(--color-atomic-neutral-20) r g b / var(--color-atomic-opacity-12))"
         : $error
-        ? "var(--color-status-negative)"
-        : "var(--color-line-neutral)"};
+        ? "var(--color-semantic-status-negative)"
+        : "var(--color-semantic-line-normal-normal)"};
 
   color: ${({ $disabled }) =>
     $disabled
-      ? "var(--color-label-disabled)"
-      : "var(--color-label-default)"};
+      ? "var(--color-semantic-label-disable)"
+      : "var(--color-semantic-label-normal)"};
 
   cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
   transition: background 0.15s ease, border 0.15s ease;
@@ -123,22 +129,22 @@ const ErrorMessage = styled.div`
 
 const NativeInput = styled.input<{ $error?: boolean }>`
   width: 100%;
-  height: 44px;
+  min-height: 48px;
   box-sizing: border-box;
-  padding: 0 12px;
-  border-radius: 8px;
+  padding: 0 16px;
+  border-radius: 12px;
 
   border: 1px solid
     ${({ $error }) =>
-      $error ? "var(--color-semantic-status-negative)" : "var(--color-line-neutral)"};
+      $error ? "var(--color-semantic-status-negative)" : "var(--color-semantic-line-normal-normal)"};
   background: var(--color-semantic-background-normal-normal);
-  color: var(--color-label-default);
+  color: var(--color-semantic-label-normal);
   font-size: var(--typography-label-1-normal-font-size);
 
   &:disabled {
-    background: var(--color-atomic-coolNeutral-50);
-    color: var(--color-label-disabled);
-    border-color: var(--color-line-disabled);
+    background: var(--color-semantic-interaction-disable);
+    color: var(--color-semantic-label-disable);
+    border-color: rgb(from var(--color-atomic-neutral-20) r g b / var(--color-atomic-opacity-12));
     cursor: not-allowed;
   }
 `;

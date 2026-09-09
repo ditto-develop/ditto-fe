@@ -16,7 +16,7 @@ import { useToast } from "@/context/ToastContext";
 import { INTRO_NOTE_FIELDS, MIN_INTRO_NOTE_ANSWERS } from "@/features/profile/model/introNotes";
 import type { IntroNoteCode } from "@/features/profile/model/introNotes";
 import { useKeyboardInset } from "@/shared/hooks/useKeyboardInset";
-import { revealAboveKeyboard } from "@/shared/lib/keyboardViewport";
+import { DEFAULT_REVEAL_MARGIN, revealAboveKeyboard } from "@/shared/lib/keyboardViewport";
 import { Caption1, Label1Normal, TextAreaWithActions } from "@/shared/ui";
 import type { TextAreaWithActionsRef } from "@/shared/ui";
 import type { ControlButtonVariant, FormData, OnChange } from "@/types/type";
@@ -34,11 +34,18 @@ interface Step3Props {
     onPersist?: (code: IntroNoteCode, value: string) => void;
     /** 답변을 편집 중인지 알린다. 편집 중에는 화면이 좁아 하단 CTA를 감추기 위한 신호. */
     onEditingChange?: (isEditing: boolean) => void;
+    /**
+     * 진행 카드("N/10 질문 완료")를 스크롤해도 위에 붙여 둔다.
+     * 온보딩처럼 제목·설명이 고정된 화면에서 그 아래 진행 카드까지 같이 고정하기 위한 옵션이다.
+     * 본문이 스크롤 컨테이너인 화면에서만 켠다 — 문서 전체가 스크롤되는 화면(프로필 수정)에서는
+     * 상단 내비게이션과 겹친다.
+     */
+    stickyProgress?: boolean;
 }
 
 // ✅ forwardRef 적용
 export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
-  ({ data, onChange, setControlButton, onPersist, onEditingChange }, ref) => {
+  ({ data, onChange, setControlButton, onPersist, onEditingChange, stickyProgress = false }, ref) => {
     const [activeId, setActiveId] = useState<string | null>(null);
     // "다 작성했어요"를 눌렀는데 필수 질문이 비어 있을 때만 켠다.
     const [showRequiredHint, setShowRequiredHint] = useState(false);
@@ -47,6 +54,7 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
     const { showToast, removeToast } = useToast();
     const textAreaRefs = useRef<(TextAreaWithActionsRef | null)[]>([]);
     const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
+    const progressRef = useRef<HTMLDivElement | null>(null);
     const blurTimer = useRef<number | null>(null);
 
     /**
@@ -191,7 +199,12 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
       const target = questionRefs.current[activeIndex];
       if (!target) return;
 
-      const reveal = () => revealAboveKeyboard(target);
+      // 위에 붙여 둔 진행 카드가 있으면 그 높이만큼 더 내려서 세운다. 안 그러면 카드 뒤로 숨는다.
+      const reveal = () =>
+        revealAboveKeyboard(target, {
+          top: (progressRef.current?.offsetHeight ?? 0) + DEFAULT_REVEAL_MARGIN,
+          bottom: DEFAULT_REVEAL_MARGIN,
+        });
       const frame = window.requestAnimationFrame(reveal);
       const timers = [200, 450].map((delay) => window.setTimeout(reveal, delay));
 
@@ -227,7 +240,13 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
 
     return (
       <IntroContainer $keyboardInset={keyboardInset}>
-        <QuestionProgressCard current={completedCount} total={10} />
+        {stickyProgress ? (
+          <ProgressSticky ref={progressRef}>
+            <QuestionProgressCard current={completedCount} total={10} />
+          </ProgressSticky>
+        ) : (
+          <QuestionProgressCard current={completedCount} total={10} />
+        )}
 
         {questions.map((q, index) => {
           const id = `q${index + 1}`;
@@ -318,11 +337,32 @@ const QuestionProgressCard: React.FC<QuestionProgressCardProps> = ({
   );
 };
 
+/**
+ * 스크롤해도 진행 카드를 위에 붙여 둔다.
+ *
+ * 스크롤 컨테이너(OnboardingLayout 의 BodyContainer)는 위쪽 패딩이 --space-8 이고,
+ * 브라우저는 sticky 기준선을 그 패딩 안쪽으로 잡는다. 그대로 두면 카드가 패딩만큼 아래에
+ * 붙고, 그 위 빈 띠로 지나가는 질문이 비쳐 보인다. 그래서 패딩만큼 위로 올려 붙이고
+ * (top 음수), 같은 높이의 여백을 카드 위에 배경색으로 깔아 띠를 가린다.
+ * 실측 결과 카드 위치는 고정 전과 같다(컨테이너 패딩 = 여백).
+ */
+const ProgressSticky = styled.div`
+  position: sticky;
+  top: calc(-1 * var(--space-8));
+  z-index: 1;
+  width: 100%;
+  padding-top: var(--space-8);
+  margin-top: calc(-1 * var(--space-8));
+  background-color: var(--color-semantic-background-normal-normal);
+`;
+
+// 답변 입력창과 같은 폭(부모 폭 그대로). 고정 폭이면 좁은 화면에서 좌우 여백이 사라진다.
 const CardWrapper = styled.div`
   background-color: var(--color-semantic-background-normal-alternative);
   border-radius: 12px;
   display: flex;
-  width: 361px;
+  width: 100%;
+  box-sizing: border-box;
   padding: 16px;
   flex-direction: column;
   align-items: flex-start;

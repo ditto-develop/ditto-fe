@@ -29,7 +29,18 @@ export interface ElementBounds {
 }
 
 /** 기본 여백 — 입력창과 키보드가 붙어 보이지 않을 만큼만. */
-const DEFAULT_MARGIN = 16;
+export const DEFAULT_REVEAL_MARGIN = 16;
+
+/**
+ * 가시 영역 안쪽 여백. 숫자 하나면 위아래 같은 값이다.
+ * 위쪽은 스크롤 영역 안에 고정(sticky)된 머리글이 있을 때 그 높이만큼 더 준다 —
+ * 그러지 않으면 끌어올린 요소가 머리글 뒤로 들어가 버린다.
+ */
+export type RevealMargin = number | { top: number; bottom: number };
+
+function resolveMargin(margin: RevealMargin): { top: number; bottom: number } {
+  return typeof margin === "number" ? { top: margin, bottom: margin } : margin;
+}
 
 /**
  * 요소를 가시 영역 안으로 넣기 위해 스크롤해야 하는 양(px).
@@ -42,10 +53,11 @@ const DEFAULT_MARGIN = 16;
 export function computeScrollDelta(
   element: ElementBounds,
   viewport: VisibleViewport,
-  margin: number = DEFAULT_MARGIN,
+  margin: RevealMargin = DEFAULT_REVEAL_MARGIN,
 ): number {
-  const visibleTop = viewport.top + margin;
-  const visibleBottom = viewport.top + viewport.height - margin;
+  const { top: marginTop, bottom: marginBottom } = resolveMargin(margin);
+  const visibleTop = viewport.top + marginTop;
+  const visibleBottom = viewport.top + viewport.height - marginBottom;
 
   if (element.bottom > visibleBottom) {
     const headroom = element.top - visibleTop;
@@ -99,7 +111,7 @@ export function getScrollParent(element: HTMLElement): HTMLElement | null {
  */
 export function revealAboveKeyboard(
   element: HTMLElement,
-  margin: number = DEFAULT_MARGIN,
+  margin: RevealMargin = DEFAULT_REVEAL_MARGIN,
 ): void {
   const rect = element.getBoundingClientRect();
   const delta = computeScrollDelta(rect, getVisibleViewport(), margin);

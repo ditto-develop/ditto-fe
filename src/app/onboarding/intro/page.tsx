@@ -113,6 +113,7 @@ export default function IntroNotePage() {
         setControlButton={setControlButton}
         onPersist={handlePersistAnswer}
         onEditingChange={setEditingAnswer}
+        stickyProgress
       />
     </OnboardingLayout>
   );
