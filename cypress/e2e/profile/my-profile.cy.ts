@@ -39,6 +39,19 @@ describe("my profile", () => {
     cy.location("pathname").should("eq", "/profile/intro-note/");
   });
 
+  // 로딩 문구 한 줄만 띄우면 데이터 도착 순간 레이아웃이 통째로 바뀌어 화면이 튄다.
+  it("holds the layout with a skeleton while the profile loads", () => {
+    cy.intercept("GET", "**/api/v1/users/me/profile", (req) => {
+      req.on("response", (res) => res.setDelay(600));
+    }).as("slowMyProfile");
+
+    cy.visit("/profile");
+
+    cy.get("[data-cy=my-profile-skeleton]").should("exist");
+    cy.contains("개굴개굴렌", { timeout: 8000 }).should("be.visible");
+    cy.get("[data-cy=my-profile-skeleton]").should("not.exist");
+  });
+
   // 비공개 규칙: totalCount < publicThreshold면 평균/노쇼/코멘트가 0·빈 배열로 내려온다.
   it("hides ratings until the public threshold is reached", () => {
     cy.intercept("GET", "**/api/v1/users/me/ratings", {

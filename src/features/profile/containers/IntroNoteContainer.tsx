@@ -22,6 +22,7 @@ import type { RatingSummary } from "@/features/profile/model/types";
 import { API_ERROR_CODE, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { useToast } from "@/context/ToastContext";
 import { ProfileIntroView } from "@/features/profile/ui/ProfileIntroView";
+import { ProfileIntroSkeleton } from "@/features/profile/ui/ProfileIntroSkeleton";
 
 /**
  * 서버는 0003(403) 하나로 여러 상황을 덮는다 — 차단 관계, 그리고 매칭이 성사되지 않은
@@ -125,7 +126,11 @@ export function IntroNoteContainer({
         <PageContainer>
             <TopNavigation onBack={onBack} />
 
-            {loading && <StateText>프로필을 불러오는 중...</StateText>}
+            {loading && (
+                <IntroPreviewScroll>
+                    <ProfileIntroSkeleton />
+                </IntroPreviewScroll>
+            )}
             {error && <StateText>{toProfileErrorText(error)}</StateText>}
 
             {profile && (

@@ -9,6 +9,7 @@ import { getMyRatingSummary, getMyStats } from "@/features/profile/api/profileAp
 import { useMyProfile } from "@/features/profile/hooks/useMyProfile";
 import type { RatingSummary, MyStats } from "@/features/profile/model/types";
 import { ReceivedRatingsCard } from "@/features/profile/ui/ReceivedRatingsCard";
+import { MyProfileCardsSkeleton, MyProfileSkeleton } from "@/features/profile/ui/MyProfileSkeleton";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import { Avatar, Button, TopNavigation } from "@/shared/ui";
 
@@ -17,6 +18,8 @@ export function MyProfileContainer() {
     const { profile, loading, error } = useMyProfile();
     const [stats, setStats] = useState<MyStats | null>(null);
     const [ratingSummary, setRatingSummary] = useState<RatingSummary | null>(null);
+    // 프로필과 별개 요청이라 먼저 뜬 카드가 0 → 실제 값으로 한 번 튄다. 그동안은 스켈레톤을 둔다.
+    const [cardsLoading, setCardsLoading] = useState(true);
 
     useEffect(() => {
         Promise.all([
@@ -25,7 +28,7 @@ export function MyProfileContainer() {
         ]).then(([nextStats, nextRatingSummary]) => {
             setStats(nextStats);
             setRatingSummary(nextRatingSummary);
-        });
+        }).finally(() => setCardsLoading(false));
     }, []);
 
     return (
@@ -44,7 +47,7 @@ export function MyProfileContainer() {
             />
 
             <ScrollArea>
-                {loading && <StateText>프로필을 불러오는 중...</StateText>}
+                {loading && <MyProfileSkeleton />}
                 {error && <StateText>프로필을 불러오지 못했어요.</StateText>}
 
                 {profile && (
@@ -80,8 +83,14 @@ export function MyProfileContainer() {
 
                         <CardStack>
                             <OneLineIntroCard introduction={profile.bio} />
-                            <MyStatsCard stats={stats} />
-                            <ReceivedRatingsCard ratingSummary={ratingSummary} />
+                            {cardsLoading ? (
+                                <MyProfileCardsSkeleton />
+                            ) : (
+                                <>
+                                    <MyStatsCard stats={stats} />
+                                    <ReceivedRatingsCard ratingSummary={ratingSummary} />
+                                </>
+                            )}
                         </CardStack>
                     </Content>
                 )}
