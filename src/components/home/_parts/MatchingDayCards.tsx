@@ -103,11 +103,18 @@ export const FailMatchCard = ({ isChatTime }: { isChatTime: boolean }) => (
   </CardContainer>
 );
 
-// 피그마 1203:10081 — 매칭 기간 카드: 익명 아바타 콜라주 + 남은 시간 (후보자 정보 노출 없음)
+// 피그마 1203:10081 — 매칭 기간 카드: 아바타 콜라주 + 남은 시간 (이름 등 후보자 정보는 노출 없음)
 export const MatchingCandidateCard = ({ timeLeft, candidates }: { timeLeft: string; candidates: MatchCandidateDto[] }) => {
-  // 4개 슬롯: 실제 후보자 성별 순환, 부족하면 기본 성별
-  const slotGender = (i: number) =>
-    candidates.length > 0 ? candidates[i % candidates.length].gender : (i % 2 === 0 ? "MALE" : "FEMALE");
+  /**
+   * 4개 슬롯. 매칭 결과 화면에 나오는 후보의 캐리커처를 그대로 쓴다 — 결과 화면과 홈 카드의
+   * 얼굴이 같아야 한 사람으로 읽힌다. 후보가 4명 미만이면 순환하고, 캐리커처가 없는 후보나
+   * 후보가 아예 없을 때만 성별 기본 아바타로 채운다.
+   */
+  const slotAvatar = (i: number) => {
+    const candidate = candidates.length > 0 ? candidates[i % candidates.length] : undefined;
+    const gender = candidate?.gender ?? (i % 2 === 0 ? "MALE" : "FEMALE");
+    return candidate?.profileImageUrl || getAvatarUrl(gender, i);
+  };
 
   return (
     <ViewCardContainer>
@@ -122,19 +129,19 @@ export const MatchingCandidateCard = ({ timeLeft, candidates }: { timeLeft: stri
         <AvatarCollage>
           {/* 피그마 좌표: bottom-right 72px */}
           <CollageSlot $size={72} $left={73} $top={69}>
-            <FullSizeProfileImg imageUrl={getAvatarUrl(slotGender(0), 0)} />
+            <FullSizeProfileImg imageUrl={slotAvatar(0)} />
           </CollageSlot>
           {/* top-right 48px */}
           <CollageSlot $size={48} $left={84} $top={10}>
-            <FullSizeProfileImg imageUrl={getAvatarUrl(slotGender(1), 1)} />
+            <FullSizeProfileImg imageUrl={slotAvatar(1)} />
           </CollageSlot>
           {/* top-left 60px */}
           <CollageSlot $size={60} $left={6} $top={7}>
-            <FullSizeProfileImg imageUrl={getAvatarUrl(slotGender(2), 2)} />
+            <FullSizeProfileImg imageUrl={slotAvatar(2)} />
           </CollageSlot>
           {/* bottom-left 46px */}
           <CollageSlot $size={46} $left={11} $top={85}>
-            <FullSizeProfileImg imageUrl={getAvatarUrl(slotGender(3), 3)} />
+            <FullSizeProfileImg imageUrl={slotAvatar(3)} />
           </CollageSlot>
         </AvatarCollage>
       </FCardContainer>

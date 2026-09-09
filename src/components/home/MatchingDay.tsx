@@ -96,6 +96,14 @@ export function MatchingDay({
 
   const timeLeft = useTargetDayCountdown(day === 4 ? 5 : 4);
 
+  /**
+   * 매칭은 됐지만 아직 대화 기간이 아닐 때의 잠긴 버튼.
+   * 눌러도 아무 일이 없으면 고장난 것처럼 보인다 — 언제 열리는지 알려 준다.
+   */
+  const notifyChatNotOpenYet = () => {
+    showToast("대화는 금요일에 시작돼요!", "default");
+  };
+
   // 그룹 참여 완료 상태: "매칭 완료" 카드
   if (groupJoined && !isChatTime && matchType === "many") {
     return (
@@ -115,7 +123,7 @@ export function MatchingDay({
               <ActionSheet>
                 <ActionButton
                   variant="disabled"
-                  onClick={() => {}}
+                  onClick={notifyChatNotOpenYet}
                   icon={<img src="/icons/action/lock.svg" alt="" />}
                 >
                   대화 시작하기
@@ -132,6 +140,8 @@ export function MatchingDay({
               <SelectImgDiv>
                 {candidates.map((c, i) => {
                   const detail = {
+                    // 매칭이 성사됐으니 소개노트 전체를 읽어 온다(id 가 있어야 상세 조회가 돈다).
+                    id: c.userId,
                     name: c.nickname,
                     age: c.age,
                     gender: formatGender(c.gender),
@@ -161,6 +171,7 @@ export function MatchingDay({
           onClose={() => setSelectedProfile(null)}
           profile={selectedProfile}
           hideCta
+          showAllNotes
         />
       </>
     );
@@ -188,6 +199,8 @@ export function MatchingDay({
           }
           viewCard={<AcceptedMatchCard candidate={acceptedCandidate} onClick={() => {
             const profile = {
+              // 매칭이 성사됐으니 소개노트 전체를 읽어 온다(id 가 있어야 상세 조회가 돈다).
+              id: acceptedCandidate.userId,
               name: acceptedCandidate.nickname,
               avatarUrl: acceptedCandidate.profileImageUrl || getAvatarUrl(acceptedCandidate.gender),
               ageRange: formatAgeRange(acceptedCandidate.age),
@@ -202,7 +215,7 @@ export function MatchingDay({
               <ActionSheet>
                 <ActionButton
                   variant="disabled"
-                  onClick={() => {}}
+                  onClick={notifyChatNotOpenYet}
                   icon={<img src="/icons/action/lock.svg" alt="" />}
                 >
                   대화 시작하기
@@ -216,6 +229,7 @@ export function MatchingDay({
           onClose={() => setSelectedProfile(null)}
           profile={selectedProfile}
           hideCta
+          showAllNotes
         />
       </>
     );

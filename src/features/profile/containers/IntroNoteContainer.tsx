@@ -149,6 +149,8 @@ export function IntroNoteContainer({
                         introNotes={introNotes}
                         ratingSummary={ratingSummary}
                         hasBottomButton={hasButton}
+                        // 매칭 성사 후에는 대화 시작 전이라도 소개노트 전체가 공개된다.
+                        showAllNotes={state === "chat_started"}
                     />
                 </IntroPreviewScroll>
             )}

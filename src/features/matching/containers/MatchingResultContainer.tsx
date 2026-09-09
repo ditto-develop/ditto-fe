@@ -132,7 +132,7 @@ export function MatchingResultContainer({
                                 )}
                                 {match.hasRequested && (
                                     <StatusRow>
-                                        <StatusCheck>✓</StatusCheck>
+                                        <StatusCheckIcon src="/icons/status/circle-check-fill.svg" alt="" />
                                         <StatusText>내가 대화를 신청했어요</StatusText>
                                     </StatusRow>
                                 )}
@@ -312,9 +312,11 @@ const StatusIcon = styled.span`
   color: var(--color-semantic-status-positive);
 `;
 
-const StatusCheck = styled.span`
-  font-size: var(--typography-caption-1-font-size);
-  color: var(--color-semantic-label-alternative);
+/* Figma 2135:22944 — 채워진 원형 체크 아이콘(글자 ✓ 가 아니라 아이콘). */
+const StatusCheckIcon = styled.img`
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 `;
 
 const StatusText = styled.span<{ $green?: boolean }>`

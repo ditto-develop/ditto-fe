@@ -48,6 +48,8 @@ interface ProfileDetailModalProps {
   profile: ProfileDetailProfile | null;
   hideCta?: boolean;
   isAlreadyRequested?: boolean;
+  /** 매칭이 성사된 상대: 미리보기(3개)가 아니라 소개노트 전체를 보여 준다. */
+  showAllNotes?: boolean;
 }
 
 const CheckIcon = () => (
@@ -62,6 +64,7 @@ export function ProfileDetailModal({
   profile,
   hideCta = false,
   isAlreadyRequested = false,
+  showAllNotes = false,
 }: ProfileDetailModalProps) {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [requestedProfileKey, setRequestedProfileKey] = useState<string | null>(null);
@@ -119,6 +122,7 @@ export function ProfileDetailModal({
             interests={currentDetailData?.interests ?? []}
             introNotes={currentDetailData?.introNotes ?? []}
             ratingSummary={currentDetailData?.ratingSummary}
+            showAllNotes={showAllNotes}
           />
         </ContentBody>
 

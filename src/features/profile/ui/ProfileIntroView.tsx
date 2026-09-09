@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import styled from "styled-components";
 
+import { INTRO_NOTE_FIELDS } from "@/features/profile/model/introNotes";
 import type { RatingSummary } from "@/features/profile/model/types";
 
 type IntroNotePreviewItem = {
@@ -20,6 +21,12 @@ export interface ProfileIntroViewProps {
     introNotes: IntroNotePreviewItem[];
     ratingSummary?: RatingSummary | null;
     hasBottomButton?: boolean;
+    /**
+     * 소개노트 전체 공개(Figma 3.2 소개노트 - 매칭(만남) 완료).
+     * 매칭이 성사되면 대화 기간을 기다리는 동안에도 작성한 문항 전체를 문항 순서대로 보여 주고,
+     * "대화가 시작되면 더 볼 수 있어요" 안내는 뺀다. 기본은 미리보기(무작위 2개 + Q10).
+     */
+    showAllNotes?: boolean;
 }
 
 export function ProfileIntroView({
@@ -31,8 +38,12 @@ export function ProfileIntroView({
     introNotes,
     ratingSummary,
     hasBottomButton = true,
+    showAllNotes = false,
 }: ProfileIntroViewProps) {
-    const previewNotes = useMemo(() => selectIntroNotePreview(introNotes), [introNotes]);
+    const previewNotes = useMemo(
+        () => (showAllNotes ? sortIntroNotesByQuestion(introNotes) : selectIntroNotePreview(introNotes)),
+        [introNotes, showAllNotes],
+    );
     // 서버는 공개 여부 플래그를 주지 않는다 — 기준은 totalCount >= publicThreshold 하나뿐이고,
     // 내 프로필(ReceivedRatingsCard)과 같은 판정이라 두 화면이 어긋나지 않는다.
     const publicRatingSummary =
@@ -87,13 +98,17 @@ export function ProfileIntroView({
                             {i < previewNotes.length - 1 && <QnADivider $compact={Boolean(publicRatingSummary)} />}
                         </IntroQAItem>
                     ))}
-                    {previewNotes.length > 0 && <QnADivider $compact={Boolean(publicRatingSummary)} />}
-                    <MoreIndicator $compact={Boolean(publicRatingSummary)}>
-                        <Dot /><Dot /><Dot />
-                    </MoreIndicator>
-                    <MoreText>
-                        대화가 시작되면 더 많은 질문과 답변을 볼 수 있어요
-                    </MoreText>
+                    {!showAllNotes && (
+                        <>
+                            {previewNotes.length > 0 && <QnADivider $compact={Boolean(publicRatingSummary)} />}
+                            <MoreIndicator $compact={Boolean(publicRatingSummary)}>
+                                <Dot /><Dot /><Dot />
+                            </MoreIndicator>
+                            <MoreText>
+                                대화가 시작되면 더 많은 질문과 답변을 볼 수 있어요
+                            </MoreText>
+                        </>
+                    )}
                 </QnABody>
             </QnACard>
 
@@ -121,6 +136,15 @@ export function ProfileIntroView({
             )}
         </>
     );
+}
+
+/** 문항 순서(Q1→Q10)로 정렬한다. 서버 응답 순서에 기대지 않는다. 모르는 문항은 뒤에 둔다. */
+function sortIntroNotesByQuestion(introNotes: IntroNotePreviewItem[]): IntroNotePreviewItem[] {
+    const orderOf = (item: IntroNotePreviewItem) => {
+        const index = INTRO_NOTE_FIELDS.findIndex((field) => field.code === item.questionCode);
+        return index === -1 ? INTRO_NOTE_FIELDS.length : index;
+    };
+    return [...introNotes].sort((a, b) => orderOf(a) - orderOf(b));
 }
 
 function selectIntroNotePreview(introNotes: IntroNotePreviewItem[]): IntroNotePreviewItem[] {
