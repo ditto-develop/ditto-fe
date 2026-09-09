@@ -177,7 +177,10 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       } else {
         clearTokens();
         setIsLoggedIn(false);
-        router.push("/");
+        // replace 다 — push 면 로그인 화면에서 뒤로가기를 누른 사용자가 방금 세션이
+        // 죽은 /home 으로 되돌아가고, 이 effect 가 다시 로그인 화면으로 밀어내며
+        // 히스토리만 한 칸씩 쌓인다(=뒤로가기가 먹지 않는다).
+        router.replace("/");
       }
     });
   }, [isHydrated, path, isLoggedIn, router]);
@@ -204,8 +207,10 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         const timer = setTimeout(() => setSplashDone(true), 3000);
         return () => clearTimeout(timer);
       } else {
-        // 비로그인 + 보호 경로: 로그인 페이지로 리다이렉트
-        router.push("/");
+        // 비로그인 + 보호 경로: 로그인 페이지로 리다이렉트.
+        // 가드 리다이렉트는 전부 replace 다 — 히스토리에 남기면 뒤로가기가
+        // 되돌아왔다가 다시 밀려나는 루프가 된다.
+        router.replace("/");
       }
       return;
     }
@@ -225,7 +230,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     if (!isHomeRedirectCandidate) return;
 
     if (sessionVerified.current) {
-      router.push("/home");
+      // replace 다 — push 면 /home 에서 뒤로가기를 눌러 루트로 돌아온 순간 이
+      // effect 가 /home 을 다시 쌓아, 몇 번을 눌러도 홈에서 벗어나지 못한다.
+      router.replace("/home");
       return;
     }
 
@@ -263,7 +270,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       }
 
       sessionVerified.current = true;
-      router.push("/home");
+      router.replace("/home");
     });
   }, [
     isHydrated,

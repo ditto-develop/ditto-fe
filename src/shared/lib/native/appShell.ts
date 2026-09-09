@@ -3,6 +3,8 @@ import type { PluginListenerHandle } from "@capacitor/core";
 import { StatusBar, Style } from "@capacitor/status-bar";
 
 import { getNativePlatform, isNativeApp } from "@/shared/lib/native/platform";
+import { closeTopOverlay } from "@/shared/lib/overlayStack";
+import { normalizePathname } from "@/shared/lib/routePath";
 
 /**
  * 앱 웹뷰가 여는 정본 호스트. 딥링크 URL에서 경로만 뽑아낼 때 기준이 된다.
@@ -18,6 +20,19 @@ const ALLOWED_HOSTS = new Set([
     // 존재하지 않는 호스트를 미리 넣지 않는다 — 딥링크 payload 가 통과하는 집합이라
     // 그대로 공격 표면이 된다.
 ]);
+
+/**
+ * 뒤로가기가 "앱 종료"로 끝나야 하는 뿌리 화면.
+ *
+ * 여기서 `canGoBack` 만 믿고 `history.back()` 을 부르면 **웹뷰 히스토리**를 소비한다.
+ * 그 히스토리에는 우리 화면만 있는 게 아니다 — 리다이렉트 로그인(네이티브 카카오
+ * 로그인이 실패했을 때의 폴백)은 웹뷰가 kauth.kakao.com 을 직접 열기 때문에, 그
+ * 세션에서는 홈에서 뒤로가기를 누른 사용자가 **카카오 로그인 페이지로 되돌아간다**.
+ * 로그인 화면(`/`)도 마찬가지로 뒤에 아무것도 없어야 한다.
+ *
+ * 뿌리 화면에서 뒤로가기 = 앱 종료는 Android 의 표준 동작이기도 하다.
+ */
+const ROOT_PATHS = new Set(["/", "/home"]);
 
 type AppShellOptions = {
     /** 앱 내부 라우팅. Next 라우터의 push를 넘긴다. */
@@ -66,9 +81,21 @@ export async function initAppShell({ navigate }: AppShellOptions): Promise<() =>
      * Android 하드웨어 뒤로가기.
      * 기본 동작은 "앱 종료"라서, 연결하지 않으면 채팅방에서 뒤로가기를 누른
      * 사용자가 앱 밖으로 튕긴다. 웹 히스토리가 남아 있으면 히스토리를 먼저 소비한다.
+     *
+     * 판정 순서가 중요하다:
+     *  1. 오버레이(모달·바텀시트)가 떠 있으면 그것만 닫고 히스토리는 건드리지 않는다.
+     *     `ROOT_PATHS` 보다 먼저 봐야 한다 — 홈에도 모달이 여러 개 있고, 순서가
+     *     뒤집히면 모달을 닫으려던 뒤로가기가 앱을 종료시킨다.
+     *  2. 뿌리 화면이면 앱을 종료한다. 자세한 이유는 `ROOT_PATHS` 주석을 볼 것.
+     *  3. 그 밖에는 히스토리를 소비한다.
      */
     handles.push(
         await App.addListener("backButton", ({ canGoBack }) => {
+            if (closeTopOverlay()) return;
+            if (ROOT_PATHS.has(normalizePathname(window.location.pathname))) {
+                App.exitApp().catch(() => {});
+                return;
+            }
             if (canGoBack) {
                 window.history.back();
                 return;

@@ -10,6 +10,7 @@ import { useToast } from "@/context/ToastContext";
 import { getMyIntroNoteAnswersByIndex } from "@/features/profile/api/profileApi";
 import type { IntroNoteCode } from "@/features/profile/model/introNotes";
 import { saveExternalIntroNote } from "@/shared/lib/api/externalApi";
+import { goBackOr } from "@/shared/lib/navigation";
 import { Label1Normal } from "@/shared/ui";
 import type { ControlButtonVariant, FormData } from "@/types/type";
 
@@ -92,7 +93,7 @@ export default function IntroNotePage() {
       buttonText="다 작성했어요"
       variant={saving ? "disabled" : controlButton}
       onNext={handleSave}
-      onPrev={() => router.push("/home")}
+      onPrev={() => goBackOr(router, "/home")}
       subbuttonText="다음에 할래요"
       onSubAction={handleSkip}
       hideActions={editingAnswer}

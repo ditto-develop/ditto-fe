@@ -39,6 +39,7 @@ import {
   TopNavigation,
   Wrapper,
 } from "./_parts/GroupVoteCreateModal.parts";
+import { useBackClose } from "@/shared/hooks/useBackClose";
 import { toMeetAt } from "@/features/chat";
 import type { CreateGroupVoteRequest } from "@/features/chat";
 import { PlaceSearchModal } from "./PlaceSearchModal";
@@ -216,6 +217,10 @@ export function GroupVoteCreateModal({
 
     onClose();
   };
+
+  // OS 뒤로가기도 화면 안 뒤로가기 버튼과 똑같이 동작해야 한다 — 시간 단계에서는
+  // 장소 단계로 돌아가고, 첫 단계에서만 모달을 닫는다.
+  useBackClose(true, handleBack);
 
   const canAddOption =
     voteType === "place"

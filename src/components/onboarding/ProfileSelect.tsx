@@ -3,6 +3,7 @@ import { Title3 } from "@/shared/ui";
 import React, { useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
+import { useBackClose } from "@/shared/hooks/useBackClose";
 
 const slideUp = keyframes`
   from { transform: translateY(100%); }
@@ -196,6 +197,9 @@ const ProfileSelect: React.FC<CaricatureSelectProps> = ({
   setProfile,
   setProfileModal,
 }) => {
+  // 열려 있는 동안만 마운트된다 — OS 뒤로가기로도 닫히게 한다.
+  useBackClose(true, () => setProfileModal(false));
+
   const [gender, setGender] = useState<"male" | "female">("male");
 
   const avatarList = gender === "male" ? maleAvatars : femaleAvatars;

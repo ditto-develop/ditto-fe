@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { Body1Normal, Body2Normal, Heading1Bold } from "@/shared/ui";
+import { useBackClose } from "@/shared/hooks/useBackClose";
 
 interface QuizResumeModalProps {
   isOpen: boolean;
@@ -17,6 +18,9 @@ export function QuizModal({
   onRestart,
   onContinue,
 }: QuizResumeModalProps) {
+  // 닫힘 애니메이션이 아니라 isOpen 기준으로 히스토리를 되돌린다(FullScreenModal 과 동일).
+  useBackClose(isOpen, onClose);
+
   // shouldRender: 컴포넌트가 DOM에 존재하는지 여부 (Mount/Unmount 제어)
   const [shouldRender, setShouldRender] = useState(isOpen);
   // isAnimating: 투명도 및 위치 애니메이션 제어 (CSS Transition 제어)

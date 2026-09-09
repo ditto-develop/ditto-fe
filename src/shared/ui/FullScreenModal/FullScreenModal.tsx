@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
+import { useBackClose } from "@/shared/hooks/useBackClose";
 
 interface FullScreenModalProps {
     isOpen: boolean;
@@ -19,6 +20,10 @@ export function FullScreenModal({
 }: FullScreenModalProps) {
     const [shouldRender, setShouldRender] = useState(isOpen);
     const [isAnimating, setIsAnimating] = useState(false);
+
+    // 닫힘 애니메이션(shouldRender)이 아니라 isOpen 을 기준으로 삼는다 — 닫히기
+    // 시작한 순간 히스토리를 되돌려야 사용자가 연속으로 뒤로가기를 눌러도 어긋나지 않는다.
+    useBackClose(isOpen, onClose);
 
     useEffect(() => {
         let timeoutId: NodeJS.Timeout;

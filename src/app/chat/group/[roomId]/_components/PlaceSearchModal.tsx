@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, CircleX, MapPin, Search } from "lucide-react";
+import { useBackClose } from "@/shared/hooks/useBackClose";
 import { searchPlaces } from "@/features/chat/lib/placeSearch";
 import type { PlaceSearchResult } from "@/features/chat/lib/placeSearch";
 import {
@@ -129,6 +130,9 @@ const getHighlightedSegments = (text: string, keyword: string): HighlightSegment
 };
 
 export function PlaceSearchModal({ onClose, onSelect }: PlaceSearchModalProps) {
+  // 열려 있는 동안만 마운트된다 — OS 뒤로가기로도 닫히게 한다.
+  useBackClose(true, onClose);
+
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PlaceSearchResult[]>([]);
   const [loading, setLoading] = useState(false);

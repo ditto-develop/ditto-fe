@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import styled, { keyframes } from "styled-components";
 
+import { useBackClose } from "@/shared/hooks/useBackClose";
+
 interface ChatMenuBottomSheetProps {
   onClose: () => void;
   /** 생략하면 '대화방 나가기'를 숨긴다(이미 종료된 방, 그룹 방). */
@@ -15,6 +17,9 @@ export function ChatMenuBottomSheet({
   onLeave,
   onReport,
 }: ChatMenuBottomSheetProps) {
+  // 열려 있는 동안만 마운트된다 — OS 뒤로가기로도 닫히게 한다.
+  useBackClose(true, onClose);
+
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {

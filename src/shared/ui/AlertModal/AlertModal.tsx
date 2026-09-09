@@ -3,6 +3,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { Body2Normal, Headline1, Body1Bold } from "@/shared/ui";
+import { useBackClose } from "@/shared/hooks/useBackClose";
 
 interface AlertModalProps {
     isOpen: boolean;
@@ -29,6 +30,12 @@ export function AlertModal({
     cancelParams,
     onClose,
 }: AlertModalProps) {
+    // OS 뒤로가기는 "취소"로 취급한다. 닫을 수단이 아예 없는 알럿(확인 버튼만 있고
+    // onClose 도 cancel 도 없는 경우)은 가로채지 않는다 — 뒤로가기를 삼키기만 하고
+    // 아무 일도 일어나지 않으면 화면이 멈춘 것처럼 보인다.
+    const dismiss = onClose ?? cancelParams?.onClick;
+    useBackClose(isOpen && Boolean(dismiss), () => dismiss?.());
+
     if (!isOpen) return null;
 
     return (
