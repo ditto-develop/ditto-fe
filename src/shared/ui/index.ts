@@ -23,6 +23,7 @@ export { Nav } from "./Nav/Nav";
 export { Radio } from "./Radio/Radio";
 export { RatingStarInput } from "./RatingStarInput/RatingStarInput";
 export { SectionMessage } from "./SectionMessage/SectionMessage";
+export { SkeletonBlock } from "./Skeleton/Skeleton";
 export { Tooltip } from "./Tooltip/Tooltip";
 export * from "./Text/Text";
 export { MultiSelectChip } from "./form/Multiselect/Multiselect";

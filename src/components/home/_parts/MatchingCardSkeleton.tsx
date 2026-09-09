@@ -1,8 +1,9 @@
 "use client";
 
-import styled, { keyframes } from "styled-components";
+import styled from "styled-components";
 
 import { CardContainer, DecoImg } from "@/components/display/Card";
+import { SkeletonBlock } from "@/shared/ui";
 
 /**
  * 홈 하단 카드 자리를 미리 잡아두는 스켈레톤.
@@ -16,24 +17,18 @@ export function MatchingCardSkeleton() {
     <CardContainer aria-hidden="true" data-cy="home-card-skeleton">
       <DecoImg src="/display/deco.svg" alt="" />
       <Header>
-        <Block $width="96px" $height="28px" />
-        <Block $width="64px" $height="28px" $radius="6px" />
+        <SkeletonBlock $width="96px" $height="28px" />
+        <SkeletonBlock $width="64px" $height="28px" $radius="6px" />
       </Header>
       <Lines>
-        <Block $width="100%" $height="16px" />
-        <Block $width="72%" $height="16px" />
+        <SkeletonBlock $width="100%" $height="16px" />
+        <SkeletonBlock $width="72%" $height="16px" />
       </Lines>
-      <Block $width="100%" $height="152px" $radius="12px" />
-      <Block $width="100%" $height="48px" $radius="12px" />
+      <SkeletonBlock $width="100%" $height="152px" $radius="12px" />
+      <SkeletonBlock $width="100%" $height="48px" $radius="12px" />
     </CardContainer>
   );
 }
-
-const shimmer = keyframes`
-  0% { opacity: 0.55; }
-  50% { opacity: 1; }
-  100% { opacity: 0.55; }
-`;
 
 const Header = styled.div`
   display: flex;
@@ -46,16 +41,4 @@ const Lines = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
-`;
-
-const Block = styled.div<{ $width: string; $height: string; $radius?: string }>`
-  width: ${({ $width }) => $width};
-  height: ${({ $height }) => $height};
-  border-radius: ${({ $radius }) => $radius ?? "6px"};
-  background-color: var(--color-semantic-fill-normal);
-  animation: ${shimmer} 1.4s ease-in-out infinite;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
 `;
