@@ -1074,21 +1074,45 @@ App Store Connect 앱 레코드와 API 키가 생기면서 CLI 만으로 업로�
 이름(`CFBundleDisplayName = Ditto`)과 App Store 목록에 뜨는 이름은 별개이고, 지금은
 의도적으로 다르다. 스토어 이름을 바꿀 일이 생겨도 plist 는 건드릴 필요 없다.
 
+자격증명은 `.env.local` 의 `ASC_KEY_ID` · `ASC_ISSUER_ID` 에 있다(카카오 네이티브 앱
+키와 같은 방식). **값도 `.p8` 도 리포에 넣지 않는다** — `.gitignore` 가 `.env*` 와
+`*.p8` 을 막는다. `.p8` 은 `~/.appstoreconnect/private_keys/AuthKey_<KEY_ID>.p8` 에 두면
+`--apiKey` 만으로 자동으로 찾는다.
+
 ```bash
+# 값을 셸로 읽어 온다. 아래 명령들이 그대로 복사해서 돌아간다.
+set -a && source .env.local && set +a
+
 # 자격증명 확인 겸 앱 레코드 조회
-xcrun altool --list-apps --apiKey <KEY_ID> --apiIssuer <ISSUER_ID>
+xcrun altool --list-apps --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
 
 # 업로드 전 검증 (여기서 걸리면 업로드해도 어차피 거절된다)
 xcrun altool --validate-app -f build/export/App.ipa -t ios \
-  --apiKey <KEY_ID> --apiIssuer <ISSUER_ID>
+  --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
 
 xcrun altool --upload-app -f build/export/App.ipa -t ios \
-  --apiKey <KEY_ID> --apiIssuer <ISSUER_ID>
+  --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
 ```
 
-`<KEY_ID>` · `<ISSUER_ID>` 는 App Store Connect → 사용자 및 액세스 → 통합에서 확인한다.
-**값도 `.p8` 도 리포에 넣지 않는다.** `.p8` 은 `~/.appstoreconnect/private_keys/` 에 두면
-`--apiKey` 만으로 자동으로 찾는다(`.gitignore` 가 `*.p8` 을 막는다).
+값이 없으면(새 맥, 새 클론) App Store Connect → **사용자 및 액세스 → 통합 → App Store
+Connect API** 에서 확인해 `.env.local` 에 채운다. Issuer ID 는 **팀에 하나뿐이고 바뀌지
+않는다** — 키마다 다른 값이 아니다. 이 화면은 Account Holder/Admin 에게만 보인다.
+
+issuer ID 없이 올려야 하면 두 가지 대안이 있다: Apple ID + 앱 전용 암호
+(`--upload-app -u <애플ID> -p <앱전용암호>`), 또는 `open build/App.xcarchive` 로 Xcode
+Organizer 를 열어 **Distribute App → App Store Connect → Upload**.
+
+#### 빌드 번호를 올리는 것을 잊지 말 것
+
+같은 `MARKETING_VERSION` 으로 두 번 올릴 수 없다. `project.pbxproj` 의
+`CURRENT_PROJECT_VERSION` 을 **Debug·Release 두 곳 모두** 올린다(`ExportOptions.plist` 가
+`manageAppVersionAndBuildNumber = false` 라 Xcode 가 대신 올려 주지 않는다).
+빠뜨리면 업로드가 거절된다.
+
+| 빌드 | 올린 날 | 내용 |
+|---|---|---|
+| 1.0 (1) | 2026-09-07 | 첫 업로드 |
+| 1.0 (2) | 2026-09-09 | iOS 스와이프 백 제스처(`MainViewController`) |
 
 #### 처리 상태를 CLI 로 보는 법
 
