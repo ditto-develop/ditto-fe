@@ -3,6 +3,15 @@ import styled from 'styled-components';
 import { Body1Normal, Body2Normal, Heading1Bold } from "@/shared/ui";
 import { useBackClose } from "@/shared/hooks/useBackClose";
 
+/**
+ * "새로 풀기"의 도착지. 홈으로 가되 퀴즈 종류 선택 시트를 바로 연 상태로 간다.
+ * 홈(ThisWeekQuiz)이 이 쿼리를 읽어 시트를 띄운 뒤 주소에서 지운다 — 새로고침·뒤로가기로
+ * 시트가 다시 튀어나오지 않게.
+ */
+export const QUIZ_SELECT_QUERY_KEY = "quiz";
+export const QUIZ_SELECT_QUERY_VALUE = "select";
+export const QUIZ_SELECT_HOME_PATH = `/home?${QUIZ_SELECT_QUERY_KEY}=${QUIZ_SELECT_QUERY_VALUE}`;
+
 interface QuizResumeModalProps {
   isOpen: boolean;
   onClose: () => void;

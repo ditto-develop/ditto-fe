@@ -13,8 +13,9 @@ import {
   MIN_INTRO_NOTE_ANSWERS,
 } from "@/features/profile/model/introNotes";
 import { useTargetDayCountdown } from "@/lib/hooks/useKstCountdown";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { QUIZ_SELECT_QUERY_KEY, QUIZ_SELECT_QUERY_VALUE } from "@/components/quiz/QuizModal";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
 
 const CardContainer = styled.div`
@@ -110,12 +111,21 @@ interface ThisWeekQuizProps {
 
 export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: ThisWeekQuizProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const today = new Date().getDay(); // (KST 변환 로직 필요 시 적용)
   const target = today === 4 ? 5 : 4;
 
   const timeLeft = useTargetDayCountdown(target);
-  const [isQuizStart, setIsQuizStart] = useState(false);
+  // 퀴즈 화면의 "새로 풀기"로 돌아온 경우(?quiz=select)에는 종류 선택 시트를 연 채로 시작한다.
+  const openedFromRestart = searchParams.get(QUIZ_SELECT_QUERY_KEY) === QUIZ_SELECT_QUERY_VALUE;
+  const [isQuizStart, setIsQuizStart] = useState(openedFromRestart);
   const [isIntroNoteAlertOpen, setIsIntroNoteAlertOpen] = useState(false);
+
+  // 시트를 띄웠으면 쿼리는 지운다. 남겨 두면 새로고침·뒤로가기마다 시트가 다시 뜬다.
+  useEffect(() => {
+    if (!openedFromRestart) return;
+    router.replace("/home");
+  }, [openedFromRestart, router]);
 
   const isIntroComplete = introNoteCount === INTRO_NOTE_FIELDS.length;
   /** 온보딩에서 "다음에 할래요"로 건너뛴 사람은 여기서 소개 노트 작성으로 되돌린다. */

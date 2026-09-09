@@ -6,7 +6,7 @@ import { Label1Normal, Label2, Title2, Title3 } from "@/shared/ui";
 import { Nav } from "@/shared/ui";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import { useRouter, useSearchParams } from "next/navigation";
-import { QuizModal } from "@/components/quiz/QuizModal";
+import { QuizModal, QUIZ_SELECT_HOME_PATH } from "@/components/quiz/QuizModal";
 import { getExternalCurrentWeekQuizSets, submitExternalQuizAnswer } from "@/shared/lib/api/externalApi";
 import { getQuizSanctionMessage } from "@/features/sanction";
 import { useToast } from "@/context/ToastContext";
@@ -59,10 +59,24 @@ function QuizContent() {
 
   // --- Derived State ---
   // matchingType query param으로 올바른 퀴즈셋 선택, 없으면 첫 번째
-  const selectedQuizSet = matchingType
-    ? (quizData?.quizSets?.find((qs) => qs.matchingType === matchingType) ?? quizData?.quizSets?.[0])
-    : quizData?.quizSets?.[0];
-  const matchingLabel = selectedQuizSet?.matchingType === "GROUP" ? "그룹 매칭" : "1:1 매칭";
+  const requestedQuizSet = matchingType
+    ? quizData?.quizSets?.find((qs) => qs.matchingType === matchingType)
+    : undefined;
+  const selectedQuizSet = requestedQuizSet ?? quizData?.quizSets?.[0];
+  /**
+   * 머리글 태그는 사용자가 홈에서 고른 종류(type 쿼리)를 우선한다.
+   * 이번 주 응답에 그 종류의 세트가 없으면 첫 세트로 폴백하는데, 그때 세트의 종류로 태그를
+   * 만들면 그룹 퀴즈를 골랐는데 "1:1 매칭"으로 뜬다. 폴백이 일어난 사실은 기록해 둔다 —
+   * 서버 응답에 그 종류가 빠진 것이라 FE 에서는 더 알 수 없다.
+   */
+  const matchingLabel = (matchingType ?? selectedQuizSet?.matchingType) === "GROUP" ? "그룹 매칭" : "1:1 매칭";
+  useEffect(() => {
+    if (!quizData || !matchingType || requestedQuizSet) return;
+    console.warn(
+      `[quiz] 요청한 종류(${matchingType})의 퀴즈 세트가 이번 주 응답에 없어 첫 세트로 대체:`,
+      quizData.quizSets?.map((qs) => qs.matchingType),
+    );
+  }, [quizData, matchingType, requestedQuizSet]);
   const quizzes: QuizDto[] = selectedQuizSet?.quizzes || [];
   const currentQuiz = quizzes[currentStep];
   const isLastQuiz = currentStep === quizzes.length - 1;
@@ -111,10 +125,10 @@ function QuizContent() {
   return (
     <>
       {isModal && (
-        <QuizModal 
+        <QuizModal
           isOpen={isModal}
           onClose={() => setIsModal(false)}
-          onRestart={() => router.push('/home')}
+          onRestart={() => router.push(QUIZ_SELECT_HOME_PATH)}
           onContinue={() => setIsModal(false)}
         />
       )}
@@ -200,6 +214,13 @@ const FadeWrapper = styled.div<{ $isFadingOut: boolean }>`
 // 선택되지 않은 버튼이 사라지는 애니메이션
 const AnimActionButton = styled(ActionButton)<{ $isSelected: boolean; $isUnselected: boolean }>`
   transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.2s;
+
+  /* 두 번째 선택지(secondary)는 첫 번째 버튼 배경과 같은 색의 테두리로 한 쌍처럼 보인다. */
+  ${({ variant }) =>
+    variant === "secondary" &&
+    css`
+      border-color: var(--color-semantic-primary-normal);
+    `}
 
   ${({ $isUnselected }) =>
     $isUnselected &&

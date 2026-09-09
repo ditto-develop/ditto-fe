@@ -6,7 +6,7 @@ import { Label1Normal, Label2, Title2, Title3 } from "@/shared/ui";
 import { Nav } from "@/shared/ui";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import { useRouter, useParams } from "next/navigation";
-import { QuizModal } from "@/components/quiz/QuizModal";
+import { QuizModal, QUIZ_SELECT_HOME_PATH } from "@/components/quiz/QuizModal";
 import type { QuizWithAnswerDto } from "@/shared/lib/api/generated";
 import { getExternalQuizSetWithProgress, submitExternalQuizAnswer } from "@/shared/lib/api/externalApi";
 import { getQuizSanctionMessage } from "@/features/sanction";
@@ -91,7 +91,7 @@ export function QuizPageClient() {
         <QuizModal
           isOpen={isModal}
           onClose={() => setIsModal(false)}
-          onRestart={() => router.push('/home')}
+          onRestart={() => router.push(QUIZ_SELECT_HOME_PATH)}
           onContinue={() => setIsModal(false)}
         />
       </>
@@ -183,6 +183,13 @@ const FadeWrapper = styled.div<{ $isFadingOut: boolean }>`
 // 선택되지 않은 버튼이 사라지는 애니메이션
 const AnimActionButton = styled(ActionButton)<{ $isSelected: boolean; $isUnselected: boolean }>`
   transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.2s;
+
+  /* 두 번째 선택지(secondary)는 첫 번째 버튼 배경과 같은 색의 테두리로 한 쌍처럼 보인다. */
+  ${({ variant }) =>
+    variant === "secondary" &&
+    css`
+      border-color: var(--color-semantic-primary-normal);
+    `}
 
   ${({ $isUnselected }) =>
     $isUnselected &&
