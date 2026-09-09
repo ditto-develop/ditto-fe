@@ -227,12 +227,18 @@ export const DividedInner = styled.div`
 `;
 
 /** */
-export const IntroContainer = styled.div`
+export const IntroContainer = styled.div<{ $keyboardInset?: number }>`
   display: flex;
   width: 100%;
   flex-direction: column;
   align-items: center;
   gap: var(--space-8, 32px);
+  /*
+   * 키보드가 가린 높이만큼 스크롤 여백을 둔다.
+   * 이 여백이 없으면 스크롤이 끝에 닿아 마지막 질문(Q10)은 아무리 스크롤해도
+   * 키보드 위로 올라오지 못한다. 네이티브가 웹뷰를 줄여 주는 환경에서는 0 이다.
+   */
+  padding-bottom: ${({ $keyboardInset = 0 }) => $keyboardInset}px;
 `;
 
 export const QuestionContainer = styled.div`

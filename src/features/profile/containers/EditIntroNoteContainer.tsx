@@ -28,6 +28,9 @@ export function EditIntroNoteContainer() {
     const [, setControlButton] = useState<ControlButtonVariant>("primary");
     const [formData, setFormData] = useState<FormData>(EMPTY_FORM_DATA);
     const [submitting, setSubmitting] = useState(false);
+    // 답변 편집 중에는 하단 CTA를 감춘다 — position:fixed 라 키보드 위에 겹쳐
+    // 입력창과 저장/취소 버튼을 가린다. 온보딩 소개 노트와 같은 처리다.
+    const [editingAnswer, setEditingAnswer] = useState(false);
 
     useEffect(() => {
         getMyIntroNoteAnswersByIndex().then((answers) => {
@@ -76,18 +79,21 @@ export function EditIntroNoteContainer() {
                     onChange={handleChange}
                     setControlButton={setControlButton}
                     onPersist={saveExternalIntroNote}
+                    onEditingChange={setEditingAnswer}
                 />
             </Body>
-            <BottomActionArea>
-                <SubmitButton
-                    type="button"
-                    $variant="solid"
-                    $size="large"
-                    onClick={handleSubmit}
-                >
-                    수정 완료
-                </SubmitButton>
-            </BottomActionArea>
+            {!editingAnswer && (
+                <BottomActionArea>
+                    <SubmitButton
+                        type="button"
+                        $variant="solid"
+                        $size="large"
+                        onClick={handleSubmit}
+                    >
+                        수정 완료
+                    </SubmitButton>
+                </BottomActionArea>
+            )}
         </Page>
     );
 }

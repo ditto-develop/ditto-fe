@@ -15,6 +15,8 @@ import {
 import { useToast } from "@/context/ToastContext";
 import { INTRO_NOTE_FIELDS, MIN_INTRO_NOTE_ANSWERS } from "@/features/profile/model/introNotes";
 import type { IntroNoteCode } from "@/features/profile/model/introNotes";
+import { useKeyboardInset } from "@/shared/hooks/useKeyboardInset";
+import { revealAboveKeyboard } from "@/shared/lib/keyboardViewport";
 import { Caption1, Label1Normal, TextAreaWithActions } from "@/shared/ui";
 import type { TextAreaWithActionsRef } from "@/shared/ui";
 import type { ControlButtonVariant, FormData, OnChange } from "@/types/type";
@@ -75,10 +77,6 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
     );
 
     const onRequestFocusChange = (newlyFocusedId: string) => {
-      const activeIndex = questions.findIndex(
-        (q) => `q${q.index + 1}` === activeId
-      );
-
       if (activeId && activeId !== newlyFocusedId) {
         // 편집 중인 입력에서 포커스를 정상적으로 거둔다.
         // 키보드가 닫혀야 화면 하단 고정 토스트가 가리지 않고, iOS에서 뷰포트가 밀린 채
@@ -133,6 +131,14 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
     const requiredAnswered = missingRequiredIndex === -1;
     const canSubmit = completedCount >= MIN_INTRO_NOTE_ANSWERS && requiredAnswered;
 
+    /** 지금 편집 중인 질문의 인덱스. 없으면 -1. */
+    const activeIndex = questions.findIndex((q) => `q${q.index + 1}` === activeId);
+    /**
+     * 키보드가 가린 높이. 스크롤 콘텐츠 하단에 이만큼 여백을 줘야 마지막 질문도
+     * 키보드 위로 올라온다 — 여백이 없으면 스크롤이 끝에 닿아 가린 채로 남는다.
+     */
+    const keyboardInset = useKeyboardInset(activeId !== null);
+
     // ✅ 부모에서 호출할 검증 함수
     useImperativeHandle(ref, () => ({
       handleSubmit: () => {
@@ -168,6 +174,41 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
       if (requiredAnswered) setShowRequiredHint(false);
     }, [requiredAnswered]);
 
+    /**
+     * 편집 중인 질문을 키보드 위로 끌어올린다.
+     *
+     * 모바일 브라우저는 키보드를 화면 위에 겹쳐 올릴 뿐 레이아웃 뷰포트를 줄이지 않는다.
+     * 그래서 "포커스된 입력창을 보이게 스크롤"하는 브라우저 기본 동작이 여기서는 아무
+     * 일도 하지 않는다 — 입력창은 레이아웃상 이미 보이는 자리에 있고 키보드가 그 위를
+     * 덮고 있을 뿐이다. Q10처럼 하단에 있는 질문이 키보드에 가린 채로 남는 이유다.
+     *
+     * 키보드는 애니메이션으로 올라오고 CTA(hideActions)도 같이 사라져 레이아웃이 두세 번
+     * 움직인다. 뷰포트 변화를 듣고, 한 박자씩 늦게 몇 번 더 보정한다 — 목표 위치를 매번
+     * 다시 계산하므로 여러 번 불려도 같은 자리로 수렴한다.
+     */
+    useEffect(() => {
+      if (activeIndex < 0) return;
+      const target = questionRefs.current[activeIndex];
+      if (!target) return;
+
+      const reveal = () => revealAboveKeyboard(target);
+      const frame = window.requestAnimationFrame(reveal);
+      const timers = [200, 450].map((delay) => window.setTimeout(reveal, delay));
+
+      const viewport = window.visualViewport;
+      viewport?.addEventListener("resize", reveal);
+      window.addEventListener("resize", reveal);
+
+      return () => {
+        window.cancelAnimationFrame(frame);
+        timers.forEach((timer) => window.clearTimeout(timer));
+        viewport?.removeEventListener("resize", reveal);
+        window.removeEventListener("resize", reveal);
+      };
+      // keyboardInset 이 바뀌면 하단 여백이 막 적용된 참이다. 그 여백까지 반영해
+      // 한 번 더 끌어올린다 — 마지막 질문은 이 여백이 있어야 끝까지 올라간다.
+    }, [activeIndex, keyboardInset]);
+
     // 키보드가 떠 있는 동안만 부모가 하단 CTA를 감춘다(겹쳐서 입력 영역이 좁아지는 문제).
     // 편집 상태(activeId)에 묶으면 화면 아무 곳이나 눌러 키보드를 내렸을 때 CTA가
     // 돌아오지 않는다 — activeId는 저장/취소로만 풀리기 때문.
@@ -185,7 +226,7 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
     }, [activeId, removeToast]);
 
     return (
-      <IntroContainer>
+      <IntroContainer $keyboardInset={keyboardInset}>
         <QuestionProgressCard current={completedCount} total={10} />
 
         {questions.map((q, index) => {

@@ -96,4 +96,49 @@ describe("onboarding flow", () => {
     cy.contains("필수 질문이에요. 이 질문에 답해야 완료할 수 있어요.").should("be.visible");
     cy.location("pathname").should("match", /^\/onboarding\/intro\/?$/);
   });
+
+  /**
+   * 하단 질문(Q10)을 눌렀을 때 키보드에 가리지 않아야 한다.
+   *
+   * 온보딩은 페이지가 아니라 안쪽 목록(BodyContainer)만 스크롤되는 구조라, 키보드가
+   * 떠도 브라우저가 알아서 입력창을 화면 안으로 밀어 주지 않는다. 실제 키보드는 띄울 수
+   * 없으니 `visualViewport` 로 키보드가 뜬 상태를 흉내 낸다.
+   */
+  it("brings the last question above the keyboard", () => {
+    const KEYBOARD_HEIGHT = 336;
+
+    cy.clockPeriod("QUIZ");
+    cy.mockApi();
+    cy.intercept("GET", "**/api/v1/users/me/intro-notes", {
+      statusCode: 200,
+      body: { success: true, data: { answers: [], completedCount: 0 } },
+    }).as("getMyIntroNotesEmpty");
+    cy.login();
+    cy.visit("/onboarding/intro");
+
+    cy.contains("Q10. 나를 한 줄로 표현한다면?", { timeout: 6000 }).should("exist");
+
+    cy.window().then((win) => {
+      const viewport = win.visualViewport;
+      if (!viewport) throw new Error("visualViewport 를 지원하지 않는 브라우저다");
+      // 프로토타입의 getter 를 자기 속성으로 덮어 키보드가 뜬 높이를 흉내 낸다.
+      Object.defineProperty(viewport, "height", {
+        configurable: true,
+        get: () => win.innerHeight - KEYBOARD_HEIGHT,
+      });
+    });
+
+    cy.get("textarea").last().click();
+    cy.window().then((win) => {
+      win.visualViewport?.dispatchEvent(new Event("resize"));
+
+      const keyboardTop = win.innerHeight - KEYBOARD_HEIGHT;
+      cy.contains("Q10. 나를 한 줄로 표현한다면?")
+        .parent()
+        .should(($question) => {
+          const { bottom } = $question[0].getBoundingClientRect();
+          expect(bottom, "질문 하단이 키보드 위에 있어야 한다").to.be.at.most(keyboardTop);
+        });
+    });
+  });
 });
