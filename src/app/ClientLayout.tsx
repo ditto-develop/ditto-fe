@@ -21,12 +21,37 @@ import { usePathname, useRouter } from "next/navigation";
 import Script from "next/script";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+/**
+ * 콜드 스타트 스플래시의 최대 유지 시간.
+ *
+ * 루트("/") 부팅 판정은 refresh + 계정 상태 확인 두 번의 네트워크에 걸려 있는데,
+ * 일반 API fetch 에는 타임아웃이 없다(externalClient.doFetch). 네트워크가 멈추면
+ * 스플래시가 영영 걷히지 않으므로 상한을 둔다 — 상한에 걸리면 로그인 버튼 화면이
+ * 뜨고, 사용자는 최소한 다시 시도할 수 있다.
+ */
+const BOOT_SPLASH_MAX_MS = 6000;
+
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [splashDone, setSplashDone] = useState(false); // 비로그인 3초 타이머용
   const [homeSplashExpired, setHomeSplashExpired] = useState(false);
   const [isVerifyingSession, setIsVerifyingSession] = useState(false);
+  /**
+   * 로그인 상태로 루트("/")에 들어온 콜드 스타트에서 "홈으로 보낼지 / 여기 그대로 둘지"
+   * 판정이 끝났는지.
+   *
+   * 판정은 refresh → 계정 상태 확인(getExternalSystemState) → replace("/home") 의
+   * 비동기 체인이다. 이 값을 보지 않으면 체인 중간중간 Splash 가 걷혀 **로그인 버튼
+   * 화면이 잠깐 스쳐 간다**(스플래시 → 로그인 → 홈 깜빡임):
+   *   - 하이드레이션 직후 첫 프레임: 아직 아래 리다이렉트 effect 가 돌기 전이라
+   *     isVerifyingSession 이 false 다.
+   *   - refresh 응답 직후: isVerifyingSession 을 내린 뒤 계정 상태 확인 + 라우팅이
+   *     남아 있어 그동안 루트 화면이 그대로 보인다.
+   * 그래서 "부팅 판정이 끝날 때까지" 를 따로 들고, 여기 그대로 둘 때만 세운다.
+   */
+  const [rootAuthResolved, setRootAuthResolved] = useState(false);
+  const [bootSplashExpired, setBootSplashExpired] = useState(false);
   /**
    * 첫 진입(콜드 스타트)에서 Splash가 한 번 걷혔는지.
    *
@@ -75,6 +100,16 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     path === '/localogin';
   // 관리자 경로: ClientLayout 리다이렉트/스플래시 완전 제외
   const isAdminPath = path === '/admin' || path.startsWith('/admin/');
+  /**
+   * 로그인 상태면 홈으로 넘겨야 하는 경로(=사실상 루트 "/").
+   * 리다이렉트 effect 와 Splash 계산이 같은 판정을 봐야 해서 여기서 한 번만 만든다.
+   */
+  const isHomeRedirectCandidate =
+    isPublicPath &&
+    !isOAuthFlowPath &&
+    !isSanctionPath &&
+    !isPublicDocPath &&
+    path !== '/localogin';
 
   // 만료된 임시 토큰(refresh 없는 access)을 제거하고 로그인 상태를 동기화한다.
   const syncAuthState = useCallback(() => {
@@ -195,6 +230,13 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(timer);
   }, [isHydrated, path, isLoggedIn]);
 
+  // 콜드 스타트 스플래시 상한(BOOT_SPLASH_MAX_MS). 하이드레이션 시점에 한 번만 건다.
+  useEffect(() => {
+    if (!isHydrated) return;
+    const timer = setTimeout(() => setBootSplashExpired(true), BOOT_SPLASH_MAX_MS);
+    return () => clearTimeout(timer);
+  }, [isHydrated]);
+
   useEffect(() => {
     if (!isHydrated || isAdminPath) return;
     // isLoggedIn state는 pathname 변경 시 별도 effect에서 동기화되어 이 렌더에서는
@@ -216,17 +258,10 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     }
     // 로그인 상태: 루트(/) → refresh 검증 성공 후 홈으로 리다이렉트.
     // OAuth 콜백 경로는 KakaoCallback이 라우팅을 담당하므로 제외하고,
-    // /localogin도 제외한다.
+    // /localogin도 제외한다(isHomeRedirectCandidate 참고).
     // 제재 화면은 토큰이 살아 있는 403(6006/6007) 진입도 있으므로 /home으로 되돌리지 않는다.
     // 약관·사업자 정보 화면은 로그인 상태에서도 그대로 머물러야 한다 — 설정에서
     // 들어오는 정상 경로라 /home 으로 되돌리면 로그인 사용자는 이 화면을 아예 못 본다.
-    const isHomeRedirectCandidate =
-      isPublicPath &&
-      !isOAuthFlowPath &&
-      !isSanctionPath &&
-      !isPublicDocPath &&
-      path !== '/localogin';
-
     if (!isHomeRedirectCandidate) return;
 
     if (sessionVerified.current) {
@@ -244,6 +279,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       sessionVerifyInFlight.current = false;
       setIsVerifyingSession(false);
       if (!token) {
+        setRootAuthResolved(true);
         clearTokens();
         setIsLoggedIn(false);
         return;
@@ -264,6 +300,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         if (hasApiErrorCode(err, API_ERROR_CODE.SIGNUP_INCOMPLETE)) {
           // 로그인 버튼 화면에 그대로 둔다. sessionVerified는 세우지 않는다 —
           // 다음 진입(또는 회원가입 완료 후)에 다시 확인해야 한다.
+          setRootAuthResolved(true);
           return;
         }
         // 그 외 에러(네트워크 등)는 기존처럼 홈으로 보내 MainSection이 처리하게 둔다.
@@ -276,9 +313,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     isHydrated,
     isLoggedIn,
     isPublicPath,
-    isOAuthFlowPath,
-    isSanctionPath,
-    isPublicDocPath,
+    isHomeRedirectCandidate,
     isAdminPath,
     path,
     router,
@@ -297,6 +332,25 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     // 약관·사업자 정보 화면은 링크로 바로 들어오는 사람(심사자 등)이 본다. 정적
     // 텍스트라 기다릴 것이 없는데 3초 스플래시가 덮으면 그냥 안 뜨는 화면처럼 보인다.
     if (isPublicDocPath) return false;
+    /**
+     * 로그인 상태로 루트("/")에 들어온 콜드 스타트: **홈이 뜰 때까지** 스플래시를 유지한다.
+     *
+     * 이 홀드가 없으면 refresh 응답과 계정 상태 확인 사이, 그리고 하이드레이션 직후
+     * 첫 프레임에 스플래시가 걷혀 로그인 버튼 화면이 스쳐 간다
+     * (스플래시 → 로그인 → 홈). 판정이 끝나 여기 그대로 두기로 했거나
+     * (`rootAuthResolved`) 상한에 걸리면 걷힌다. `initialSplashDone` 을 함께 보는 건
+     * 이 홀드를 **콜드 스타트 한 번**으로 못 박기 위해서다 — 로그아웃으로 루트에
+     * 돌아왔을 때 isLoggedIn 이 아직 동기화되지 않은 한 프레임에 스플래시가 번쩍이면 안 된다.
+     */
+    if (
+      isLoggedIn &&
+      isHomeRedirectCandidate &&
+      !initialSplashDone &&
+      !rootAuthResolved &&
+      !bootSplashExpired
+    ) {
+      return true;
+    }
     /**
      * 비로그인: 콜드 스타트 브랜드 스플래시(3초 타이머).
      *
