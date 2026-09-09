@@ -70,6 +70,36 @@ describe("onboarding flow", () => {
     cy.contains("button", "다 작성했어요").should("be.visible");
   });
 
+  /**
+   * 화면을 벗어나면 그 화면에서 뜬 안내 토스트도 같이 사라져야 한다.
+   *
+   * "작성 중인 다른 답변이 있어요" 토스트는 액션(저장)이 달려 있어 스스로 사라지지 않는다.
+   * 예전에는 다음 화면까지 따라와서, 눌러도 아무 일이 없는 버튼이 계속 떠 있었다.
+   */
+  it("dismisses the action toast when leaving the screen that raised it", () => {
+    cy.clockPeriod("QUIZ");
+    cy.mockApi();
+    cy.intercept("GET", "**/api/v1/users/me/intro-notes", {
+      statusCode: 200,
+      body: { success: true, data: { answers: [], completedCount: 0 } },
+    }).as("getMyIntroNotesEmpty");
+    cy.login();
+    cy.visit("/onboarding/intro");
+
+    cy.contains("소개 노트 작성하기", { timeout: 6000 }).should("be.visible");
+
+    // 한 답변을 편집하는 중에 다른 답변을 누르면 저장을 요구하는 토스트가 뜬다.
+    cy.get("textarea").eq(0).click();
+    cy.get("textarea").eq(1).click();
+    cy.contains("작성 중인 다른 답변이 있어요", { timeout: 4000 }).should("be.visible");
+
+    // 저장하지 않고 화면을 떠난다. 포커스가 풀리면 하단 CTA가 돌아온다.
+    cy.contains("button", "다음에 할래요", { timeout: 4000 }).click();
+
+    cy.location("pathname", { timeout: 6000 }).should("match", /^\/onboarding\/complete\/?$/);
+    cy.contains("작성 중인 다른 답변이 있어요").should("not.exist");
+  });
+
   // Q10은 필수다. 다른 답을 아무리 채워도 Q10이 비면 완료되지 않고, 어느 질문인지 화면에 표시된다.
   it("blocks completion and points at Q10 when the required answer is missing", () => {
     cy.clockPeriod("QUIZ");

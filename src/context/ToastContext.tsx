@@ -1,10 +1,12 @@
 "use client";
 
 import type { ReactNode } from 'react';
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import styled, { keyframes } from 'styled-components';
 import { Scan } from 'lucide-react';
 import { Body2Normal } from '@/shared/ui';
+import { DEFAULT_TOAST_DURATION, isScreenBoundToast, isStickyToast } from '@/shared/lib/toastScope';
 
 // --- 타입 정의 ---
 type ToastType = 'default' | 'info' | 'success' | 'warning' | 'error' | 'none';
@@ -33,7 +35,15 @@ interface ToastContextType {
   removeToast: (id: string) => void;
 }
 
-const ToastContext = createContext<ToastContextType | undefined>(undefined);
+interface ToastControls extends ToastContextType {
+  /**
+   * 주어진 id 중 **스스로 사라지지 않는** 토스트만 지운다.
+   * 토스트를 띄운 컴포넌트가 사라질 때 호출된다 — 시간이 정해진 토스트는 남긴다.
+   */
+  dismissSticky: (ids: string[]) => void;
+}
+
+const ToastContext = createContext<ToastControls | undefined>(undefined);
 
 interface BottomToastProps {
   id: string;
@@ -203,9 +213,31 @@ const BottomToast = ({
 
 export const ToastProvider = ({ children }: { children: ReactNode }) => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const pathname = usePathname();
+  const [shownPath, setShownPath] = useState(pathname);
+
+  /*
+   * 화면이 바뀌면 그 화면에 묶인 토스트도 같이 걷는다.
+   * 라우트가 바뀌어도 토스트를 띄운 컴포넌트가 살아남는 경우(레이아웃·상시 마운트 모달)까지
+   * 잡는 안전망이다.
+   *
+   * 이펙트가 아니라 렌더 중에 처리한다. Provider 는 자식보다 먼저 렌더되고 이펙트는 자식이
+   * 먼저 돌기 때문에, 이펙트로 지우면 새 화면이 마운트되자마자 띄운 토스트까지 쓸어버린다.
+   */
+  if (shownPath !== pathname) {
+    setShownPath(pathname);
+    setToasts((prev) => prev.filter((toast) => !isScreenBoundToast(toast.options)));
+  }
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  }, []);
+
+  const dismissSticky = useCallback((ids: string[]) => {
+    if (ids.length === 0) return;
+    setToasts((prev) =>
+      prev.filter((toast) => !(ids.includes(toast.id) && isStickyToast(toast.options))),
+    );
   }, []);
 
   const showToast = useCallback((message: ReactNode, type: ToastType = 'default', options?: ToastOptions) => {
@@ -216,7 +248,7 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
       id,
       message,
       type,
-      duration: options?.duration ?? 3000,
+      duration: options?.duration ?? DEFAULT_TOAST_DURATION,
       options,
     };
 
@@ -231,8 +263,13 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
     return id; 
   }, []);
 
+  const controls = useMemo<ToastControls>(
+    () => ({ showToast, removeToast, dismissSticky }),
+    [showToast, removeToast, dismissSticky],
+  );
+
   return (
-    <ToastContext.Provider value={{ showToast, removeToast }}>
+    <ToastContext.Provider value={controls}>
       {children}
       <ToastListContainer>
         {toasts.map((toast) => (
@@ -254,8 +291,31 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const useToast = () => {
+export const useToast = (): ToastContextType => {
   const context = useContext(ToastContext);
   if (!context) throw new Error('useToast must be used within a ToastProvider');
-  return context;
+
+  const { showToast: show, removeToast, dismissSticky } = context;
+
+  /*
+   * 이 컴포넌트가 띄운, 스스로 사라지지 않는 토스트의 id.
+   * 컴포넌트가 사라지면(라우트 이동, 온보딩 단계 전환 등) 같이 정리한다. 액션 핸들러가
+   * 이미 사라진 화면을 가리키고 있어서, 남겨 두면 눌러도 아무 일이 일어나지 않는다.
+   */
+  const ownedIdsRef = useRef<string[]>([]);
+
+  const showToast = useCallback<ToastContextType['showToast']>(
+    (message, type, options) => {
+      const id = show(message, type, options);
+      if (isStickyToast(options) && !ownedIdsRef.current.includes(id)) {
+        ownedIdsRef.current.push(id);
+      }
+      return id;
+    },
+    [show],
+  );
+
+  useEffect(() => () => dismissSticky(ownedIdsRef.current), [dismissSticky]);
+
+  return useMemo(() => ({ showToast, removeToast }), [showToast, removeToast]);
 };
