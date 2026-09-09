@@ -82,6 +82,24 @@ describe("signup flow", () => {
     cy.contains("1/2단계").should("be.visible");
   });
 
+  it("goes back to the login screen from the profile step", () => {
+    cy.visit(OAUTH_ENTRY);
+
+    cy.contains("프로필 작성하기", { timeout: 6000 }).should("be.visible");
+    cy.get('img[alt="back"]').click();
+
+    // 가입의 첫 화면이라 되돌아갈 단계가 없다 — 첫 화면(로그인)으로 나간다.
+    cy.location("pathname", { timeout: 6000 }).should("match", /^\/$/);
+    cy.contains("카카오로 계속하기", { timeout: 6000 }).should("be.visible");
+
+    /*
+     * 토큰이 남아 있으면 안 된다. 소셜 로그인은 가입 전에 accessToken 을 발급하는데,
+     * 그걸 든 채 "/" 에 있으면 계정 상태 확인이 3001(SIGNUP_INCOMPLETE)로 떨어지고
+     * SignupIncompleteGate 가 가입 화면으로 되돌려 보낸다(=뒤로가기가 먹지 않는다).
+     */
+    cy.window().its("localStorage").invoke("getItem", "accessToken").should("be.null");
+  });
+
   it("blocks the profile step when required fields are empty", () => {
     cy.visit(OAUTH_ENTRY);
 

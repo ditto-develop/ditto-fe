@@ -9,6 +9,8 @@ import {
 } from "@/context/ToastContext";
 
 import { createExternalUser, saveExternalIntroNote } from "@/shared/lib/api/externalApi";
+import { clearTokens } from "@/shared/lib/auth";
+import { useBackClose } from "@/shared/hooks/useBackClose";
 import { calculateAge, toAgeBucket } from "@/shared/lib/age";
 import type { CreateExternalUserBody } from "@/shared/lib/api/externalApi";
 import { INTRO_NOTE_FIELDS } from "@/features/profile/model/introNotes";
@@ -283,11 +285,43 @@ export function Tutorial({ initialData }: TutorialProps) {
       }
     }
   };
+  /**
+   * 뒤로가기.
+   *
+   * 2단계(소개 노트)에서는 1단계로 돌아간다. **1단계(프로필)에서는 가입 포기**라
+   * 첫 화면(로그인)으로 내보낸다 — 여기가 가입의 첫 화면이라 되돌아갈 단계가 없는데도
+   * 이전에는 아무 일도 하지 않아, 뒤로 버튼이 고장 난 것처럼 보였다.
+   *
+   * 나갈 때 토큰을 지우는 것이 핵심이다. 소셜 로그인은 가입 전에 이미 accessToken 을
+   * 발급하는데, 그 토큰을 든 채 "/" 로 가면 ClientLayout 의 계정 상태 확인이 3001
+   * (SIGNUP_INCOMPLETE)로 떨어지고 SignupIncompleteGate 가 곧바로
+   * `/auth/callback?signupRequired=true` 로 되돌려 보낸다(=뒤로가기가 먹지 않는다).
+   * 계정이 아직 없으니 지울 것도 localStorage 의 accessToken 뿐이다.
+   */
   const goPrevStep = () => {
     if (step > 1) {
       setStep((prev) => prev - 1);
+      return;
     }
+
+    clearTokens();
+    // 콜백 경로(/auth/callback · /oauth/kakao)로 들어온 정상 경로. replace 다 —
+    // push 면 뒤로가기가 방금 떠난 가입 화면으로 되돌아간다.
+    if (initialData) {
+      router.replace("/");
+      return;
+    }
+    // 루트("/")에서 화면 안 전환으로 1단계에 온 경우: 라우팅 없이 로그인 화면으로.
+    setStep(0);
   };
+
+  /**
+   * 안드로이드 하드웨어/제스처 뒤로가기도 화면 안 뒤로 버튼과 같게 동작시킨다.
+   * 연결하지 않으면 가입 화면의 뒤로가기가 웹뷰 히스토리를 소비하는데, 앱은 로그인
+   * 직후 `replace` 로 이 화면에 들어와 뒤에 남는 것이 없다 — 그대로 앱이 종료됐다.
+   * 모달·바텀시트가 떠 있으면 그쪽이 스택 위라 먼저 닫힌다.
+   */
+  useBackClose(step >= 1, goPrevStep);
 
   const handleNext = () => {
     // ✅ 각 단계별 Ref 검증 로직 분리
