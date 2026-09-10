@@ -7,16 +7,20 @@ import {
   Label2,
 } from "@/shared/ui";
 import { Card } from "@/components/display/Card";
-import { ActionButton, ActionSheet } from "@/components/input/Action";
+import { ActionButton } from "@/components/input/Action";
 import {
   INTRO_NOTE_FIELDS,
   MIN_INTRO_NOTE_ANSWERS,
 } from "@/features/profile/model/introNotes";
 import { useTargetDayCountdown } from "@/lib/hooks/useKstCountdown";
 import { QUIZ_SELECT_QUERY_KEY, QUIZ_SELECT_QUERY_VALUE } from "@/components/quiz/QuizModal";
+import { getExternalCurrentWeekQuizSets } from "@/shared/lib/api/externalApi";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
+
+/** 퀴즈 종류. 서버 퀴즈 세트의 matchingType 과 같은 값이다. */
+type QuizMatchingType = "ONE_TO_ONE" | "GROUP";
 
 const CardContainer = styled.div`
   display: flex;
@@ -112,20 +116,59 @@ interface ThisWeekQuizProps {
 export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: ThisWeekQuizProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const today = new Date().getDay(); // (KST 변환 로직 필요 시 적용)
-  const target = today === 4 ? 5 : 4;
 
-  const timeLeft = useTargetDayCountdown(target);
+  /**
+   * 결과가 공개되는 목요일까지. 이 카드는 서버가 퀴즈 기간이라고 할 때만 뜨므로 목표일은
+   * 기기 요일과 무관하게 항상 목요일이다 — 어드민 '시간 임시 조정'으로 다른 요일에 떠도
+   * "결과 공개까지"의 뜻은 같다. 예전에는 기기 요일로 목표를 바꿔 오버라이드가 무시됐다.
+   */
+  const timeLeft = useTargetDayCountdown(4);
   // 퀴즈 화면의 "새로 풀기"로 돌아온 경우(?quiz=select)에는 종류 선택 시트를 연 채로 시작한다.
   const openedFromRestart = searchParams.get(QUIZ_SELECT_QUERY_KEY) === QUIZ_SELECT_QUERY_VALUE;
   const [isQuizStart, setIsQuizStart] = useState(openedFromRestart);
   const [isIntroNoteAlertOpen, setIsIntroNoteAlertOpen] = useState(false);
+  /**
+   * 이번 주에 실제로 열린 퀴즈 종류. 시트가 열릴 때 읽는다.
+   * null 이면 아직 모르거나 못 읽은 상태 — 그때는 두 종류를 모두 보여 준다(퀴즈 화면이
+   * 다시 한번 확인한다). 어드민이 한 종류만 활성화했는데 다른 종류까지 보이면, 그걸 골랐을 때
+   * 같은 퀴즈가 다른 이름표를 달고 나왔다(QA 2026-09-09).
+   */
+  const [availableTypes, setAvailableTypes] = useState<QuizMatchingType[] | null>(null);
+  const [typesLoading, setTypesLoading] = useState(false);
 
   // 시트를 띄웠으면 쿼리는 지운다. 남겨 두면 새로고침·뒤로가기마다 시트가 다시 뜬다.
   useEffect(() => {
     if (!openedFromRestart) return;
     router.replace("/home");
   }, [openedFromRestart, router]);
+
+  useEffect(() => {
+    if (!isQuizStart) return;
+    let ignore = false;
+    setTypesLoading(true);
+    getExternalCurrentWeekQuizSets()
+      .then(({ quizSets }) => {
+        if (ignore) return;
+        setAvailableTypes(
+          (quizSets ?? [])
+            .map((quizSet) => String(quizSet.matchingType))
+            .filter((type): type is QuizMatchingType => type === "ONE_TO_ONE" || type === "GROUP"),
+        );
+      })
+      .catch(() => {
+        if (!ignore) setAvailableTypes(null);
+      })
+      .finally(() => {
+        if (!ignore) setTypesLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [isQuizStart]);
+
+  const isTypeAvailable = (type: QuizMatchingType) =>
+    availableTypes === null || availableTypes.includes(type);
+  const noQuizThisWeek = availableTypes !== null && availableTypes.length === 0;
 
   const isIntroComplete = introNoteCount === INTRO_NOTE_FIELDS.length;
   /** 온보딩에서 "다음에 할래요"로 건너뛴 사람은 여기서 소개 노트 작성으로 되돌린다. */
@@ -215,6 +258,12 @@ export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: T
           detail={
             <QuizTypeList>
               <img src="/assets/illustration/quizstart.svg" loading="lazy" />
+              {typesLoading ? null : noQuizThisWeek ? (
+                <Label2 $color="var(--color-semantic-label-alternative)" $align="center">
+                  이번 주 퀴즈를 준비하고 있어요. 조금만 기다려 주세요!
+                </Label2>
+              ) : null}
+              {!typesLoading && isTypeAvailable("ONE_TO_ONE") && (
               <BottomButton
                 onClick={() => {
                   router.push("/quiz/current?type=ONE_TO_ONE");
@@ -238,6 +287,8 @@ export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: T
                   </Label2>
                 </QuizTypeLabelRow>
               </BottomButton>
+              )}
+              {!typesLoading && isTypeAvailable("GROUP") && (
               <BottomButton
                 onClick={() => {
                   router.push("/quiz/current?type=GROUP");
@@ -261,6 +312,7 @@ export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: T
                   </Label2>
                 </QuizTypeLabelRow>
               </BottomButton>
+              )}
             </QuizTypeList>
           }
         />
@@ -295,14 +347,12 @@ export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: T
         }
         buttonSection={
           <ActionContainer>
-            <ActionSheet>
-              <ActionButton
-                onClick={handleStartQuiz}
-                icon={<img src="/icons/action/plus.svg" />}
-              >
-                시작하기
-              </ActionButton>
-            </ActionSheet>
+            <ActionButton
+              onClick={handleStartQuiz}
+              icon={<img src="/icons/action/plus.svg" />}
+            >
+              시작하기
+            </ActionButton>
           </ActionContainer>
         }
       />

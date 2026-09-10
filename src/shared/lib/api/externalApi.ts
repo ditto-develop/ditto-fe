@@ -164,6 +164,14 @@ export async function getExternalQuizProgress(): Promise<QuizProgressDto> {
     };
 }
 
+/**
+ * 이번 주 퀴즈 답변과 진행 상태를 모두 지운다(POST /quiz-progress/reset).
+ * 퀴즈 화면의 "새로 풀기"가 쓴다 — 지우지 않으면 다시 들어올 때마다 이어풀기 안내가 뜬다.
+ */
+export function resetExternalQuizProgress(): Promise<null> {
+    return externalApiFetch<null>("/api/v1/quiz-progress/reset", { method: "POST" });
+}
+
 export async function getExternalQuizSetWithProgress(id: string): Promise<GetQuizSetWithProgressResponseDto> {
     setStoredQuizSetId(id);
     const data = await externalApiFetch<GetQuizSetWithProgressResponseDto>(`/api/v1/quiz-progress/quiz-sets/${id}`);

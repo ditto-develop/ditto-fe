@@ -23,11 +23,38 @@ describe("edit intro note", () => {
     cy.login();
   });
 
-  it("saves intro note answers and returns to profile", () => {
+  it("shows the saved answers and saves edits only on 수정 완료", () => {
     cy.visit("/profile/intro-note");
+    cy.wait("@getMyIntroNotesV1");
 
     cy.contains("소개 노트 수정하기").should("be.visible");
-    cy.contains("Q1.").parent().parent().find("textarea").first().clear().type("카메라, 지갑, 친구");
+    // 저장된 답변이 그대로 보여야 한다 — 다시 들어오면 전부 비어 있던 회귀(QA 2026-09-09).
+    cy.contains("짐은 단출하게 챙기는 편이에요.").should("be.visible");
+    cy.contains("따뜻함").should("be.visible");
+    cy.contains("10/10 질문 완료").should("be.visible");
+
+    // 저장된 답변을 눌러 편집한다.
+    cy.contains("짐은 단출하게 챙기는 편이에요.").click();
+    cy.contains("Q1.").parent().find("textarea").clear().type("카메라, 지갑, 친구");
+    // 질문별 "저장"은 화면 안에서만 반영된다. 서버에는 "수정 완료"에서 한 번에 쓴다 —
+    // 그래야 최소 3개·필수 질문 조건을 건너뛴 채 하나씩 저장되는 일이 없다.
+    cy.contains("Q1.").parent().contains("button", "저장").click();
+    cy.contains("카메라, 지갑, 친구").should("be.visible");
+    cy.get("@putMyIntroNoteV1.all").should("have.length", 0);
+
+    cy.contains("수정 완료").click();
+
+    cy.wait("@putMyIntroNoteV1");
+    cy.location("pathname").should("eq", "/profile/");
+    cy.get("@putMyIntroNoteV1.all").should("have.length", 10);
+  });
+
+  it("submits typed but unsaved answers too", () => {
+    cy.visit("/profile/intro-note");
+    cy.wait("@getMyIntroNotesV1");
+
+    cy.contains("따뜻함").click();
+    cy.contains("Q10.").parent().find("textarea").clear().type("느긋한 사람");
     // 입력 중에는 하단 CTA가 숨는다(키보드에 겹치기 때문). 저장하지 않은 채 포커스만
     // 거두고 제출한다 — 저장 안 한 값도 그대로 제출되는지까지 같이 본다.
     cy.contains("소개 노트 수정하기").click();

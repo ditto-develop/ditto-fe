@@ -1,5 +1,5 @@
 import { AnimatePresence } from "framer-motion";
-import { ActionButton, ActionSheet } from "@/components/input/Action";
+import { ActionButton } from "@/components/input/Action";
 import { CardContainer, DecoImg } from "@/components/display/Card";
 import type { MatchCandidateDto } from "@/features/matching/api/matchingApi";
 import type { ChatRoom } from "@/features/chat";
@@ -321,15 +321,13 @@ export const MatchingButton = ({
 
   return (
     <ActionContainer>
-      <ActionSheet>
-        <ActionButton
-          variant={buttonState}
-          onClick={onClick || (() => { })}
-          icon={<img src={buttonProps.icon} />}
-        >
-          {buttonProps.text}
-        </ActionButton>
-      </ActionSheet>
+      <ActionButton
+        variant={buttonState}
+        onClick={onClick || (() => { })}
+        icon={<img src={buttonProps.icon} />}
+      >
+        {buttonProps.text}
+      </ActionButton>
     </ActionContainer>
   );
 };

@@ -9,10 +9,11 @@ export type AlertStatus = 'positive' | 'cautionary' | 'destructive' | 'navy';
 
 // --- Styled Components (Layout & Basic Structure) ---
 
+/* Figma 2.1 Home 카드: 위아래 32px, 좌우 16px. 섹션 사이는 24px. */
 export const CardContainer = styled.div`
   position: relative;
   width: 100%;
-  padding: 24px;
+  padding: 32px 16px;
   background-color: var(--color-semantic-background-normal-normal);
   border-radius: 8px;
   display: flex;
@@ -94,10 +95,11 @@ const ContentBadge = styled.div<{ $status: AlertStatus }>`
   height: 24px;
 `;
 
+/* 안쪽 여백은 내용(타임라인·박스 컨테이너)이 스스로 갖는다. 여기서 더 주면 Figma 보다 벌어진다. */
 const ViewSectionWrapper = styled.div`
   width: 100%;
   border-radius: 12px;
-  padding: 5px;
+  padding: 0;
   display: flex;
   align-items: center;
   box-sizing: border-box;
@@ -106,7 +108,7 @@ const ViewSectionWrapper = styled.div`
 const ViewCardWrapper = styled.div`
   width: 100%;
   border-radius: 12px;
-  padding: 5px;
+  padding: 0;
   display: flex;
   align-items: center;
   box-sizing: border-box;

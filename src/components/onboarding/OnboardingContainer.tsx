@@ -116,14 +116,17 @@ export const BodyContainer = styled.div`
     overflow-y: auto;
 `;
 
+/**
+ * 상단 내비게이션과 제목 사이는 제목과 설명 사이 간격(--space-2)만큼만 띄운다.
+ * 16px 이면 내비게이션 높이(56px)와 합쳐져 제목이 너무 아래로 처져 보였다(QA 2026-09-09).
+ */
 export const HeadContainer = styled.div`
   display: flex;
-  padding: var(--space-4, 16px) var(--space-4, 16px) 0;
+  padding: var(--space-2, 8px) var(--space-4, 16px) 0;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-2, 8px);
   align-self: stretch;
-
 `
 
 /** 설명 문구 줄바꿈 사이 + 마지막 줄 아래에 약간의 숨 쉴 틈을 준다. */

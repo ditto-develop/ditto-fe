@@ -6,7 +6,7 @@ import { formatAgeRange } from "@/shared/lib/formatAge";
 import { toLocationLabel } from "@/shared/lib/profileLabels";
 import type { ChatRoom } from "@/features/chat";
 import { getLastMessagePreview } from "@/features/chat";
-import { ActionButton, ActionSheet } from "@/components/input/Action";
+import { ActionButton } from "@/components/input/Action";
 import { useTargetDayCountdown } from "@/lib/hooks/useKstCountdown";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -43,7 +43,6 @@ export type { MatchingCardType } from "./_parts/MatchingDay.helpers";
 export function MatchingDay({
   matchType,
   buttonState,
-  day,
   isChatTime,
   candidates = [],
   hasAcceptedMatch = false,
@@ -58,7 +57,6 @@ export function MatchingDay({
 }: {
   matchType: MatchingCardType;
   buttonState: ButtonStateType;
-  day: number;
   isChatTime: boolean;
   candidates?: MatchCandidateDto[];
   hasAcceptedMatch?: boolean;
@@ -94,7 +92,13 @@ export function MatchingDay({
   const openProfileSelector = () => setProfileSelect(true);
   const closeProfileSelector = () => setProfileSelect(false);
 
-  const timeLeft = useTargetDayCountdown(day === 4 ? 5 : 4);
+  /**
+   * 남은 시간의 목표일은 기기 요일이 아니라 **서버 기간**을 따른다.
+   * 매칭 기간이면 대화가 열리는 금요일까지, 대화 기간이면 다음 퀴즈가 열리는 월요일까지.
+   * 요일로 정하면 어드민 '시간 임시 조정'으로 기간을 바꿔도 카운트다운은 실제 요일 기준으로
+   * 남아 화면의 기간과 어긋났다(QA 2026-09-09).
+   */
+  const timeLeft = useTargetDayCountdown(isChatTime ? 1 : 5);
 
   /**
    * 매칭은 됐지만 아직 대화 기간이 아닐 때의 잠긴 버튼.
@@ -120,15 +124,13 @@ export function MatchingDay({
           viewCard={<GroupJoinedCard candidates={candidates} onCardClick={() => setProfileSelect(true)} />}
           buttonSection={
             <ActionContainer>
-              <ActionSheet>
-                <ActionButton
-                  variant="disabled"
-                  onClick={notifyChatNotOpenYet}
-                  icon={<img src="/icons/action/lock.svg" alt="" />}
-                >
-                  대화 시작하기
-                </ActionButton>
-              </ActionSheet>
+              <ActionButton
+                variant="disabled"
+                onClick={notifyChatNotOpenYet}
+                icon={<img src="/icons/action/lock.svg" alt="" />}
+              >
+                대화 시작하기
+              </ActionButton>
             </ActionContainer>
           }
         />
@@ -212,15 +214,13 @@ export function MatchingDay({
           }} />}
           buttonSection={
             <ActionContainer>
-              <ActionSheet>
-                <ActionButton
-                  variant="disabled"
-                  onClick={notifyChatNotOpenYet}
-                  icon={<img src="/icons/action/lock.svg" alt="" />}
-                >
-                  대화 시작하기
-                </ActionButton>
-              </ActionSheet>
+              <ActionButton
+                variant="disabled"
+                onClick={notifyChatNotOpenYet}
+                icon={<img src="/icons/action/lock.svg" alt="" />}
+              >
+                대화 시작하기
+              </ActionButton>
             </ActionContainer>
           }
         />

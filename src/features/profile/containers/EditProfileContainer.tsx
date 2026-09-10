@@ -18,33 +18,36 @@ import type { PublicProfileDto } from "@/features/profile/api/profileApi";
 import { toLocationLabel, toOccupationLabel } from "@/shared/lib/profileLabels";
 import { BottomActionArea, Button, TopNavigation } from "@/shared/ui";
 
-const INTRODUCTION_MAX_LENGTH = 50;
 const MAX_INTEREST_COUNT = 5;
 
+/**
+ * 프로필 수정 — Figma 6.1.1 프로필 수정.
+ *
+ * 편집 가능한 것은 캐리커쳐와 관심사뿐이다. 닉네임·성별·나이·사는 곳·직업은 Figma 에서
+ * 비활성으로 그려져 있고 BE(PATCH /users/me/profile)도 받지 않는다.
+ * 한 줄 소개는 이 화면에 없다 — BE 가 소개 노트 Q10("나를 한 줄로 표현한다면?")과 같은 값으로
+ * 다루므로 소개 노트 수정 화면에서만 고친다. 여기 두면 같은 값을 고치는 입구가 둘이 된다.
+ */
 export function EditProfileContainer() {
     const router = useRouter();
     const { showToast } = useToast();
     const [profile, setProfile] = useState<PublicProfileDto | null>(null);
     const [profileId, setProfileId] = useState("m1");
-    const [introduction, setIntroduction] = useState("");
     const [interests, setInterests] = useState<string[]>([]);
     const [isProfileSelectOpen, setIsProfileSelectOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [showIntroductionError, setShowIntroductionError] = useState(false);
 
     useEffect(() => {
         getMyProfile().then((dto) => {
             setProfile(dto);
-            setIntroduction(dto.introduction ?? "");
             setInterests(dto.interests ?? []);
             setProfileId(toAvatarId(dto.profileImageUrl, dto.gender));
         });
     }, []);
 
     const avatarUrl = useMemo(() => `/assets/avatar/${profileId}.png`, [profileId]);
-    const isValid = introduction.trim().length > 0 && interests.length > 0;
+    const isValid = interests.length > 0;
     const isDirty = Boolean(profile) && (
-        introduction !== (profile?.introduction ?? "") ||
         avatarUrl !== (profile?.profileImageUrl ?? "") ||
         interests.join("|") !== (profile?.interests ?? []).join("|")
     );
@@ -70,11 +73,6 @@ export function EditProfileContainer() {
 
     const handleSubmit = async () => {
         if (submitting) return;
-        if (!introduction.trim()) {
-            setShowIntroductionError(true);
-            showToast("필수 항목을 작성해 주세요.", "error");
-            return;
-        }
         if (interests.length === 0) {
             showToast("관심사를 1개 이상 선택해주세요.", "error");
             return;
@@ -83,7 +81,6 @@ export function EditProfileContainer() {
         setSubmitting(true);
         try {
             await updateMyProfile({
-                introduction: introduction.trim(),
                 profileImageUrl: avatarUrl,
                 interests,
             });
@@ -127,28 +124,6 @@ export function EditProfileContainer() {
                     <ReadOnlyField label="성별" value={toGenderLabel(profile?.gender)} hasChevron />
                     <ReadOnlyField label="나이" value={toAgeSelectLabel(profile?.age)} hasChevron />
                 </TwoColumnRow>
-
-                <TextAreaField>
-                    <FieldLabel>
-                        한 줄 소개
-                        <RequiredMark>*</RequiredMark>
-                    </FieldLabel>
-                    <IntroductionBox
-                        value={introduction}
-                        maxLength={INTRODUCTION_MAX_LENGTH}
-                        onBlur={() => setShowIntroductionError(introduction.trim().length === 0)}
-                        onChange={(event) => {
-                            setIntroduction(event.target.value);
-                            if (event.target.value.trim().length > 0) {
-                                setShowIntroductionError(false);
-                            }
-                        }}
-                    />
-                    <CountText>{introduction.length}/{INTRODUCTION_MAX_LENGTH}</CountText>
-                    {showIntroductionError && (
-                        <ErrorText>필수 항목을 작성해 주세요.</ErrorText>
-                    )}
-                </TextAreaField>
 
                 <FieldGroup>
                     <InterestHeader>
@@ -318,55 +293,6 @@ const ChevronIcon = styled(ChevronDown)`
   height: var(--space-4);
   color: var(--color-semantic-label-disable);
   flex: 0 0 auto;
-`;
-
-const TextAreaField = styled.section`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  width: 100%;
-`;
-
-const IntroductionBox = styled.textarea`
-  width: 100%;
-  min-height: var(--space-20);
-  box-sizing: border-box;
-  resize: none;
-  border-radius: var(--space-3);
-  border: var(--spacing-1px) solid var(--color-semantic-line-normal-neutral);
-  background-color: transparent;
-  padding: var(--space-3) var(--space-4) var(--space-10);
-  outline: none;
-  font-size: var(--typography-body-1-reading-font-size);
-  font-weight: var(--typography-body-1-reading-font-weight);
-  line-height: var(--typography-body-1-reading-line-height);
-  letter-spacing: var(--typography-body-1-reading-letter-spacing);
-  color: var(--color-semantic-label-normal);
-
-  &:focus {
-    border-color: var(--color-semantic-line-normal-strong);
-  }
-`;
-
-const CountText = styled.span`
-  position: absolute;
-  left: var(--space-4);
-  bottom: var(--space-3);
-  font-size: var(--typography-label-2-font-size);
-  font-weight: var(--typography-label-2-font-weight);
-  line-height: var(--typography-label-2-line-height);
-  letter-spacing: var(--typography-label-2-letter-spacing);
-  color: var(--color-semantic-label-alternative);
-`;
-
-const ErrorText = styled.p`
-  margin: 0;
-  font-size: var(--typography-caption-1-font-size);
-  font-weight: var(--typography-caption-1-font-weight);
-  line-height: var(--typography-caption-1-line-height);
-  letter-spacing: var(--typography-caption-1-letter-spacing);
-  color: var(--color-semantic-status-negative);
 `;
 
 const InterestHeader = styled.div`

@@ -108,6 +108,8 @@ const SelectTrigger = styled.button<SelectTriggerProps>`
 
 const SelectValue = styled.span<{ $placeholder?: boolean }>`
   flex: 1;
+  /* 트리거가 button 이라 UA 기본값(text-align: center)을 물려받는다. 입력 필드처럼 왼쪽 정렬. */
+  text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -258,19 +258,23 @@ const ProfileSelect: React.FC<CaricatureSelectProps> = ({
         </AvatarGrid>
       </AvatarScrollArea>
 
-      {/* 하단 버튼 */}
+      {/*
+        하단 버튼. Figma 처럼 화면 맨 아래에 붙인다 — 버튼 아래 여백은 홈 인디케이터
+        세이프에어리어뿐이다(safeAreaExtra=0). 예전에는 시트의 기본 여백 16px 에
+        Bottom 의 세이프에어리어까지 겹쳐 버튼이 떠 보였다.
+      */}
       <Bottom>
         <ActionContainer>
-            <ActionSheet>
-            <ActionButton 
-                onClick={()=>{setProfileModal(false)}} 
+            <ActionSheet safeAreaExtra={0}>
+            <ActionButton
+                onClick={()=>{setProfileModal(false)}}
             >
                 골랐어요
             </ActionButton>
             </ActionSheet>
         </ActionContainer>
       </Bottom>
-      
+
     </Wrapper>
   );
 };
@@ -279,7 +283,6 @@ const ProfileSelect: React.FC<CaricatureSelectProps> = ({
 const Bottom = styled.div`
     flex: 0 0 auto;
     width: 100%;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
     background: var(--color-semantic-background-normal-normal);
 `
 

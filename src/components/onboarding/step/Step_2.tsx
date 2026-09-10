@@ -76,6 +76,7 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
   const [profileModal, setProfileModal] = useState<boolean>(false);
 
   const MAX_INTEREST = 5;
+  const MIN_INTEREST = 1;
 
   // 1. 이미지 변경 핸들러
   const profileToggle = (value: string) => {
@@ -174,16 +175,17 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
       // 이메일은 형식까지 봐야 하므로 빈칸 검사보다 먼저 돌린다.
       if (!validateEmail(data.email)) return false;
 
-      const isComplete = 
+      const isComplete =
         !!data.gender &&
         !!data.birthDate &&
-        data.interest.length === 5 &&
+        data.interest.length >= MIN_INTEREST &&
         !!data.place &&
         !!data.job;
-      
-      if(data.interest.length !== 5) {
-        showToast("관심사를 5개 선택해주세요.","error");
-        return isComplete;
+
+      // 관심사는 최소 1개(최대 5개). 하나도 고르지 않았을 때만 따로 알린다.
+      if (data.interest.length < MIN_INTEREST) {
+        showToast(`관심사를 ${MIN_INTEREST}개 이상 선택해주세요.`, "error");
+        return false;
       }
 
       if(!isComplete) {
@@ -210,7 +212,7 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
       data.email.trim().length > 0 &&
       !!data.gender &&
       !!data.birthDate &&
-      data.interest.length === 5 &&
+      data.interest.length >= MIN_INTEREST &&
       !!data.place &&
       !!data.job;
 

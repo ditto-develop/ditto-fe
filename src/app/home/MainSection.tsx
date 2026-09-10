@@ -30,21 +30,14 @@ const MainSectionContainer = styled.div`
    * 탭의 실제 높이가 60px + 홈 인디케이터 인셋이라, 80px 고정이면 앱에서
    * 인셋만큼 카드 아래가 탭에 가린다.
    */
-  padding: 4px 0px calc(64px + env(safe-area-inset-bottom, 0px));
+  padding: 16px 0 calc(64px + env(safe-area-inset-bottom, 0px));
   display: grid;
-  gap: 10px;
+  /* Figma 2.1 Home: 상단 내비→첫 카드 16px, 카드 사이 24px. */
+  gap: 24px;
 `;
 
 
 type Period = "QUIZ" | "MATCHING" | "CHATTING";
-
-function getKstDayIndex(): number {
-  const now = new Date();
-  const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
-  const kstOffset = 9 * 60 * 60 * 1000;
-  const kstDate = new Date(utc + kstOffset);
-  return kstDate.getDay(); // 0: Sun, 1: Mon, ..., 6: Sat
-}
 
 function mapSystemPeriod(apiPeriod: SystemStateDto["period"]): Period {
   switch (apiPeriod) {
@@ -67,7 +60,6 @@ async function getLatestChatRoom(): Promise<ChatRoom | undefined> {
 
 export function MainSection() {
   const [period, setPeriod] = useState<Period | null>(null);
-  const [dayIndex] = useState<number>(getKstDayIndex());
   const [isQuizComplete, setIsQuizComplete] = useState(false);
   // null = 소개 노트 조회 실패(개수를 모름). 퀴즈 진입을 막지 않는다.
   const [introNoteCount, setIntroNoteCount] = useState<number | null>(null);
@@ -246,7 +238,6 @@ export function MainSection() {
         return (
           <MatchingDay
             isChatTime={false}
-            day={dayIndex}
             matchType={matchType}
             buttonState="primary"
             candidates={candidates}
@@ -286,7 +277,6 @@ export function MainSection() {
         return (
           <MatchingDay
             isChatTime={true}
-            day={dayIndex}
             matchType={matchType}
             buttonState="primary"
             candidates={candidates}

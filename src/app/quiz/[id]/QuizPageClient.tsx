@@ -8,9 +8,17 @@ import { ActionButton, ActionSheet } from "@/components/input/Action";
 import { useRouter, useParams } from "next/navigation";
 import { QuizModal, QUIZ_SELECT_HOME_PATH } from "@/components/quiz/QuizModal";
 import type { QuizWithAnswerDto } from "@/shared/lib/api/generated";
-import { getExternalQuizSetWithProgress, submitExternalQuizAnswer } from "@/shared/lib/api/externalApi";
+import {
+  getExternalQuizSetWithProgress,
+  resetExternalQuizProgress,
+  submitExternalQuizAnswer,
+} from "@/shared/lib/api/externalApi";
 import { getQuizSanctionMessage } from "@/features/sanction";
+import { updateNotificationSettings } from "@/features/settings/api/settingsApi";
 import { useToast } from "@/context/ToastContext";
+import { useBackClose } from "@/shared/hooks/useBackClose";
+import { goBackOr } from "@/shared/lib/navigation";
+import { registerDeviceToken } from "@/shared/lib/native/pushNotifications";
 
 export function QuizPageClient() {
   const router = useRouter();
@@ -38,6 +46,11 @@ export function QuizPageClient() {
           const lastAnswered = res.quizzes.findIndex((q) => !q.userAnswer);
           setCurrentStep(lastAnswered === -1 ? res.quizzes.length - 1 : lastAnswered);
           if (lastAnswered === -1) setIsFinish(true);
+          /*
+           * 일부만 답한 채 다시 들어왔다 — 이어서 풀지 처음부터 다시 고를지 묻는다(Figma 1112:8841).
+           * 예전에는 이 안내가 뒤로가기에 걸려 있어 이전 문항으로 되돌아갈 수 없었다.
+           */
+          else if (lastAnswered > 0) setIsModal(true);
         } else {
           setError("퀴즈를 불러오지 못했어요.");
         }
@@ -80,6 +93,38 @@ export function QuizPageClient() {
     }, 400);
   };
 
+  /**
+   * 뒤로가기 = 이전 문항. 다시 고르면 서버가 그 문항의 답을 덮어쓴다(재제출 허용).
+   * 첫 문항에서는 화면을 나간다. 전환 애니메이션 중에는 무시한다 — 예약된 다음 문항 이동과
+   * 겹치면 두 칸씩 움직인다.
+   */
+  const goPrevQuestion = () => {
+    if (selectedChoiceId !== null) return;
+    if (currentStep === 0) {
+      goBackOr(router, "/home");
+      return;
+    }
+    setIsFadingOut(false);
+    setCurrentStep((prev) => prev - 1);
+  };
+
+  // 안드로이드 하드웨어 뒤로가기도 화면 안 뒤로 버튼과 같게. 첫 문항에서는 원래대로 화면을 나간다.
+  useBackClose(!loading && !isfinsish && !isModal && currentStep > 0, goPrevQuestion);
+
+  /**
+   * "새로 풀기": 이번 주 답변을 지우고 홈의 퀴즈 종류 선택 시트로 간다.
+   * 지우지 않으면 어느 종류를 골라도 남은 답변 때문에 이 안내가 다시 뜬다.
+   */
+  const handleRestart = async () => {
+    try {
+      await resetExternalQuizProgress();
+    } catch {
+      showToast("퀴즈를 초기화하지 못했어요. 잠시 후 다시 시도해 주세요.", "error");
+      return;
+    }
+    router.push(QUIZ_SELECT_HOME_PATH);
+  };
+
   if (loading) return <div style={{ padding: 32 }}>퀴즈를 불러오는 중...</div>;
   if (error) return <div style={{ padding: 32 }}>{error}</div>;
   if (!currentQuiz) return null;
@@ -91,7 +136,7 @@ export function QuizPageClient() {
         <QuizModal
           isOpen={isModal}
           onClose={() => setIsModal(false)}
-          onRestart={() => router.push(QUIZ_SELECT_HOME_PATH)}
+          onRestart={handleRestart}
           onContinue={() => setIsModal(false)}
         />
       </>
@@ -99,11 +144,9 @@ export function QuizPageClient() {
     {isfinsish ?
         <FinishView />
     :
-    <div>
+    <Page>
       <Nav
-        prev={() => {
-          setIsModal(true);
-        }}
+        prev={goPrevQuestion}
         label="1:1 매칭"
       />
       <MainContainer>
@@ -142,7 +185,7 @@ export function QuizPageClient() {
             </ButtonContainer>
         </FadeWrapper>
       </MainContainer>
-    </div>
+    </Page>
     }
     </>
   );
@@ -162,9 +205,23 @@ const fadeOut = keyframes`
   to { opacity: 0; transform: translateY(-10px); }
 `;
 
+/**
+ * 화면을 정확히 뷰포트 높이에 맞춘다(Figma 1029:34704 — 질문은 가운데, 선택지는 맨 아래).
+ * 예전에는 본문이 100vh 인 채 그 위에 내비게이션이 더해져 항상 한 화면만큼 더 스크롤됐다.
+ */
+const Page = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+  background-color: var(--color-semantic-background-normal-normal);
+`;
+
 // 전체 컨텐츠(질문+버튼)를 감싸는 래퍼 (페이지 전환 효과)
 const FadeWrapper = styled.div<{ $isFadingOut: boolean }>`
   width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -210,11 +267,11 @@ const AnimActionButton = styled(ActionButton)<{ $isSelected: boolean; $isUnselec
 
 const MainContainer = styled.div`
   display: flex;
-  padding: var(--space-0, 0) 0;
   flex-direction: column;
   align-items: center;
   align-self: stretch;
-  min-height: 100vh; /* 화면 전체 사용 */
+  flex: 1 1 0;
+  min-height: 0;
 `;
 
 const ProgressBarContiner = styled.div`
@@ -226,9 +283,11 @@ const ProgressBarContiner = styled.div`
   align-self: stretch;
 `;
 
+/* 남는 세로 공간을 모두 차지해 질문을 가운데 둔다. */
 const ContentContainer = styled.div`
   display: flex;
-  height: 250px; /* 높이 고정하여 질문 길이가 달라져도 UI 덜 흔들리게 */
+  flex: 1 1 0;
+  min-height: 0;
   padding: 0 var(--space-4, 16px);
   flex-direction: column;
   justify-content: center;
@@ -238,6 +297,7 @@ const ContentContainer = styled.div`
   text-align: center;
 `;
 
+/* 선택지는 화면 맨 아래. 홈 인디케이터 인셋만큼 더 띄운다. */
 const ButtonContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -245,7 +305,7 @@ const ButtonContainer = styled.div`
   justify-content: center;
   align-items: center;
   gap: 8px;
-  padding: 64px 16px;
+  padding: var(--space-4, 16px) var(--space-4, 16px) calc(var(--space-4, 16px) + env(safe-area-inset-bottom, 0px));
 `;
 
 // --- ProgressBar Component (재사용) ---
@@ -299,7 +359,7 @@ const Fill = styled.div<{ $percentage: number }>`
 const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
-  min-height: 100vh; /* 화면 꽉 */
+  min-height: 100dvh; /* 화면 꽉 */
 `;
 
 const TopContainer = styled.div`
@@ -353,7 +413,28 @@ const getRandomImage = () => {
 
 function FinishView(){
   const router = useRouter();
+  const { showToast } = useToast();
   const [imgSrc] = useState(getRandomImage);
+  const [notifying, setNotifying] = useState(false);
+
+  /**
+   * "알림받기": 매칭 알림을 켜고(설정 화면의 토글과 같은 값) 홈으로 돌아간다.
+   * 앱이면 이 기기의 푸시 토큰도 함께 등록해 둔다 — 웹에서는 아무 일도 하지 않는다.
+   */
+  const handleNotify = async () => {
+    if (notifying) return;
+    setNotifying(true);
+    try {
+      await updateNotificationSettings({ matching: true });
+      void registerDeviceToken();
+      showToast("매칭 결과가 나오면 알려드릴게요.", "success");
+      router.push("/home");
+    } catch {
+      showToast("알림 설정에 실패했어요. 잠시 후 다시 시도해 주세요.", "error");
+    } finally {
+      setNotifying(false);
+    }
+  };
 
     return(
         <PageContainer>
@@ -386,7 +467,13 @@ function FinishView(){
                 caption="결과를 놓치지 않도록 알려드릴게요"
                 layout="column"
             >
-                <ActionButton >알림받기</ActionButton>
+                <ActionButton
+                  variant={notifying ? "disabled" : "primary"}
+                  disabled={notifying}
+                  onClick={handleNotify}
+                >
+                  알림받기
+                </ActionButton>
                 <ActionButton
                   onClick={()=>{router.push('/home')}}
                   variant="tertiary">다음에 하기</ActionButton>

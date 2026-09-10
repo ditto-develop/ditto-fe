@@ -5,8 +5,11 @@ import styled from "styled-components";
 
 const Header = styled.div`
     display: flex;
-    /* 앱에서 상태바가 웹뷰 위에 겹친다. 웹에서는 env()가 0이라 16px 그대로다. */
-    padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px;
+    /*
+     * 다른 화면의 상단 내비와 같은 56px(로고 32 + 위아래 12). Figma 2.1 Home 의 Top Navigation.
+     * 앱에서는 상태바가 웹뷰 위에 겹친다. 웹에서는 env()가 0이라 12px 그대로다.
+     */
+    padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px;
     justify-content: space-between;
     align-items: flex-start;
 `;

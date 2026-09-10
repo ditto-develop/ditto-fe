@@ -16,7 +16,7 @@ interface TimelineProps {
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px; /* 각 단계 사이의 간격 */
+  gap: 8px; /* 각 단계 사이의 간격 — 3단계 합쳐 100px(Figma Progress Tracker). */
   position: relative;
 `;
 

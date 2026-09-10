@@ -2,15 +2,24 @@
 
 import { useEffect, useState, Suspense } from "react";
 import styled, { css, keyframes } from "styled-components";
-import { Label1Normal, Label2, Title2, Title3 } from "@/shared/ui";
+import { EmptyState, Label1Normal, Label2, Title2, Title3 } from "@/shared/ui";
 import { Nav } from "@/shared/ui";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import { useRouter, useSearchParams } from "next/navigation";
 import { QuizModal, QUIZ_SELECT_HOME_PATH } from "@/components/quiz/QuizModal";
-import { getExternalCurrentWeekQuizSets, submitExternalQuizAnswer } from "@/shared/lib/api/externalApi";
+import {
+  getExternalCurrentWeekQuizSets,
+  getExternalQuizSetWithProgress,
+  resetExternalQuizProgress,
+  submitExternalQuizAnswer,
+} from "@/shared/lib/api/externalApi";
 import { getQuizSanctionMessage } from "@/features/sanction";
+import { updateNotificationSettings } from "@/features/settings/api/settingsApi";
 import { useToast } from "@/context/ToastContext";
-import type { CurrentWeekQuizSetsResponseDto, QuizDto } from "@/shared/lib/api/generated";
+import { useBackClose } from "@/shared/hooks/useBackClose";
+import { goBackOr } from "@/shared/lib/navigation";
+import { registerDeviceToken } from "@/shared/lib/native/pushNotifications";
+import type { CurrentWeekQuizSetDto, CurrentWeekQuizSetsResponseDto, QuizDto } from "@/shared/lib/api/generated";
 
 // --- Types ---
 // QuizData is now inferred from QuizDto
@@ -21,6 +30,20 @@ export default function Quiz() {
       <QuizContent />
     </Suspense>
   );
+}
+
+/**
+ * 홈에서 고른 종류(type 쿼리)의 세트만 고른다. **다른 종류로 대체하지 않는다** —
+ * 어드민이 그룹 세트만 활성화했을 때 1:1 을 고르면 그룹 퀴즈가 "1:1 매칭" 이름표를 달고
+ * 나왔다(QA 2026-09-09). 종류를 지정하지 않고 들어오면 첫 세트다.
+ */
+function pickQuizSet(
+  quizData: CurrentWeekQuizSetsResponseDto,
+  matchingType: string | null,
+): CurrentWeekQuizSetDto | undefined {
+  const quizSets = quizData.quizSets ?? [];
+  if (!matchingType) return quizSets[0];
+  return quizSets.find((quizSet) => quizSet.matchingType === matchingType);
 }
 
 function QuizContent() {
@@ -42,41 +65,57 @@ function QuizContent() {
   const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
+    let ignore = false;
+
     const fetchQuizData = async () => {
       try {
         setLoading(true);
         const response = await getExternalCurrentWeekQuizSets();
+        if (ignore) return;
         setQuizData(response);
+
+        /*
+         * 이어풀기. 이미 답한 문항이 있으면 그 다음 문항에서 시작하고, 이어서 풀지 처음부터
+         * 다시 할지 묻는다(Figma 1112:8841). 모두 답했으면 참여 완료 화면이다.
+         * 진행 상황을 못 읽으면 처음부터 — 답은 재제출로 덮어써지므로 잃는 것은 없다.
+         */
+        const quizSet = pickQuizSet(response, matchingType);
+        if (!quizSet) return;
+        try {
+          const progress = await getExternalQuizSetWithProgress(quizSet.id);
+          if (ignore) return;
+          const answeredIds = new Set(
+            progress.quizzes.filter((quiz) => quiz.userAnswer).map((quiz) => quiz.id),
+          );
+          const quizzes = quizSet.quizzes ?? [];
+          const firstUnanswered = quizzes.findIndex((quiz) => !answeredIds.has(quiz.id));
+          if (quizzes.length > 0 && firstUnanswered === -1) {
+            setIsFinish(true);
+          } else if (firstUnanswered > 0) {
+            setCurrentStep(firstUnanswered);
+            setIsModal(true);
+          }
+        } catch {
+          // 처음부터 시작한다.
+        }
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        if (!ignore) setError(err instanceof Error ? err.message : "An unknown error occurred.");
       } finally {
-        setLoading(false);
+        if (!ignore) setLoading(false);
       }
     };
 
     fetchQuizData();
-  }, []);
+
+    return () => {
+      ignore = true;
+    };
+  }, [matchingType]);
 
   // --- Derived State ---
-  // matchingType query param으로 올바른 퀴즈셋 선택, 없으면 첫 번째
-  const requestedQuizSet = matchingType
-    ? quizData?.quizSets?.find((qs) => qs.matchingType === matchingType)
-    : undefined;
-  const selectedQuizSet = requestedQuizSet ?? quizData?.quizSets?.[0];
-  /**
-   * 머리글 태그는 사용자가 홈에서 고른 종류(type 쿼리)를 우선한다.
-   * 이번 주 응답에 그 종류의 세트가 없으면 첫 세트로 폴백하는데, 그때 세트의 종류로 태그를
-   * 만들면 그룹 퀴즈를 골랐는데 "1:1 매칭"으로 뜬다. 폴백이 일어난 사실은 기록해 둔다 —
-   * 서버 응답에 그 종류가 빠진 것이라 FE 에서는 더 알 수 없다.
-   */
+  const selectedQuizSet = quizData ? pickQuizSet(quizData, matchingType) : undefined;
+  // 머리글 태그는 사용자가 홈에서 고른 종류(type 쿼리)를 우선한다.
   const matchingLabel = (matchingType ?? selectedQuizSet?.matchingType) === "GROUP" ? "그룹 매칭" : "1:1 매칭";
-  useEffect(() => {
-    if (!quizData || !matchingType || requestedQuizSet) return;
-    console.warn(
-      `[quiz] 요청한 종류(${matchingType})의 퀴즈 세트가 이번 주 응답에 없어 첫 세트로 대체:`,
-      quizData.quizSets?.map((qs) => qs.matchingType),
-    );
-  }, [quizData, matchingType, requestedQuizSet]);
   const quizzes: QuizDto[] = selectedQuizSet?.quizzes || [];
   const currentQuiz = quizzes[currentStep];
   const isLastQuiz = currentStep === quizzes.length - 1;
@@ -108,6 +147,38 @@ function QuizContent() {
     }, 400);
   };
 
+  /**
+   * 뒤로가기 = 이전 문항. 다시 고르면 서버가 그 문항의 답을 덮어쓴다(재제출 허용).
+   * 첫 문항에서는 화면을 나간다. 전환 애니메이션 중에는 무시한다 — 예약된 다음 문항 이동과
+   * 겹치면 두 칸씩 움직인다.
+   */
+  const goPrevQuestion = () => {
+    if (selectedChoiceId !== null) return;
+    if (currentStep === 0) {
+      goBackOr(router, "/home");
+      return;
+    }
+    setIsFadingOut(false);
+    setCurrentStep((prev) => prev - 1);
+  };
+
+  // 안드로이드 하드웨어 뒤로가기도 화면 안 뒤로 버튼과 같게. 첫 문항에서는 원래대로 화면을 나간다.
+  useBackClose(!loading && !isFinish && !isModal && currentStep > 0, goPrevQuestion);
+
+  /**
+   * "새로 풀기": 이번 주 답변을 지우고 홈의 퀴즈 종류 선택 시트로 간다.
+   * 지우지 않으면 어느 종류를 골라도 남은 답변 때문에 이 안내가 다시 뜬다.
+   */
+  const handleRestart = async () => {
+    try {
+      await resetExternalQuizProgress();
+    } catch {
+      showToast("퀴즈를 초기화하지 못했어요. 잠시 후 다시 시도해 주세요.", "error");
+      return;
+    }
+    router.push(QUIZ_SELECT_HOME_PATH);
+  };
+
   // --- Render logic ---
   if (loading) {
     return <div>Loading...</div>; // Or a proper loading spinner component
@@ -116,7 +187,28 @@ function QuizContent() {
   if (error) {
     return <div>Error: {error}</div>; // Or a proper error component
   }
-  
+
+  // 고른 종류의 세트가 이번 주에 없다. 다른 종류로 바꿔치기하지 않고 그대로 알린다.
+  if (matchingType && !selectedQuizSet) {
+    return (
+      <Page>
+        <Nav prev={() => goBackOr(router, "/home")} label={matchingLabel} />
+        <EmptySlot>
+          <EmptyState
+            icon="notification.clock"
+            title={`이번 주 ${matchingLabel} 퀴즈가 아직 없어요`}
+            description="다른 종류의 퀴즈를 골라 보세요."
+          />
+        </EmptySlot>
+        <ActionSheet>
+          <ActionButton onClick={() => router.push(QUIZ_SELECT_HOME_PATH)}>
+            다른 퀴즈 고르기
+          </ActionButton>
+        </ActionSheet>
+      </Page>
+    );
+  }
+
   if (!currentQuiz) {
     // This can happen if the API returns an empty quizzes array
     return <div>No quiz available at the moment.</div>;
@@ -128,16 +220,16 @@ function QuizContent() {
         <QuizModal
           isOpen={isModal}
           onClose={() => setIsModal(false)}
-          onRestart={() => router.push(QUIZ_SELECT_HOME_PATH)}
+          onRestart={handleRestart}
           onContinue={() => setIsModal(false)}
         />
       )}
       {isFinish ? (
         <FinishView matchingLabel={matchingLabel} />
       ) : (
-        <div>
-          <Nav 
-            prev={() => setIsModal(true)} 
+        <Page>
+          <Nav
+            prev={goPrevQuestion}
             label={matchingLabel}
           />
           <MainContainer>
@@ -152,7 +244,7 @@ function QuizContent() {
                 </Label1Normal>
                 <Title2>{currentQuiz.question}</Title2>
               </ContentContainer>
-              
+
               <ButtonContainer>
                 {currentQuiz.choices.map((choice, index) => {
                   const isSelected = selectedChoiceId === choice.id;
@@ -173,7 +265,7 @@ function QuizContent() {
               </ButtonContainer>
             </FadeWrapper>
           </MainContainer>
-        </div>
+        </Page>
       )}
     </>
   );
@@ -193,13 +285,35 @@ const fadeOut = keyframes`
   to { opacity: 0; transform: translateY(-10px); }
 `;
 
+/**
+ * 화면을 정확히 뷰포트 높이에 맞춘다(Figma 1029:34704 — 질문은 가운데, 선택지는 맨 아래).
+ * 예전에는 본문이 100vh 인 채 그 위에 내비게이션이 더해져 항상 한 화면만큼 더 스크롤됐다.
+ */
+const Page = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+  background-color: var(--color-semantic-background-normal-normal);
+`;
+
+const EmptySlot = styled.div`
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
 // 전체 컨텐츠(질문+버튼)를 감싸는 래퍼 (페이지 전환 효과)
 const FadeWrapper = styled.div<{ $isFadingOut: boolean }>`
   width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  
+
   // 기본적으로 등장할 때 Fade In (key가 바뀌면 재실행됨)
   animation: ${fadeIn} 0.5s ease-out forwards;
 
@@ -241,11 +355,11 @@ const AnimActionButton = styled(ActionButton)<{ $isSelected: boolean; $isUnselec
 
 const MainContainer = styled.div`
   display: flex;
-  padding: var(--space-0, 0) 0;
   flex-direction: column;
   align-items: center;
   align-self: stretch;
-  min-height: 100vh; /* 화면 전체 사용 */
+  flex: 1 1 0;
+  min-height: 0;
 `;
 
 const ProgressBarContiner = styled.div`
@@ -257,9 +371,11 @@ const ProgressBarContiner = styled.div`
   align-self: stretch;
 `;
 
+/* 남는 세로 공간을 모두 차지해 질문을 가운데 둔다. */
 const ContentContainer = styled.div`
   display: flex;
-  height: 250px; /* 높이 고정하여 질문 길이가 달라져도 UI 덜 흔들리게 */
+  flex: 1 1 0;
+  min-height: 0;
   padding: 0 var(--space-4, 16px);
   flex-direction: column;
   justify-content: center;
@@ -269,6 +385,7 @@ const ContentContainer = styled.div`
   text-align: center;
 `;
 
+/* 선택지는 화면 맨 아래. 홈 인디케이터 인셋만큼 더 띄운다. */
 const ButtonContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -276,7 +393,7 @@ const ButtonContainer = styled.div`
   justify-content: center;
   align-items: center;
   gap: 8px;
-  padding: 64px 16px;
+  padding: var(--space-4, 16px) var(--space-4, 16px) calc(var(--space-4, 16px) + env(safe-area-inset-bottom, 0px));
 `;
 
 // --- ProgressBar Component (재사용) ---
@@ -330,7 +447,7 @@ const Fill = styled.div<{ $percentage: number }>`
 const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
-  min-height: 100vh; /* 화면 꽉 */
+  min-height: 100dvh; /* 화면 꽉 */
 `;
 
 const TopContainer = styled.div`
@@ -350,7 +467,7 @@ const CircleIconWrapper = styled.div`
   display: flex;
   justify-content: center; /* 가로 중앙 정렬 */
   align-items: center;     /* 세로 중앙 정렬 */
-  
+
   width: 20px;             /* 원의 지름 (원하는 크기로 조절) */
   height: 20px;
   background-color: black; /* 검정 배경 */
@@ -384,12 +501,34 @@ const getRandomImage = () => {
 
 function FinishView({ matchingLabel }: { matchingLabel: string }) {
   const router = useRouter();
-  const [imgSrc] = useState(getRandomImage); 
+  const { showToast } = useToast();
+  const [imgSrc] = useState(getRandomImage);
+  const [notifying, setNotifying] = useState(false);
   const isGroup = matchingLabel === "그룹 매칭";
+
+  /**
+   * "알림받기": 매칭 알림을 켜고(설정 화면의 토글과 같은 값) 홈으로 돌아간다.
+   * 앱이면 이 기기의 푸시 토큰도 함께 등록해 둔다 — 웹에서는 아무 일도 하지 않는다.
+   * 예전에는 아무 동작도 없는 버튼이었다(QA 2026-09-09).
+   */
+  const handleNotify = async () => {
+    if (notifying) return;
+    setNotifying(true);
+    try {
+      await updateNotificationSettings({ matching: true });
+      void registerDeviceToken();
+      showToast("매칭 결과가 나오면 알려드릴게요.", "success");
+      router.push("/home");
+    } catch {
+      showToast("알림 설정에 실패했어요. 잠시 후 다시 시도해 주세요.", "error");
+    } finally {
+      setNotifying(false);
+    }
+  };
 
     return(
         <PageContainer>
-            <Nav 
+            <Nav
                 close={()=>{router.push('/home')}}
             />
             <TopContainer>
@@ -424,12 +563,18 @@ function FinishView({ matchingLabel }: { matchingLabel: string }) {
               <RandomImg src={imgSrc} />
             </MiddleContainer>
 
-            <ActionSheet 
+            <ActionSheet
                 caption="결과를 놓치지 않도록 알려드릴게요"
                 layout="column"
             >
-                <ActionButton >알림받기</ActionButton>
-                <ActionButton 
+                <ActionButton
+                  variant={notifying ? "disabled" : "primary"}
+                  disabled={notifying}
+                  onClick={handleNotify}
+                >
+                  알림받기
+                </ActionButton>
+                <ActionButton
                   onClick={()=>{router.push('/home')}}
                   variant="tertiary">다음에 하기</ActionButton>
             </ActionSheet>

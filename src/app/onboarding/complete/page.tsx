@@ -36,7 +36,7 @@ export default function OnboardingCompletePage() {
             <SubtitleText>
               희박한 확률 속에서<br />
               나와 닮은 누군가를 찾아보세요.<br />
-              첫 번째 퀴즈가 당신을 기다리고 있어요.
+              우연한 만남이 당신을 기다리고 있어요.
             </SubtitleText>
           </Header>
           <IllustrationWrapper>

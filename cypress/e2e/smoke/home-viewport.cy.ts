@@ -20,6 +20,8 @@ describe("home fits one screen", () => {
 
       // 카드가 다 그려진 뒤에 잰다. 스플래시는 2.5초에 걷힌다.
       cy.contains("타임라인", { timeout: 10000 }).should("be.visible");
+      // 타임라인은 스켈레톤 단계에서도 보인다 — 실제 카드로 바뀐 뒤의 높이를 재야 한다.
+      cy.get('[data-cy="home-card-skeleton"]', { timeout: 10000 }).should("not.exist");
 
       cy.document().then((doc) => {
         const main = doc.querySelector('[class*="MainContainer"]');
