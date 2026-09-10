@@ -31,6 +31,7 @@ describe("edit my profile", () => {
 
   it("edits profile image and interests", () => {
     cy.visit("/profile/edit");
+    cy.wait("@getMyProfile");
 
     cy.contains("프로필 수정").should("be.visible");
     cy.contains("닉네임").should("be.visible");
@@ -63,6 +64,14 @@ describe("edit my profile", () => {
   // exhibition은 BE에 뒤늦게 추가된 code다. 칩이 없으면 저장 시 400이 났다.
   it("keeps 전시(exhibition) selectable and sends it back", () => {
     cy.visit("/profile/edit");
+    /*
+     * 프로필이 도착할 때까지 기다린다. 관심사 칩은 응답 전에 이미 렌더되는데,
+     * 그때 고른 값은 뒤늦게 도착한 응답의 setInterests 가 덮어쓴다. 그러면 관심사가
+     * 원본과 같아져 isDirty 가 false 가 되고 저장 버튼이 비활성으로 남는다
+     * (EditProfileContainer 의 isDirty 는 아바타 URL 이 일치해 관심사 차이 하나에만 걸린다).
+     * 기다리지 않으면 이 스펙은 머신·네트워크 속도에 따라 통과했다 실패했다 한다.
+     */
+    cy.wait("@getMyProfile");
 
     cy.contains("🖼️ 전시").should("be.visible");
     // 저장은 바뀐 것이 있어야 활성화된다 — 관심사를 하나 더 고른다.
