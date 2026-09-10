@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
+import { trackEvent } from "@/shared/lib/analytics";
 import { Avatar, BottomActionArea, Button, Checkbox, TopNavigation } from "@/shared/ui";
 import { useToast } from "@/context/ToastContext";
 import { useMemberReview } from "@/features/rating/hooks/useMemberReview";
@@ -59,6 +60,7 @@ function OneOnOneRatingContent({ review, reload }: OneOnOneRatingContentProps) {
   const handleSubmit = async () => {
     const result = await rating.submit();
     if (!result) return;
+    trackEvent("rating_submit", { room_type: "one_on_one" });
     showToast("평가를 제출했어요!", "success");
     setCompleted(true);
   };

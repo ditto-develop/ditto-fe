@@ -58,7 +58,7 @@ export function ChatRoomPageClient() {
     retrySend,
     sendError,
     clearSendError,
-  } = useChatRoom(roomId, { optimisticSending: true });
+  } = useChatRoom(roomId, { optimisticSending: true, roomType: "one_on_one" });
   const { room, members, refresh: refreshRoom } = useChatRoomMeta(roomId);
   // 개방 판정의 기준. 어드민 시각 오버라이드가 반영된 서버 기간이다.
   const serverPeriod = useSystemPeriod();

@@ -148,7 +148,36 @@ export interface AnalyticsEventMap {
    * 것이었던 경우가 많다.
    */
   api_error: { endpoint: string; status: number; code: string };
+
+  /** 메시지를 보냈다. 대화가 실제로 일어났는지 보는 핵심 참여 지표다. */
+  chat_message_send: { room_type: ChatRoomType; message_type: "TEXT" | "IMAGE" };
+
+  /** 그룹 투표. 만남 성사로 이어지는 마지막 단계라 따로 본다. */
+  vote_create: { option_count: number };
+  vote_submit: Record<string, never>;
+  vote_close: Record<string, never>;
+
+  /** 대화 상대 평가 제출. */
+  rating_submit: { room_type: ChatRoomType };
+
+  /**
+   * OS 알림 권한 요청의 결과.
+   *
+   * 거절률이 높으면 재방문이 통째로 막힌다 — 이 서비스는 주 단위로 도는 이벤트를
+   * 푸시로 알리기 때문에, 권한이 없으면 사용자가 돌아올 계기 자체가 사라진다.
+   */
+  push_permission_result: { granted: boolean };
+  /** 알림을 눌러 앱으로 들어왔다. 딥링크 유무로 어디로 보냈는지 구분한다. */
+  notification_open: { has_deep_link: boolean };
+
+  /** 탈퇴 사유 선택 화면까지 갔다. 실제 탈퇴보다 훨씬 많아야 정상이다. */
+  withdraw_start: Record<string, never>;
+  /** 탈퇴 완료. `reason` 은 정해진 선택지 값이며, 자유 입력(reasonDetail)은 싣지 않는다. */
+  withdraw_complete: { reason: string };
 }
+
+/** 채팅방 종류. 1:1 과 그룹은 참여 양상이 전혀 달라 반드시 나눠 본다. */
+export type ChatRoomType = "one_on_one" | "group";
 
 /** 홈에서 기간마다 하나씩 뜨는 카드. */
 export type CardName = "quiz" | "matching";

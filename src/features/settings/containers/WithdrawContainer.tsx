@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
+import { trackEvent } from "@/shared/lib/analytics";
 import { useMyProfile } from "@/features/profile/hooks/useMyProfile";
 import { WITHDRAW_REASONS } from "@/features/settings/model/withdrawReasons";
 import { API_ERROR_CODE, hasApiErrorCode } from "@/shared/lib/api/apiError";
@@ -71,6 +72,8 @@ export function WithdrawContainer() {
 
     try {
       await leaveExternalUser(rawProfile.userId, reason, reasonDetail.trim() || undefined);
+      // 사유는 정해진 선택지 값만 싣는다. 자유 입력(reasonDetail)은 절대 보내지 않는다.
+      trackEvent("withdraw_complete", { reason });
       setDialog("success");
     } catch (err: unknown) {
       // 탈퇴가 막히면(6011 등) 사용자는 로그인 상태로 남는다. 방금 끊은 푸시를 되돌린다.
@@ -159,7 +162,12 @@ export function WithdrawContainer() {
             취소
           </CancelButton>
           {step === "notice" ? (
-            <PrimaryButton type="button" onClick={() => setStep("reason")}>
+            <PrimaryButton type="button" onClick={() => {
+              // 사유 화면까지 간 사람. 실제 탈퇴보다 훨씬 많아야 정상이고,
+              // 둘의 차이가 작으면 안내 화면이 제 역할을 못 하고 있다는 뜻이다.
+              trackEvent("withdraw_start", {});
+              setStep("reason");
+            }}>
               확인
             </PrimaryButton>
           ) : (

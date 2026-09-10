@@ -74,7 +74,7 @@ export function GroupChatRoomPageClient() {
     sendImages,
     sendError,
     clearSendError,
-  } = useChatRoom(roomId);
+  } = useChatRoom(roomId, { roomType: "group" });
   const { room, members, memberById, loading: metaLoading, refresh: refreshRoom } =
     useChatRoomMeta(roomId);
   // 개방 판정의 기준. 어드민 시각 오버라이드가 반영된 서버 기간이다.
