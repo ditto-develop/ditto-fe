@@ -13,6 +13,7 @@ import {
 import { tryRefreshToken } from "@/shared/lib/api/client";
 import { getExternalSystemState } from "@/shared/lib/api/externalApi";
 import { API_ERROR_CODE, describeError, hasApiErrorCode } from "@/shared/lib/api/apiError";
+import { getGtagScriptSrc, useAnalytics } from "@/shared/lib/analytics";
 import { normalizePathname } from "@/shared/lib/routePath";
 import { initAppShell } from "@/shared/lib/native/appShell";
 import { initPushNotifications } from "@/shared/lib/native/pushNotifications";
@@ -370,6 +371,20 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     if (!showSplash && !initialSplashDone) setInitialSplashDone(true);
   }, [showSplash, initialSplashDone]);
 
+  /**
+   * 계측(GA4). 화면 진입·체류 시간과 기간/주차 컨텍스트를 담당한다.
+   *
+   * `enabled` 에 `!showSplash` 를 주는 게 핵심이다 — 스플래시가 덮고 있는 동안은
+   * 사용자가 그 화면을 본 게 아니다. 특히 로그인 상태의 콜드 스타트는 루트("/")가
+   * 최대 6초간 스플래시 아래 마운트돼 있다가 /home 으로 replace 되므로, 그대로 세면
+   * 가입 퍼널 입구인 landing 화면의 지표가 통째로 망가진다.
+   *
+   * 측정 ID 가 없으면(로컬 dev · Cypress · Storybook) 전부 no-op 이다.
+   */
+  useAnalytics({ enabled: !showSplash, isLoggedIn });
+
+  const gtagScriptSrc = getGtagScriptSrc();
+
   const kakaoInit = () => {
     if (window.Kakao && !window.Kakao.isInitialized()) {
       window.Kakao.init(process.env.NEXT_PUBLIC_KAKAO_JS_KEY);
@@ -383,6 +398,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         strategy="lazyOnload"
         onLoad={kakaoInit}
       />
+      {/* gtag.js. 측정 ID 가 없으면 아예 붙이지 않는다. 로드에 실패해도(광고 차단 등)
+          계측 호출은 전부 no-op 이라 앱 동작에는 영향이 없다. */}
+      {gtagScriptSrc && <Script src={gtagScriptSrc} strategy="afterInteractive" />}
       <SanctionGate />
       <SignupIncompleteGate />
       {/* children은 항상 마운트 — Splash가 오버레이로 덮음 */}
