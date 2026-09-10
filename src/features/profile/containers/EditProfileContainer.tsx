@@ -10,7 +10,7 @@ import {
     ProfileImg,
     ProfileWrapper,
 } from "@/components/onboarding/OnboardingContainer";
-import { ProfileSelect } from "@/components/onboarding/ProfileSelect";
+import { ProfileSelect, toAvatarGender } from "@/components/onboarding/ProfileSelect";
 import { interestOptions } from "@/components/onboarding/step/Step_2";
 import { useToast } from "@/context/ToastContext";
 import { getMyProfile, updateMyProfile } from "@/features/profile/api/profileApi";
@@ -53,7 +53,11 @@ export function EditProfileContainer() {
     );
     const canSubmit = isDirty && isValid && !submitting;
 
-    const openProfileSelect = () => setIsProfileSelectOpen(true);
+    // 프로필이 오기 전에는 성별을 몰라 어느 캐리커쳐 목록을 보여줄지 정할 수 없다.
+    const openProfileSelect = () => {
+        if (!profile) return;
+        setIsProfileSelectOpen(true);
+    };
 
     const handleProfileEditKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
         if (event.key !== "Enter" && event.key !== " ") return;
@@ -97,6 +101,8 @@ export function EditProfileContainer() {
                 profile={profileId}
                 setProfile={setProfileId}
                 setProfileModal={setIsProfileSelectOpen}
+                // 성별은 이 화면에서 못 바꾼다 — 캐리커쳐도 계정 성별 목록에 고정된다.
+                gender={toAvatarGender(profile?.gender)}
             />
         );
     }

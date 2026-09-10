@@ -37,7 +37,12 @@ import {
   ProfileImg,
   ProfileWrapper,
 } from "@/components/onboarding/OnboardingContainer";
-import { ProfileSelect } from "@/components/onboarding/ProfileSelect";
+import {
+  ProfileSelect,
+  avatarGenderOf,
+  defaultAvatarId,
+  toAvatarGender,
+} from "@/components/onboarding/ProfileSelect";
 
 export const interestOptions = [
   { label: "💪 운동", value: "workout" },
@@ -82,6 +87,30 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
   const profileToggle = (value: string) => {
     setProfile(value);
     onChange("pic", value);
+  };
+
+  /**
+   * 캐리커쳐는 고른 성별을 따른다 — 여자면 여자 캐리커쳐만, 남자면 남자 캐리커쳐만.
+   * 성별이 없으면 어느 목록을 보여줄지 정할 수 없어 선택창을 열지 않는다.
+   */
+  const avatarGender = toAvatarGender(data.gender);
+
+  const openProfileModal = () => {
+    if (!avatarGender) {
+      showToast("성별을 먼저 선택해주세요.", "error");
+      return;
+    }
+    setProfileModal(true);
+  };
+
+  // 성별을 고르면(바꾸면) 반대 성별의 캐리커쳐는 그 성별의 기본 캐리커쳐로 되돌린다.
+  // 초기값이 "m1" 이라 여자를 골라도 남자 캐리커쳐가 남던 것을 여기서 막는다.
+  const handleGenderChange = (value: string | null) => {
+    onChange("gender", value);
+    const nextGender = toAvatarGender(value);
+    if (nextGender && avatarGenderOf(profile) !== nextGender) {
+      profileToggle(defaultAvatarId(nextGender));
+    }
   };
 
   // 2. 관심사 토글 핸들러
@@ -226,6 +255,7 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
         profile={profile}
         setProfile={profileToggle}
         setProfileModal={setProfileModal}
+        gender={avatarGender}
       />
     );
   }
@@ -234,7 +264,17 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
     <ProfileContainer>
       <ProfileWrapper>
         <ProfileImg imageUrl={"/assets/avatar/" + profile + ".png"} />
-        <ProfileEdit onClick={() => setProfileModal(true)} />
+        <ProfileEdit
+          role="button"
+          tabIndex={0}
+          aria-label="프로필 이미지 수정"
+          onClick={openProfileModal}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            openProfileModal();
+          }}
+        />
       </ProfileWrapper>
 
       <DefaultContainer>
@@ -313,7 +353,7 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
             isessential
             bottomSheetTitle="성별"
             value={data.gender}
-            onChange={(v) => onChange("gender", v)}
+            onChange={handleGenderChange}
             options={[
               { label: "남자", value: "man" },
               { label: "여자", value: "woman" },

@@ -32,7 +32,7 @@ function selectBirthDate(birthDate: string) {
 /** 카카오가 이메일을 주지 않으므로 가입 폼에서 직접 받는다(2026-09-06). */
 const EMAIL = "e2e@example.com";
 
-function fillProfile(birthDate: string = ADULT_BIRTH_DATE) {
+function fillProfile(birthDate: string = ADULT_BIRTH_DATE, gender: "남자" | "여자" = "남자") {
   // Nickname
   cy.get('input[placeholder="사용할 닉네임을 입력해주세요"]').type("테스트닉");
   cy.contains("button", "저장").click();
@@ -42,7 +42,7 @@ function fillProfile(birthDate: string = ADULT_BIRTH_DATE) {
   cy.get('input[placeholder="이메일을 입력해주세요"]').type(EMAIL);
 
   // Gender, Birth date
-  selectFromBottomSheet("성별", "남자");
+  selectFromBottomSheet("성별", gender);
   selectBirthDate(birthDate);
 
   // 5 interests
@@ -132,6 +132,50 @@ describe("signup flow", () => {
 
     cy.contains("만 19세 이상만 가입할 수 있어요.", { timeout: 6000 }).should("be.visible");
     cy.contains("소개 노트 작성하기").should("not.exist");
+  });
+
+  /**
+   * 캐리커쳐는 고른 성별을 따른다 — 여자면 여자 캐리커쳐만, 남자면 남자 캐리커쳐만.
+   * 성별을 고르기 전에는 선택창이 열리지 않고, 성별을 고르면 기본 캐리커쳐(m1)도
+   * 그 성별의 기본으로 바뀐다.
+   */
+  it("restricts caricature choices to the selected gender", () => {
+    cy.visit(OAUTH_ENTRY);
+
+    cy.contains("프로필 작성하기", { timeout: 6000 }).should("be.visible");
+
+    // 성별 전에는 열리지 않는다.
+    cy.get('[aria-label="프로필 이미지 수정"]').click();
+    cy.contains("성별을 먼저 선택해주세요.", { timeout: 4000 }).should("be.visible");
+    cy.contains("캐리커쳐 선택하기").should("not.exist");
+
+    fillProfile(ADULT_BIRTH_DATE, "여자");
+
+    // 여자를 고르면 기본 남자 캐리커쳐(m1)가 여자 기본(f1)으로 바뀐다.
+    cy.get('[aria-label="프로필 이미지 수정"]')
+      .prev()
+      .should("have.css", "background-image")
+      .and("include", "f1.png");
+
+    cy.get('[aria-label="프로필 이미지 수정"]').click();
+    cy.contains("캐리커쳐 선택하기", { timeout: 4000 }).should("be.visible");
+    // 남자/여자 탭이 없고 여자 캐리커쳐만 보인다.
+    cy.contains("button", "남자").should("not.exist");
+    cy.get('img[alt="f1"]').should("be.visible");
+    cy.get('img[alt^="m"]').should("not.exist");
+
+    cy.get('img[alt="f3"]').click();
+    cy.contains("button", "골랐어요").click();
+
+    cy.contains("button", "다음").click();
+    cy.contains("소개 노트 작성하기", { timeout: 6000 });
+    cy.contains("button", "다음에 할래요").click();
+    cy.contains("확인", { timeout: 4000 }).click();
+
+    cy.wait("@createUser").its("request.body").should((body) => {
+      expect(body.gender, "gender").to.equal("FEMALE");
+      expect(body.caricature, "caricature").to.contain("/f3.svg");
+    });
   });
 
   it("advances to the intro note step when the profile is complete", () => {

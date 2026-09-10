@@ -46,6 +46,10 @@ describe("edit my profile", () => {
 
     cy.get("[aria-label='프로필 이미지 수정']").click();
     cy.contains("캐리커쳐 선택하기").should("be.visible");
+    // 캐리커쳐는 계정 성별(픽스처: MALE)에 고정된다 — 남자/여자 탭이 없고 남자 캐리커쳐만 보인다.
+    cy.contains("button", "여자").should("not.exist");
+    cy.get('img[alt^="f"]').should("not.exist");
+    cy.get('img[alt="m5"]').click();
     cy.get("button").contains("골랐어요").click();
 
     cy.contains("🎵 음악").click();
@@ -57,6 +61,7 @@ describe("edit my profile", () => {
     cy.then(() => {
       // 서버가 받는 값은 이 둘뿐이다. 닉네임/성별/나이/사는곳/직업/한 줄 소개는 보내지 않는다.
       expect(lastProfilePatch).to.have.keys(["profileImageUrl", "interests"]);
+      expect(lastProfilePatch?.profileImageUrl).to.equal("/assets/avatar/m5.png");
       expect(lastProfilePatch?.interests).to.include("music");
     });
   });

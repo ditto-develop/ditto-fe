@@ -164,10 +164,18 @@ const CheckIcon = styled.img`
   filter: brightness(0) invert(1);
 `;
 
+export type AvatarGender = "male" | "female";
+
 interface CaricatureSelectProps {
   profile: string | null;                       // 현재 선택된 아바타 id
   setProfile: (profile: string) => void;       // 아바타 선택
   setProfileModal: (open: boolean) => void;    // 모달 열고 닫기
+  /**
+   * 사용자의 성별. 있으면 그 성별의 캐리커쳐만 보여주고 남자/여자 탭은 감춘다 —
+   * 가입에서 고른 성별과 캐리커쳐가 어긋나지 않게(여자면 여자 캐리커쳐만).
+   * null 이면 아직 성별이 없는 것이라 두 탭을 모두 보여준다.
+   */
+  gender: AvatarGender | null;
 }
 
 const maleAvatars = [
@@ -192,17 +200,43 @@ const femaleAvatars = [
   { id: "f8", src: "/assets/avatar/f8.png" },
 ];
 
+/**
+ * 폼("man"/"woman")·BE("MALE"/"FEMALE")·탭("male"/"female") 표현을 캐리커쳐 성별로 모은다.
+ * 매칭되지 않으면 null — 성별이 아직 정해지지 않은 상태.
+ */
+export function toAvatarGender(gender: string | null | undefined): AvatarGender | null {
+  const normalized = gender?.toLowerCase();
+  if (normalized === "man" || normalized === "male") return "male";
+  if (normalized === "woman" || normalized === "female") return "female";
+  return null;
+}
+
+/** 캐리커쳐 id("m3"/"f1")가 어느 성별 목록의 것인지. 둘 다 아니면 null. */
+export function avatarGenderOf(avatarId: string | null | undefined): AvatarGender | null {
+  if (maleAvatars.some((avatar) => avatar.id === avatarId)) return "male";
+  if (femaleAvatars.some((avatar) => avatar.id === avatarId)) return "female";
+  return null;
+}
+
+/** 성별별 기본 캐리커쳐. 성별을 고르면 반대 성별 캐리커쳐는 이걸로 되돌린다. */
+export function defaultAvatarId(gender: AvatarGender): string {
+  return gender === "male" ? maleAvatars[0].id : femaleAvatars[0].id;
+}
+
 const ProfileSelect: React.FC<CaricatureSelectProps> = ({
   profile,
   setProfile,
   setProfileModal,
+  gender,
 }) => {
   // 열려 있는 동안만 마운트된다 — OS 뒤로가기로도 닫히게 한다.
   useBackClose(true, () => setProfileModal(false));
 
-  const [gender, setGender] = useState<"male" | "female">("male");
+  // 성별이 정해져 있으면 탭은 쓰이지 않는다 — 그 성별 목록에 고정된다.
+  const [tab, setTab] = useState<AvatarGender>(gender ?? "male");
+  const activeGender = gender ?? tab;
 
-  const avatarList = gender === "male" ? maleAvatars : femaleAvatars;
+  const avatarList = activeGender === "male" ? maleAvatars : femaleAvatars;
 
   const handleSelectAvatar = (id: string) => {
     setProfile(id);
@@ -217,22 +251,25 @@ const ProfileSelect: React.FC<CaricatureSelectProps> = ({
           <Title3 $weight="bold">캐리커쳐 선택하기</Title3>
         </HeaderRow>
 
-        <TabRow>
-          <TabButton
-            type="button"
-            $active={gender === "male"}
-            onClick={() => setGender("male")}
-          >
-            남자
-          </TabButton>
-          <TabButton
-            type="button"
-            $active={gender === "female"}
-            onClick={() => setGender("female")}
-          >
-            여자
-          </TabButton>
-        </TabRow>
+        {/* 성별이 정해지지 않았을 때만 탭으로 목록을 고른다. */}
+        {!gender && (
+          <TabRow>
+            <TabButton
+              type="button"
+              $active={tab === "male"}
+              onClick={() => setTab("male")}
+            >
+              남자
+            </TabButton>
+            <TabButton
+              type="button"
+              $active={tab === "female"}
+              onClick={() => setTab("female")}
+            >
+              여자
+            </TabButton>
+          </TabRow>
+        )}
       </StickyTop>
 
       {/* 아바타 그리드: 여기만 스크롤한다 */}
