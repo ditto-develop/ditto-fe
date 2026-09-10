@@ -8,6 +8,7 @@ import {
   createVote as createVoteRequest,
   getRoomVotes,
 } from "@/features/chat/api/voteApi";
+import { trackEvent } from "@/shared/lib/analytics";
 import { findOpenVote } from "@/features/chat/lib/voteResult";
 import { parseVoteSystemMessage } from "@/features/chat/lib/roomState";
 import type {
@@ -126,6 +127,10 @@ export function useGroupVote(
   const create = useCallback(
     async (body: CreateGroupVoteRequest) => {
       const created = await createVoteRequest(roomId, body);
+      // 선택지 내용(장소 이름·시간)은 싣지 않는다. 개수만으로 충분하다.
+      trackEvent("vote_create", {
+        option_count: body.placeOptions.length + body.timeOptions.length,
+      });
       if (activeRef.current) setVotes((previous) => upsertVote(previous, created));
       return created;
     },
@@ -135,6 +140,7 @@ export function useGroupVote(
   const cast = useCallback(
     async (voteId: number, body: CastVoteRequest) => {
       const updated = await castVoteRequest(roomId, voteId, body);
+      trackEvent("vote_submit", {});
       if (activeRef.current) setVotes((previous) => upsertVote(previous, updated));
       return updated;
     },
@@ -144,6 +150,7 @@ export function useGroupVote(
   const close = useCallback(
     async (voteId: number) => {
       const closed = await closeVoteRequest(roomId, voteId);
+      trackEvent("vote_close", {});
       if (activeRef.current) setVotes((previous) => upsertVote(previous, closed));
       return closed;
     },

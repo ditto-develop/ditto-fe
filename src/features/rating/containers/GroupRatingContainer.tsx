@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
+import { trackEvent } from "@/shared/lib/analytics";
 import { BottomActionArea, Button, TopNavigation } from "@/shared/ui";
 import { useToast } from "@/context/ToastContext";
 import { useGroupRating } from "@/features/rating/hooks/useGroupRating";
@@ -53,6 +54,9 @@ function GroupRatingContent({ review, reload }: GroupRatingContentProps) {
   const handleAction = async () => {
     const result = await rating.submitCurrent();
     if (!result) return;
+
+    // 그룹은 상대별로 여러 번 제출한다. 1:1 과 같은 이름으로 세되 room_type 으로 나눈다.
+    trackEvent("rating_submit", { room_type: "group" });
 
     if (result.completed) {
       showToast("평가를 제출했어요!", "success");

@@ -12,6 +12,7 @@ export type {
   AnalyticsEventName,
   AnalyticsPeriod,
   CardName,
+  ChatRoomType,
   LoginMethod,
   LoginProvider,
   SignupStepName,

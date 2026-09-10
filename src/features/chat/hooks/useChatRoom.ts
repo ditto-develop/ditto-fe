@@ -8,6 +8,8 @@ import {
   markChatRoomRead,
   uploadChatImages,
 } from "@/features/chat/api/chatApi";
+import { trackEvent } from "@/shared/lib/analytics";
+import type { ChatRoomType } from "@/shared/lib/analytics";
 import { createChatSocket, type ChatSocket } from "@/features/chat/lib/chatSocket";
 import { deriveRoomState } from "@/features/chat/lib/roomState";
 import { getSystemPeriod } from "@/features/system/api/systemStateApi";
@@ -61,6 +63,12 @@ type UseChatRoomResult = {
 
 type UseChatRoomOptions = {
   optimisticSending?: boolean;
+  /**
+   * 계측용 방 종류. 1:1 과 그룹은 참여 양상이 전혀 달라 반드시 나눠 봐야 하는데,
+   * 이 훅은 roomId 만 받아 스스로 판정할 수 없다. 넘기지 않으면 메시지 전송을 세지 않는다 —
+   * 종류를 모르는 채로 섞어 세면 두 방을 구분할 수 없어 지표가 쓸모없어진다.
+   */
+  roomType?: ChatRoomType;
 };
 
 /** id 기준 중복 제거 후 오름차순 정렬. STOMP 수신과 REST 리줌이 겹칠 수 있다. */
@@ -80,7 +88,7 @@ export function mergeAscending(current: ChatMessage[], incoming: ChatMessage[]):
  */
 export function useChatRoom(
   roomId: number,
-  { optimisticSending = false }: UseChatRoomOptions = {},
+  { optimisticSending = false, roomType }: UseChatRoomOptions = {},
 ): UseChatRoomResult {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -381,6 +389,9 @@ export function useChatRoom(
       if (!trimmed) return;
 
       const body = trimmed.slice(0, CHAT_TEXT_MAX_LENGTH);
+      // 내용은 절대 싣지 않는다 — 길이조차 대화 내용을 추측할 단서가 된다.
+      if (roomType) trackEvent("chat_message_send", { room_type: roomType, message_type: "TEXT" });
+
       if (optimisticSending) {
         addOptimisticMessage(body, "TEXT");
         return;
@@ -398,6 +409,7 @@ export function useChatRoom(
       clearPendingSend,
       createOptimisticMessage,
       optimisticSending,
+      roomType,
       trackPendingSend,
     ],
   );
@@ -411,6 +423,9 @@ export function useChatRoom(
         // 업로드 URL 발급 → S3 직접 PUT → objectKey만 STOMP로 전송.
         const objectKeys = await uploadChatImages(roomId, files);
         objectKeys.forEach((objectKey) => {
+          if (roomType) {
+            trackEvent("chat_message_send", { room_type: roomType, message_type: "IMAGE" });
+          }
           if (optimisticSending) {
             addOptimisticMessage(objectKey, "IMAGE");
             return;

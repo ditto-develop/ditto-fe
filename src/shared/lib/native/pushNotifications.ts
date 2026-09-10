@@ -3,6 +3,7 @@ import type { PluginListenerHandle } from "@capacitor/core";
 import { markNotificationRead } from "@/features/notification/api/notificationApi";
 import { API_ERROR_CODE, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { externalApiFetch } from "@/shared/lib/api/externalClient";
+import { trackEvent } from "@/shared/lib/analytics";
 import { toInternalPath } from "@/shared/lib/native/appShell";
 import type { NativePlatform } from "@/shared/lib/native/platform";
 import { getNativePlatform, isNativeApp } from "@/shared/lib/native/platform";
@@ -257,12 +258,19 @@ export async function initPushNotifications({ navigate }: PushOptions): Promise<
 
             // `deepLink` 키가 아예 없을 수 있다(BE 위키 §3) — 그때는 앱만 열고 끝낸다.
             const path = extractDeepLink(data);
+            // 딥링크 경로 자체는 싣지 않는다 — 방 번호가 그대로 들어 있다. 유무만 본다.
+            trackEvent("notification_open", { has_deep_link: path !== null });
             if (path) navigate(path);
         }),
     );
 
     try {
         const permission = await FirebaseMessaging.requestPermissions();
+        /*
+         * 거절률이 높으면 재방문이 통째로 막힌다 — 이 서비스는 주 단위 이벤트(매칭 결과,
+         * 대화 시작)를 푸시로 알리기 때문에, 권한이 없으면 돌아올 계기 자체가 사라진다.
+         */
+        trackEvent("push_permission_result", { granted: permission.receive === "granted" });
         if (permission.receive === "granted") {
             // 계정 전환 직후라면 이전 계정의 토큰 폐기가 끝난 뒤에 발급받아야 한다.
             await awaitTokenDeletion();
