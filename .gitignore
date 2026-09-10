@@ -35,6 +35,8 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.development
+# 값이 없는 예시 파일이라 커밋한다. 새로 합류한 사람이 어떤 키가 필요한지 알아야 한다.
+!.env.example
 
 # vercel
 .vercel

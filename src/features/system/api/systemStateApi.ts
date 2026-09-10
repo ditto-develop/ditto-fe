@@ -16,23 +16,26 @@ export type SystemPeriod = SystemStateDto["period"];
  */
 const CACHE_TTL_MS = 30 * 1000;
 
-let cached: { period: SystemPeriod; readAt: number } | null = null;
-let inflight: Promise<SystemPeriod | null> | null = null;
+let cached: { state: SystemStateDto; readAt: number } | null = null;
+let inflight: Promise<SystemStateDto | null> | null = null;
 
 /**
- * 현재 기간을 읽는다. 실패하면 null이다.
- * 호출부는 null을 '모름'으로 보고 기존 동작(클라 시계 기준)을 유지해야 한다.
+ * 현재 시스템 상태 전체(기간 + 연/월/주차)를 읽는다. 실패하면 null이다.
+ *
+ * 주차(year/month/week)는 계측의 코호트 키로 쓴다 — 주 단위로 도는 서비스라
+ * "이번 주 퍼널이 지난주보다 나아졌나"가 기본 질문인데, 달력 날짜만으로는
+ * 주차 경계가 맞지 않는다. 기간과 같은 응답에 실려 오므로 따로 부르지 않는다.
  */
-export function getSystemPeriod(): Promise<SystemPeriod | null> {
+export function getSystemState(): Promise<SystemStateDto | null> {
   if (cached && Date.now() - cached.readAt < CACHE_TTL_MS) {
-    return Promise.resolve(cached.period);
+    return Promise.resolve(cached.state);
   }
   if (inflight) return inflight;
 
   inflight = getExternalSystemState()
     .then((state) => {
-      cached = { period: state.period, readAt: Date.now() };
-      return state.period;
+      cached = { state, readAt: Date.now() };
+      return state;
     })
     .catch(() => null)
     .finally(() => {
@@ -40,6 +43,14 @@ export function getSystemPeriod(): Promise<SystemPeriod | null> {
     });
 
   return inflight;
+}
+
+/**
+ * 현재 기간을 읽는다. 실패하면 null이다.
+ * 호출부는 null을 '모름'으로 보고 기존 동작(클라 시계 기준)을 유지해야 한다.
+ */
+export function getSystemPeriod(): Promise<SystemPeriod | null> {
+  return getSystemState().then((state) => state?.period ?? null);
 }
 
 /** 어드민이 오버라이드를 바꾼 직후처럼 캐시를 버려야 할 때 쓴다. */

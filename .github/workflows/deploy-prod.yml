@@ -96,6 +96,13 @@ jobs:
           #      (미등록이면 invalid_client 오류 페이지가 온다).
           # 되돌릴 일이 생기면 이 줄만 지우면 된다 — 버튼이 다시 사라진다.
           NEXT_PUBLIC_APPLE_LOGIN_ENABLED: 'true'
+          # GA4 측정 ID. **deploy 잡에만** 넣는다 — verify 잡에 넣으면 Cypress E2E
+          # 트래픽이 프로덕션 속성에 섞여 지표가 오염된다.
+          # 값이 비면 계측 코드가 전부 no-op 이므로, 되돌릴 일이 생기면 이 줄만
+          # 지우면 된다(빌드는 그대로 성공한다).
+          # ⚠️ output: 'export' 라 이 값은 빌드 시점에 정적 치환된다. secret 등록을
+          # 빠뜨리면 빌드는 성공하고 프로덕션에서만 계측이 조용히 꺼진다.
+          NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ secrets.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
 
       - name: Verify CloudFront rewrite function is in sync with build output
         # 새 동적 라우트가 추가됐는데 함수를 재생성하지 않으면 그 라우트의 딥링크가
