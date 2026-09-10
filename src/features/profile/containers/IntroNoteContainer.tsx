@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
+import { trackEvent } from "@/shared/lib/analytics";
 import { TopNavigation } from "@/shared/ui";
 import { AlertModal } from "@/shared/ui";
 import { formatAgeRange } from "@/shared/lib/formatAge";
@@ -83,9 +84,12 @@ export function IntroNoteContainer({
         setActing(true);
         try {
             await sendMatchRequest(userId, quizSetId);
+            trackEvent("match_request_send", { ok: true });
             setState("completed");
             showToast("대화 신청을 완료했어요.", "success");
         } catch {
+            // 실패도 센다. 여기가 크면 "신청이 안 된다"는 이탈이 흥미 상실로 오독된다.
+            trackEvent("match_request_send", { ok: false });
             showToast("대화 신청에 실패했어요. 잠시 후 다시 시도해주세요.", "error");
         } finally {
             setActing(false);
@@ -98,8 +102,10 @@ export function IntroNoteContainer({
         setActing(true);
         try {
             await acceptMatchRequest(matchRequestId);
+            trackEvent("match_request_accept", { ok: true });
             router.push("/home?accepted=true");
         } catch {
+            trackEvent("match_request_accept", { ok: false });
             showToast("대화 수락에 실패했어요. 잠시 후 다시 시도해주세요.", "error");
         } finally {
             setActing(false);
@@ -112,8 +118,10 @@ export function IntroNoteContainer({
         setActing(true);
         try {
             await rejectMatchRequest(matchRequestId);
+            trackEvent("match_request_reject", { ok: true });
             router.push("/home");
         } catch {
+            trackEvent("match_request_reject", { ok: false });
             showToast("대화 거절에 실패했어요. 잠시 후 다시 시도해주세요.", "error");
         } finally {
             setActing(false);

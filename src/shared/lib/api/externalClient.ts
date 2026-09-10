@@ -1,5 +1,12 @@
 import { ApiError, notifySanctionedIfBlocked, notifySignupIncompleteIfBlocked } from "@/shared/lib/api/apiError";
 import { clearTokens, getAccessToken, setTokens } from "@/shared/lib/auth";
+/*
+ * ⚠️ 배럴(`@/shared/lib/analytics`)이 아니라 leaf 모듈을 직접 가져간다.
+ * 배럴은 useAnalytics 를 re-export 하고, 그쪽이 features/system → externalApi →
+ * 이 파일로 이어져 순환 import 가 된다. 두 leaf 는 의존성이 없어 안전하다.
+ */
+import { normalizeEndpoint } from "@/shared/lib/analytics/endpointName";
+import { trackEvent } from "@/shared/lib/analytics/gtag";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -168,6 +175,25 @@ async function doFetch<T>(path: string, options: ExternalRequestOptions, token: 
     return json.data as T;
 }
 
+/**
+ * 실패를 계측에 남긴다.
+ *
+ * "이 화면에서 왜 이탈하는가"의 답이 대개 여기 있다. 체류 시간과 퍼널만 보면
+ * "흥미를 잃었다"로 읽히는 이탈이, 실은 버튼을 눌렀는데 500 이 떨어진 것이었던
+ * 경우가 많다. 화면과 함께 보려고 `screen_name` 대신 전역 파라미터에 기대고,
+ * 여기서는 엔드포인트만 남긴다.
+ *
+ * 응답 본문이나 메시지는 싣지 않는다 — 무엇이 들어올지 모른다.
+ */
+function reportApiError(path: string, err: unknown): void {
+    const typed = err as Error & { status?: number; code?: string };
+    trackEvent("api_error", {
+        endpoint: normalizeEndpoint(path),
+        status: typed?.status ?? 0,
+        code: typed?.code ?? "",
+    });
+}
+
 export async function externalApiFetch<T>(
     path: string,
     options: ExternalRequestOptions = {},
@@ -179,15 +205,27 @@ export async function externalApiFetch<T>(
         // refresh 경로 자체가 401이면 재시도 없이 토큰 제거
         if (status === 401 && path === REFRESH_PATH) {
             clearTokens();
+            reportApiError(path, err);
             throw err;
         }
         if (status === 401) {
             const newToken = await refreshAccessToken();
             if (newToken) {
-                return doFetch<T>(path, options, newToken);
+                /*
+                 * refresh 후 재시도가 성공하면 실패로 세지 않는다 — 만료된 토큰을
+                 * 갈아 끼우는 건 정상 동작이라, 세면 api_error 가 401 로 뒤덮여
+                 * 진짜 문제를 못 찾는다. 재시도까지 실패했을 때만 남긴다.
+                 */
+                try {
+                    return await doFetch<T>(path, options, newToken);
+                } catch (retryErr: unknown) {
+                    reportApiError(path, retryErr);
+                    throw retryErr;
+                }
             }
             clearTokens();
         }
+        reportApiError(path, err);
         throw err;
     }
 }

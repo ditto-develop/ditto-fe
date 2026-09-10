@@ -7,6 +7,7 @@ import {
   Label2,
 } from "@/shared/ui";
 import { Card } from "@/components/display/Card";
+import { trackCardClick, useCardImpression } from "@/shared/lib/analytics";
 import { ActionButton } from "@/components/input/Action";
 import {
   INTRO_NOTE_FIELDS,
@@ -175,8 +176,22 @@ export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: T
   const canStartQuiz =
     introNoteCount === null || introNoteCount >= MIN_INTRO_NOTE_ANSWERS;
 
+  /**
+   * 이 카드가 지금 어떤 모습인지. 아래 분기와 **같은 순서**로 판정해야 한다 —
+   * 어긋나면 노출은 A 로, 클릭은 B 로 잡혀 클릭률이 통째로 틀어진다.
+   */
+  const cardState = iscomplete ? "completed" : "open";
+
+  // 클릭률의 분모. 조기 반환보다 위에 있어야 한다 — 훅은 분기 뒤에 둘 수 없다.
+  useCardImpression("quiz", cardState);
+  const trackClick = (action: string) => trackCardClick("quiz", cardState, action);
+
   const handleStartQuiz = () => {
+    trackClick("start_quiz");
     if (!canStartQuiz) {
+      // 소개 노트가 모자라 막힌 클릭. 클릭 자체는 위에서 이미 셌다 —
+      // 여기가 크면 "퀴즈를 누르는데 소개 노트에서 막힌다"는 병목이 보인다.
+      trackClick("start_quiz_blocked_by_intro_note");
       setIsIntroNoteAlertOpen(true);
       return;
     }
@@ -223,7 +238,10 @@ export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: T
               <IntroNoteButton
                 variant="secondary"
                 icon={<img src="/icons/action/note-pen.svg" alt="" />}
-                onClick={() => router.push("/onboarding/intro")}
+                onClick={() => {
+                  trackClick("write_intro_note");
+                  router.push("/onboarding/intro");
+                }}
               >
                 소개 노트 작성하기
               </IntroNoteButton>
@@ -266,6 +284,7 @@ export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: T
               {!typesLoading && isTypeAvailable("ONE_TO_ONE") && (
               <BottomButton
                 onClick={() => {
+                  trackClick("select_quiz_type_one_to_one");
                   router.push("/quiz/current?type=ONE_TO_ONE");
                 }}
               >
@@ -291,6 +310,7 @@ export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: T
               {!typesLoading && isTypeAvailable("GROUP") && (
               <BottomButton
                 onClick={() => {
+                  trackClick("select_quiz_type_group");
                   router.push("/quiz/current?type=GROUP");
                 }}
               >

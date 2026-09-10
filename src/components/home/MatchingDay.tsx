@@ -38,6 +38,8 @@ import {
   type MatchingCardType,
 } from "./_parts/MatchingDay.helpers";
 
+import { trackCardClick, useCardImpression } from "@/shared/lib/analytics";
+
 export type { MatchingCardType } from "./_parts/MatchingDay.helpers";
 
 export function MatchingDay({
@@ -89,6 +91,22 @@ export function MatchingDay({
     }
   }, [notifKey, hasAcceptedMatch, acceptedCandidate, isChatTime, showToast]);
 
+  /**
+   * 이 카드가 지금 어떤 모습인지. 아래 분기와 **같은 순서**로 판정해야 한다 —
+   * 어긋나면 노출은 A 로, 클릭은 B 로 잡혀 클릭률이 통째로 틀어진다.
+   */
+  const cardState = (() => {
+    if (groupJoined && !isChatTime && matchType === "many") return "group_joined";
+    if (hasAcceptedMatch && acceptedCandidate && !isChatTime) return "accepted";
+    if (matchType === "beforematch") return "beforematch";
+    if (matchType === "failmatch" || groupDeclined) return "failmatch";
+    return isChatTime ? `chat_${matchType}` : matchType;
+  })();
+
+  // 클릭률의 분모. 조기 반환보다 위에 있어야 한다 — 훅은 분기 뒤에 둘 수 없다.
+  useCardImpression("matching", cardState);
+  const trackClick = (action: string) => trackCardClick("matching", cardState, action);
+
   const openProfileSelector = () => setProfileSelect(true);
   const closeProfileSelector = () => setProfileSelect(false);
 
@@ -105,6 +123,8 @@ export function MatchingDay({
    * 눌러도 아무 일이 없으면 고장난 것처럼 보인다 — 언제 열리는지 알려 준다.
    */
   const notifyChatNotOpenYet = () => {
+    // 잠긴 버튼도 클릭이다. 여기가 크면 "대화를 열어 달라"는 수요가 그만큼 있다는 뜻이다.
+    trackClick("locked_start_chat");
     showToast("대화는 금요일에 시작돼요!", "default");
   };
 
@@ -121,7 +141,10 @@ export function MatchingDay({
               만남이 이루어졌어요!<br />소개 노트를 보며 대화를 시작해 보세요.
             </>
           }
-          viewCard={<GroupJoinedCard candidates={candidates} onCardClick={() => setProfileSelect(true)} />}
+          viewCard={<GroupJoinedCard candidates={candidates} onCardClick={() => {
+            trackClick("open_group_profiles");
+            setProfileSelect(true);
+          }} />}
           buttonSection={
             <ActionContainer>
               <ActionButton
@@ -210,6 +233,7 @@ export function MatchingDay({
               location: acceptedCandidate.location ? toLocationLabel(acceptedCandidate.location) : "",
               bio: acceptedCandidate.introduction ?? "",
             };
+            trackClick("open_accepted_profile");
             setSelectedProfile(profile);
           }} />}
           buttonSection={
@@ -241,7 +265,10 @@ export function MatchingDay({
         title="이번주 매칭"
         alert={!isChatTime ? "결과 확인" : undefined}
         alertType={!isChatTime ? "destructive" : undefined}
-        onAlertClick={!isChatTime ? () => router.push("/matching") : undefined}
+        onAlertClick={!isChatTime ? () => {
+          trackClick("alert_view_result");
+          router.push("/matching");
+        } : undefined}
         subTitle={
           <>
             나와 같이 생각하는 사람들을 만나볼까요?<br />소개 노트를 확인하고 대화를 신청해보세요.
@@ -253,7 +280,10 @@ export function MatchingDay({
             cardType={matchType}
             buttonState={buttonState}
             isChatTime={isChatTime}
-            onClick={() => router.push("/matching")}
+            onClick={() => {
+              trackClick("view_result");
+              router.push("/matching");
+            }}
           />
         }
       />
@@ -270,7 +300,10 @@ export function MatchingDay({
         title={isChatTime ? "이번주 만남" : "이번주 매칭"}
         alert={!isChatTime ? "결과 확인" : undefined}
         alertType={!isChatTime ? "destructive" : undefined}
-        onAlertClick={!isChatTime ? () => router.push("/matching") : undefined}
+        onAlertClick={!isChatTime ? () => {
+          trackClick("alert_view_result");
+          router.push("/matching");
+        } : undefined}
         subTitle={
           isChatTime ? (
             <>
@@ -307,9 +340,18 @@ export function MatchingDay({
             hasChat={!!(chatRoom && getLastMessagePreview(chatRoom))}
             onClick={!isChatTime
               ? matchType === "many"
-                ? () => setGroupModalOpen(true)
-                : () => router.push("/matching")
-              : onStartChat}
+                ? () => {
+                    trackClick("open_group_modal");
+                    setGroupModalOpen(true);
+                  }
+                : () => {
+                    trackClick("view_result");
+                    router.push("/matching");
+                  }
+              : () => {
+                  trackClick("start_chat");
+                  onStartChat?.();
+                }}
           />
         }
       />
