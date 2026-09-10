@@ -17,6 +17,7 @@ import {
 } from "@/shared/lib/native/appleLogin";
 import { describeError } from "@/shared/lib/api/apiError";
 import { resolveSocialLogin } from "@/features/auth/lib/socialLoginOutcome";
+import { rememberLoginAttempt, trackEvent } from "@/shared/lib/analytics";
 
 /**
  * 카카오 버튼과 **같은 크기·같은 모서리**여야 한다. 애플 HIG 는 Sign in with Apple 버튼이
@@ -109,8 +110,12 @@ export const AppleLogin = () => {
   if (!available) return null;
 
   const handleLogin = async () => {
+    trackEvent("login_start", { provider: "apple", method: useNative ? "native" : "redirect" });
+
     // 웹·안드로이드는 리다이렉트 한 줄이다. 카카오와 같은 경로를 provider 만 바꿔 탄다.
     if (!useNative) {
+      // 리다이렉트 콜백에는 provider 가 없다. 지금 적어 둬야 콜백에서 애플이었음을 안다.
+      rememberLoginAttempt({ provider: "apple", method: "redirect" });
       startExternalSocialLogin("APPLE");
       return;
     }
@@ -123,9 +128,26 @@ export const AppleLogin = () => {
       const outcome = await loginWithAppleSdk();
 
       // 사용자가 애플 시트에서 스스로 취소했다. 아무 일도 일어나지 않아야 한다.
-      if (outcome.status === "cancelled" || outcome.status === "unavailable") return;
+      if (outcome.status === "cancelled" || outcome.status === "unavailable") {
+        // unavailable 은 취소가 아니라 "이 기기에서 못 쓴다"다. 원인이 달라 이유를 남긴다.
+        if (outcome.status === "cancelled") {
+          trackEvent("login_cancel", { provider: "apple", method: "native" });
+        } else {
+          trackEvent("login_fail", {
+            provider: "apple",
+            method: "native",
+            reason: "native_unavailable",
+          });
+        }
+        return;
+      }
 
       if (outcome.status === "failed") {
+        trackEvent("login_fail", {
+          provider: "apple",
+          method: "native",
+          reason: "native_login_failed",
+        });
         showToast("Apple 로그인에 실패했어요. 다시 시도해 주세요.", "error");
         return;
       }
@@ -140,18 +162,30 @@ export const AppleLogin = () => {
         const resolved = resolveSocialLogin(result);
 
         if (resolved.kind === "sanctioned") {
+          trackEvent("login_fail", { provider: "apple", method: "native", reason: "sanctioned" });
           router.replace(`/sanction?${resolved.query}`);
           return;
         }
         if (resolved.kind === "home") {
+          trackEvent("login_success", {
+            provider: "apple",
+            method: "native",
+            is_new_user: false,
+          });
           router.push("/home");
           return;
         }
         // 신규 회원: 토큰은 이미 저장됐다. 가입 화면은 콜백 페이지가 그대로 담당한다
         // (토큰을 쿼리에 실어 보내지 않는다 — CloudFront 액세스 로그에 남는다).
+        trackEvent("login_success", { provider: "apple", method: "native", is_new_user: true });
         router.replace("/auth/callback?signupRequired=true");
       } catch (err: unknown) {
         console.error("[AppleLogin] 네이티브 토큰 교환 실패:", describeError(err));
+        trackEvent("login_fail", {
+          provider: "apple",
+          method: "native",
+          reason: "token_exchange_failed",
+        });
         showToast("로그인 처리에 실패했어요. 잠시 후 다시 시도해 주세요.", "error");
       }
     } finally {

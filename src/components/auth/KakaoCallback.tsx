@@ -9,6 +9,7 @@ import {
   fetchSignupInitialData,
   resolveSocialLogin,
 } from "@/features/auth/lib/socialLoginOutcome";
+import { takeLoginAttempt, trackEvent } from "@/shared/lib/analytics";
 import type { KakaoLoginResult } from "@/types/kakao";
 
 const LoadingContainer = styled.div`
@@ -45,11 +46,29 @@ function KakaoCallbackContent() {
   const [error, setError] = useState<string | null>(null);
   const isHandled = useRef(false);
 
+  /**
+   * 이 콜백이 **BE 리다이렉트로 들어온 것인지** 판정한다.
+   *
+   * 네이티브 로그인도 토큰을 저장한 뒤 `?signupRequired=true` 로 이 화면에 들어오는데,
+   * 그때는 이미 KakaoLogin/AppleLogin 이 login_success 를 쐈다. 여기서 한 번 더 쏘면
+   * 네이티브 신규 가입만 두 번 세어 전환율이 부풀려진다. 리다이렉트 경로는 BE 가
+   * accessToken 을 쿼리에 실어 주므로 그 유무가 그대로 구분선이 된다.
+   */
+  const isRedirectCallback = accessToken !== null;
+
   useEffect(() => {
     if (isHandled.current) return;
 
     if (oauthError) {
       isHandled.current = true;
+      const attempt = takeLoginAttempt();
+      trackEvent("login_fail", {
+        // 시도 기록이 없으면(직접 URL 진입 등) 웹 기본값인 카카오 리다이렉트로 본다.
+        provider: attempt?.provider ?? "kakao",
+        method: "redirect",
+        // 원문 대신 짧은 분류값만 싣는다. error_description 에는 무엇이 들어올지 모른다.
+        reason: `oauth_error:${oauthError}`,
+      });
       setError(oauthErrorDescription || `카카오 로그인이 취소되었거나 실패했습니다. (${oauthError})`);
       return;
     }
@@ -65,9 +84,24 @@ function KakaoCallbackContent() {
       suspendedUntil,
     });
 
+    // 네이티브 경로는 이미 자기 쪽에서 결과를 보고했다. 여기서는 리다이렉트만 본다.
+    const attempt = isRedirectCallback ? takeLoginAttempt() : null;
+    const provider = attempt?.provider ?? "kakao";
+
     if (outcome.kind === "sanctioned") {
+      if (isRedirectCallback) {
+        trackEvent("login_fail", { provider, method: "redirect", reason: "sanctioned" });
+      }
       router.replace(`/sanction?${outcome.query}`);
       return;
+    }
+
+    if (isRedirectCallback) {
+      trackEvent("login_success", {
+        provider,
+        method: "redirect",
+        is_new_user: outcome.kind === "signup",
+      });
     }
 
     if (outcome.kind === "signup") {
@@ -87,6 +121,7 @@ function KakaoCallbackContent() {
     sanctioned,
     sanctionCode,
     suspendedUntil,
+    isRedirectCallback,
     router,
   ]);
 

@@ -38,6 +38,28 @@ export interface AnalyticsContext {
   week_key?: string;
 }
 
+/** 소셜 로그인 제공자. */
+export type LoginProvider = "kakao" | "apple";
+
+/**
+ * 로그인 경로.
+ *
+ * `native` 는 앱의 SDK 시트, `redirect` 는 BE 를 거치는 웹 리다이렉트다. 같은
+ * 제공자라도 성공률이 크게 다를 수 있어(네이티브 설정이 어긋나면 폴백을 탄다)
+ * 반드시 나눠 본다.
+ */
+export type LoginMethod = "native" | "redirect";
+
+/**
+ * 가입 단계.
+ *
+ * ⚠️ 이 단계들은 **전부 URL `/` 하나 안에서** `Tutorial.tsx` 의 `step` 상태로
+ * 돌아간다. 즉 화면 추적만으로는 어느 단계에서 이탈했는지 원리적으로 알 수 없고,
+ * 아래 이벤트가 유일한 관측 수단이다.
+ */
+export const SIGNUP_STEP_NAMES = ["login", "profile", "intro_note"] as const;
+export type SignupStepName = (typeof SIGNUP_STEP_NAMES)[number];
+
 /** 이벤트별 파라미터. 키가 곧 이벤트 이름이다. */
 export interface AnalyticsEventMap {
   /**
@@ -62,6 +84,29 @@ export interface AnalyticsEventMap {
     duration_ms: number;
     engaged_ms: number;
   };
+
+  /** 로그인 버튼을 눌렀다. 이후 성공/취소/실패 중 하나가 따라온다. */
+  login_start: { provider: LoginProvider; method: LoginMethod };
+  /**
+   * 로그인이 끝났다. `is_new_user` 가 true 면 곧바로 가입 퍼널로 이어진다 —
+   * "로그인은 되는데 가입에서 빠진다"를 보려면 이 구분이 있어야 한다.
+   */
+  login_success: { provider: LoginProvider; method: LoginMethod; is_new_user: boolean };
+  /** 사용자가 제공자 화면에서 스스로 취소했다. 실패와 구분해야 한다 — 원인이 전혀 다르다. */
+  login_cancel: { provider: LoginProvider; method: LoginMethod };
+  /** 로그인이 실패했다. `reason` 은 사람이 읽을 짧은 분류값이며 원문 에러가 아니다. */
+  login_fail: { provider: LoginProvider; method: LoginMethod; reason: string };
+
+  /** 가입 단계 진입. 퍼널의 분모다. */
+  signup_step_view: { step_index: number; step_name: SignupStepName };
+  /** 그 단계의 검증을 통과해 다음으로 넘어갔다. 퍼널의 분자다. */
+  signup_step_complete: { step_index: number; step_name: SignupStepName };
+  /** 가입 완료(회원 생성 성공). 전환 이벤트로 표시할 값이다. */
+  signup_complete: Record<string, never>;
+  /** 가입 요청이 거절됐다. `reason` 은 짧은 분류값이다 — 입력값은 절대 싣지 않는다. */
+  signup_fail: { step_index: number; step_name: SignupStepName; reason: string };
+  /** 사용자가 가입을 포기하고 로그인 화면으로 나갔다. 이탈 지점을 직접 가리킨다. */
+  signup_abandon: { step_index: number; step_name: SignupStepName };
 }
 
 export type AnalyticsEventName = keyof AnalyticsEventMap;

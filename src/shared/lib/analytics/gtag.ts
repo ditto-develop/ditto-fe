@@ -60,9 +60,15 @@ function getGtag(): Window["gtag"] {
  *
  * 스크립트가 로드되기 **전에** 발생한 이벤트도 이 큐에 쌓였다가 로드 직후 전송된다.
  * 이게 없으면 콜드 스타트 직후의 첫 화면 진입(=가장 중요한 이벤트)이 통째로 유실된다.
+ *
+ * 측정 ID 가 없어도 **큐 자체는 만든다.** `dataLayer` 는 스크립트가 붙기 전까지는
+ * 그냥 메모리 위의 배열이라 어디로도 나가지 않는다. 대신 이렇게 해 두면 Cypress 가
+ * 외부 요청 없이 `window.dataLayer` 를 읽어 "가입 퍼널 이벤트가 실제로 나갔는지"를
+ * 검증할 수 있다. 계측은 화면에 아무것도 안 보이는 코드라, 회귀를 잡을 방법이
+ * 이것뿐이다. `js`/`config` 설정은 ID 가 있을 때만 넣는다.
  */
 export function initGtagQueue(): void {
-  if (typeof window === "undefined" || !isAnalyticsEnabled()) return;
+  if (typeof window === "undefined") return;
   if (window.gtag) return;
 
   window.dataLayer = window.dataLayer ?? [];
@@ -74,8 +80,11 @@ export function initGtagQueue(): void {
   };
   window.gtag = gtag;
 
-  window.gtag("js", new Date());
-  window.gtag("config", getMeasurementId(), {
+  // 측정 ID 가 없으면 여기까지다 — 큐만 있고 아무 데도 보내지 않는다.
+  if (!isAnalyticsEnabled()) return;
+
+  gtag("js", new Date());
+  gtag("config", getMeasurementId(), {
     /**
      * 자동 페이지뷰를 끈다. `useScreenTracking` 이 수동으로 보낸다.
      * 켜 두면 `ClientLayout` 의 리다이렉트마다 유령 조회가 쌓인다.
