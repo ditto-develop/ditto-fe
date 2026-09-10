@@ -12,6 +12,8 @@ import {
 import { loginWithKakaoSdk } from "@/shared/lib/native/kakaoLogin";
 import { describeError } from "@/shared/lib/api/apiError";
 import { resolveSocialLogin } from "@/features/auth/lib/socialLoginOutcome";
+import { rememberLoginAttempt, trackEvent } from "@/shared/lib/analytics";
+import { isNativeApp } from "@/shared/lib/native/platform";
 import type { KakaoLoginResult } from "@/types/kakao";
 
 const ButtonContainer = styled.div`
@@ -58,6 +60,16 @@ export const KakaoLogin = (_props: KakaoLoginProps) => {
     if (isRunning.current) return;
     isRunning.current = true;
 
+    /*
+     * 버튼을 누른 시점의 경로다. 네이티브가 실패해 리다이렉트로 폴백하면 실제 경로는
+     * 달라지는데, 그 차이는 아래 login_fail 로 드러난다. 여기서 미리 쏘는 이유는
+     * 리다이렉트가 시작되면 페이지가 통째로 떠나 이벤트를 보낼 기회가 사라지기 때문이다.
+     */
+    const method = isNativeApp() ? "native" : "redirect";
+    trackEvent("login_start", { provider: "kakao", method });
+    // 리다이렉트 콜백에는 provider 가 없다. 지금 적어 둬야 콜백에서 카카오였음을 안다.
+    rememberLoginAttempt({ provider: "kakao", method: "redirect" });
+
     try {
       /**
        * `loginWithKakaoSdk` 는 던지지 않기로 되어 있지만, 그 약속이 깨지면 이 함수가
@@ -71,7 +83,10 @@ export const KakaoLogin = (_props: KakaoLoginProps) => {
       });
 
       // 사용자가 카카오 화면에서 스스로 취소했다. 리다이렉트로 끌고 가면 안 된다.
-      if (outcome.status === "cancelled") return;
+      if (outcome.status === "cancelled") {
+        trackEvent("login_cancel", { provider: "kakao", method: "native" });
+        return;
+      }
 
       if (outcome.status === "success") {
         try {
@@ -80,20 +95,48 @@ export const KakaoLogin = (_props: KakaoLoginProps) => {
           const resolved = resolveSocialLogin(result);
 
           if (resolved.kind === "sanctioned") {
+            trackEvent("login_fail", {
+              provider: "kakao",
+              method: "native",
+              reason: "sanctioned",
+            });
             router.replace(`/sanction?${resolved.query}`);
             return;
           }
           if (resolved.kind === "home") {
+            trackEvent("login_success", {
+              provider: "kakao",
+              method: "native",
+              is_new_user: false,
+            });
             router.push("/home");
             return;
           }
           // 신규 회원: 토큰은 이미 저장됐다. 가입 화면은 콜백 페이지가 그대로 담당한다
           // (토큰을 쿼리에 실어 보내지 않는다 — CloudFront 액세스 로그에 남는다).
+          trackEvent("login_success", {
+            provider: "kakao",
+            method: "native",
+            is_new_user: true,
+          });
           router.replace("/auth/callback?signupRequired=true");
           return;
         } catch (err: unknown) {
           console.error("[KakaoLogin] 네이티브 토큰 교환 실패, 리다이렉트 로그인으로 폴백:", describeError(err));
+          trackEvent("login_fail", {
+            provider: "kakao",
+            method: "native",
+            reason: "token_exchange_failed",
+          });
         }
+      } else if (outcome.status === "failed") {
+        // 폴백은 그대로 타지만, 네이티브가 얼마나 새는지는 따로 보여야 한다 —
+        // 네이티브 설정이 어긋나도 로그인은 되기 때문에 지표 없이는 알아채지 못한다.
+        trackEvent("login_fail", {
+          provider: "kakao",
+          method: "native",
+          reason: "native_login_failed",
+        });
       }
 
       startExternalSocialLogin("KAKAO");

@@ -8,6 +8,7 @@ import {
 
 } from "@/context/ToastContext";
 
+import { SIGNUP_STEP_NAMES, trackEvent } from "@/shared/lib/analytics";
 import { createExternalUser, saveExternalIntroNote } from "@/shared/lib/api/externalApi";
 import { clearTokens } from "@/shared/lib/auth";
 import { useBackClose } from "@/shared/hooks/useBackClose";
@@ -168,6 +169,28 @@ export function Tutorial({ initialData }: TutorialProps) {
     }
   }, [initialData, router]);
 
+  /**
+   * 가입 퍼널의 분모.
+   *
+   * 이 단계들은 **전부 URL "/" 하나 안에서** step 상태로 돌아가기 때문에, 화면 추적
+   * 만으로는 어디서 이탈했는지 원리적으로 알 수 없다. 이 이벤트가 유일한 관측 수단이다.
+   *
+   * 기존 회원(`isRegistered`)은 세지 않는다 — 바로 위 effect 가 /home 으로 밀어내는
+   * 동안 잠깐 마운트될 뿐이라, 세면 가입을 시작하지도 않은 사람이 분모에 들어간다.
+   */
+  const reportedStep = useRef<number | null>(null);
+  useEffect(() => {
+    if (initialData?.isRegistered) return;
+    /*
+     * 같은 단계를 두 번 세지 않는다. 마운트가 한 번 더 일어나도(개발 모드의 StrictMode
+     * 이중 호출, 부모 리렌더로 인한 재마운트) 퍼널의 분모가 부풀지 않아야 한다.
+     * 2단계에서 뒤로 와 1단계에 다시 들어오는 것은 진짜 재진입이라 그대로 센다.
+     */
+    if (reportedStep.current === step) return;
+    reportedStep.current = step;
+    trackEvent("signup_step_view", { step_index: step, step_name: SIGNUP_STEP_NAMES[step] });
+  }, [step, initialData?.isRegistered]);
+
   // --- Step 0에서 로그인 완료 시 호출되는 핸들러 ---
   const handleLoginComplete = (loginResult: KakaoLoginResult) => {
     if (loginResult.isRegistered) {
@@ -190,6 +213,10 @@ export function Tutorial({ initialData }: TutorialProps) {
   const goNextStep = async () => {
     // 1단계(프로필) → 2단계(소개 노트): 단순 페이지 이동
     if (step < 2) {
+      trackEvent("signup_step_complete", {
+        step_index: step,
+        step_name: SIGNUP_STEP_NAMES[step],
+      });
       setControlButton("disabled");
       setStep((prev) => prev + 1);
     } 
@@ -224,6 +251,12 @@ export function Tutorial({ initialData }: TutorialProps) {
          * 요청을 보내지 않고 어디를 고쳐야 하는지 말해 주는 편이 낫다.
          */
         if (!parsedGender || age === null) {
+          trackEvent("signup_fail", {
+            step_index: step,
+            step_name: SIGNUP_STEP_NAMES[step],
+            // 어떤 값이 비었는지만 남긴다. 입력값 자체는 절대 싣지 않는다.
+            reason: "missing_gender_or_age",
+          });
           showToast("성별과 생년월일을 입력해주세요.", "error");
           return;
         }
@@ -266,6 +299,14 @@ export function Tutorial({ initialData }: TutorialProps) {
 
         await createExternalUser(createUserDto);
 
+        // 여기가 전환 지점이다. 소개 노트 저장은 실패해도 가입은 이미 끝났으므로
+        // 그 앞에서 쏜다 — 뒤에 두면 노트 저장이 실패한 가입이 전환에서 빠진다.
+        trackEvent("signup_step_complete", {
+          step_index: step,
+          step_name: SIGNUP_STEP_NAMES[step],
+        });
+        trackEvent("signup_complete", {});
+
         // 소개노트는 가입 후 문항별로 저장한다. Q10 도 포함한다 — introduction 으로도
         // 보내지만 소개노트 조회(/intro-notes)는 문항별 저장분만 돌려주므로, 여기서 빠지면
         // 상대 프로필의 필수 노출 문항(Q10)이 비어 보인다.
@@ -280,6 +321,11 @@ export function Tutorial({ initialData }: TutorialProps) {
         router.push("/onboarding/complete");
       } catch (error) {
         console.error("Signup failed:", error);
+        trackEvent("signup_fail", {
+          step_index: step,
+          step_name: SIGNUP_STEP_NAMES[step],
+          reason: "create_user_failed",
+        });
         // 에러 메시지를 사용자에게 보여줄 때, 너무 기술적인 내용보다는 부드럽게 표현
         showToast("회원가입 중 문제가 발생했어요. 잠시 후 다시 시도해주세요.", "error");
       }
@@ -304,6 +350,8 @@ export function Tutorial({ initialData }: TutorialProps) {
       return;
     }
 
+    // 1단계에서의 뒤로가기는 가입 포기다. 이탈 지점을 직접 가리키는 유일한 이벤트다.
+    trackEvent("signup_abandon", { step_index: step, step_name: SIGNUP_STEP_NAMES[step] });
     clearTokens();
     // 콜백 경로(/auth/callback · /oauth/kakao)로 들어온 정상 경로. replace 다 —
     // push 면 뒤로가기가 방금 떠난 가입 화면으로 되돌아간다.
