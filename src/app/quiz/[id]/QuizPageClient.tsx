@@ -16,6 +16,7 @@ import {
 import { getQuizSanctionMessage } from "@/features/sanction";
 import { updateNotificationSettings } from "@/features/settings/api/settingsApi";
 import { useToast } from "@/context/ToastContext";
+import { trackEvent } from "@/shared/lib/analytics";
 import { useBackClose } from "@/shared/hooks/useBackClose";
 import { goBackOr } from "@/shared/lib/navigation";
 import { registerDeviceToken } from "@/shared/lib/native/pushNotifications";
@@ -44,6 +45,17 @@ export function QuizPageClient() {
           setQuizzes(res.quizzes);
           // 이전에 답변한 문제가 있으면 해당 step부터 시작
           const lastAnswered = res.quizzes.findIndex((q) => !q.userAnswer);
+          /*
+           * 퀴즈 퍼널의 분모. 화면 진입이 아니라 **문항을 실제로 받은 시점**에 센다 —
+           * 로딩에 실패한 진입까지 분모에 넣으면 완주율이 이유 없이 낮아 보인다.
+           * `resumed` 는 이어 풀기로 들어온 경우다. 처음부터 푸는 사람과 완주율이
+           * 다를 수밖에 없어 섞으면 안 된다.
+           */
+          trackEvent("quiz_start", {
+            quiz_set_id: quizSetId,
+            question_count: res.quizzes.length,
+            resumed: lastAnswered > 0,
+          });
           setCurrentStep(lastAnswered === -1 ? res.quizzes.length - 1 : lastAnswered);
           if (lastAnswered === -1) setIsFinish(true);
           /*
@@ -72,6 +84,13 @@ export function QuizPageClient() {
 
     setSelectedChoiceId(choiceId);
 
+    /*
+     * 몇 번째 문항에서 그만두는지 보려면 문항 단위로 세야 한다. 화면은 문항이 바뀌어도
+     * 같은 경로(/quiz/[id])라 화면 추적으로는 구분되지 않는다.
+     * 선택지 id 는 싣지 않는다 — 답변 내용은 계측이 알 일이 아니다.
+     */
+    trackEvent("quiz_answer", { step_index: currentStep, question_count: quizzes.length });
+
     // 답변 서버에 제출 (비동기, 실패해도 UI는 진행)
     // 단, 제재(6008)는 답변이 저장되지 않으므로 사용자에게 알린다.
     submitExternalQuizAnswer(currentQuiz.id, choiceId).catch((err: unknown) => {
@@ -87,6 +106,11 @@ export function QuizPageClient() {
           setSelectedChoiceId(null);
           setIsFadingOut(false);
         } else {
+          // 퀴즈 퍼널의 분자.
+          trackEvent("quiz_complete", {
+            quiz_set_id: quizSetId,
+            question_count: quizzes.length,
+          });
           setIsFinish(true);
         }
       }, 300);
@@ -116,6 +140,7 @@ export function QuizPageClient() {
    * 지우지 않으면 어느 종류를 골라도 남은 답변 때문에 이 안내가 다시 뜬다.
    */
   const handleRestart = async () => {
+    trackEvent("quiz_restart", {});
     try {
       await resetExternalQuizProgress();
     } catch {

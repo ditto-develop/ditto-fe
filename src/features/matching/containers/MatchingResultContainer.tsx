@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import { trackEvent } from "@/shared/lib/analytics";
 import { TopNavigation } from "@/shared/ui";
 import { SectionHeader } from "@/shared/ui";
 import { ContentBadge } from "@/shared/ui";
@@ -64,6 +65,18 @@ export function MatchingResultContainer({
     const { quizSetId, candidates, hasAcceptedMatch, acceptedMatchUserId, loading, error } = useMatchCandidates();
     const [activeTab, setActiveTab] = useState<MatchTab>("request");
 
+    /*
+     * 매칭 퍼널의 분모. 화면 진입이 아니라 **후보를 실제로 받은 시점**에 센다 —
+     * 조회에 실패한 진입까지 분모에 넣으면 신청률이 이유 없이 낮아 보인다.
+     * 한 번만 센다: 탭 전환이나 부모 리렌더로 분모가 부풀면 안 된다.
+     */
+    const reportedView = useRef(false);
+    useEffect(() => {
+        if (loading || error || reportedView.current) return;
+        reportedView.current = true;
+        trackEvent("matching_result_view", { candidate_count: candidates.length });
+    }, [loading, error, candidates.length]);
+
     const sorted = [...candidates].sort((a, b) => b.matchRate - a.matchRate);
     const requestCandidates = sorted.filter((m) => !m.hasReceivedRequest);
     const acceptCandidates = sorted.filter((m) => m.hasReceivedRequest);
@@ -108,20 +121,23 @@ export function MatchingResultContainer({
                                 <MatchCount>{badge.matchDescription}</MatchCount>
                             </BadgeRow>
                             <MatchSurfaceCard
-                                onClick={() =>
+                                onClick={() => {
+                                    const state = hasAcceptedMatch && match.profile.id === acceptedMatchUserId
+                                        ? "chat_started"
+                                        : match.hasReceivedRequest
+                                        ? "after_acceptance"
+                                        : match.hasRequested
+                                        ? "completed"
+                                        : "before_request";
+                                    // 상대 식별자는 싣지 않는다. 관계 상태만으로 퍼널을 읽을 수 있다.
+                                    trackEvent("matching_profile_open", { state });
                                     onProfileClick({
                                         userId: match.profile.id,
                                         quizSetId,
                                         matchRequestId: match.matchRequestId,
-                                        state: hasAcceptedMatch && match.profile.id === acceptedMatchUserId
-                                            ? "chat_started"
-                                            : match.hasReceivedRequest
-                                            ? "after_acceptance"
-                                            : match.hasRequested
-                                            ? "completed"
-                                            : "before_request",
-                                    })
-                                }
+                                        state,
+                                    });
+                                }}
                             >
                                 <MatchProfileCard profile={match.profile} />
                                 {match.hasReceivedRequest && (

@@ -11,6 +11,7 @@ export type {
   AnalyticsEventMap,
   AnalyticsEventName,
   AnalyticsPeriod,
+  CardName,
   LoginMethod,
   LoginProvider,
   SignupStepName,
@@ -18,5 +19,6 @@ export type {
 export { SIGNUP_STEP_NAMES } from "@/shared/lib/analytics/events";
 export { getGtagScriptSrc, trackEvent } from "@/shared/lib/analytics/gtag";
 export { rememberLoginAttempt, takeLoginAttempt } from "@/shared/lib/analytics/loginAttempt";
+export { trackCardClick, useCardImpression } from "@/shared/lib/analytics/useCardImpression";
 export type { LoginAttempt } from "@/shared/lib/analytics/loginAttempt";
 export { useAnalytics } from "@/shared/lib/analytics/useAnalytics";

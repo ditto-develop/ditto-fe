@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import styled from "styled-components";
+import { trackEvent } from "@/shared/lib/analytics";
 import { FullScreenModal } from "@/shared/ui";
 import { Nav } from "@/shared/ui";
 import { BottomSheet } from "@/shared/ui";
@@ -118,6 +119,7 @@ export function GroupMatchingResultModal({
     setError(null);
     try {
       const result = await joinGroupMatch(quizSetId);
+      trackEvent("group_match_join", { ok: true });
       setJoinResult({ participantCount: result.participantCount, isActive: result.isActive });
 
       if (result.isActive) {
@@ -139,6 +141,8 @@ export function GroupMatchingResultModal({
         onJoinPending?.();
       }
     } catch (e) {
+      // 실패도 센다. 여기가 크면 "참여가 안 된다"는 이탈이 흥미 상실로 오독된다.
+      trackEvent("group_match_join", { ok: false });
       setError(e instanceof Error ? e.message : "참여 중 오류가 발생했습니다.");
     } finally {
       setJoining(false);
@@ -338,6 +342,7 @@ export function GroupMatchingResultModal({
           text: "네, 거절할게요",
           onClick: async () => {
             setRejectAlertOpen(false);
+            trackEvent("group_match_decline", {});
             try { await declineGroupMatch(quizSetId); } catch { /* ignore */ }
             onClose();
             onDecline?.();

@@ -107,6 +107,50 @@ export interface AnalyticsEventMap {
   signup_fail: { step_index: number; step_name: SignupStepName; reason: string };
   /** 사용자가 가입을 포기하고 로그인 화면으로 나갔다. 이탈 지점을 직접 가리킨다. */
   signup_abandon: { step_index: number; step_name: SignupStepName };
+
+  /**
+   * 홈 카드가 보였다. **클릭률의 분모다.**
+   *
+   * 이 이벤트 없이 클릭만 세면 "몇 명이 눌렀나"는 알아도 "본 사람 중 몇 %가 눌렀나"는
+   * 알 수 없다. 기간마다 뜨는 카드가 다르므로(퀴즈 기간엔 퀴즈 카드, 매칭 기간엔 매칭
+   * 카드) `period` 전역 파라미터와 함께 보면 기간별 클릭률이 그대로 나온다.
+   */
+  card_impression: { card_name: CardName; card_state: string };
+  /** 홈 카드의 CTA 를 눌렀다. 클릭률의 분자다. */
+  card_click: { card_name: CardName; card_state: string; action: string };
+
+  /** 퀴즈 화면에 들어와 문항을 받았다. 퀴즈 퍼널의 분모다. */
+  quiz_start: { quiz_set_id: string; question_count: number; resumed: boolean };
+  /** 문항 하나에 답했다. `step_index` 로 몇 번째 문항에서 그만두는지 볼 수 있다. */
+  quiz_answer: { step_index: number; question_count: number };
+  /** 마지막 문항까지 답했다. 퀴즈 퍼널의 분자다. */
+  quiz_complete: { quiz_set_id: string; question_count: number };
+  /** "새로 풀기" — 이번 주 답변을 지우고 처음부터. */
+  quiz_restart: Record<string, never>;
+
+  /** 매칭 결과 화면에 들어왔다. 매칭 퍼널의 분모다. */
+  matching_result_view: { candidate_count: number };
+  /** 후보 카드를 눌러 소개 노트를 열었다. `state` 는 그 상대와의 현재 관계다. */
+  matching_profile_open: { state: string };
+  /** 대화 신청/수락/거절. `ok` 가 false 면 서버가 거절한 것이다. */
+  match_request_send: { ok: boolean };
+  match_request_accept: { ok: boolean };
+  match_request_reject: { ok: boolean };
+  /** 그룹 매칭 참여/거절. */
+  group_match_join: { ok: boolean };
+  group_match_decline: Record<string, never>;
+
+  /**
+   * API 가 실패했다.
+   *
+   * "이 화면에서 왜 이탈하는가"의 답이 대개 여기 있다. 체류 시간과 퍼널만 보면
+   * "사용자가 흥미를 잃었다"로 읽히는 이탈이, 실은 버튼을 눌렀는데 500 이 떨어진
+   * 것이었던 경우가 많다.
+   */
+  api_error: { endpoint: string; status: number; code: string };
 }
+
+/** 홈에서 기간마다 하나씩 뜨는 카드. */
+export type CardName = "quiz" | "matching";
 
 export type AnalyticsEventName = keyof AnalyticsEventMap;
