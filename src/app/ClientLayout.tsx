@@ -14,7 +14,7 @@ import { tryRefreshToken } from "@/shared/lib/api/client";
 import { getExternalSystemState } from "@/shared/lib/api/externalApi";
 import { API_ERROR_CODE, describeError, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { getGtagScriptSrc, useAnalytics } from "@/shared/lib/analytics";
-import { normalizePathname } from "@/shared/lib/routePath";
+import { isBootSplashPath, normalizePathname } from "@/shared/lib/routePath";
 import { initAppShell } from "@/shared/lib/native/appShell";
 import { initPushNotifications } from "@/shared/lib/native/pushNotifications";
 import { initLocalNotifications } from "@/shared/lib/native/localNotifications";
@@ -323,16 +323,20 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   // showSplash를 state 없이 순수 파생값으로 계산
   const showSplash = (() => {
     if (isAdminPath) return false;                  // 관리자 경로: 스플래시 없음
+    /**
+     * 스플래시가 받는 화면은 **루트(브랜드)와 홈(첫 진입) 둘뿐이다**(`isBootSplashPath`).
+     * 나머지는 전부 여기서 끊는다:
+     *   - OAuth 콜백: KakaoCallback이 자체 로딩 UI를 렌더한다. 토큰 세팅이 Suspense로
+     *     지연되면 isLoggedIn이 stale(false)로 남아 Splash가 회원가입 폼을 영구히 덮는다.
+     *   - 제재 안내: 자체 로딩 문구를 쓴다.
+     *   - 약관·사업자 정보: 링크로 바로 들어오는 사람(심사자 등)이 본다. 정적 텍스트라
+     *     기다릴 것이 없는데 스플래시가 덮으면 그냥 안 뜨는 화면처럼 보인다.
+     *   - 소개노트(`/profile/{id}`)·채팅방 같은 동적 라우트: 진입할 때마다 문서가 새로
+     *     떠서(하드 내비게이션) 스플래시가 떴다 사라지는 번쩍임이 된다. 스켈레톤이 받는다.
+     */
+    if (!isBootSplashPath(path)) return false;
     if (!isHydrated) return true;                   // SSR / hydration 전
     if (isVerifyingSession) return true;            // refresh 검증 중
-    // OAuth 콜백 경로는 KakaoCallback이 자체 로딩 UI를 렌더한다. 또한 토큰 세팅이
-    // Suspense로 지연되면 isLoggedIn state가 stale(false)로 남아 Splash가 회원가입
-    // 폼을 영구히 덮을 수 있으므로, 이 경로에서는 ClientLayout Splash를 띄우지 않는다.
-    if (isOAuthFlowPath) return false;
-    if (isSanctionPath) return false;               // 제재 안내: 자체 로딩 문구 사용
-    // 약관·사업자 정보 화면은 링크로 바로 들어오는 사람(심사자 등)이 본다. 정적
-    // 텍스트라 기다릴 것이 없는데 3초 스플래시가 덮으면 그냥 안 뜨는 화면처럼 보인다.
-    if (isPublicDocPath) return false;
     /**
      * 로그인 상태로 루트("/")에 들어온 콜드 스타트: **홈이 뜰 때까지** 스플래시를 유지한다.
      *

@@ -19,3 +19,17 @@ export function isPathActive(pathname: string, target: string): boolean {
   const base = normalizePathname(target);
   return current === base || current.startsWith(`${base}/`);
 }
+
+/**
+ * 콜드 스타트 스플래시가 덮어도 되는 화면인지. **루트와 홈 둘뿐이다.**
+ *
+ * 정적 export라 `/profile/{id}`·`/chat/...` 같은 동적 라우트는 클라이언트 내비게이션이
+ * 되지 않고 진입할 때마다 문서가 새로 뜬다(RSC 페이로드 `.txt`가 S3에 없어 라우터가
+ * 하드 내비게이션으로 폴백한다). 그런 화면까지 하이드레이션 전을 스플래시로 받으면,
+ * 소개노트를 누를 때마다 스플래시가 떴다 사라져 **화면이 한 번 번쩍인다.**
+ * 그 자리는 각 화면의 스켈레톤이 받는다.
+ */
+export function isBootSplashPath(pathname: string): boolean {
+  const path = normalizePathname(pathname);
+  return path === "/" || path === "/home";
+}
