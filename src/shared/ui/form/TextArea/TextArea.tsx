@@ -1,4 +1,4 @@
-import React, { useState, forwardRef, useImperativeHandle, useRef } from "react";
+import React, { useState, forwardRef, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import styled from "styled-components";
 import { Caption1 } from "@/shared/ui";
 
@@ -85,6 +85,27 @@ export const TextAreaWithActions = forwardRef<
       event.preventDefault();
       onRequestFocusChange(id);
     };
+
+    /**
+     * 편집 상태로 바뀌면 입력창에 포커스를 준다.
+     *
+     * 저장된 답변은 <p>(SavedText)로 그려 두었다가 누르는 순간 textarea 로 교체된다.
+     * 그래서 브라우저가 알아서 주는 포커스가 없다 — 그냥 두면 한 번 눌러서는 커서도
+     * 키보드도 오지 않고, 두 번 눌러야 입력이 시작됐다.
+     *
+     * useEffect 가 아니라 useLayoutEffect 인 이유: iOS 는 사용자 제스처 안에서 부른
+     * focus() 만 키보드를 띄운다. 레이아웃 이펙트는 클릭을 처리한 것과 같은 호출 스택에서
+     * 실행되므로 제스처 컨텍스트가 살아 있다.
+     */
+    useLayoutEffect(() => {
+      if (!isActive) return;
+      const textarea = textareaRef.current;
+      if (!textarea || document.activeElement === textarea) return;
+      textarea.focus();
+      // 커서는 이미 쓴 글 끝에 둔다. 맨 앞이면 이어 쓰려다 앞을 지운다.
+      const end = textarea.value.length;
+      textarea.setSelectionRange(end, end);
+    }, [isActive]);
 
     const handleSave = (): boolean => {
       if (value.trim().length === 0) {

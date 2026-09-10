@@ -229,13 +229,18 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
       onEditingChange?.(inputFocused);
     }, [inputFocused, onEditingChange]);
 
+    /*
+     * 저장/취소로 충돌이 풀렸으니 안내 토스트는 스스로 걷는다(이제 자동으로 사라지지 않는다).
+     *
+     * 예전에는 여기서 `window.scrollTo(0, 0)` 도 같이 했다. iOS 가 키보드로 밀어 올린
+     * 뷰포트 오프셋을 되돌리지 않는 증상을 덮으려던 것인데, 그 원인(잠긴 readOnly 입력창으로
+     * 포커스가 튀는 것)은 TextAreaWithActions 의 pointerdown 차단으로 이미 막았다.
+     * 남은 건 부작용뿐이었다 — 문서 전체가 스크롤되는 화면(프로필 > 소개 노트 수정)에서
+     * 답변 하나를 저장할 때마다 화면이 맨 위로 튀었다.
+     */
     useEffect(() => {
       if (activeId !== null) return;
-      // 저장/취소로 충돌이 풀렸으니 안내 토스트는 스스로 걷는다(이제 자동으로 사라지지 않는다).
       removeToast("save-confirmation");
-      // iOS는 키보드가 닫혀도 키보드가 밀어 올렸던 뷰포트 오프셋을 되돌리지 않는 때가 있다.
-      // 화면이 아래로 내려가고 위쪽에 빈 영역이 남는 증상이라, 편집이 끝나면 원점으로 돌린다.
-      window.scrollTo(0, 0);
     }, [activeId, removeToast]);
 
     return (

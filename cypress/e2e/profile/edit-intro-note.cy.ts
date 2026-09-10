@@ -89,6 +89,49 @@ describe("edit intro note", () => {
   });
 
   /**
+   * 저장된 답변은 <p> 로 그려 두었다가 누르는 순간 입력창으로 바뀐다. 그래서 브라우저가
+   * 주는 포커스가 없어, 한 번 눌러서는 커서도 키보드도 오지 않고 두 번 눌러야 했다(QA 2026-09-10).
+   */
+  it("저장된 답변을 한 번 누르면 바로 입력할 수 있다", () => {
+    cy.visit("/profile/intro-note");
+    cy.wait("@getMyIntroNotesV1");
+
+    cy.contains("짐은 단출하게 챙기는 편이에요.").click();
+
+    cy.document().should((doc) => {
+      expect(doc.activeElement?.tagName, "포커스된 요소").to.eq("TEXTAREA");
+      expect(
+        (doc.activeElement as HTMLTextAreaElement).value,
+        "포커스된 입력창의 값",
+      ).to.eq("짐은 단출하게 챙기는 편이에요.");
+    });
+  });
+
+  /**
+   * 편집이 끝나면 화면을 원점(0,0)으로 되돌리던 코드가 있었다. 문서 전체가 스크롤되는
+   * 이 화면에서는 답변 하나를 저장할 때마다 맨 위로 튀었다(QA 2026-09-10).
+   */
+  it("저장/취소해도 보던 질문 자리에 남는다", () => {
+    cy.viewport("iphone-x");
+    cy.visit("/profile/intro-note");
+    cy.wait("@getMyIntroNotesV1");
+
+    cy.contains("Q8.").scrollIntoView();
+    cy.window().its("scrollY").as("beforeY");
+
+    cy.contains("Q8.").parent().find("textarea, p").last().click();
+    cy.contains("Q8.").parent().contains("button", "취소").click();
+
+    cy.get("@beforeY").then((beforeY) => {
+      const before = Number(beforeY);
+      expect(before, "편집 전 스크롤 위치").to.be.greaterThan(0);
+      cy.window().should((win) => {
+        expect(win.scrollY, "취소 후 스크롤 위치").to.be.closeTo(before, 120);
+      });
+    });
+  });
+
+  /**
    * 키보드는 화면 위에 겹쳐 올라올 뿐 레이아웃 뷰포트를 줄이지 않아, 하단 질문이 가린
    * 채로 남는 문제가 있었다. 실제 키보드를 띄울 수는 없으니 `visualViewport` 를
    * 키보드가 뜬 상태로 흉내 내고, 편집 중인 질문이 그 위로 올라오는지 본다.
