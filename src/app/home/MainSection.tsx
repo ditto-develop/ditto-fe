@@ -12,8 +12,8 @@ import { QuizProgressDto } from "@/shared/lib/api/generated";
 import type { SystemStateDto } from "@/shared/lib/api/generated";
 import { getChatRooms } from "@/features/chat";
 import type { ChatRoom } from "@/features/chat";
-import type { MatchCandidateDto } from "@/features/matching/api/matchingApi";
-import { getMatchCandidates, getMatchingStatus } from "@/features/matching/api/matchingApi";
+import type { GroupCandidateGroupDto, MatchCandidateDto } from "@/features/matching/api/matchingApi";
+import { getGroupCandidates, getMatchCandidates, getMatchingStatus } from "@/features/matching/api/matchingApi";
 import {
   getExternalMyIntroNotes,
   getExternalQuizProgress,
@@ -69,8 +69,13 @@ export function MainSection() {
   const [quizSetId, setQuizSetId] = useState<string>("");
   const [hasAcceptedMatch, setHasAcceptedMatch] = useState(false);
   const [acceptedCandidate, setAcceptedCandidate] = useState<MatchCandidateDto | undefined>(undefined);
-  const [groupJoined, setGroupJoined] = useState(false);
-  const [groupJoinPending, setGroupJoinPending] = useState(false);
+  /**
+   * 이번 주가 그룹 주인지. 그룹 화면 상태는 전부 `groups[0]`에서 나온다 —
+   * 매칭 상태(`/matching/status`)의 groupJoined/groupJoinPending/groupDeclined 는 쓰지 않는다
+   * (BE 위키 Frontend-Group-Matching-Guide §화면 상태 판단).
+   */
+  const [isGroupWeek, setIsGroupWeek] = useState(false);
+  const [groups, setGroups] = useState<GroupCandidateGroupDto[]>([]);
   const [chatRoom, setChatRoom] = useState<ChatRoom | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const { setHomeReady } = useHomeReady();
@@ -98,9 +103,10 @@ export function MainSection() {
         // 기간 판정·매칭 후보·소개노트는 서로 의존하지 않는다. 순차로 기다리면 홈 카드가
         // 그만큼 늦게 뜨므로 같이 쏜다. 퀴즈 기간에는 후보 조회 1건이 버려지지만,
         // 매칭/대화 기간(카드가 무거운 쪽)의 왕복이 한 번 줄어드는 편이 낫다.
-        const [systemState, candidateResult, introNotes] = await Promise.all([
+        const [systemState, candidateResult, groupResult, introNotes] = await Promise.all([
           getExternalSystemState(),
           getMatchCandidates().catch(() => null),
+          getGroupCandidates().catch(() => null),
           getExternalMyIntroNotes().catch(() => null),
         ]);
 
@@ -122,7 +128,30 @@ export function MainSection() {
           return;
         }
 
-        // MATCHING or CHATTING: 매칭 결과로 matchType 결정
+        /**
+         * MATCHING or CHATTING: 이번 주가 1:1인지 그룹인지 가른다.
+         *
+         * 두 엔드포인트는 각각 "내가 최근 완주한 1:1 / 그룹 퀴즈셋"을 스스로 찾아 온다.
+         * 지난 주 그룹 후보가 그대로 남아 있을 수 있으므로 **퀴즈셋 ID가 더 큰 쪽이 이번 주**다.
+         * 그룹이 이번 주면 후보가 0개여도 그룹 경로로 판정해야 한다 — 그래야 지난 주
+         * 1:1 후보가 되살아나지 않는다.
+         */
+        const groupIsThisWeek =
+          groupResult !== null &&
+          (candidateResult === null ||
+            Number(groupResult.quizSetId) >= Number(candidateResult.quizSetId));
+
+        if (groupIsThisWeek) {
+          setIsGroupWeek(true);
+          setQuizSetId(groupResult.quizSetId);
+          setGroups(groupResult.groups);
+          if (fetchedPeriod === "CHATTING") {
+            const latestChatRoom = await getLatestChatRoom().catch(() => undefined);
+            if (latestChatRoom) setChatRoom(latestChatRoom);
+          }
+          return;
+        }
+
         // 후보 조회가 실패했으면(퀴즈 미응시 등) 더 볼 것 없이 failmatch.
         if (!candidateResult) {
           setMatchType("failmatch");
@@ -130,7 +159,7 @@ export function MainSection() {
         }
 
         try {
-          const { quizSetId: fetchedQuizSetId, candidates: fetchedCandidates, matchingType } = candidateResult;
+          const { quizSetId: fetchedQuizSetId, candidates: fetchedCandidates } = candidateResult;
           setQuizSetId(fetchedQuizSetId);
           setCandidates(fetchedCandidates);
 
@@ -142,31 +171,17 @@ export function MainSection() {
               : Promise.resolve(undefined),
           ]);
 
-          const {
-            hasAcceptedMatch: accepted,
-            acceptedMatchUserId,
-            groupDeclined,
-            groupJoined: joined,
-            groupJoinPending: joinPending,
-          } = status;
+          const { hasAcceptedMatch: accepted, acceptedMatchUserId } = status;
 
           setHasAcceptedMatch(accepted);
-          setGroupJoined(joined);
-          setGroupJoinPending(joinPending);
           if (accepted && acceptedMatchUserId) {
             const found = fetchedCandidates.find(c => c.userId === acceptedMatchUserId);
             setAcceptedCandidate(found);
           }
-          if (fetchedCandidates.length === 0 || groupDeclined) setMatchType("failmatch");
-          else if (matchingType === 'GROUP') {
-            // 대화 기간에는 그룹에 참여한 경우만 표시
-            if (fetchedPeriod === "CHATTING" && !joined) setMatchType("failmatch");
-            else setMatchType("many");
-          } else {
-            // 대화 기간에는 매칭이 확정된 경우만 표시
-            if (fetchedPeriod === "CHATTING" && !accepted) setMatchType("failmatch");
-            else setMatchType("one");
-          }
+          if (fetchedCandidates.length === 0) setMatchType("failmatch");
+          // 대화 기간에는 매칭이 확정된 경우만 표시
+          else if (fetchedPeriod === "CHATTING" && !accepted) setMatchType("failmatch");
+          else setMatchType("one");
           if (latestChatRoom) setChatRoom(latestChatRoom);
         } catch (err: unknown) {
           // 매칭 상태 조회 실패 → failmatch
@@ -230,6 +245,47 @@ export function MainSection() {
     return <MainSectionContainer><TimeLine /></MainSectionContainer>;
   }
 
+  /**
+   * 그룹 화면은 `groups[0]`만으로 전부 갈린다(BE 위키 §화면 상태 판단).
+   * - 후보 없음 → 매칭 실패
+   * - PENDING → 매칭 결과(거절하기 / 참여하기)
+   * - ACCEPTED && !isFormed → 참여함 · 인원 대기
+   * - ACCEPTED && isFormed → 매칭 완료
+   * 대화 기간에는 성사된 그룹을 수락한 경우만 남긴다.
+   */
+  const activeGroup = groups[0];
+  const groupFormed = !!activeGroup && activeGroup.myStatus === "ACCEPTED" && activeGroup.isFormed;
+  const groupMatchType: MatchingCardType = !activeGroup
+    ? "failmatch"
+    : period === "CHATTING" && !groupFormed
+      ? "failmatch"
+      : "many";
+
+  const resolvedMatchType = isGroupWeek ? groupMatchType : matchType;
+  const resolvedCandidates = isGroupWeek ? (activeGroup?.members ?? []) : candidates;
+
+  /**
+   * 수락하면 같은 주의 다른 후보는 서버에서 자동 거절된다 — 목록에서도 지워 둔다.
+   * 정원이 4~6명이고 성사는 3명이라, 이미 성사된 그룹에 4번째로 수락하는 것도 정상 경로다.
+   */
+  const handleGroupAccepted = (isFormed: boolean) => {
+    setGroups((prev) =>
+      prev.length === 0 ? prev : [{ ...prev[0], myStatus: "ACCEPTED", isFormed }],
+    );
+  };
+
+  /** 거절한 그룹은 서버 목록에서도 사라진다. 다음 후보가 있으면 추가 요청 없이 이어서 보여 준다. */
+  const handleGroupDeclined = () => setGroups((prev) => prev.slice(1));
+
+  /**
+   * 다른 탭·기기에서 먼저 응답해 서버와 어긋났을 때(0003/5005/5006).
+   * 에러를 띄우는 대신 목록을 다시 받아 화면을 맞춘다.
+   */
+  const refreshGroups = async () => {
+    const result = await getGroupCandidates().catch(() => null);
+    setGroups(result?.groups ?? []);
+  };
+
   const ControlSection = () => {
     switch (period) {
       case "QUIZ":
@@ -238,15 +294,15 @@ export function MainSection() {
         return (
           <MatchingDay
             isChatTime={false}
-            matchType={matchType}
+            matchType={resolvedMatchType}
             buttonState="primary"
-            candidates={candidates}
+            candidates={resolvedCandidates}
             hasAcceptedMatch={hasAcceptedMatch}
             acceptedCandidate={acceptedCandidate}
-            groupJoined={groupJoined}
-            onGroupJoined={() => setGroupJoined(true)}
-            groupJoinPending={groupJoinPending}
-            onGroupJoinPending={() => setGroupJoinPending(true)}
+            group={activeGroup}
+            onGroupAccepted={handleGroupAccepted}
+            onGroupDeclined={handleGroupDeclined}
+            onGroupStale={refreshGroups}
             quizSetId={quizSetId}
           />
         );
@@ -277,9 +333,9 @@ export function MainSection() {
         return (
           <MatchingDay
             isChatTime={true}
-            matchType={matchType}
+            matchType={resolvedMatchType}
             buttonState="primary"
-            candidates={candidates}
+            candidates={resolvedCandidates}
             hasAcceptedMatch={hasAcceptedMatch}
             acceptedCandidate={acceptedCandidate}
             chatRoom={chatRoom}

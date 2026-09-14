@@ -5,6 +5,8 @@ type LoginOptions = {
 
 type MockApiOptions = {
   matchesFixture?: string;
+  /** GET /matches/group 응답. 기본은 "참여한 그룹 퀴즈셋 없음"(0004)이라 홈이 1:1로 갈린다. */
+  groupMatchesFixture?: string;
   matchingStatusFixture?: string;
   memberReviewsFixture?: string;
 };
@@ -139,8 +141,22 @@ Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
     { id: 9001, quizSetId: 101, requesterId: 501, receiverId: "user-e1e", status: "REJECTED" },
     "rejectMatchRequest",
   );
-  mockFixture("POST", ["**/api/v1/matches/group/join", "**/api/matches/group/join"], "group-join.json", "joinGroupMatch");
-  cy.intercept("POST", "**/api/**/matches/group/decline", emptySuccessResponse()).as("declineGroupMatch");
+  /**
+   * 그룹 매칭. 기본값은 라이브의 1:1 주와 같다 — 그룹 후보 조회가 0004로 떨어져야
+   * 홈이 `/matches/1on1` 결과로 갈린다. 그룹 테스트만 groupMatchesFixture 로 덮는다.
+   */
+  if (options.groupMatchesFixture) {
+    mockFixture("GET", ["**/api/v1/matches/group", "**/api/matches/group"], options.groupMatchesFixture, "getGroupMatches");
+  } else {
+    ["**/api/v1/matches/group", "**/api/matches/group"].forEach((url, index) => {
+      cy.intercept("GET", url, {
+        statusCode: 404,
+        body: { success: false, data: null, error: { code: "0004", message: "참여한 그룹 퀴즈셋이 없습니다.", statusCode: 404 } },
+      }).as(index === 0 ? "getGroupMatches" : `getGroupMatches${index + 1}`);
+    });
+  }
+  mockFixture("POST", ["**/api/v1/matches/group/*/accept", "**/api/matches/group/*/accept"], "group-accept.json", "acceptGroupMatch");
+  cy.intercept("POST", "**/api/**/matches/group/*/decline", emptySuccessResponse()).as("declineGroupMatch");
 
   const systemPeriod = (Cypress.env("systemPeriod") as PeriodName | undefined) ?? "QUIZ";
   mockStatic("GET", ["**/api/system/state", "**/api/v1/system/state"], {

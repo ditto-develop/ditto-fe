@@ -40,7 +40,9 @@ describe("진입 — 홈 매칭 카드", () => {
 
   describe("그룹 매칭 결과 진입", () => {
     beforeEach(() => {
-      cy.mockApi({ matchesFixture: "matches-group.json" });
+      // 그룹 주에는 /matches/1on1 이 지난 1:1 퀴즈셋(101)을, /matches/group 이 이번 주(102)를 준다.
+      // 퀴즈셋 ID가 큰 쪽이 이번 주이므로 홈은 그룹 경로로 갈린다.
+      cy.mockApi({ groupMatchesFixture: "matches-group.json" });
       cy.login();
     });
 
@@ -70,10 +72,9 @@ describe("진입 — 홈 매칭 카드", () => {
     });
 
     it("그룹 매칭 완료 시 '매칭 완료' 그룹 카드가 노출된다", () => {
-      cy.mockApi({
-        matchesFixture: "matches-group.json",
-        matchingStatusFixture: "matching-status-group-joined.json",
-      });
+      // 매칭 완료 = 내가 수락했고(myStatus ACCEPTED) 성사됐다(isFormed).
+      // 매칭 상태 API의 groupJoined 플래그는 더 이상 보지 않는다.
+      cy.mockApi({ groupMatchesFixture: "matches-group-accepted.json" });
       cy.login();
       cy.visit("/home");
 

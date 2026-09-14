@@ -301,7 +301,7 @@ describe("카카오 심사 제출용 화면 캡처", () => {
 
     it("12b 그룹 매칭 결과", () => {
       cy.clockPeriod("MATCHING");
-      cy.mockApi({ matchesFixture: "matches-group.json" });
+      cy.mockApi({ groupMatchesFixture: "matches-group.json" });
       cy.login();
       mockProfileAndSettings();
       visitScreen("/home");

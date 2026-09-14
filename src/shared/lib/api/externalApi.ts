@@ -11,9 +11,12 @@ import type {
 } from "@/shared/lib/api/generated";
 import { externalApiFetch } from "@/shared/lib/api/externalClient";
 import type {
+    GetGroupCandidatesResponse,
     GetMatchCandidatesResponse,
     GetMatchingStatusResponse,
-    GroupJoinResult,
+    GroupCandidateGroupDto,
+    GroupInvitationStatus,
+    GroupMatchAcceptResult,
     MatchCandidateDto,
     MatchRequestDto,
     ScoreBreakdownDto,
@@ -44,11 +47,34 @@ type ExternalMatchCandidate = {
 };
 
 // GET /api/v1/matches/1on1 응답 (MatchCandidateResponse)
+// matchingType 은 항상 ONE_TO_ONE 이라 읽지 않는다 — matchingApi.GetMatchCandidatesResponse 주석 참고.
 type ExternalMatchCandidateList = {
     quizSetId: ExternalId;
-    matchingType: GetMatchCandidatesResponse["matchingType"];
     algorithmVersion?: string;
     candidates?: ExternalMatchCandidate[];
+};
+
+// GET /api/v1/matches/group 응답 (GroupCandidateResponse)
+type ExternalGroupCandidateList = {
+    quizSetId: ExternalId;
+    groups?: ExternalCandidateGroup[];
+};
+
+type ExternalCandidateGroup = {
+    groupMatchId: ExternalId;
+    myStatus: GroupInvitationStatus;
+    isFormed: boolean;
+    averageMatchedQuestions: number;
+    totalQuestions: number;
+    members?: ExternalMatchCandidate[];
+};
+
+// POST /api/v1/matches/group/{groupMatchId}/accept 응답 (GroupMatchAcceptResponse)
+type ExternalGroupMatchAccept = {
+    groupMatchId: ExternalId;
+    quizSetId: ExternalId;
+    acceptedCount: number;
+    isFormed: boolean;
 };
 
 // GET /api/v1/matching/status/{quizSetId} 응답 (MatchingStatusResponse)
@@ -58,9 +84,6 @@ type ExternalMatchingStatus = {
     receivedRequests?: ExternalMatchRequest[];
     hasAcceptedMatch: boolean;
     acceptedMatchUserId?: ExternalId | null;
-    groupDeclined: boolean;
-    groupJoined: boolean;
-    groupJoinPending: boolean;
 };
 
 type NicknameAvailability = {
@@ -389,7 +412,6 @@ export async function getExternalMatchCandidates(): Promise<GetMatchCandidatesRe
 
     return {
         quizSetId,
-        matchingType: data.matchingType ?? "ONE_TO_ONE",
         candidates: (data.candidates ?? []).map(toMatchCandidate),
     };
 }
@@ -423,28 +445,57 @@ export async function getExternalMatchingStatus(quizSetId: string): Promise<GetM
         receivedRequests: (data.receivedRequests ?? []).map(toMatchRequest),
         hasAcceptedMatch: data.hasAcceptedMatch,
         acceptedMatchUserId: data.acceptedMatchUserId != null ? toId(data.acceptedMatchUserId) : undefined,
-        groupDeclined: data.groupDeclined,
-        groupJoined: data.groupJoined,
-        groupJoinPending: data.groupJoinPending,
     };
 }
 
-export function joinExternalGroupMatch(quizSetId?: string): Promise<GroupJoinResult> {
-    const resolvedQuizSetId = quizSetId || getStoredQuizSetId();
-    return externalApiFetch<GroupJoinResult>("/api/v1/matches/group/join", {
-        method: "POST",
-        body: { quizSetId: Number(resolvedQuizSetId) },
-    }).then((result) => ({
-        ...result,
-        roomId: toId(result.roomId),
+function toCandidateGroup(group: ExternalCandidateGroup): GroupCandidateGroupDto {
+    return {
+        groupMatchId: toId(group.groupMatchId),
+        myStatus: group.myStatus,
+        isFormed: group.isFormed,
+        averageMatchedQuestions: group.averageMatchedQuestions,
+        totalQuestions: group.totalQuestions,
+        members: (group.members ?? []).map(toMatchCandidate),
+    };
+}
+
+/**
+ * 후보 그룹 목록. 대상 퀴즈셋은 **서버가 정한다**(내가 최근 완주한 그룹 퀴즈셋) —
+ * 요청에 quizSetId 를 싣지 않고 응답의 `quizSetId` 로 확인한다.
+ *
+ * 참여한 그룹 퀴즈셋이 아예 없으면 404(`0004`)다. 후보가 0명인 것과 구분되지 않으므로
+ * 호출부는 둘 다 "매칭 실패"로 다룬다.
+ */
+export async function getExternalGroupCandidates(): Promise<GetGroupCandidatesResponse> {
+    const data = await externalApiFetch<ExternalGroupCandidateList>("/api/v1/matches/group");
+    return {
+        quizSetId: toId(data.quizSetId),
+        groups: (data.groups ?? []).map(toCandidateGroup),
+    };
+}
+
+/**
+ * 후보 그룹 수락. **퀴즈셋이 아니라 그룹 ID로 지정한다** — 후보가 여럿이라
+ * 어느 그룹에 응답하는지 서버가 알 수 없다.
+ *
+ * 성사(3명 수락) 뒤에도 수락할 수 있다. 정원이 4~6명이라 4번째 이후 수락이 정상이고,
+ * 이때는 이미 열린 방에 합류한다(`isFormed: true`, `acceptedCount` 만 증가).
+ */
+export function acceptExternalGroupMatch(groupMatchId: string): Promise<GroupMatchAcceptResult> {
+    return externalApiFetch<ExternalGroupMatchAccept>(
+        `/api/v1/matches/group/${groupMatchId}/accept`,
+        { method: "POST" },
+    ).then((result) => ({
+        groupMatchId: toId(result.groupMatchId),
         quizSetId: toId(result.quizSetId),
+        acceptedCount: result.acceptedCount,
+        isFormed: result.isFormed,
     }));
 }
 
-export function declineExternalGroupMatch(quizSetId?: string): Promise<void> {
-    const resolvedQuizSetId = quizSetId || getStoredQuizSetId();
-    return externalApiFetch<null>("/api/v1/matches/group/decline", {
+/** 후보 그룹 거절. 거절한 그룹은 이후 목록에서 사라진다. */
+export function declineExternalGroupMatch(groupMatchId: string): Promise<void> {
+    return externalApiFetch<null>(`/api/v1/matches/group/${groupMatchId}/decline`, {
         method: "POST",
-        body: { quizSetId: Number(resolvedQuizSetId) },
     }).then(() => undefined);
 }

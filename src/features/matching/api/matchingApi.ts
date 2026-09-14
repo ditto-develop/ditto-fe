@@ -4,11 +4,12 @@
  */
 
 import {
+    acceptExternalGroupMatch,
     acceptExternalMatchRequest,
     declineExternalGroupMatch,
+    getExternalGroupCandidates,
     getExternalMatchCandidates,
     getExternalMatchingStatus,
-    joinExternalGroupMatch,
     rejectExternalMatchRequest,
     sendExternalMatchRequest,
 } from "@/shared/lib/api/externalApi";
@@ -44,20 +45,31 @@ export interface MatchRequestDto {
     quizSetId: string;
 }
 
+/**
+ * GET /api/v1/matches/1on1 — **1:1 전용**이다.
+ *
+ * 응답의 `matchingType` 은 일부러 뺐다. 이 엔드포인트는 1:1 퀴즈셋만 찾으므로
+ * `GROUP` 이 나올 수 없는데, 예전 FE 는 이 값으로 그룹 화면을 분기해 그룹 결과가
+ * 한 번도 뜨지 않았다(BE 위키 Frontend-Group-Matching-Guide). 그룹은 getGroupCandidates 를 쓴다.
+ */
 export interface GetMatchCandidatesResponse {
     quizSetId: string;
-    matchingType: 'ONE_TO_ONE' | 'GROUP';
     candidates: MatchCandidateDto[];
 }
 
+/**
+ * GET /api/v1/matching/status/{quizSetId} — **1:1 상태 전용**으로 쓴다.
+ *
+ * 응답의 `groupJoined` / `groupJoinPending` / `groupDeclined` 는 담지 않는다.
+ * 세 플래그는 "후보를 받았지만 아직 응답 안 함"을 표현하지 못해 초대가 없는 회원과
+ * 같은 값이 나온다. 그룹 화면 상태는 getGroupCandidates 의 `myStatus`/`isFormed` 로 판정한다
+ * (BE 위키 Frontend-Group-Matching-Guide §화면 상태 판단). BE 도 FE 반영 후 제거 예정이다.
+ */
 export interface GetMatchingStatusResponse {
     sentRequests: MatchRequestDto[];
     receivedRequests: MatchRequestDto[];
     hasAcceptedMatch: boolean;
     acceptedMatchUserId?: string;
-    groupDeclined: boolean;
-    groupJoined: boolean;
-    groupJoinPending: boolean;
 }
 
 // --- API functions ---
@@ -67,9 +79,6 @@ function createEmptyMatchingStatus(): GetMatchingStatusResponse {
         sentRequests: [],
         receivedRequests: [],
         hasAcceptedMatch: false,
-        groupDeclined: false,
-        groupJoined: false,
-        groupJoinPending: false,
     };
 }
 
@@ -94,17 +103,50 @@ export function getMatchingStatus(quizSetId: string): Promise<GetMatchingStatusR
     return getExternalMatchingStatus(quizSetId);
 }
 
-export interface GroupJoinResult {
-    roomId: string;
+// --- 그룹 매칭 ---
+
+/** 후보 그룹에 대한 내 응답. 거절한 그룹은 목록에서 빠지므로 DECLINED 는 내려오지 않는다. */
+export type GroupInvitationStatus = "PENDING" | "ACCEPTED";
+
+/**
+ * 후보 그룹 하나.
+ *
+ * `averageMatchedQuestions` 는 **나와 각 구성원의 일치 문항 수 평균**으로,
+ * 구성원 개인의 `scoreBreakdown.matchedQuestions` 와 다른 값이다. 그룹 카드는 평균을,
+ * 프로필 목록은 개인 값을 쓴다(BE 위키 Frontend-Group-Matching-Guide).
+ */
+export interface GroupCandidateGroupDto {
+    groupMatchId: string;
+    myStatus: GroupInvitationStatus;
+    /** 수락자가 최소 인원(3명)에 도달했는지. 성사되면 금요일에 채팅방이 열린다. */
+    isFormed: boolean;
+    averageMatchedQuestions: number;
+    totalQuestions: number;
+    /** 나를 제외한 구성원. 나와의 일치 문항 수 내림차순 */
+    members: MatchCandidateDto[];
+}
+
+export interface GetGroupCandidatesResponse {
     quizSetId: string;
-    participantCount: number;
-    isActive: boolean;
+    /** 그룹 점수 내림차순, 최대 3개. 빈 배열이면 매칭 실패 화면이다. */
+    groups: GroupCandidateGroupDto[];
 }
 
-export function joinGroupMatch(quizSetId?: string): Promise<GroupJoinResult> {
-    return joinExternalGroupMatch(quizSetId);
+export interface GroupMatchAcceptResult {
+    groupMatchId: string;
+    quizSetId: string;
+    acceptedCount: number;
+    isFormed: boolean;
 }
 
-export function declineGroupMatch(quizSetId?: string): Promise<void> {
-    return declineExternalGroupMatch(quizSetId);
+export function getGroupCandidates(): Promise<GetGroupCandidatesResponse> {
+    return getExternalGroupCandidates();
+}
+
+export function acceptGroupMatch(groupMatchId: string): Promise<GroupMatchAcceptResult> {
+    return acceptExternalGroupMatch(groupMatchId);
+}
+
+export function declineGroupMatch(groupMatchId: string): Promise<void> {
+    return declineExternalGroupMatch(groupMatchId);
 }

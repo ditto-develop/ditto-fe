@@ -81,6 +81,69 @@
           }
         }
       ]
+    },
+    {
+      "groupMatchId": 6,
+      "myStatus": "PENDING",
+      "isFormed": false,
+      "averageMatchedQuestions": 6,
+      "totalQuestions": 12,
+      "members": [
+        {
+          "userId": 603,
+          "nickname": "카페탐방러",
+          "gender": "FEMALE",
+          "age": 31,
+          "introduction": "조용한 카페 탐방러",
+          "location": "seoul",
+          "profileImageUrl": "/assets/avatar/f4.png",
+          "matchRate": 58,
+          "scoreBreakdown": {
+            "quizMatchRate": 58,
+            "matchedQuestions": 7,
+            "totalQuestions": 12,
+            "reasons": [
+              "전체 12문항 중 7문항이 일치했어요"
+            ]
+          }
+        },
+        {
+          "userId": 601,
+          "nickname": "댕이누나",
+          "gender": "FEMALE",
+          "age": 28,
+          "introduction": "느긋한 집순이",
+          "location": "seoul",
+          "profileImageUrl": "/assets/avatar/f3.png",
+          "matchRate": 67,
+          "scoreBreakdown": {
+            "quizMatchRate": 67,
+            "matchedQuestions": 8,
+            "totalQuestions": 12,
+            "reasons": [
+              "전체 12문항 중 8문항이 일치했어요"
+            ]
+          }
+        },
+        {
+          "userId": 602,
+          "nickname": "겜돌이",
+          "gender": "MALE",
+          "age": 23,
+          "introduction": "디코 좋아하는 겜돌이",
+          "location": "seoul",
+          "profileImageUrl": "/assets/avatar/m1.png",
+          "matchRate": 75,
+          "scoreBreakdown": {
+            "quizMatchRate": 75,
+            "matchedQuestions": 9,
+            "totalQuestions": 12,
+            "reasons": [
+              "전체 12문항 중 9문항이 일치했어요"
+            ]
+          }
+        }
+      ]
     }
   ]
 }

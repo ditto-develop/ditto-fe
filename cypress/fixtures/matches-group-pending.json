@@ -3,7 +3,7 @@
   "groups": [
     {
       "groupMatchId": 5,
-      "myStatus": "PENDING",
+      "myStatus": "ACCEPTED",
       "isFormed": false,
       "averageMatchedQuestions": 8,
       "totalQuestions": 12,

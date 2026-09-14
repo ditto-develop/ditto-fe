@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/display/Card";
-import type { MatchCandidateDto } from "@/features/matching/api/matchingApi";
+import type { GroupCandidateGroupDto, MatchCandidateDto } from "@/features/matching/api/matchingApi";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import { toLocationLabel } from "@/shared/lib/profileLabels";
 import type { ChatRoom } from "@/features/chat";
@@ -49,10 +49,10 @@ export function MatchingDay({
   candidates = [],
   hasAcceptedMatch = false,
   acceptedCandidate,
-  groupJoined = false,
-  onGroupJoined,
-  groupJoinPending = false,
-  onGroupJoinPending,
+  group,
+  onGroupAccepted,
+  onGroupDeclined,
+  onGroupStale,
   chatRoom,
   quizSetId = "",
   onStartChat,
@@ -60,13 +60,16 @@ export function MatchingDay({
   matchType: MatchingCardType;
   buttonState: ButtonStateType;
   isChatTime: boolean;
+  /** 그룹 주에는 `group.members`가 그대로 들어온다(나는 빠진 구성원 목록). */
   candidates?: MatchCandidateDto[];
   hasAcceptedMatch?: boolean;
   acceptedCandidate?: MatchCandidateDto;
-  groupJoined?: boolean;
-  onGroupJoined?: () => void;
-  groupJoinPending?: boolean;
-  onGroupJoinPending?: () => void;
+  /** 응답 대상 후보 그룹(`groups[0]`). 그룹 주가 아니면 undefined다. */
+  group?: GroupCandidateGroupDto;
+  onGroupAccepted?: (isFormed: boolean) => void;
+  onGroupDeclined?: () => void;
+  /** 서버와 상태가 어긋났을 때(0003/5005/5006) 후보 목록을 다시 받는다. */
+  onGroupStale?: () => void;
   chatRoom?: ChatRoom;
   quizSetId?: string;
   onStartChat?: () => void;
@@ -74,8 +77,10 @@ export function MatchingDay({
   const router = useRouter();
   const [profileSelect, setProfileSelect] = useState(false);
   const [groupModalOpen, setGroupModalOpen] = useState(false);
-  const [groupDeclined, setGroupDeclined] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<ProfileDetailProfile | null>(null);
+
+  /** 매칭 완료(= 수락했고 성사됨). 거절·대기와 달리 카드가 통째로 바뀐다. */
+  const groupJoined = group?.myStatus === "ACCEPTED" && group.isFormed;
 
   const { showToast } = useToast();
   const notifKey = quizSetId ? matchAcceptedNotifKey(quizSetId) : null;
@@ -99,7 +104,7 @@ export function MatchingDay({
     if (groupJoined && !isChatTime && matchType === "many") return "group_joined";
     if (hasAcceptedMatch && acceptedCandidate && !isChatTime) return "accepted";
     if (matchType === "beforematch") return "beforematch";
-    if (matchType === "failmatch" || groupDeclined) return "failmatch";
+    if (matchType === "failmatch") return "failmatch";
     return isChatTime ? `chat_${matchType}` : matchType;
   })();
 
@@ -290,7 +295,7 @@ export function MatchingDay({
     );
   }
 
-  if (matchType === "failmatch" || groupDeclined) {
+  if (matchType === "failmatch") {
     return <FailMatchCard isChatTime={isChatTime} />;
   }
 
@@ -381,16 +386,16 @@ export function MatchingDay({
         />
       )}
 
-      <GroupMatchingResultModal
-        isOpen={groupModalOpen}
-        onClose={() => setGroupModalOpen(false)}
-        onDecline={() => setGroupDeclined(true)}
-        onJoinSuccess={onGroupJoined}
-        onJoinPending={onGroupJoinPending}
-        joinPending={groupJoinPending}
-        candidates={candidates}
-        quizSetId={quizSetId}
-      />
+      {group && (
+        <GroupMatchingResultModal
+          isOpen={groupModalOpen}
+          onClose={() => setGroupModalOpen(false)}
+          group={group}
+          onAccepted={(isFormed) => onGroupAccepted?.(isFormed)}
+          onDeclined={() => onGroupDeclined?.()}
+          onStale={() => onGroupStale?.()}
+        />
+      )}
     </>
   );
 }

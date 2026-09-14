@@ -17,8 +17,9 @@ import {
   Caption1,
 } from "@/shared/ui";
 import type { AlertStatus } from "@/components/display/Card";
-import type { MatchCandidateDto} from "@/features/matching/api/matchingApi";
-import { joinGroupMatch, declineGroupMatch } from "@/features/matching/api/matchingApi";
+import type { GroupCandidateGroupDto, MatchCandidateDto } from "@/features/matching/api/matchingApi";
+import { acceptGroupMatch, declineGroupMatch } from "@/features/matching/api/matchingApi";
+import { API_ERROR_CODE, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import { toLocationLabel } from "@/shared/lib/profileLabels";
 import { ProfileImg, ProfileWrapper } from "@/components/onboarding/OnboardingContainer";
@@ -46,6 +47,21 @@ function getBadgeBgColor(status: AlertStatus): string {
   }
 }
 
+/**
+ * 내 화면이 서버와 어긋났다는 신호. 다른 탭·기기에서 먼저 응답했을 때 온다.
+ * 에러로 띄우지 않고 후보 목록을 다시 받아 화면을 맞춘다
+ * (BE 위키 Frontend-Group-Matching-Guide §에러 코드).
+ */
+function isStaleGroupError(error: unknown): boolean {
+  return hasApiErrorCode(
+    error,
+    API_ERROR_CODE.FORBIDDEN,              // 0003 — 내가 후보가 아닌 그룹
+    API_ERROR_CODE.NOT_FOUND,              // 0004 — 없는 그룹
+    API_ERROR_CODE.GROUP_ALREADY_ACCEPTED, // 5005
+    API_ERROR_CODE.GROUP_ALREADY_DECLINED, // 5006 (자동 거절 포함)
+  );
+}
+
 function toProfileDetail(c: MatchCandidateDto, index: number) {
   const badge = getMatchBadgeInfo(
     c.scoreBreakdown?.matchedQuestions ?? 0,
@@ -71,12 +87,13 @@ function toProfileDetail(c: MatchCandidateDto, index: number) {
 interface GroupMatchingResultModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onDecline?: () => void;
-  onJoinSuccess?: () => void;
-  onJoinPending?: () => void;
-  joinPending?: boolean;
-  candidates: MatchCandidateDto[];
-  quizSetId: string;
+  /** 응답 대상 후보 그룹. 수락·거절은 퀴즈셋이 아니라 `groupMatchId`로 보낸다. */
+  group: GroupCandidateGroupDto;
+  /** 수락 성공. isFormed 면 이번 수락으로 성사됐거나 이미 성사된 그룹이다. */
+  onAccepted: (isFormed: boolean) => void;
+  onDeclined: () => void;
+  /** 서버와 어긋남(0003/0004/5005/5006) — 후보 목록 재조회를 요청한다. */
+  onStale: () => void;
   groupName?: string;
 }
 
@@ -85,44 +102,54 @@ interface GroupMatchingResultModalProps {
 export function GroupMatchingResultModal({
   isOpen,
   onClose,
-  onDecline,
-  onJoinSuccess,
-  onJoinPending,
-  joinPending = false,
-  candidates,
-  quizSetId,
+  group,
+  onAccepted,
+  onDeclined,
+  onStale,
   groupName = "같은 취미, 취향 그룹",
 }: GroupMatchingResultModalProps) {
   const { showToast, removeToast } = useToast();
-  const [joining, setJoining] = useState(false);
-  const [joinResult, setJoinResult] = useState<{ participantCount: number; isActive: boolean } | null>(
-    joinPending ? { participantCount: 0, isActive: false } : null
-  );
+  const [accepting, setAccepting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profileSelect, setProfileSelect] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<ReturnType<typeof toProfileDetail> | null>(null);
   const [rejectAlertOpen, setRejectAlertOpen] = useState(false);
   const [joinConfirmOpen, setJoinConfirmOpen] = useState(false);
 
-  const avgMatched = candidates.length > 0
-    ? Math.round(candidates.reduce((s, c) => s + (c.scoreBreakdown?.matchedQuestions ?? 0), 0) / candidates.length)
-    : 0;
-  const totalQ = candidates[0]?.scoreBreakdown?.totalQuestions ?? 12;
-  const topBadge = getMatchBadgeInfo(candidates[0]?.scoreBreakdown?.matchedQuestions ?? 0, totalQ);
+  const candidates = group.members;
+
+  /**
+   * 화면에 뜨는 점수는 두 가지다. 그룹 카드는 **나와 각 구성원의 일치 수 평균**
+   * (`averageMatchedQuestions`), 프로필 목록은 구성원 개인의 `matchedQuestions` 다.
+   * 평균은 서버가 조회 시점에 계산해 내려 주므로 여기서 다시 구하지 않는다.
+   */
+  const avgMatched = group.averageMatchedQuestions;
+  const totalQ = group.totalQuestions;
+  const topBadge = getMatchBadgeInfo(avgMatched, totalQ);
+
+  /** 수락은 했지만 아직 성사 전(수락자 3명 미만). 응답을 끝낸 상태라 버튼은 잠긴다. */
+  const awaitingFormation = group.myStatus === "ACCEPTED";
 
   const shown = candidates.slice(0, 3);
   const extra = candidates.length - 3;
 
-  const handleJoin = async () => {
-    if (joining) return;
-    setJoining(true);
+  /** 서버가 이미 다른 상태다 — 에러 대신 최신 목록으로 화면을 맞춘다. */
+  const handleStale = () => {
+    showToast("이미 응답한 그룹이에요. 최신 결과를 다시 불러올게요.", "default", { duration: 3000 });
+    onClose();
+    onStale();
+  };
+
+  const handleAccept = async () => {
+    if (accepting) return;
+    setAccepting(true);
     setError(null);
     try {
-      const result = await joinGroupMatch(quizSetId);
+      const result = await acceptGroupMatch(group.groupMatchId);
       trackEvent("group_match_join", { ok: true });
-      setJoinResult({ participantCount: result.participantCount, isActive: result.isActive });
+      onAccepted(result.isFormed);
 
-      if (result.isActive) {
+      if (result.isFormed) {
         const toastId = `group-join-active-${Date.now()}`;
         showToast("그룹에 참여했어요! 대화는 금요일에 시작 돼요", "default", {
           id: toastId,
@@ -131,21 +158,23 @@ export function GroupMatchingResultModal({
           duration: 3000,
         });
         onClose();
-        onJoinSuccess?.();
       } else {
         showToast(
           "그룹 참여를 신청했어요. 3명 이상이 참여하면 금요일에 대화가 시작돼요.",
           "default",
           { duration: 3000 }
         );
-        onJoinPending?.();
       }
     } catch (e) {
       // 실패도 센다. 여기가 크면 "참여가 안 된다"는 이탈이 흥미 상실로 오독된다.
       trackEvent("group_match_join", { ok: false });
+      if (isStaleGroupError(e)) {
+        handleStale();
+        return;
+      }
       setError(e instanceof Error ? e.message : "참여 중 오류가 발생했습니다.");
     } finally {
-      setJoining(false);
+      setAccepting(false);
     }
   };
 
@@ -193,7 +222,7 @@ export function GroupMatchingResultModal({
               </BadgeRow>
 
               {/* Figma 1310:35601 — 그룹 카드 (tappable) */}
-              <GroupCard onClick={!joinResult ? () => setProfileSelect(true) : undefined} $joined={!!joinResult}>
+              <GroupCard onClick={!awaitingFormation ? () => setProfileSelect(true) : undefined} $joined={awaitingFormation}>
                 <AvatarGrid>
                   {shown.map((c, i) => (
                     <AvatarSlot key={c.userId}>
@@ -219,7 +248,7 @@ export function GroupMatchingResultModal({
                     </Label2>
                   </GroupInfo>
 
-                  {joinResult && !joinResult.isActive && (
+                  {awaitingFormation && (
                     <JoinedRow>
                       <img
                         src="/icons/status/circle-check-fill.svg"
@@ -234,7 +263,7 @@ export function GroupMatchingResultModal({
                   )}
                 </GroupContent>
 
-                {!joinResult && (
+                {!awaitingFormation && (
                   <ChevronIcon
                     src="/icons/navigation/chevron-right.svg"
                     alt=""
@@ -257,16 +286,16 @@ export function GroupMatchingResultModal({
           <BottomActions>
             <ActionRow>
               <EqualActionButton
-                variant={joinResult ? "disabled" : "secondary"}
-                onClick={!joinResult ? () => setRejectAlertOpen(true) : undefined}
+                variant={awaitingFormation ? "disabled" : "secondary"}
+                onClick={!awaitingFormation ? () => setRejectAlertOpen(true) : undefined}
               >
                 거절하기
               </EqualActionButton>
               <EqualActionButton
-                variant={joinResult ? "disabled" : "primary"}
-                onClick={!joinResult && !joining ? () => setJoinConfirmOpen(true) : undefined}
+                variant={awaitingFormation ? "disabled" : "primary"}
+                onClick={!awaitingFormation && !accepting ? () => setJoinConfirmOpen(true) : undefined}
               >
-                {joining ? "참여 중..." : "참여하기"}
+                {accepting ? "참여 중..." : "참여하기"}
               </EqualActionButton>
             </ActionRow>
           </BottomActions>
@@ -343,9 +372,17 @@ export function GroupMatchingResultModal({
           onClick: async () => {
             setRejectAlertOpen(false);
             trackEvent("group_match_decline", {});
-            try { await declineGroupMatch(quizSetId); } catch { /* ignore */ }
+            try {
+              await declineGroupMatch(group.groupMatchId);
+            } catch (e: unknown) {
+              if (isStaleGroupError(e)) {
+                handleStale();
+                return;
+              }
+              // 그 밖의 실패는 화면을 막지 않는다 — 다음 후보로 넘긴다.
+            }
             onClose();
-            onDecline?.();
+            onDeclined();
           },
         }}
         cancelParams={{
@@ -363,7 +400,7 @@ export function GroupMatchingResultModal({
           text: "네, 참여할게요",
           onClick: () => {
             setJoinConfirmOpen(false);
-            handleJoin();
+            handleAccept();
           },
         }}
         cancelParams={{
