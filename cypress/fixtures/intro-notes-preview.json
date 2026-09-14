@@ -1,0 +1,20 @@
+{
+  "answers": [
+    {
+      "questionCode": "weekend-morning",
+      "question": "Q2. 주말 아침 10시, 나는 주로 뭐하고 있을까?",
+      "answer": "느긋하게 산책하고 커피를 마셔요."
+    },
+    {
+      "questionCode": "happiest-moment",
+      "question": "Q6. 나를 가장 행복하게 만드는 순간은?",
+      "answer": "바다를 볼 때 가장 행복해요."
+    },
+    {
+      "questionCode": "one-word",
+      "question": "Q10. 나를 한 단어로 표현한다면?",
+      "answer": "따뜻함"
+    }
+  ],
+  "completedCount": 3
+}

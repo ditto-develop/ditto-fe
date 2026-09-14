@@ -31,6 +31,42 @@ describe("3.2 소개노트", () => {
     });
   });
 
+  /*
+   * 성사 전 매칭 후보에게는 서버가 3문항만 내려준다(BE PR #173).
+   * 무작위 2문항 + one-word 를 (조회자, 대상자) 쌍마다 결정적으로 고르므로,
+   * FE 는 다시 고르거나 섞지 않고 **받은 순서 그대로** 그려야 한다.
+   */
+  describe("서버가 3문항만 내려준 경우 (성사 전 미리보기)", () => {
+    beforeEach(() => {
+      cy.fixture("intro-notes-preview.json").then((data) => {
+        cy.intercept("GET", "**/api/**/users/*/intro-notes", {
+          statusCode: 200,
+          body: { success: true, data },
+        }).as("getIntroNotePreview");
+      });
+      cy.visit(`${PROFILE}&state=before_request`);
+      cy.wait("@getIntroNotePreview");
+    });
+
+    it("받은 3문항을 순서 그대로 그리고 마지막 칸은 Q10이다", () => {
+      cy.get("[data-testid='intro-note-preview-item']").should("have.length", 3);
+      cy.get("[data-testid='intro-note-preview-item']").eq(0).should("contain", "Q2.");
+      cy.get("[data-testid='intro-note-preview-item']").eq(1).should("contain", "Q6.");
+      cy.get("[data-testid='intro-note-preview-item']").eq(2).should("contain", "Q10.");
+    });
+
+    it("새로고침해도 같은 문항이 같은 순서로 유지된다", () => {
+      cy.get("[data-testid='intro-note-preview-item']").eq(0).should("contain", "Q2.");
+
+      cy.reload();
+      cy.wait("@getIntroNotePreview");
+
+      cy.get("[data-testid='intro-note-preview-item']").should("have.length", 3);
+      cy.get("[data-testid='intro-note-preview-item']").eq(0).should("contain", "Q2.");
+      cy.get("[data-testid='intro-note-preview-item']").eq(2).should("contain", "Q10.");
+    });
+  });
+
   // GET /api/v1/users/{id}/ratings — /users/me/ratings와 스키마도 공개 기준도 같다.
   // 서버가 공개 여부 플래그를 주지 않으므로 totalCount >= publicThreshold 로만 판정한다.
   describe("받은 평가", () => {

@@ -147,14 +147,30 @@ function sortIntroNotesByQuestion(introNotes: IntroNotePreviewItem[]): IntroNote
     return [...introNotes].sort((a, b) => orderOf(a) - orderOf(b));
 }
 
+/** 성사 전 화면이 그리는 문항 수(Figma 3.2). 마지막 칸은 `one-word`(Q10) 고정이다. */
+const INTRO_NOTE_PREVIEW_COUNT = 3;
+
+/**
+ * 미리보기 3문항.
+ *
+ * 성사 전 매칭 후보에게는 **서버가 이미 3문항으로 줄여서** 내려준다 —
+ * 무작위 2문항 + `one-word`(고정 질문 순서라 마지막 칸)이고, (조회자, 대상자) 쌍마다
+ * 결정적이라 새로고침해도 같은 문항이 온다(BE PR #173 · ADR 0025).
+ * 그걸 FE가 다시 섞으면 그 결정성이 깨지므로 **받은 순서를 그대로 쓴다.**
+ *
+ * 아래 폴백은 전량(10문항)이 온 경우다 — 본인·매칭 성사 상대가 그렇고, 이때는
+ * `showAllNotes` 경로로 가는 것이 보통이라 실제로는 거의 닿지 않는다.
+ */
 function selectIntroNotePreview(introNotes: IntroNotePreviewItem[]): IntroNotePreviewItem[] {
+    if (introNotes.length <= INTRO_NOTE_PREVIEW_COUNT) return introNotes;
+
     const oneWordNote = introNotes.find((item) => item.questionCode === "one-word" || item.question.startsWith("Q10."));
     const candidates = introNotes.filter((item) => item !== oneWordNote);
     const shuffled = shuffleIntroNotes(candidates);
 
     return oneWordNote
-        ? [...shuffled.slice(0, 2), oneWordNote]
-        : shuffled.slice(0, 3);
+        ? [...shuffled.slice(0, INTRO_NOTE_PREVIEW_COUNT - 1), oneWordNote]
+        : shuffled.slice(0, INTRO_NOTE_PREVIEW_COUNT);
 }
 
 function shuffleIntroNotes(introNotes: IntroNotePreviewItem[]): IntroNotePreviewItem[] {
