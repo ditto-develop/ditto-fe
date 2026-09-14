@@ -1,5 +1,6 @@
 "use client";
 
+import type { PluginListenerHandle } from "@capacitor/core";
 import { MatchingDay } from "@/components/home/MatchingDay";
 import { MatchingCardSkeleton } from "@/components/home/_parts/MatchingCardSkeleton";
 import { matchAcceptedNotifKey } from "@/components/home/_parts/MatchingDay.helpers";
@@ -23,6 +24,7 @@ import { useHomeReady } from "@/context/HomeReadyContext";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useToast } from "@/context/ToastContext";
 import { describeError } from "@/shared/lib/api/apiError";
+import { isNativeApp } from "@/shared/lib/native/platform";
 
 const MainSectionContainer = styled.div`
   /**
@@ -36,6 +38,14 @@ const MainSectionContainer = styled.div`
   gap: 24px;
 `;
 
+
+/**
+ * "참여한 사람" 수를 다시 당기는 주기.
+ *
+ * 아래 채팅방 갱신(3초)보다 훨씬 느슨하다. 그쪽은 "상대가 수락하면 방이 바로 떠야
+ * 한다"는 요구지만 이건 카운터 하나라, 20초면 체감상 실시간이면서 서버 부담은 1/7 이다.
+ */
+const QUIZ_PARTICIPANT_POLL_INTERVAL_MS = 20_000;
 
 type Period = "QUIZ" | "MATCHING" | "CHATTING";
 
@@ -226,6 +236,78 @@ export function MainSection() {
     return () => {
       isMounted = false;
       window.clearInterval(intervalId);
+    };
+  }, [period]);
+
+  /**
+   * 퀴즈 기간 동안 "참여한 사람" 수를 따라 올린다. 서버가 이 값을 밀어 주는 채널이
+   * 없어서 폴링이다(BE 에 브로드캐스트 토픽이 생기면 STOMP 구독으로 갈아탈 자리).
+   *
+   * `participantCount` 만 갱신하고 `isQuizComplete` 는 건드리지 않는다. 폴링 도중
+   * 카드 상태가 open → completed 로 뒤집히면 `ThisWeekQuiz` 의 `useCardImpression` 이
+   * 노출 이벤트를 다시 쏘고, 퀴즈 카드 클릭률의 분모가 통째로 틀어진다.
+   */
+  useEffect(() => {
+    if (period !== "QUIZ") return;
+
+    let isMounted = true;
+    let isFetching = false;
+    let nativeListener: PluginListenerHandle | undefined;
+
+    const refreshParticipantCount = async () => {
+      if (isFetching) return;
+      isFetching = true;
+
+      try {
+        const progress = await getExternalQuizProgress();
+        if (isMounted) setParticipantCount(progress.participantCount ?? 0);
+      } catch {
+        // 폴링 실패는 무시한다 — 다음 tick 에서 다시 시도한다.
+      } finally {
+        isFetching = false;
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      if (document.hidden) return;
+      refreshParticipantCount();
+    }, QUIZ_PARTICIPANT_POLL_INTERVAL_MS);
+
+    /**
+     * 돌아온 즉시 한 번 당긴다. 백그라운드에서는 tick 을 건너뛰므로, 이게 없으면
+     * 복귀 직후 최대 20초 묵은 숫자를 그대로 보게 된다.
+     */
+    const onVisibilityChange = () => {
+      if (!document.hidden) void refreshParticipantCount();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    /**
+     * 앱 웹뷰에서는 `visibilitychange` 를 믿을 수 없다(특히 안드로이드 웹뷰).
+     * `useScreenTracking` 과 같은 이유로 Capacitor 앱 상태 이벤트를 함께 건다 —
+     * 정적 import 하지 않는 것도 같은 이유(웹 방문자가 플러그인 비용을 내지 않게).
+     */
+    if (isNativeApp()) {
+      void (async () => {
+        try {
+          const { App } = await import("@capacitor/app");
+          const handle = await App.addListener("appStateChange", ({ isActive }) => {
+            if (isActive) void refreshParticipantCount();
+          });
+          // 등록이 끝나기 전에 언마운트됐으면 즉시 되돌린다.
+          if (isMounted) nativeListener = handle;
+          else void handle.remove();
+        } catch (err: unknown) {
+          console.error("[MainSection] 앱 상태 리스너 등록 실패:", describeError(err));
+        }
+      })();
+    }
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      void nativeListener?.remove();
     };
   }, [period]);
 
