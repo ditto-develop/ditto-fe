@@ -7,7 +7,7 @@
  * 화면 상태는 전부 `GET /matches/group` 의 `groups[0]`에서 나온다.
  *
  * - 그룹 결과 모달(서버가 계산한 평균 일치, 그룹 카드, 멤버 정보)
- * - 프로필 선택 → 멤버 상세(후보 목록이 준 정보로 그린다)
+ * - 프로필 선택 → 멤버 상세(후보 목록 카드 + 소개노트 미리보기 3문항)
  * - 참여 → 확인 모달 → (성사) 매칭 완료 / (미성사) 인원 대기
  * - 거절 → 다음 후보가 있으면 이어서, 없으면 매칭 실패
  * - 다른 기기에서 먼저 응답(5005/5006) → 목록 재조회
@@ -62,23 +62,24 @@ describe("3.1 매칭 결과 - 그룹 매칭 (WF-07)", () => {
       cy.contains("댕이누나").should("be.visible");
 
       /*
-       * 성사 전에는 타인 프로필·소개노트가 403(0003)이다 — 그룹은 후보 테이블을 쓰지 않아
-       * 1:1 후보에게 열린 소개노트 미리보기도 적용되지 않는다(BE 위키 §주의할 점).
-       * 멤버 상세는 후보 목록이 준 정보만으로 떠야 하고, 소개노트 자리는 안내 문구만 남는다.
+       * 성사 전에도 **소개노트는 열린다.** 그룹 후보도 1:1 후보와 같은 규칙으로 미리보기
+       * 3문항(무작위 2 + one-word)이 온다 — BE 위키 Frontend-Candidate-Profile-Guide,
+       * MatchAccessChecker.isMatchCandidate = isOneToOneCandidate || isGroupCandidate.
+       * 서버가 이미 잘라서 주므로 FE 는 다시 자르지 않고 받은 순서대로 그린다.
        */
-      cy.intercept("GET", "**/api/**/users/*/intro-notes", {
-        statusCode: 403,
-        body: {
-          success: false,
-          data: null,
-          error: { code: "0003", message: "권한이 없습니다.", statusCode: 403 },
-        },
-      }).as("getMemberIntroNotesForbidden");
+      cy.fixture("intro-notes-preview.json").then((data) => {
+        cy.intercept("GET", "**/api/**/users/*/intro-notes", {
+          statusCode: 200,
+          body: { success: true, data },
+        }).as("getMemberIntroNotePreview");
+      });
 
       cy.contains("댕이누나").click();
-      cy.contains("대화가 시작되면 더 많은 질문과 답변을 볼 수 있어요", { timeout: 6000 })
-        .should("be.visible");
-      cy.get("[data-testid='intro-note-preview-item']").should("have.length", 0);
+      cy.wait("@getMemberIntroNotePreview");
+      cy.get("[data-testid='intro-note-preview-item']").should("have.length", 3);
+      cy.get("[data-testid='intro-note-preview-item']").last().should("contain", "Q10.");
+      // 안내 문구는 성사 전에만 붙는다.
+      cy.contains("대화가 시작되면 더 많은 질문과 답변을 볼 수 있어요").should("be.visible");
     });
   });
 
