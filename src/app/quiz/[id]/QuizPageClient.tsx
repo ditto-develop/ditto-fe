@@ -6,7 +6,7 @@ import { Label1Normal, Label2, Title2, Title3 } from "@/shared/ui";
 import { Nav } from "@/shared/ui";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import { useRouter, useParams } from "next/navigation";
-import { QuizModal, QUIZ_SELECT_HOME_PATH } from "@/components/quiz/QuizModal";
+import { QuizModal } from "@/components/quiz/QuizModal";
 import type { QuizWithAnswerDto } from "@/shared/lib/api/generated";
 import {
   getExternalQuizSetWithProgress,
@@ -36,6 +36,7 @@ export function QuizPageClient() {
   const [isModal, setIsModal] = useState(false);
   const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
   const [isFadingOut, setIsFadingOut] = useState(false);
+  const [restarting, setRestarting] = useState(false);
 
   useEffect(() => {
     async function fetchQuizzes() {
@@ -136,18 +137,30 @@ export function QuizPageClient() {
   useBackClose(!loading && !isfinsish && !isModal && currentStep > 0, goPrevQuestion);
 
   /**
-   * "새로 풀기": 이번 주 답변을 지우고 홈의 퀴즈 종류 선택 시트로 간다.
-   * 지우지 않으면 어느 종류를 골라도 남은 답변 때문에 이 안내가 다시 뜬다.
+   * "새로 풀기": 이번 주 답변을 지우고 **이 퀴즈의 첫 문항부터** 다시 푼다.
+   * 화면을 벗어나지 않는다 — 예전에는 홈의 종류 선택 시트로 보냈는데(?quiz=select),
+   * 모달 문구("처음부터 다시 선택하려면")가 약속하는 것은 같은 퀴즈의 1번 문항이다.
+   * 서버 답변을 지우지 않으면 다시 들어올 때마다 이 안내가 뜬다.
    */
   const handleRestart = async () => {
+    // 초기화가 끝나기 전에 다시 누르면 reset 이 두 번 나간다.
+    if (restarting) return;
+    setRestarting(true);
     trackEvent("quiz_restart", {});
     try {
       await resetExternalQuizProgress();
     } catch {
       showToast("퀴즈를 초기화하지 못했어요. 잠시 후 다시 시도해 주세요.", "error");
       return;
+    } finally {
+      setRestarting(false);
     }
-    router.push(QUIZ_SELECT_HOME_PATH);
+    // 서버에서 지운 답을 화면에도 반영한다 — 남겨 두면 시작 문항 계산이 어긋난다.
+    setQuizzes((prev) => prev.map((quiz) => ({ ...quiz, userAnswer: null })));
+    setCurrentStep(0);
+    setSelectedChoiceId(null);
+    setIsFadingOut(false);
+    setIsModal(false);
   };
 
   if (loading) return <div style={{ padding: 32 }}>퀴즈를 불러오는 중...</div>;

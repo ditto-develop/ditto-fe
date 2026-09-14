@@ -16,6 +16,7 @@ import {
 import { getQuizSanctionMessage } from "@/features/sanction";
 import { updateNotificationSettings } from "@/features/settings/api/settingsApi";
 import { useToast } from "@/context/ToastContext";
+import { trackEvent } from "@/shared/lib/analytics";
 import { useBackClose } from "@/shared/hooks/useBackClose";
 import { goBackOr } from "@/shared/lib/navigation";
 import { registerDeviceToken } from "@/shared/lib/native/pushNotifications";
@@ -63,6 +64,7 @@ function QuizContent() {
   const [isModal, setIsModal] = useState(false);
   const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
   const [isFadingOut, setIsFadingOut] = useState(false);
+  const [restarting, setRestarting] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -166,17 +168,28 @@ function QuizContent() {
   useBackClose(!loading && !isFinish && !isModal && currentStep > 0, goPrevQuestion);
 
   /**
-   * "새로 풀기": 이번 주 답변을 지우고 홈의 퀴즈 종류 선택 시트로 간다.
-   * 지우지 않으면 어느 종류를 골라도 남은 답변 때문에 이 안내가 다시 뜬다.
+   * "새로 풀기": 이번 주 답변을 지우고 **이 퀴즈의 첫 문항부터** 다시 푼다.
+   * 화면을 벗어나지 않는다 — 예전에는 홈의 종류 선택 시트로 보냈는데(?quiz=select),
+   * 모달 문구("처음부터 다시 선택하려면")가 약속하는 것은 같은 퀴즈의 1번 문항이다.
+   * 서버 답변을 지우지 않으면 다시 들어올 때마다 이 안내가 뜬다.
    */
   const handleRestart = async () => {
+    // 초기화가 끝나기 전에 다시 누르면 reset 이 두 번 나간다.
+    if (restarting) return;
+    setRestarting(true);
+    trackEvent("quiz_restart", {});
     try {
       await resetExternalQuizProgress();
     } catch {
       showToast("퀴즈를 초기화하지 못했어요. 잠시 후 다시 시도해 주세요.", "error");
       return;
+    } finally {
+      setRestarting(false);
     }
-    router.push(QUIZ_SELECT_HOME_PATH);
+    setCurrentStep(0);
+    setSelectedChoiceId(null);
+    setIsFadingOut(false);
+    setIsModal(false);
   };
 
   // --- Render logic ---

@@ -3,6 +3,7 @@
  *
  * - 뒤로가기는 이전 문항으로 돌아간다(이어서/새로 풀기 안내가 아니라).
  * - 이어서/새로 풀기 안내는 답한 문항이 남아 있는 채로 다시 들어왔을 때만 뜬다(Figma 1112:8841).
+ * - "새로 풀기"는 답변을 지우고 같은 퀴즈의 1번 문항부터 다시 푼다 — 화면을 벗어나지 않는다.
  * - 홈에서 고른 종류의 세트가 이번 주에 없으면 다른 종류로 대체하지 않는다.
  * - 참여 완료 화면의 "알림받기"는 매칭 알림을 켜고 홈으로 돌아간다.
  */
@@ -62,7 +63,7 @@ describe("quiz navigation", () => {
     cy.contains("2/2 질문 완료").should("be.visible");
   });
 
-  it("clears saved answers on 새로 풀기 and returns to the quiz type sheet", () => {
+  it("clears saved answers on 새로 풀기 and restarts at the first question", () => {
     mockPartialProgress();
     cy.intercept("POST", "**/api/**/quiz-progress/reset", { success: true, data: null }).as("resetProgress");
 
@@ -72,8 +73,13 @@ describe("quiz navigation", () => {
     cy.contains(/^새로 풀기$/).click();
 
     cy.wait("@resetProgress");
-    cy.location("pathname", { timeout: 6000 }).should("eq", "/home/");
-    cy.contains("퀴즈의 종류를 선택하세요", { timeout: 6000 }).should("be.visible");
+    // 홈으로 나가지 않는다 — 같은 퀴즈의 1번 문항으로 되돌아간다.
+    cy.contains("퀴즈를 이어서 풀까요?").should("not.exist");
+    cy.location("pathname").should("match", /^\/quiz\/current\/?$/);
+    cy.contains(FIRST_QUESTION, { timeout: 6000 }).should("be.visible");
+    cy.contains("1/2 질문 완료").should("be.visible");
+    // 지웠으므로 첫 문항을 다시 고를 수 있다.
+    cy.contains("button", "가볍게 취미 이야기").should("be.visible");
   });
 
   it("does not show another type's quiz when the requested type has no set this week", () => {
