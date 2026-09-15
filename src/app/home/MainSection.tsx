@@ -14,7 +14,7 @@ import type { SystemStateDto } from "@/shared/lib/api/generated";
 import { getChatRooms } from "@/features/chat";
 import type { ChatRoom } from "@/features/chat";
 import type { GroupCandidateGroupDto, MatchCandidateDto } from "@/features/matching/api/matchingApi";
-import { getGroupCandidates, getMatchCandidates, getMatchingStatus } from "@/features/matching/api/matchingApi";
+import { getGroupCandidates, getMatchCandidates, getMatchingStatus, isCurrentWeek } from "@/features/matching/api/matchingApi";
 import {
   getExternalMyIntroNotes,
   getExternalQuizProgress,
@@ -141,20 +141,28 @@ export function MainSection() {
         /**
          * MATCHING or CHATTING: 이번 주가 1:1인지 그룹인지 가른다.
          *
-         * 두 엔드포인트는 각각 "내가 최근 완주한 1:1 / 그룹 퀴즈셋"을 스스로 찾아 온다.
-         * 지난 주 그룹 후보가 그대로 남아 있을 수 있으므로 **퀴즈셋 ID가 더 큰 쪽이 이번 주**다.
+         * 두 엔드포인트는 **이번 운영 주에** 내가 완주한 퀴즈셋만 본다(BE PR #176 / ADR 0026).
+         * 이번 주에 안 푼 타입은 404(`0004`)라 응답이 오는 쪽이 곧 이번 주 트랙이다 —
+         * 예전의 "퀴즈셋 ID가 큰 쪽" 추측은 더 이상 필요 없다. 캐시된 지난 주 응답만
+         * 걸러 내려고 `weekStartedOn` 을 system/state 와 한 줄 대조한다.
+         *
          * 그룹이 이번 주면 후보가 0개여도 그룹 경로로 판정해야 한다 — 그래야 지난 주
          * 1:1 후보가 되살아나지 않는다.
          */
-        const groupIsThisWeek =
-          groupResult !== null &&
-          (candidateResult === null ||
-            Number(groupResult.quizSetId) >= Number(candidateResult.quizSetId));
+        const currentWeekStartedOn = systemState.weekStartedOn;
+        const groupThisWeek =
+          groupResult !== null && isCurrentWeek(groupResult.weekStartedOn, currentWeekStartedOn)
+            ? groupResult
+            : null;
+        const candidateThisWeek =
+          candidateResult !== null && isCurrentWeek(candidateResult.weekStartedOn, currentWeekStartedOn)
+            ? candidateResult
+            : null;
 
-        if (groupIsThisWeek) {
+        if (groupThisWeek) {
           setIsGroupWeek(true);
-          setQuizSetId(groupResult.quizSetId);
-          setGroups(groupResult.groups);
+          setQuizSetId(groupThisWeek.quizSetId);
+          setGroups(groupThisWeek.groups);
           if (fetchedPeriod === "CHATTING") {
             const latestChatRoom = await getLatestChatRoom().catch(() => undefined);
             if (latestChatRoom) setChatRoom(latestChatRoom);
@@ -162,14 +170,14 @@ export function MainSection() {
           return;
         }
 
-        // 후보 조회가 실패했으면(퀴즈 미응시 등) 더 볼 것 없이 failmatch.
-        if (!candidateResult) {
+        // 이번 주 후보가 없으면(퀴즈 미응시 등) 더 볼 것 없이 failmatch.
+        if (!candidateThisWeek) {
           setMatchType("failmatch");
           return;
         }
 
         try {
-          const { quizSetId: fetchedQuizSetId, candidates: fetchedCandidates } = candidateResult;
+          const { quizSetId: fetchedQuizSetId, candidates: fetchedCandidates } = candidateThisWeek;
           setQuizSetId(fetchedQuizSetId);
           setCandidates(fetchedCandidates);
 
@@ -360,7 +368,7 @@ export function MainSection() {
   const handleGroupDeclined = () => setGroups((prev) => prev.slice(1));
 
   /**
-   * 다른 탭·기기에서 먼저 응답해 서버와 어긋났을 때(0003/5005/5006).
+   * 다른 탭·기기에서 먼저 응답했거나 주가 바뀌어 서버와 어긋났을 때(0003/5005/5006/5008).
    * 에러를 띄우는 대신 목록을 다시 받아 화면을 맞춘다.
    */
   const refreshGroups = async () => {

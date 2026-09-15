@@ -1,5 +1,9 @@
 {
   "quizSetId": 102,
+  "weekStartedOn": "2026-06-01",
+  "year": 2026,
+  "month": 6,
+  "week": 1,
   "groups": [
     {
       "groupMatchId": 5,

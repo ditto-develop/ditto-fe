@@ -37,6 +37,17 @@ function toProfileErrorText(error: unknown): string {
 }
 
 /**
+ * 지난 주 후보에 응답하려 했을 때(`5008`). 탭을 열어 둔 채 운영 주가 바뀌면 화면에는
+ * 지난 주 카드가 그대로 남아 있는데, 서버는 이번 주 퀴즈셋만 받는다(BE PR #176).
+ * "잠시 후 다시 시도"는 틀린 안내다 — 다시 시도해도 영영 안 되므로 홈으로 돌려보낸다.
+ */
+const NOT_CURRENT_WEEK_TEXT = "지난주 매칭이라 응답할 수 없어요. 이번 주 결과를 확인해 주세요.";
+
+function isNotCurrentWeek(error: unknown): boolean {
+    return hasApiErrorCode(error, API_ERROR_CODE.MATCH_NOT_CURRENT_WEEK);
+}
+
+/**
  * IntroNoteContainer — Figma: 3.2 소개노트
  * 실제 API 연결 + 상태별 버튼 (before_request / after_acceptance / completed / chat_started)
  * chat_started: 매칭 성사 후 프로필 조회 전용 (CTA 버튼 없음)
@@ -87,9 +98,14 @@ export function IntroNoteContainer({
             trackEvent("match_request_send", { ok: true });
             setState("completed");
             showToast("대화 신청을 완료했어요.", "success");
-        } catch {
+        } catch (err: unknown) {
             // 실패도 센다. 여기가 크면 "신청이 안 된다"는 이탈이 흥미 상실로 오독된다.
             trackEvent("match_request_send", { ok: false });
+            if (isNotCurrentWeek(err)) {
+                showToast(NOT_CURRENT_WEEK_TEXT, "error");
+                router.replace("/home");
+                return;
+            }
             showToast("대화 신청에 실패했어요. 잠시 후 다시 시도해주세요.", "error");
         } finally {
             setActing(false);
@@ -104,8 +120,13 @@ export function IntroNoteContainer({
             await acceptMatchRequest(matchRequestId);
             trackEvent("match_request_accept", { ok: true });
             router.push("/home?accepted=true");
-        } catch {
+        } catch (err: unknown) {
             trackEvent("match_request_accept", { ok: false });
+            if (isNotCurrentWeek(err)) {
+                showToast(NOT_CURRENT_WEEK_TEXT, "error");
+                router.replace("/home");
+                return;
+            }
             showToast("대화 수락에 실패했어요. 잠시 후 다시 시도해주세요.", "error");
         } finally {
             setActing(false);
@@ -120,8 +141,13 @@ export function IntroNoteContainer({
             await rejectMatchRequest(matchRequestId);
             trackEvent("match_request_reject", { ok: true });
             router.push("/home");
-        } catch {
+        } catch (err: unknown) {
             trackEvent("match_request_reject", { ok: false });
+            if (isNotCurrentWeek(err)) {
+                showToast(NOT_CURRENT_WEEK_TEXT, "error");
+                router.replace("/home");
+                return;
+            }
             showToast("대화 거절에 실패했어요. 잠시 후 다시 시도해주세요.", "error");
         } finally {
             setActing(false);

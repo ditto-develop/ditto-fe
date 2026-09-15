@@ -54,6 +54,12 @@ export interface MatchRequestDto {
  */
 export interface GetMatchCandidatesResponse {
     quizSetId: string;
+    /**
+     * 이 후보들이 속한 운영 주의 월요일(`yyyy-MM-dd`). `GET /api/v1/system/state` 의 같은 이름
+     * 필드와 문자열 비교하면 "이번 주 것인가"가 끝난다 — 예전처럼 quizSetId 크기를 견줄 필요가 없다.
+     * 옛 서버는 내려주지 않으므로 null 일 수 있고, 그때는 비교를 건너뛴다.
+     */
+    weekStartedOn: string | null;
     candidates: MatchCandidateDto[];
 }
 
@@ -73,6 +79,22 @@ export interface GetMatchingStatusResponse {
 }
 
 // --- API functions ---
+
+/**
+ * 후보 응답이 이번 운영 주의 것인지. 서버는 이번 주 퀴즈셋만 내려주지만(BE PR #176),
+ * 캐시·지연된 응답이 섞일 수 있어 홈에서 한 번 더 대조한다.
+ *
+ * 어느 한쪽이라도 주차를 모르면(옛 서버 응답, system/state 실패) **true 로 본다** —
+ * 모른다고 카드를 감추면 정상 사용자의 이번 주 매칭이 통째로 사라진다. 그 경우의 안전장치는
+ * 서버의 주차 검사(`5008`)다.
+ */
+export function isCurrentWeek(
+    candidateWeekStartedOn: string | null | undefined,
+    currentWeekStartedOn: string | null | undefined,
+): boolean {
+    if (!candidateWeekStartedOn || !currentWeekStartedOn) return true;
+    return candidateWeekStartedOn === currentWeekStartedOn;
+}
 
 function createEmptyMatchingStatus(): GetMatchingStatusResponse {
     return {
@@ -128,6 +150,8 @@ export interface GroupCandidateGroupDto {
 
 export interface GetGroupCandidatesResponse {
     quizSetId: string;
+    /** @see GetMatchCandidatesResponse.weekStartedOn */
+    weekStartedOn: string | null;
     /** 그룹 점수 내림차순, 최대 3개. 빈 배열이면 매칭 실패 화면이다. */
     groups: GroupCandidateGroupDto[];
 }

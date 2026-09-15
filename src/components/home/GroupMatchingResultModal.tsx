@@ -59,6 +59,7 @@ function isStaleGroupError(error: unknown): boolean {
     API_ERROR_CODE.NOT_FOUND,              // 0004 — 없는 그룹
     API_ERROR_CODE.GROUP_ALREADY_ACCEPTED, // 5005
     API_ERROR_CODE.GROUP_ALREADY_DECLINED, // 5006 (자동 거절 포함)
+    API_ERROR_CODE.MATCH_NOT_CURRENT_WEEK, // 5008 — 지난 주 후보(탭을 열어 둔 채 주가 바뀐 경우)
   );
 }
 
@@ -92,7 +93,7 @@ interface GroupMatchingResultModalProps {
   /** 수락 성공. isFormed 면 이번 수락으로 성사됐거나 이미 성사된 그룹이다. */
   onAccepted: (isFormed: boolean) => void;
   onDeclined: () => void;
-  /** 서버와 어긋남(0003/0004/5005/5006) — 후보 목록 재조회를 요청한다. */
+  /** 서버와 어긋남(0003/0004/5005/5006/5008) — 후보 목록 재조회를 요청한다. */
   onStale: () => void;
   groupName?: string;
 }

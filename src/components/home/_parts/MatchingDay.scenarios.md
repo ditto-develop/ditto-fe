@@ -21,7 +21,7 @@
 - `groupModalOpen=false -> true`: opened by pressing the group matching CTA during matching period.
 - Decline in the group result modal calls `onGroupDeclined`; the parent drops `groups[0]` so the next candidate group shows without another request, and the fail-match empty state appears once the list is empty.
 - Accept calls `onGroupAccepted(isFormed)`; the parent marks the group `ACCEPTED` and drops the rest (the server auto-declines the other candidates for the week).
-- `0003`/`0004`/`5005`/`5006` on accept or decline means another tab or device answered first: the modal closes and `onGroupStale` refetches the candidate list instead of surfacing an error.
+- `0003`/`0004`/`5005`/`5006`/`5008` on accept or decline means another tab or device answered first, or the operation week rolled over while the tab stayed open: the modal closes and `onGroupStale` refetches the candidate list instead of surfacing an error.
 
 ## Outputs
 

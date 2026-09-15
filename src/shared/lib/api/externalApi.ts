@@ -46,16 +46,30 @@ type ExternalMatchCandidate = {
     scoreBreakdown: ScoreBreakdownDto;
 };
 
+/**
+ * 후보 응답이 함께 싣는 운영 주(BE PR #176 / ADR 0026).
+ *
+ * 정본 식별자는 `weekStartedOn`(그 주 월요일, `yyyy-MM-dd`)이고 year/month/week 는 파생 표시값이다.
+ * `GET /api/v1/system/state` 와 같은 모양이라 문자열 한 줄 비교로 "이번 주 것인가"가 끝난다.
+ * 서버가 이번 주 퀴즈셋만 내려주지만, 캐시된 응답이 섞일 수 있어 호출부에서 한 번 더 대조한다.
+ */
+type ExternalOperationWeek = {
+    weekStartedOn?: string | null;
+    year?: number;
+    month?: number;
+    week?: number;
+};
+
 // GET /api/v1/matches/1on1 응답 (MatchCandidateResponse)
 // matchingType 은 항상 ONE_TO_ONE 이라 읽지 않는다 — matchingApi.GetMatchCandidatesResponse 주석 참고.
-type ExternalMatchCandidateList = {
+type ExternalMatchCandidateList = ExternalOperationWeek & {
     quizSetId: ExternalId;
     algorithmVersion?: string;
     candidates?: ExternalMatchCandidate[];
 };
 
 // GET /api/v1/matches/group 응답 (GroupCandidateResponse)
-type ExternalGroupCandidateList = {
+type ExternalGroupCandidateList = ExternalOperationWeek & {
     quizSetId: ExternalId;
     groups?: ExternalCandidateGroup[];
 };
@@ -204,8 +218,15 @@ export async function getExternalQuizSetWithProgress(id: string): Promise<GetQui
     };
 }
 
-export function getExternalSystemState(): Promise<SystemStateDto> {
-    return externalApiFetch<SystemStateDto>("/api/v1/system/state");
+/**
+ * 시스템 상태. 생성된 `SystemStateDto` 는 `weekStartedOn` 이 없는 옛 스펙이라 여기서 넓힌다
+ * (BE `SystemStateResponse` 는 weekStartedOn 을 정본 주간 식별자로 내려준다).
+ * 다음 `npm run generate-client` 때 DTO 가 따라오면 이 교집합은 지워도 된다.
+ */
+export type ExternalSystemState = SystemStateDto & { weekStartedOn?: string | null };
+
+export function getExternalSystemState(): Promise<ExternalSystemState> {
+    return externalApiFetch<ExternalSystemState>("/api/v1/system/state");
 }
 
 // 회원가입 payload: name/nickname/gender/age + nullable email/birthDate/phoneNumber
@@ -412,6 +433,7 @@ export async function getExternalMatchCandidates(): Promise<GetMatchCandidatesRe
 
     return {
         quizSetId,
+        weekStartedOn: data.weekStartedOn ?? null,
         candidates: (data.candidates ?? []).map(toMatchCandidate),
     };
 }
@@ -460,16 +482,17 @@ function toCandidateGroup(group: ExternalCandidateGroup): GroupCandidateGroupDto
 }
 
 /**
- * 후보 그룹 목록. 대상 퀴즈셋은 **서버가 정한다**(내가 최근 완주한 그룹 퀴즈셋) —
- * 요청에 quizSetId 를 싣지 않고 응답의 `quizSetId` 로 확인한다.
+ * 후보 그룹 목록. 대상 퀴즈셋은 **서버가 정한다**(내가 **이번 운영 주에** 완주한 그룹 퀴즈셋) —
+ * 요청에 quizSetId 를 싣지 않고 응답의 `quizSetId`·`weekStartedOn` 으로 확인한다.
  *
- * 참여한 그룹 퀴즈셋이 아예 없으면 404(`0004`)다. 후보가 0명인 것과 구분되지 않으므로
- * 호출부는 둘 다 "매칭 실패"로 다룬다.
+ * 이번 주에 그룹 퀴즈를 완주하지 않았으면 404(`0004`)다(BE PR #176). 후보가 0명인 것과
+ * 구분되지 않으므로 호출부는 둘 다 "매칭 실패"로 다룬다.
  */
 export async function getExternalGroupCandidates(): Promise<GetGroupCandidatesResponse> {
     const data = await externalApiFetch<ExternalGroupCandidateList>("/api/v1/matches/group");
     return {
         quizSetId: toId(data.quizSetId),
+        weekStartedOn: data.weekStartedOn ?? null,
         groups: (data.groups ?? []).map(toCandidateGroup),
     };
 }
