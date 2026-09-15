@@ -16,7 +16,11 @@ import { useToast } from "@/context/ToastContext";
 import { INTRO_NOTE_FIELDS, MIN_INTRO_NOTE_ANSWERS } from "@/features/profile/model/introNotes";
 import type { IntroNoteCode } from "@/features/profile/model/introNotes";
 import { useKeyboardInset } from "@/shared/hooks/useKeyboardInset";
-import { DEFAULT_REVEAL_MARGIN, revealAboveKeyboard } from "@/shared/lib/keyboardViewport";
+import {
+  DEFAULT_REVEAL_MARGIN,
+  expectedVisibleViewport,
+  revealAboveKeyboard,
+} from "@/shared/lib/keyboardViewport";
 import { Caption1, Label1Normal, TextAreaWithActions } from "@/shared/ui";
 import type { TextAreaWithActionsRef } from "@/shared/ui";
 import type { ControlButtonVariant, FormData, OnChange } from "@/types/type";
@@ -190,9 +194,15 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
      * 일도 하지 않는다 — 입력창은 레이아웃상 이미 보이는 자리에 있고 키보드가 그 위를
      * 덮고 있을 뿐이다. Q10처럼 하단에 있는 질문이 키보드에 가린 채로 남는 이유다.
      *
-     * 키보드는 애니메이션으로 올라오고 CTA(hideActions)도 같이 사라져 레이아웃이 두세 번
-     * 움직인다. 뷰포트 변화를 듣고, 한 박자씩 늦게 몇 번 더 보정한다 — 목표 위치를 매번
-     * 다시 계산하므로 여러 번 불려도 같은 자리로 수렴한다.
+     * **키보드를 기다리지 않는다.** 예전에는 키보드가 다 올라와 뷰포트가 줄어든 다음에야
+     * 목표를 알 수 있어, 키보드가 먼저 올라오고 화면이 뒤따라 움직이는 두 박자가 됐다.
+     * 이제 누른 순간 지난번에 잰 키보드 높이로 목표를 정하고(`expectedVisibleViewport`),
+     * 키보드와 비슷한 시간·곡선으로 같이 움직인다. 잰 적이 없는 첫 한 번만 예전처럼
+     * 뒤따라간다.
+     *
+     * 그래도 보정은 남겨 둔다 — CTA(hideActions)가 사라지고 키보드 높이가 예상과 다를 수
+     * 있어 레이아웃이 두세 번 더 움직인다. 목표 위치를 매번 다시 계산하고, 가던 곳과 같으면
+     * 애니메이션을 다시 시작하지 않으므로 여러 번 불려도 한 번의 움직임으로 수렴한다.
      */
     useEffect(() => {
       if (activeIndex < 0) return;
@@ -201,11 +211,16 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
 
       // 위에 붙여 둔 진행 카드가 있으면 그 높이만큼 더 내려서 세운다. 안 그러면 카드 뒤로 숨는다.
       const reveal = () =>
-        revealAboveKeyboard(target, {
-          top: (progressRef.current?.offsetHeight ?? 0) + DEFAULT_REVEAL_MARGIN,
-          bottom: DEFAULT_REVEAL_MARGIN,
-        });
-      const frame = window.requestAnimationFrame(reveal);
+        revealAboveKeyboard(
+          target,
+          {
+            top: (progressRef.current?.offsetHeight ?? 0) + DEFAULT_REVEAL_MARGIN,
+            bottom: DEFAULT_REVEAL_MARGIN,
+          },
+          { viewport: expectedVisibleViewport(keyboardInset) },
+        );
+
+      reveal();
       const timers = [200, 450].map((delay) => window.setTimeout(reveal, delay));
 
       const viewport = window.visualViewport;
@@ -213,7 +228,6 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
       window.addEventListener("resize", reveal);
 
       return () => {
-        window.cancelAnimationFrame(frame);
         timers.forEach((timer) => window.clearTimeout(timer));
         viewport?.removeEventListener("resize", reveal);
         window.removeEventListener("resize", reveal);

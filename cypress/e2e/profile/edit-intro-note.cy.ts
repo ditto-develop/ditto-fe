@@ -132,6 +132,47 @@ describe("edit intro note", () => {
   });
 
   /**
+   * 화면은 키보드를 기다리지 않는다.
+   *
+   * 예전에는 키보드가 다 올라와 visualViewport 가 줄어든 다음에야 목표를 알 수 있어,
+   * 키보드가 먼저 올라오고 화면이 뒤따라 움직이는 두 박자가 됐다(QA 2026-09-10).
+   * 지난번에 잰 키보드 높이가 있으면 누른 순간 바로 올라와야 한다 — 그래서 이 테스트는
+   * visualViewport 를 **전혀 건드리지 않고** 질문이 올라오는지만 본다.
+   */
+  it("지난번 키보드 높이를 알면 누르자마자 질문이 올라온다", () => {
+    const KEYBOARD_HEIGHT = 336;
+
+    cy.viewport("iphone-x");
+    cy.visit("/profile/intro-note");
+    cy.wait("@getMyIntroNotesV1");
+
+    cy.window().then((win) => {
+      win.localStorage.setItem(
+        "ditto.keyboard-inset",
+        JSON.stringify({
+          width: win.innerWidth,
+          height: win.innerHeight,
+          inset: KEYBOARD_HEIGHT,
+        }),
+      );
+    });
+
+    cy.contains("Q10. 나를 한 줄로 표현한다면?").parent().find("textarea, p").last().click();
+
+    cy.window().then((win) => {
+      const keyboardTop = win.innerHeight - KEYBOARD_HEIGHT;
+      cy.contains("Q10. 나를 한 줄로 표현한다면?")
+        .parent()
+        .should(($question) => {
+          const { bottom } = $question[0].getBoundingClientRect();
+          expect(bottom, "키보드 이벤트 없이도 질문이 키보드 자리 위로 올라온다").to.be.at.most(
+            keyboardTop,
+          );
+        });
+    });
+  });
+
+  /**
    * 키보드는 화면 위에 겹쳐 올라올 뿐 레이아웃 뷰포트를 줄이지 않아, 하단 질문이 가린
    * 채로 남는 문제가 있었다. 실제 키보드를 띄울 수는 없으니 `visualViewport` 를
    * 키보드가 뜬 상태로 흉내 내고, 편집 중인 질문이 그 위로 올라오는지 본다.

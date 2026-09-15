@@ -336,7 +336,16 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
      */
     if (!isBootSplashPath(path)) return false;
     if (!isHydrated) return true;                   // SSR / hydration 전
-    if (isVerifyingSession) return true;            // refresh 검증 중
+    /**
+     * refresh 검증 중 — **콜드 스타트에서만** 스플래시가 받는다.
+     *
+     * `sessionVerified` 는 문서 단위 ref 라, 홈이 아닌 화면을 직접 열어 들어온 문서
+     * (채팅방·소개노트 같은 하드 내비게이션, 딥링크, 새로고침)는 검증을 한 적이 없다.
+     * 그 상태에서 하단 탭 "홈"을 누르면 여기서 검증이 시작되면서 스플래시가 통째로
+     * 화면을 덮었다 — 앱 안에서 탭을 옮겼을 뿐인데 부팅 화면이 뜨는 셈이라
+     * 깜빡임으로 보인다(QA 2026-09-10). 최초 로드가 끝난 뒤에는 홈 스켈레톤이 받는다.
+     */
+    if (isVerifyingSession && !initialSplashDone) return true;
     /**
      * 로그인 상태로 루트("/")에 들어온 콜드 스타트: **홈이 뜰 때까지** 스플래시를 유지한다.
      *

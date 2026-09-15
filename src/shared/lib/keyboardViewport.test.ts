@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { computeScrollDelta } from "@/shared/lib/keyboardViewport";
+import { computeScrollDelta, expectedVisibleViewport } from "@/shared/lib/keyboardViewport";
 
 // 키보드가 하단 300px 을 덮은, 높이 800px 화면.
 const VIEWPORT = { top: 0, height: 500 };
@@ -34,5 +34,31 @@ describe("computeScrollDelta", () => {
     expect(
       computeScrollDelta({ top: 500, bottom: 620 }, { top: 100, height: 500 }, MARGIN),
     ).toBe(36);
+  });
+});
+
+/**
+ * 누른 순간에는 키보드가 아직 없어 실측 가시 영역이 화면 전체다.
+ * 그대로 목표를 계산하면 "가릴 것이 없다"가 되어 화면이 움직이지 않고, 키보드가 다
+ * 올라온 뒤에야 뒤따라 움직인다 — 두 박자로 끊겨 보이던 원인이다.
+ */
+describe("expectedVisibleViewport", () => {
+  const FULL = { top: 0, height: 800 };
+
+  it("아직 안 올라온 키보드가 가릴 높이를 미리 뺀다", () => {
+    expect(expectedVisibleViewport(300, FULL, 0)).toEqual({ top: 0, height: 500 });
+  });
+
+  it("이미 올라와 있으면 실측이 답이다(두 번 빼지 않는다)", () => {
+    const measured = { top: 0, height: 500 };
+    expect(expectedVisibleViewport(300, measured, 300)).toEqual(measured);
+  });
+
+  it("잰 적이 없으면(0) 지금 보이는 영역 그대로다 — 넘겨짚지 않는다", () => {
+    expect(expectedVisibleViewport(0, FULL, 0)).toEqual(FULL);
+  });
+
+  it("예상이 화면보다 커도 음수 높이를 내지 않는다", () => {
+    expect(expectedVisibleViewport(900, FULL, 0)).toEqual({ top: 0, height: 0 });
   });
 });

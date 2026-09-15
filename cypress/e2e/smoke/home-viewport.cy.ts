@@ -73,4 +73,53 @@ describe("no splash flash on in-app navigation", () => {
       expect(seen.frames, "홈 복귀 중 Splash가 뜬 프레임 수").to.equal(0);
     });
   });
+
+  /**
+   * 세션 검증(`sessionVerified`)은 문서 단위 ref 라, 홈이 아닌 화면을 직접 열어 들어온
+   * 문서(채팅방·소개노트 같은 하드 내비게이션, 딥링크, 새로고침)는 검증을 한 적이 없다.
+   * 그 상태에서 "홈" 탭을 누르면 검증이 시작되면서 스플래시가 화면을 덮었다(QA 2026-09-10).
+   */
+  it("keeps the splash away when the home tab still has to verify the session", () => {
+    cy.clockPeriod("QUIZ");
+    cy.mockApi();
+    cy.login();
+
+    // refresh 응답을 늦춰 검증 구간을 관찰 가능하게 만든다.
+    cy.fixture("local-login.json").then((data: unknown) => {
+      ["**/api/v1/users/auth/refresh", "**/api/users/auth/refresh"].forEach((url) => {
+        cy.intercept("POST", url, (req) => {
+          req.reply({
+            statusCode: 200,
+            headers: {
+              "access-control-allow-origin": req.headers.origin ?? "*",
+              "access-control-allow-credentials": "true",
+            },
+            body: { success: true, data },
+            delay: 1200,
+          });
+        });
+      });
+    });
+
+    // 홈이 아닌 화면에서 시작한다(= 이 문서는 아직 세션 검증을 한 적이 없다).
+    cy.visit("/profile");
+    cy.contains("a", "홈", { timeout: 10000 }).should("be.visible");
+    cy.wait(1000);
+
+    const seen = { frames: 0 };
+    cy.window().then((win) => {
+      const timer = win.setInterval(() => {
+        if (win.document.querySelector(".splash-main")) seen.frames += 1;
+      }, 16);
+      win.setTimeout(() => win.clearInterval(timer), 6000);
+    });
+
+    cy.contains("a", "홈").click();
+    cy.location("pathname", { timeout: 8000 }).should("include", "/home");
+    cy.wait(2500);
+
+    cy.then(() => {
+      expect(seen.frames, "홈 탭 진입 중 Splash가 뜬 프레임 수").to.equal(0);
+    });
+  });
 });
