@@ -18,9 +18,16 @@ export const PageRoot = styled.div`
 export const TopNavigation = styled.header`
   display: flex;
   align-items: center;
-  gap: 16px;
+  /* 뒤로가기(24) 다음 8px 에 제목이 온다 — Figma 2153:33126 은 x=16/24/48. */
+  gap: 8px;
   width: 100%;
-  padding: 16px;
+  /*
+   * 앱에서 상태바가 웹뷰 위에 겹친다 — 인셋만큼 위를 더 비운다.
+   * 이 화면은 PageRoot가 position:fixed + inset:0이라 채팅방 헤더(safe-area를
+   * 이미 지킨다)를 덮어쓴다. 여기가 비면 앱에서만 뒤로가기·제목이 상태바에 물린다.
+   * 웹에서는 env()가 0이라 기존과 완전히 동일하다.
+   */
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 16px 16px;
   box-sizing: border-box;
   flex-shrink: 0;
 `;
@@ -46,7 +53,8 @@ export const NavTitle = styled.h2`
   font-size: var(--typography-headline-2-font-size);
   font-weight: 600;
   line-height: 1.412;
-  text-align: center;
+  /* 가운데 정렬이 아니다 — Figma 에서 제목은 뒤로가기 옆에 붙는다(x=48). */
+  text-align: left;
 `;
 
 export const NavCount = styled.span`
@@ -66,7 +74,7 @@ export const Body = styled.main`
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 8px 16px 104px;
+  padding: 8px 16px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -83,7 +91,6 @@ export const SectionHeader = styled.div`
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 0;
 `;
 
 export const SectionTitle = styled.h3`
@@ -107,16 +114,19 @@ export const OptionRow = styled.div<{ $checked: boolean }>`
   ${textStyle};
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   width: 100%;
-  padding: 16px;
+  /*
+   * Figma 2153:33436 — 높이 56 고정, 좌우 16 / 상하 12.
+   * 장소 행은 32px 지도 버튼이, 시간 행은 22px 라벨이 내용이라 패딩만으로는 높이가
+   * 어긋난다. min-height 로 두 종류를 같은 56px 로 맞춘다.
+   */
+  min-height: 56px;
+  padding: 12px 16px;
   border-radius: 12px;
   cursor: pointer;
   box-sizing: border-box;
-  background-color: ${({ $checked }) =>
-    $checked
-      ? "var(--color-semantic-background-normal-alternative)"
-      : "transparent"};
+  /* 선택돼도 배경은 칠하지 않는다 — Figma 는 두 상태 모두 fills 가 비어 있고 테두리만 바뀐다. */
   border: ${({ $checked }) =>
     $checked
       ? "1px solid var(--color-semantic-primary-normal)"
@@ -147,7 +157,7 @@ export const Radio = styled.span<{ $checked: boolean }>`
     ${({ $checked }) =>
       $checked
         ? "var(--color-semantic-primary-normal)"
-        : "var(--color-semantic-line-normal-neutral)"};
+        : "var(--color-semantic-line-normal-normal)"};
   background-color: ${({ $checked }) =>
     $checked ? "var(--color-semantic-primary-normal)" : "transparent"};
   color: var(--color-semantic-static-white);
@@ -185,11 +195,13 @@ export const SubmitError = styled.p`
 `;
 
 export const ActionArea = styled.footer`
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1;
+  /*
+   * fixed 가 아니라 flex 자식이다. 이미 position:fixed + inset:0 인 PageRoot 안에서
+   * 또 fixed 를 걸면 본문이 얼마를 비워 둬야 하는지를 손으로 맞춰야 하고, 그 매직넘버가
+   * 인셋을 빠뜨려 노치 기기에서 마지막 선택지를 버튼이 덮었다. 형제 화면
+   * (VoteResultsPage / PlaceMapPage)과 같은 구조로 되돌린다.
+   */
+  flex-shrink: 0;
   padding: 16px;
   padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   background-color: var(--color-semantic-background-normal-normal);
@@ -203,9 +215,9 @@ export const PrimaryButton = styled.button<{ $active: boolean }>`
   justify-content: center;
   width: 100%;
   max-width: 430px;
-  min-height: 52px;
+  min-height: 48px;
   margin: 0 auto;
-  padding: 14px 28px;
+  padding: 12px 28px;
   border: none;
   border-radius: 12px;
   background-color: ${({ $active }) =>

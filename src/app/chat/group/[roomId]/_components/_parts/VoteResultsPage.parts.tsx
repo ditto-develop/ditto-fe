@@ -72,7 +72,14 @@ export const Overlay = styled.div`
 export const TopNav = styled.div`
   display: flex;
   align-items: center;
-  padding: 16px;
+  /* 뒤로가기(24) 다음 8px 에 제목이 온다 — Figma 2116:22293 은 x=16/24/48. */
+  gap: 8px;
+  /*
+   * 앱에서 상태바가 웹뷰 위에 겹친다 — 인셋만큼 위를 더 비운다.
+   * Overlay 가 position:fixed + inset:0 로 채팅방 헤더를 덮으므로, 그 헤더가
+   * 지키던 safe-area 를 이 화면이 다시 지켜야 한다. 웹에서는 env()가 0이다.
+   */
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 16px 16px;
   flex-shrink: 0;
   background-color: var(--color-semantic-background-normal-normal);
 `;
@@ -101,15 +108,18 @@ export const NavTitle = styled.h1`
   font-size: var(--typography-headline-2-font-size);
   font-weight: 600;
   line-height: 1.412;
-  text-align: center;
+  /* 가운데 정렬이 아니다 — Figma 에서 제목은 뒤로가기 옆에 붙는다(x=48). */
+  text-align: left;
   color: var(--color-semantic-label-strong);
 `;
 
 export const VoteCounter = styled.span`
   ${fontBase}
-  font-size: var(--typography-headline-2-font-size);
-  font-weight: 400;
-  line-height: 1.412;
+  flex-shrink: 0;
+  font-size: var(--typography-label-1-normal-font-size);
+  font-weight: 600;
+  line-height: 1.429;
+  letter-spacing: 0.203px;
   color: var(--color-semantic-label-alternative);
 `;
 
@@ -196,19 +206,18 @@ export const OptionCard = styled.button<{
 
   ${({ $isWinner, $isAllVoted }) => {
     if ($isWinner) {
+      /*
+       * Figma 2116(진행 중) 2131(마감). 1위 카드는 두 상태 모두 배경을 깔고,
+       * **전원이 투표를 마친 뒤에만** 진한 테두리가 더해진다.
+       * 예전에는 두 분기가 똑같이 transparent 라 테두리가 영영 안 보였다.
+       */
       return $isAllVoted
         ? css`
-            background-color: var(
-              --color-semantic-background-normal-alternative,
-              var(--color-semantic-line-solid-neutral)
-            );
-            border: 1px solid transparent;
+            background-color: var(--color-semantic-background-normal-alternative);
+            border: 1px solid var(--color-semantic-primary-normal);
           `
         : css`
-            background-color: var(
-              --color-semantic-background-normal-alternative,
-              var(--color-semantic-line-solid-neutral)
-            );
+            background-color: var(--color-semantic-background-normal-alternative);
             border: 1px solid transparent;
           `;
     }
@@ -315,7 +324,7 @@ export const BottomSpacer = styled.div`
 export const ActionArea = styled.div`
   flex-shrink: 0;
   padding: 16px;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0));
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   background-color: var(--color-semantic-background-normal-normal);
 `;
 

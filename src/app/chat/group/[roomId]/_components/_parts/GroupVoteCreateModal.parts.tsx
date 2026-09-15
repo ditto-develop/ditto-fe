@@ -20,8 +20,13 @@ export const TopNavigation = styled.header`
   display: flex;
   align-items: center;
   width: 100%;
-  height: 56px;
-  padding: 16px;
+  /*
+   * 앱에서 상태바가 웹뷰 위에 겹친다. 높이가 56px 로 고정이라 padding-top 만 늘리면
+   * 내용이 눌리므로, 공용 shared/ui/TopNavigation 과 같이 바 자체를 인셋만큼 키우고
+   * 같은 값으로 위를 비운다 — 내용 영역은 그대로 56px 이다. 웹에서는 env()가 0이다.
+   */
+  height: calc(56px + env(safe-area-inset-top, 0px));
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 16px 16px;
   box-sizing: border-box;
   flex-shrink: 0;
 `;
@@ -63,7 +68,7 @@ export const Body = styled.main`
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 8px 16px 120px;
+  padding: 8px 16px;
   box-sizing: border-box;
 `;
 
@@ -367,11 +372,12 @@ export const RadioDot = styled.span`
 `;
 
 export const ActionArea = styled.footer`
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1;
+  /*
+   * fixed 가 아니라 flex 자식이다. 이미 position:fixed + inset:0 인 ModalRoot 안에서
+   * 또 fixed 를 걸면 본문이 얼마를 비워 둬야 하는지를 손으로 맞춰야 했고, 그 매직넘버가
+   * 인셋과 오류 문구 높이를 못 따라가 노치 기기에서 버튼이 본문을 덮었다.
+   */
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);

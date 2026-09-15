@@ -20,7 +20,8 @@ export const TopNavigation = styled.header`
   align-items: center;
   width: 100%;
   min-height: var(--space-14);
-  padding: var(--space-4);
+  /* 앱에서 상태바가 웹뷰 위에 겹친다 — 인셋만큼 위를 더 비운다. 웹에서는 env()가 0이다. */
+  padding: calc(var(--space-4) + env(safe-area-inset-top, 0px)) var(--space-4) var(--space-4);
   box-sizing: border-box;
   flex-shrink: 0;
 `;

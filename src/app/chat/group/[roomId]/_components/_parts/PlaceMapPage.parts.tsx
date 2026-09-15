@@ -20,7 +20,8 @@ export const TopBar = styled.header`
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 16px;
+  /* 앱에서 상태바가 웹뷰 위에 겹친다 — 인셋만큼 위를 더 비운다. 웹에서는 env()가 0이다. */
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 16px 16px;
   box-sizing: border-box;
   background-color: var(--color-semantic-background-normal-normal);
 `;
@@ -108,14 +109,14 @@ export const BottomCard = styled.section`
   flex-direction: column;
   gap: 16px;
   flex-shrink: 0;
-  padding: 22px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+  padding: 38px 20px calc(16px + env(safe-area-inset-bottom, 0px));
   background-color: var(--color-semantic-background-normal-normal);
 `;
 
 export const PlaceInfo = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 1px;
 `;
 
 export const Label = styled.h2`
@@ -130,7 +131,7 @@ export const Label = styled.h2`
 export const AddressRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 `;
 
 export const Address = styled.p`
@@ -148,15 +149,15 @@ export const CopyButton = styled.button`
   ${textStyle};
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   flex-shrink: 0;
   padding: 6px 0;
   border: 0;
   background: transparent;
-  color: var(--color-semantic-primary-normal);
+  color: var(--color-semantic-primary-heavy);
   cursor: pointer;
   font-size: var(--typography-label-2-font-size);
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.385;
 `;
 
@@ -166,8 +167,8 @@ export const VoteButton = styled.button`
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 42px;
-  padding: 9px 28px;
+  min-height: 40px;
+  padding: 9px 20px;
   border: 0;
   border-radius: 10px;
   background-color: var(--color-semantic-primary-normal);
