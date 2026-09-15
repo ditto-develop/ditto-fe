@@ -33,6 +33,7 @@ import {
   VoteCounter,
   VotersLine,
 } from "./_parts/VoteResultsPage.parts";
+import { useBackClose } from "@/shared/hooks/useBackClose";
 import { PlaceMapPage } from "./PlaceMapPage";
 
 interface VoteResultsPageProps {
@@ -67,6 +68,14 @@ export function VoteResultsPage({
   onRevote,
   onCloseVote,
 }: VoteResultsPageProps) {
+  /**
+   * 라우트가 아니라 화면 안의 상태로 떠 있는 전체화면이라 OS 뒤로가기에 직접 등록한다.
+   * 등록하지 않으면 뒤로가기가 채팅방 문서째로 걷어내 홈으로 나간다
+   * (`shared/lib/native/appShell.ts` 의 backButton 처리 순서). 지도 오버레이가 이 위에
+   * 겹쳐 있으면 나중에 등록된 지도가 먼저 닫힌다 — 스택의 맨 위 하나만 소비된다.
+   */
+  useBackClose(true, onClose);
+
   const [mapTarget, setMapTarget] = useState<VotePlaceOption | null>(null);
   const [closing, setClosing] = useState(false);
 

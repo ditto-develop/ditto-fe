@@ -5,6 +5,15 @@ import styled, { keyframes } from "styled-components";
 
 import { useBackClose } from "@/shared/hooks/useBackClose";
 
+/**
+ * 그룹 채팅방 3점 메뉴.
+ *
+ * **신고하기는 여기 없다.** 그룹 방에는 상대가 여럿이라 방 단위 메뉴에서는 신고 대상 한 명을
+ * 고를 수 없다. 예전에는 항목이 있었지만 "멤버 목록에서 상대를 선택해 주세요" 토스트만 띄워,
+ * 누르면 아무 화면도 안 열리는 죽은 버튼이었다(2026-09-15 QA: "신고하기 화면 작동 안함").
+ * 실제 신고 경로는 멤버 목록 → 멤버 프로필 → 더보기 → 신고하기 로 살아 있다.
+ * 1:1 방은 상대가 한 명이라 `ChatMenuBottomSheet` 에 그대로 있다.
+ */
 interface GroupChatMenuBottomSheetProps {
   /**
    * 투표 생성 진입점 노출 여부.
@@ -14,7 +23,6 @@ interface GroupChatMenuBottomSheetProps {
   onClose: () => void;
   onMemberList: () => void;
   onCreateVote?: () => void;
-  onReport: () => void;
   /** 나가기. 이미 나간 방·종료된 방에서는 넘기지 않아 진입점이 사라진다. */
   onLeave?: () => void;
 }
@@ -24,7 +32,6 @@ export function GroupChatMenuBottomSheet({
   onClose,
   onMemberList,
   onCreateVote,
-  onReport,
   onLeave,
 }: GroupChatMenuBottomSheetProps) {
   // 열려 있는 동안만 마운트된다 — OS 뒤로가기로도 닫히게 한다.
@@ -63,15 +70,6 @@ export function GroupChatMenuBottomSheet({
               <MenuText>투표 만들기</MenuText>
             </MenuItem>
           )}
-
-          <MenuItem
-            onClick={() => {
-              onReport();
-              onClose();
-            }}
-          >
-            <MenuText>신고하기</MenuText>
-          </MenuItem>
 
           {onLeave && (
             <MenuItem

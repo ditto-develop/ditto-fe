@@ -255,7 +255,6 @@ export function GroupChatRoomPageClient() {
           onCreateVote={() => setIsCreateVoteOpen(true)}
           onClose={() => setIsMenuOpen(false)}
           onMemberList={() => setIsMemberListOpen(true)}
-          onReport={() => showToast("그룹 채팅 신고는 멤버 목록에서 상대를 선택해 주세요.", "info")}
           onLeave={isEnded || hasLeft ? undefined : () => setIsLeaveModalOpen(true)}
         />
       )}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Copy, LocateFixed, MapPin, X } from "lucide-react";
 import type { VotePlaceOption } from "@/features/chat";
+import { useBackClose } from "@/shared/hooks/useBackClose";
 import { loadKakaoMaps } from "@/shared/lib/kakao-maps";
 import {
   Address,
@@ -102,6 +103,9 @@ async function resolvePlaceCoordinate(maps: KakaoMapsNamespace, place: VotePlace
 }
 
 export function PlaceMapPage({ place, onClose, onSelect }: PlaceMapPageProps) {
+  /** 투표 화면 위에 겹치는 전체화면이라 뒤로가기는 여기부터 닫는다(스택 맨 위). */
+  useBackClose(true, onClose);
+
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<KakaoMap | null>(null);
   const markerRef = useRef<KakaoMarker | null>(null);

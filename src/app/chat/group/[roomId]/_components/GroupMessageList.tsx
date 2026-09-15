@@ -5,6 +5,8 @@ import type React from "react";
 import styled from "styled-components";
 import { formatMeetAt, getSystemMessageText, parseVoteSystemMessage } from "@/features/chat";
 import type { ChatMessage, CounterpartProfile, GroupVote } from "@/features/chat";
+import { renderChatSafetyWarnings } from "@/app/chat/_components/ChatSafetyWarning";
+import { useStayAtBottom } from "@/features/chat/hooks/useStayAtBottom";
 import { GroupMessageBubble } from "./GroupMessageBubble";
 import { VoteCreatedMessageBubble } from "./VoteCreatedMessageBubble";
 
@@ -63,6 +65,9 @@ export function GroupMessageList({
   const listRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const isInitialLoad = useRef(true);
+  // 키보드가 열리고 닫혀 목록 높이가 바뀌어도 바닥에 붙어 있게 한다(위로 읽는 중이면 건드리지 않는다).
+  useStayAtBottom(listRef);
+
   const renderedLatestMessageId = useRef<number | null>(null);
   const skipNextAutoScroll = useRef(false);
   const previousScrollHeight = useRef(0);
@@ -212,6 +217,14 @@ export function GroupMessageList({
           onImageClick={onImageClick}
         />,
       );
+
+      /**
+       * 링크·금전 요구 주의 카드. 1:1 방에만 있었는데 같은 수법이 그룹 방에도 그대로
+       * 들어온다(2026-09-15 QA). IMAGE 의 content 는 objectKey 라 TEXT 만 본다.
+       */
+      if (message.messageType === "TEXT") {
+        items.push(...renderChatSafetyWarnings(message.content, String(message.id)));
+      }
     });
 
     return items;

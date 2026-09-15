@@ -13,6 +13,7 @@ import {
 import type { AnswerMatchSummary } from "@/features/profile/model/types";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import { toLocationLabel } from "@/shared/lib/profileLabels";
+import { useBackClose } from "@/shared/hooks/useBackClose";
 import { ContentBadge, TopNavigation } from "@/shared/ui";
 
 interface MemberData {
@@ -40,6 +41,14 @@ export function GroupMemberListPage({
   onClose,
   onMemberClick,
 }: GroupMemberListPageProps) {
+  /**
+   * 라우트가 아니라 화면 안의 상태로 떠 있는 전체화면이다. 등록해 두지 않으면 OS 뒤로가기가
+   * 이 화면을 못 보고 `history.back()` 으로 **채팅방 문서 자체를 걷어내** 홈으로 나가 버린다
+   * (`shared/lib/native/appShell.ts` 의 backButton 처리 순서). 같은 폴더의 바텀시트·모달들은
+   * 이미 이걸 부르고 있었는데 이 두 화면만 빠져 있었다.
+   */
+  useBackClose(true, onClose);
+
   const [myProfile, setMyProfile] = useState<PublicProfileDto | null>(null);
   const [otherData, setOtherData] = useState<MemberData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,7 +155,7 @@ export function GroupMemberListPage({
                     )}
 
                     {/* 멤버 카드 */}
-                    <MemberCard onClick={() => onMemberClick(member)}>
+                    <MemberCard data-cy="group-member-card" onClick={() => onMemberClick(member)}>
                       <CardRow>
                         <AvatarImg
                           src={

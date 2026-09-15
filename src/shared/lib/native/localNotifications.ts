@@ -157,3 +157,48 @@ export async function clearScheduledNotifications(): Promise<void> {
         console.error("[localNotifications] 예약 정리 실패:", err);
     }
 }
+
+/**
+ * 앱이 떠 있는 동안 도착한 원격 푸시를 눈에 보이게 띄운다.
+ *
+ * FCM 은 포그라운드 메시지를 **OS 가 대신 그려 주지 않는다.** iOS 는
+ * `presentationOptions`(capacitor.config.ts)로 배너가 뜨지만 그 옵션은 플러그인 문서상
+ * iOS 전용이라, **안드로이드에서는 앱을 켜 둔 채 채팅 메시지를 받으면 아무것도 뜨지 않았다**
+ * (2026-09-15 QA "채팅 알림이 안 감"). 받은 내용을 그대로 로컬 알림으로 한 번 더 그려
+ * 두 플랫폼을 같게 만든다.
+ *
+ * 리추얼 예약과 id 대역이 겹치지 않게 3000번대를 쓴다 — `managedIds()` 가 지우는 대상은
+ * 리추얼뿐이라, 즉시 발송되는 이 알림이 로그아웃 정리에 휩쓸리지 않는다.
+ */
+const FOREGROUND_ID_BASE = 3000;
+const FOREGROUND_ID_SPAN = 100;
+let foregroundCounter = 0;
+
+export async function showForegroundNotification({
+    title,
+    body,
+    deepLink,
+}: {
+    title: string;
+    body: string;
+    deepLink: string | null;
+}): Promise<void> {
+    if (!isNativeApp()) return;
+
+    try {
+        // schedule 을 빼면 즉시 발송이다.
+        await LocalNotifications.schedule({
+            notifications: [
+                {
+                    id: FOREGROUND_ID_BASE + (foregroundCounter++ % FOREGROUND_ID_SPAN),
+                    title,
+                    body,
+                    extra: deepLink ? { deepLink } : undefined,
+                },
+            ],
+        });
+    } catch (err: unknown) {
+        // 알림이 안 떠도 화면은 이미 PUSH_RECEIVED_EVENT 로 갱신된다 — 조용히 넘어간다.
+        console.error("[localNotifications] 포그라운드 알림 표시 실패:", err);
+    }
+}

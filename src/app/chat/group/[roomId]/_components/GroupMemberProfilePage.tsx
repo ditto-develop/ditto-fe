@@ -15,6 +15,7 @@ import {
   toOccupationLabel,
   toInterestLabel,
 } from "@/shared/lib/profileLabels";
+import { useBackClose } from "@/shared/hooks/useBackClose";
 import { TopNavigation } from "@/shared/ui";
 import { GroupMemberMoreModal } from "./GroupMemberMoreModal";
 
@@ -32,6 +33,14 @@ export function GroupMemberProfilePage({
   onClose,
 }: GroupMemberProfilePageProps) {
   const router = useRouter();
+  /**
+   * 라우트가 아니라 화면 안의 상태로 떠 있는 전체화면이다. 등록해 두지 않으면 OS 뒤로가기가
+   * 이 화면을 못 보고 `history.back()` 으로 **채팅방 문서 자체를 걷어내** 홈으로 나가 버린다
+   * (`shared/lib/native/appShell.ts` 의 backButton 처리 순서). 같은 폴더의 바텀시트·모달들은
+   * 이미 이걸 부르고 있었는데 이 두 화면만 빠져 있었다.
+   */
+  useBackClose(true, onClose);
+
   const [profile, setProfile] = useState<PublicProfileDto | null>(null);
   const [introNotes, setIntroNotes] = useState<IntroNoteAnswer[]>([]);
   const [loading, setLoading] = useState(true);

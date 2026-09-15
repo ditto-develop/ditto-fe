@@ -5,6 +5,7 @@ import { API_ERROR_CODE, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { externalApiFetch } from "@/shared/lib/api/externalClient";
 import { trackEvent } from "@/shared/lib/analytics";
 import { toInternalPath } from "@/shared/lib/native/appShell";
+import { showForegroundNotification } from "@/shared/lib/native/localNotifications";
 import type { NativePlatform } from "@/shared/lib/native/platform";
 import { getNativePlatform, isNativeApp } from "@/shared/lib/native/platform";
 
@@ -199,6 +200,43 @@ export function extractNotificationId(data: unknown): number | null {
     return Number.isInteger(id) && id > 0 ? id : null;
 }
 
+/**
+ * 이미 그 화면을 보고 있는가.
+ *
+ * 채팅방을 열어 둔 채 그 방의 메시지를 받으면 알림을 띄우지 않는다 — 화면에 바로 뜨는
+ * 메시지를 배너로 한 번 더 알리면 성가시기만 하다. 그 외에는(다른 방, 홈, 알림 센터)
+ * 전부 띄운다.
+ *
+ * 딥링크를 모르면 **띄운다** — 안 띄워서 놓치는 쪽이 중복으로 뜨는 쪽보다 나쁘다.
+ */
+export function isViewingDeepLink(deepLink: string | null, currentPath: string): boolean {
+    if (!deepLink) return false;
+    const strip = (value: string) => (value.split(/[?#]/)[0] || "/").replace(/\/+$/, "") || "/";
+    return strip(deepLink) === strip(currentPath);
+}
+
+/**
+ * 앱이 떠 있는 동안 도착한 푸시를 눈에 보이게 그린다.
+ *
+ * FCM 은 포그라운드 메시지를 OS 배너로 그려 주지 않는다(안드로이드는 아예, iOS 는
+ * presentationOptions 가 있어야). 여기서 로컬 알림으로 한 번 더 그려 두 플랫폼을 맞춘다.
+ * 제목·본문이 아예 없는 data-only 푸시는 그릴 게 없어 건너뛴다.
+ */
+function presentInForeground(notification: { title?: string; body?: string; data?: unknown }): void {
+    const { title, body, data } = notification;
+    if (!title && !body) return;
+
+    const deepLink = extractDeepLink(data);
+    const currentPath = typeof window === "undefined" ? "" : window.location.pathname;
+    if (isViewingDeepLink(deepLink, currentPath)) return;
+
+    void showForegroundNotification({
+        title: title ?? "Ditto",
+        body: body ?? "",
+        deepLink,
+    });
+}
+
 type PushOptions = {
     navigate: (path: string) => void;
 };
@@ -231,11 +269,19 @@ export async function initPushNotifications({ navigate }: PushOptions): Promise<
 
     /**
      * 앱이 떠 있는 동안 도착한 푸시.
-     * 배너가 안 뜰 수 있으므로 화면이 목록·미읽음 수를 다시 읽도록 알린다.
-     * 읽음 처리는 하지 않는다 — 사용자가 본 게 아니다.
+     *
+     * 두 가지를 한다:
+     *  1. 화면이 목록·미읽음 수를 다시 읽도록 알린다. 읽음 처리는 하지 않는다 —
+     *     사용자가 본 게 아니다.
+     *  2. **로컬 알림으로 직접 배너를 띄운다.** OS 가 포그라운드 푸시를 그려 주지 않아
+     *     (안드로이드는 아예) 채팅 알림이 안 온다는 신고가 있었다(2026-09-15 QA).
+     *     지금 그 방을 보고 있으면 띄우지 않는다.
      */
     handles.push(
-        await FirebaseMessaging.addListener("notificationReceived", () => notifyPushReceived()),
+        await FirebaseMessaging.addListener("notificationReceived", (event) => {
+            notifyPushReceived();
+            presentInForeground(event.notification);
+        }),
     );
 
     /**

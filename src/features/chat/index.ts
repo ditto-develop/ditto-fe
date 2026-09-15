@@ -31,7 +31,12 @@ export {
   toMeetAt,
 } from "./lib/voteResult";
 export type { VoteTally } from "./lib/voteResult";
-export { containsForbiddenWord, FORBIDDEN_WORDS } from "./lib/chatSafety";
+export {
+  containsForbiddenWord,
+  containsMoneyRequest,
+  containsRiskyLink,
+  FORBIDDEN_WORDS,
+} from "./lib/chatSafety";
 export type { ChatRoomState } from "./lib/roomState";
 export { clearCounterpartProfileCache, getCounterpartProfile } from "./api/counterpartApi";
 export type { CounterpartProfile } from "./api/counterpartApi";

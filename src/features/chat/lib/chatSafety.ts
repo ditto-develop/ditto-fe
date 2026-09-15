@@ -74,3 +74,35 @@ export function containsForbiddenWord(content: string): boolean {
     return normalized.includes(target);
   });
 }
+
+/**
+ * 링크로 읽힐 만한 문자열. 스킴이 없어도(`example.com/abc`) 잡는다 —
+ * 실제 피싱 링크는 대개 `http://` 를 떼고 붙여 넣는다.
+ */
+const URL_PATTERN =
+  /((https?:\/\/|www\.)[^\s]+|[a-zA-Z0-9-]+\.(com|net|org|io|co|me|kr|app|dev|gg|tv|ly|to|ai|so|xyz|site|info|link)(\/[^\s]*)?)/i;
+
+/** 계좌번호 모양(`110-123-456789`). 자릿수 규칙은 은행마다 달라 구분자만 본다. */
+const ACCOUNT_PATTERN = /\b\d{2,6}-\d{2,6}-\d{2,10}\b/;
+
+/** 금전 요구로 읽히는 낱말. 계좌번호 없이 "얼마만 보내줘"로 오는 쪽이 더 흔하다. */
+const MONEY_REQUEST_PATTERN =
+  /(입금|송금|계좌|계좌번호|보내주|보내 주세요|보내주세요|입금해|입금해 주세요|입금해주세요|수수료|선입금|착불|돈\s*보내|금액|만원|원\b|페이|송금해|이체)/;
+
+/**
+ * 링크가 들어 있는가. 화면은 이걸로 "출처 불명의 링크" 주의 카드를 붙인다.
+ *
+ * **전송을 막지는 않는다** — 정상적인 링크 공유(가게 주소, 지도)가 훨씬 많다.
+ * 막는 건 금칙어뿐이고, 그마저 한 번 더 확인을 받는다(`containsForbiddenWord` 호출부).
+ */
+export function containsRiskyLink(content: string): boolean {
+  return URL_PATTERN.test(content);
+}
+
+/**
+ * 계좌번호나 금전 요구로 읽히는가. 화면은 이걸로 "금전 요구는 100% 사기" 카드를 붙인다.
+ * 마찬가지로 전송은 막지 않는다 — 더치페이 정산 같은 정상 대화가 같은 낱말을 쓴다.
+ */
+export function containsMoneyRequest(content: string): boolean {
+  return ACCOUNT_PATTERN.test(content) || MONEY_REQUEST_PATTERN.test(content);
+}
