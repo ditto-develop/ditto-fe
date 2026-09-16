@@ -24,6 +24,8 @@ import { GroupChatMenuBottomSheet } from "./GroupChatMenuBottomSheet";
 import { GroupMemberListPage } from "./GroupMemberListPage";
 import { GroupMemberProfilePage } from "./GroupMemberProfilePage";
 import { ChatInput } from "@/app/chat/one-on-one/[roomId]/_components/ChatInput";
+import { useKeyboardInset } from "@/shared/hooks/useKeyboardInset";
+import { useKeyboardOverlay } from "@/shared/hooks/useKeyboardOverlay";
 import { ChatLeaveModal } from "@/app/chat/one-on-one/[roomId]/_components/ChatLeaveModal";
 import { GroupVoteCreateModal } from "./GroupVoteCreateModal";
 import { VoteBanner } from "./VoteBanner";
@@ -87,6 +89,12 @@ export function GroupChatRoomPageClient() {
   // 개방 판정의 기준. 어드민 시각 오버라이드가 반영된 서버 기간이다.
   const serverPeriod = useSystemPeriod();
   const { showToast } = useToast();
+
+  // 입력 중일 때만 잰다. 꺼지면 0 으로 돌아가 화면이 원래 높이로 내려온다.
+  const [inputFocused, setInputFocused] = useState(false);
+  // 이 화면에서만 네이티브 리사이즈를 끈다 — 접는 주체를 CSS 하나로 모은다.
+  useKeyboardOverlay();
+  const keyboardInset = useKeyboardInset(inputFocused);
 
   useEffect(() => {
     setMyUserId(getMyMemberId());
@@ -191,7 +199,7 @@ export function GroupChatRoomPageClient() {
 
   if (metaLoading || messagesLoading) {
     return (
-      <PageContainer>
+      <PageContainer $keyboardInset={keyboardInset}>
         <ChatRoomSkeleton />
       </PageContainer>
     );
@@ -199,7 +207,7 @@ export function GroupChatRoomPageClient() {
 
   if (!room) {
     return (
-      <PageContainer>
+      <PageContainer $keyboardInset={keyboardInset}>
         <EmptyMessage>채팅방을 찾을 수 없어요.</EmptyMessage>
       </PageContainer>
     );
@@ -214,7 +222,7 @@ export function GroupChatRoomPageClient() {
         : undefined;
 
   return (
-    <PageContainer>
+    <PageContainer $keyboardInset={keyboardInset}>
       <GroupChatRoomHeader
         memberNames={memberNames}
         totalMembers={totalMembers}
@@ -255,6 +263,7 @@ export function GroupChatRoomPageClient() {
       {/* 나간 방은 읽기 전용이다. 입력창도 평가 버튼도 띄우지 않는다. */}
       {!isEnded && !hasLeft && (
         <ChatInput
+          onFocusChange={setInputFocused}
           onSend={sendText}
           onSendImages={sendImages}
           disabled={roomState !== "OPEN"}
@@ -343,10 +352,19 @@ export function GroupChatRoomPageClient() {
   );
 }
 
-const PageContainer = styled.div`
+const PageContainer = styled.div<{ $keyboardInset?: number }>`
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  /*
+   * 키보드가 가린 높이만큼 화면을 줄인다. 키보드는 레이아웃 뷰포트를 줄이지 않고 위에
+   * 겹쳐 올라오므로, 줄이지 않으면 입력창과 최근 메시지가 키보드 뒤로 들어간다.
+   * 네이티브가 웹뷰 프레임을 줄여 주는 환경에서는 인셋이 0 이라 100dvh 그대로다.
+   *
+   * transition 은 키보드 애니메이션과 발을 맞추기 위한 것이다 — useKeyboardInset 이
+   * 누른 즉시 예상 높이를 내주므로, 화면이 키보드를 따라 함께 올라온다.
+   */
+  height: calc(100dvh - ${({ $keyboardInset = 0 }) => $keyboardInset}px);
+  transition: height 0.25s ease-out;
   width: 100%;
   background-color: var(--color-semantic-background-normal-normal);
   overflow: hidden;
