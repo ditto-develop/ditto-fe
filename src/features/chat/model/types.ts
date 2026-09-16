@@ -94,6 +94,11 @@ export type ChatRoom = {
    * 이탈자 기준으로 counterpartMemberIds에서도 빠진다.
    */
   hasLeft: boolean;
+  /**
+   * 그룹 방의 기본 이름 = 그 그룹이 만들어진 **그룹 퀴즈의 주제**.
+   * 1:1·재매칭은 상대가 한 명이라 서버가 null 을 준다.
+   */
+  roomName: string | null;
 };
 
 /** 상대 프로필을 붙인 목록 아이템. 방 목록 응답에는 닉네임/이미지가 없어 별도 조회한다. */

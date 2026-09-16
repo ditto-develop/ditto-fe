@@ -162,3 +162,16 @@ export function isRoomEndedSystemMessage(
     message.content === "상대방이 채팅을 종료했습니다."
   );
 }
+
+/**
+ * 그룹 대화방 상단 제목.
+ *
+ * 그룹 방의 이름은 **그 그룹이 만들어진 퀴즈 주제**다(서버 `roomName`). 예전에 열린 방이나
+ * 조회 실패로 이름이 없을 때만 참여자 닉네임을 이어 붙인다 — 제목이 통째로 비는 것보다 낫다.
+ */
+export function getGroupRoomTitle(
+  roomName: string | null | undefined,
+  memberNames: string[],
+): string {
+  return roomName?.trim() || memberNames.join(", ");
+}
