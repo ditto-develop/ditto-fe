@@ -128,6 +128,12 @@ export function ChatInput({ onSend, onSendImages, disabled }: ChatInputProps) {
             <AttachButton
               type="button"
               aria-label="이미지 첨부"
+              /**
+               * 전송 버튼과 같은 이유로 포커스를 뺏지 않는다. 기본 동작대로 입력창의 포커스가
+               * 풀리면 **키보드가 닫히면서** 입력창이 아래로 내려앉는데, 그 위로 사진 선택
+               * 시트가 올라와 입력창만 사라진 것처럼 보였다(2026-09-17 QA).
+               */
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => fileInputRef.current?.click()}
               disabled={sending || disabled}
             >

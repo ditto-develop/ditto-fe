@@ -28,6 +28,87 @@ describe("chat QA regressions", () => {
     });
   }
 
+  /**
+   * 방에 들어가면 서버의 안읽은 수는 0 이 되는데, 목록은 마운트할 때 한 번만 읽어서
+   * 뒤로 나와도 들어가기 전 배지가 남아 있었다. 화면이 다시 보이는 시점에 다시 읽는다.
+   */
+  it("refreshes the unread badge when the chat list becomes visible again", () => {
+    // 호출 횟수로 응답을 가르지 않는다 — 개발 모드의 이중 마운트 때문에 최초 진입에서도
+    // 두 번 불린다. "방을 읽고 왔는가"를 플래그로 두고 그때부터 0 을 준다.
+    const state = { allRead: false };
+    cy.fixture("chat-rooms.json").then((rooms) => {
+      cy.intercept("GET", "**/api/**/chat/rooms", (req) => {
+        const data = state.allRead ? rooms.map((room) => ({ ...room, unreadCount: 0 })) : rooms;
+        req.reply({ success: true, data });
+      }).as("chatRooms");
+    });
+
+    cy.visit("/chat");
+    cy.contains("수민", { timeout: 8000 }).should("be.visible");
+    // 숫자만으로 찾으면 날짜 같은 다른 문구에도 걸린다 — 배지만 본다.
+    cy.get("[data-cy=unread-badge]").should("have.length.at.least", 1);
+
+    // 방에 들어갔다 나온 상태를 만든다. 서버는 이제 안읽음 0 을 준다.
+    cy.then(() => {
+      state.allRead = true;
+    });
+
+    // 화면 복귀 신호. 이 이벤트로 다시 읽지 않으면 들어가기 전 배지가 그대로 남는다.
+    cy.window().then((win) => win.dispatchEvent(new win.Event("focus")));
+
+    cy.contains("수민").should("be.visible");
+    cy.get("[data-cy=unread-badge]").should("not.exist");
+  });
+
+  /**
+   * 목록의 사진은 loading="lazy" 이고 크기를 예약하지 않아, 첫 스크롤이 끝난 뒤 로드되며
+   * 높이를 최대 320px 늘린다. scrollTop 은 그대로라 방금 맞춰 둔 바닥이 위로 밀린다.
+   *
+   * ⚠️ 이 테스트는 **회귀를 가려내지 못한다** — Chrome 의 스크롤 앵커링이 같은 상황을
+   * 자동으로 보정해서 `useStayAtBottom` 의 보정을 지워도 통과한다. 증상이 보고된 iOS
+   * 웹뷰에는 그 보정이 없다. 여기서는 "들어가면 바닥에서 시작한다"는 계약만 지킨다.
+   */
+  it("stays at the bottom after a late-loading image grows the list", () => {
+    cy.intercept("GET", "**/chat/rooms/*/messages*", {
+      success: true,
+      data: {
+        messages: [
+          ...Array.from({ length: 20 }, (_, index) => ({
+            id: index + 1, roomId: 1, senderId: 2, messageType: "TEXT",
+            content: `이전 메시지 ${index + 1}`, imageUrl: null,
+            unreadCount: 0, createdAt: "2026-06-06 10:10:00",
+          })),
+          {
+            id: 21, roomId: 1, senderId: 2, messageType: "IMAGE", content: "chat/late.png",
+            imageUrl: "https://example.com/late.png",
+            unreadCount: 0, createdAt: "2026-06-06 10:11:00",
+          },
+          {
+            id: 22, roomId: 1, senderId: 2, messageType: "TEXT", content: "마지막 메시지",
+            imageUrl: null, unreadCount: 0, createdAt: "2026-06-06 10:12:00",
+          },
+        ],
+        nextCursor: null,
+      },
+    });
+
+    // 첫 스크롤이 끝난 뒤에 도착하도록 사진을 늦춘다.
+    cy.intercept("GET", "https://example.com/late.png", (req) => {
+      req.on("response", (res) => res.setDelay(800));
+      req.reply({ fixture: "images/tall.png" });
+    }).as("lateImage");
+
+    cy.visit("/chat/one-on-one/1");
+    cy.contains("마지막 메시지", { timeout: 8000 }).should("be.visible");
+    cy.wait("@lateImage");
+
+    cy.get("[data-cy=message-list]").should((list) => {
+      const el = list[0];
+      // 바닥 판정 여유는 useStayAtBottom 의 BOTTOM_THRESHOLD_PX 와 같다.
+      expect(el.scrollHeight - el.scrollTop - el.clientHeight).to.be.at.most(48);
+    });
+  });
+
   it("edits draft vote options and returns to chat after creating a vote", () => {
     cy.intercept("GET", "**/chat/rooms/*/votes", { success: true, data: [] });
     cy.fixture("group-votes.json").then((votes) => {
