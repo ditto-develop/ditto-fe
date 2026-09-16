@@ -112,6 +112,8 @@ export function EditIntroNoteContainer() {
                             onChange={handleChange}
                             setControlButton={setControlButton}
                             onEditingChange={setEditingAnswer}
+                            // 온보딩 작성 화면과 같은 처리(BUG-033) — 스크롤해도 진행 카드가 따라온다.
+                            stickyProgress
                         />
                     </Body>
                     {!editingAnswer && (
