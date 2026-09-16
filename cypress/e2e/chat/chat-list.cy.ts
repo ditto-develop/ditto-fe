@@ -167,4 +167,38 @@ describe("chat list", () => {
     cy.contains("방금 도착한 메시지").should("be.visible");
     cy.get("[data-cy=unread-badge]").first().should("have.text", "2");
   });
+
+  /**
+   * 그룹 방을 나가도 서버는 목록에서 지우지 않는다 — 읽기 전용으로 남기는 것이 계약이다
+   * (`hasLeft: true`). 그런데 목록이 그 값을 보지 않아 "진행중" 배지를 달고 안읽음까지
+   * 세서, 나갔는데도 아직 참여 중인 것처럼 보였다.
+   */
+  it("shows a room I left as read-only instead of an ongoing one", () => {
+    cy.fixture("chat-rooms.json").then((rooms) => {
+      cy.intercept("GET", "**/api/**/chat/rooms", {
+        success: true,
+        // 방 3(그룹)에서 나간 상태. 서버는 방을 그대로 내려준다.
+        data: rooms.map((room: { roomId: number }) =>
+          room.roomId === 3 ? { ...room, hasLeft: true, unreadCount: 2 } : room,
+        ),
+      }).as("roomsWithLeft");
+    });
+
+    cy.visit("/chat");
+    cy.wait("@roomsWithLeft");
+    cy.contains("대화방", { timeout: 8000 }).should("be.visible");
+
+    cy.contains("나간 방").should("be.visible");
+    /*
+     * 안읽음 배지는 방 1(안읽음 1) 것 하나만 남는다. 나간 방 3 은 안읽음 2 를 받았지만
+     * 종료된 방과 같은 규칙으로 배지를 떼야 한다. 픽스처의 방 2 는 원래 종료된 방이다.
+     */
+    cy.get("[data-cy=unread-badge]").should("have.length", 1);
+
+    // 종료 필터에 들어가고 진행중에서는 빠진다.
+    cy.contains("button", "진행중").click();
+    cy.contains("나간 방").should("not.exist");
+    cy.contains("button", "종료").click();
+    cy.contains("나간 방").should("be.visible");
+  });
 });

@@ -12,8 +12,10 @@ export interface ChatRoomListItemData {
   lastMessageContent?: string;
   lastMessageAt?: string;
   unreadCount: number;
-  /** 목록 응답의 isEnded·opensAt·expiresAt에서 파생한 상태. */
+  /** 목록 응답의 isEnded·opensAt·expiresAt에서 파생한 상태. 내가 나간 방은 ENDED 로 온다. */
   state: ChatRoomState;
+  /** 내가 나간 방인지. 배지 문구만 가른다 — 나머지는 종료된 방과 같은 규칙이다. */
+  hasLeft?: boolean;
   isGroup?: boolean;
   coParticipantAvatarUrl?: string | null;
   /** 이 방의 평가가 열려 있으면 평가 화면 경로. 없으면 진입점을 띄우지 않는다. */
@@ -25,6 +27,9 @@ const STATE_BADGE_LABEL: Record<ChatRoomState, string> = {
   OPEN: "진행중",
   ENDED: "종료",
 };
+
+/** 내가 나간 방은 "끝난 대화"가 아니라 "내가 빠진 대화"다 — 방은 남은 사람들끼리 이어질 수 있다. */
+const LEFT_BADGE_LABEL = "나간 방";
 
 interface ChatRoomListItemProps {
   room: ChatRoomListItemData;
@@ -75,7 +80,7 @@ export function ChatRoomListItem({ room }: ChatRoomListItemProps) {
           <NameRow>
             <Name>{room.partnerNickname}</Name>
             {room.state === "ENDED" ? (
-              <EndedBadge>{STATE_BADGE_LABEL.ENDED}</EndedBadge>
+              <EndedBadge>{room.hasLeft ? LEFT_BADGE_LABEL : STATE_BADGE_LABEL.ENDED}</EndedBadge>
             ) : room.state === "BEFORE_OPEN" ? (
               <PendingBadge>
                 <PendingBadgeText>{STATE_BADGE_LABEL.BEFORE_OPEN}</PendingBadgeText>

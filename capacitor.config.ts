@@ -68,6 +68,18 @@ const config: CapacitorConfig = {
     appId: "pics.ditto.app",
     appName: "Ditto",
     webDir: "out",
+    /**
+     * 웹뷰가 그려지기 전·그리는 사이에 드러나는 네이티브 배경색.
+     *
+     * 이 값이 없으면 웹뷰 기본색(흰색)이 그대로 보인다 — 화면을 옮길 때마다 흰 화면이
+     * 한 번 스쳤다가 앱 색으로 돌아오는 증상이 그것이다(2026-09-17 QA). 원격 URL 로드라
+     * 네이티브 셸이 CSS 토큰을 읽을 수 없어 값을 복제한다:
+     * --color-atomic-neutral-95 (= --color-semantic-background-normal-normal).
+     * **토큰이 바뀌면 여기와 layout.tsx 의 themeColor 를 함께 바꿔야 한다.**
+     *
+     * 예전에는 android 에만 있어 iOS 는 흰색 그대로였다. 전역에 두어 두 플랫폼이 같이 받는다.
+     */
+    backgroundColor: "#E9E6E2",
     server: {
         url: SERVER_URL,
         // 원격 로드지만 전 구간 https라 cleartext는 불필요하다.
@@ -108,14 +120,6 @@ const config: CapacitorConfig = {
     ios: {
         // 노치/홈 인디케이터는 CSS의 env(safe-area-inset-*)로 처리한다(globals.css).
         contentInset: "never",
-    },
-    android: {
-        /**
-         * 웹뷰가 그려지기 전 배경색. 네이티브 셸이라 CSS 토큰을 읽을 수 없어
-         * --color-atomic-neutral-95 (= --color-semantic-background-normal-normal)
-         * 값을 복제한다. 토큰이 바뀌면 여기도 같이 바꿔야 한다.
-         */
-        backgroundColor: "#E9E6E2",
     },
     plugins: {
         /**
