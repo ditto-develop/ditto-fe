@@ -27,7 +27,13 @@ function toListItem(
     lastMessageContent: getLastMessagePreview(room),
     lastMessageAt: room.lastMessage?.createdAt,
     unreadCount: room.unreadCount,
-    state: deriveRoomState(room, undefined, serverPeriod),
+    /*
+     * 내가 나간 방은 종료된 방과 같은 규칙으로 다룬다(서버도 목록에 읽기 전용으로 남긴다).
+     * 그러지 않으면 나간 방이 "진행중" 배지를 달고 안읽음까지 세서, 나갔는데도 아직
+     * 참여 중인 것처럼 보인다. 방 화면은 이미 hasLeft 로 입력·나가기를 막고 있었다.
+     */
+    state: room.hasLeft ? "ENDED" : deriveRoomState(room, undefined, serverPeriod),
+    hasLeft: room.hasLeft,
     // 재매칭 방은 1:1이다. 그룹만 별도 화면으로 보낸다.
     isGroup: room.sourceType === "GROUP",
     reviewHref,

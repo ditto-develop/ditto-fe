@@ -100,24 +100,28 @@ export function MessageList({
    */
   const userHasScrolled = useRef(false);
 
-  const previousScrollHeight = useRef(0);
-
   useEffect(() => {
     const latest = optimisticMessages[optimisticMessages.length - 1] ?? messages[messages.length - 1];
     if (!latest) return;
 
     const latestKey = messageKey(latest);
-    if (renderedLatestKey.current === latestKey) return;
+    if (renderedLatestKey.current === latestKey) {
+      /*
+       * 과거를 붙여도 **마지막 메시지는 그대로**라 여기서 끝난다. 예전에는 이때 플래그를
+       * 비우지 않아, "위로 올려 과거 읽기" 한 번이 플래그를 세운 채 남았다. 그 뒤 새 메시지가
+       * 오거나 내가 하나 보내면 그제서야 아래 보정 분기가 열리면서, 바닥으로 가야 할 화면이
+       * **그때 잰 옛 높이**로 튀었다 — 들락날락하다 보면 가끔 위로 튀던 것의 정체다.
+       * 그룹 목록은 처음부터 여기서 비우고 있었다. 동작을 맞춘다.
+       */
+      skipNextAutoScroll.current = false;
+      return;
+    }
     renderedLatestKey.current = latestKey;
 
     if (skipNextAutoScroll.current) {
+      // 위로 올려 과거를 읽는 중이면 바닥으로 끌어내리지 않는다. 위치는 브라우저가
+      // 유지하므로 scrollTop 을 직접 만지지 않는다(그룹 목록과 같은 처리).
       skipNextAutoScroll.current = false;
-      const el = listRef.current;
-      if (el) {
-        requestAnimationFrame(() => {
-          el.scrollTop = el.scrollHeight - previousScrollHeight.current;
-        });
-      }
       return;
     }
 
@@ -136,7 +140,6 @@ export function MessageList({
     if (el.scrollTop > 60) return;
 
     skipNextAutoScroll.current = true;
-    previousScrollHeight.current = el.scrollHeight;
     onLoadOlder();
   }, [hasMore, loadingOlder, onLoadOlder]);
 
