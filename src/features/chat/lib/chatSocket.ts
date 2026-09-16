@@ -120,3 +120,103 @@ function buildConnectHeaders(): Record<string, string> {
 
   return headers;
 }
+
+type ChatRoomsSocketHandlers = {
+  /** 구독 중인 방에 새 메시지가 들어왔다. */
+  onMessage: (roomId: number, message: ChatMessage) => void;
+  /** 내가 다른 화면·기기에서 읽어 커서가 올라갔다. */
+  onSelfRead?: (roomId: number, event: ChatReadEvent) => void;
+  onError?: (reason: string) => void;
+};
+
+export type ChatRoomsSocket = {
+  activate: () => void;
+  deactivate: () => Promise<void>;
+  /** 구독 대상을 갈아 끼운다. 늘어난 방만 구독하고 빠진 방만 해지한다. */
+  setRooms: (roomIds: number[]) => void;
+};
+
+/**
+ * 대화방 **목록**을 위한 연결. 방 하나가 아니라 내가 참여 중인 방들을 한 연결에서 함께 듣는다.
+ *
+ * 목록이 마운트할 때 한 번 읽고 마는 구조라, 목록을 보고 있는 동안 새 메시지가 와도 마지막
+ * 메시지도 안읽음 배지도 그대로였다. 서버에는 방 토픽(`/sub/chat/rooms/{id}`)밖에 없으므로
+ * 내 방들을 각각 구독한다 — 연결은 하나고 구독만 여러 개다.
+ *
+ * **구독할 수 있는 방만 넘겨야 한다.** 서버는 이탈·개방 전·종료된 방의 SUBSCRIBE 를 거부하고
+ * (`ChatRoomAccessChecker.validateActiveMember`), STOMP 는 그 거부를 ERROR 프레임으로 돌려주며
+ * **연결 전체가 끊긴다.** 한 방을 잘못 넣으면 나머지 방의 실시간까지 같이 죽는다.
+ */
+export function createChatRoomsSocket(handlers: ChatRoomsSocketHandlers): ChatRoomsSocket {
+  const subscriptions = new Map<number, StompSubscription>();
+  let desiredRoomIds: number[] = [];
+  let reconnectAttempt = 0;
+
+  const client = new Client({
+    beforeConnect: () => {
+      client.connectHeaders = buildConnectHeaders();
+      client.reconnectDelay = jitteredDelay(reconnectAttempt, Math.random());
+      reconnectAttempt += 1;
+    },
+    brokerURL: getChatSocketUrl(),
+    heartbeatIncoming: 10000,
+    heartbeatOutgoing: 10000,
+    reconnectDelay: BASE_RECONNECT_DELAY_MS,
+  });
+
+  const subscribeRoom = (roomId: number) => {
+    if (!client.connected || subscriptions.has(roomId)) return;
+
+    const subscription = client.subscribe(`/sub/chat/rooms/${roomId}`, (frame: IMessage) => {
+      try {
+        const payload = JSON.parse(frame.body) as ChatMessage | ChatReadEvent;
+        if ("type" in payload) {
+          if (payload.type === "READ") handlers.onSelfRead?.(roomId, payload);
+          return;
+        }
+        handlers.onMessage(roomId, payload);
+      } catch {
+        handlers.onError?.("수신 메시지를 해석하지 못했어요.");
+      }
+    });
+    subscriptions.set(roomId, subscription);
+  };
+
+  const syncSubscriptions = () => {
+    const wanted = new Set(desiredRoomIds);
+    for (const [roomId, subscription] of subscriptions) {
+      if (wanted.has(roomId)) continue;
+      subscription.unsubscribe();
+      subscriptions.delete(roomId);
+    }
+    desiredRoomIds.forEach(subscribeRoom);
+  };
+
+  client.onConnect = () => {
+    reconnectAttempt = 0;
+    client.reconnectDelay = BASE_RECONNECT_DELAY_MS;
+    // 재연결이면 이전 구독 핸들은 이미 죽었다. 장부를 비우고 다시 붙인다.
+    subscriptions.clear();
+    syncSubscriptions();
+  };
+
+  client.onWebSocketClose = () => {
+    subscriptions.clear();
+  };
+
+  client.onStompError = (frame) => {
+    handlers.onError?.(frame.headers.message ?? "채팅 서버 오류");
+  };
+
+  return {
+    activate: () => client.activate(),
+    deactivate: async () => {
+      subscriptions.clear();
+      await client.deactivate();
+    },
+    setRooms: (roomIds: number[]) => {
+      desiredRoomIds = [...roomIds];
+      syncSubscriptions();
+    },
+  };
+}

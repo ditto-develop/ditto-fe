@@ -80,4 +80,91 @@ describe("chat list", () => {
     cy.contains("button", "대화목록 전체보기").click();
     cy.contains("아직 나눈 대화가 없어요").should("be.visible");
   });
+
+  /**
+   * 목록은 마운트할 때 한 번 읽고 마는 구조라, 목록을 보고 있는 동안 새 메시지가 와도 마지막
+   * 메시지도 안읽음 배지도 그대로였다. 방 토픽을 목록에서도 구독해 그 자리에서 반영한다.
+   *
+   * 구독 대상은 **진행 중인 방만**이다 — 서버는 종료·개방 전·이탈한 방의 SUBSCRIBE 를 거부하고
+   * STOMP 는 그 거부에 연결 전체를 끊는다.
+   */
+  it("subscribes to active rooms and updates the row when a message arrives", () => {
+    const subscribed: string[] = [];
+    let deliver: (destination: string, payload: object) => void = () => {
+      throw new Error("socket not subscribed");
+    };
+
+    cy.visit("/chat", {
+      onBeforeLoad(win) {
+        const OriginalWebSocket = win.WebSocket;
+        class ListSocket {
+          readyState = 1;
+          binaryType = "arraybuffer";
+          onopen: (() => void) | null = null;
+          onmessage: ((event: { data: string }) => void) | null = null;
+          onclose: (() => void) | null = null;
+          private ids = new Map<string, string>();
+          constructor() {
+            setTimeout(() => this.onopen?.(), 0);
+          }
+          send(frame: string) {
+            if (frame.startsWith("CONNECT")) {
+              setTimeout(
+                () => this.onmessage?.({ data: "CONNECTED\nversion:1.2\nheart-beat:0,0\n\n\0" }),
+                0,
+              );
+            }
+            if (frame.startsWith("SUBSCRIBE")) {
+              const destination = frame.match(/\ndestination:([^\n]+)/)?.[1] ?? "";
+              const id = frame.match(/\nid:([^\n]+)/)?.[1] ?? "";
+              subscribed.push(destination);
+              this.ids.set(destination, id);
+              deliver = (target, payload) =>
+                this.onmessage?.({
+                  data: `MESSAGE\nsubscription:${this.ids.get(target)}\nmessage-id:list\ndestination:${target}\n\n${JSON.stringify(payload)}\0`,
+                });
+            }
+          }
+          close() {
+            this.readyState = 3;
+          }
+        }
+        win.WebSocket = new Proxy(OriginalWebSocket, {
+          construct(target, args) {
+            return String(args[0]).endsWith("/ws")
+              ? new ListSocket()
+              : Reflect.construct(target, args);
+          },
+        });
+      },
+    });
+
+    cy.contains("수민", { timeout: 8000 }).should("be.visible");
+
+    // 방 1·3 은 진행 중, 방 2 는 종료된 방이다.
+    cy.wrap(subscribed).should((destinations: string[]) => {
+      expect(destinations).to.include("/sub/chat/rooms/1");
+      expect(destinations).to.include("/sub/chat/rooms/3");
+      expect(destinations, "종료된 방은 구독하지 않는다").to.not.include("/sub/chat/rooms/2");
+    });
+
+    cy.get("[data-cy=unread-badge]").first().should("have.text", "1");
+
+    cy.then(() =>
+      deliver("/sub/chat/rooms/1", {
+        id: 31,
+        roomId: 1,
+        senderId: 2,
+        messageType: "TEXT",
+        content: "방금 도착한 메시지",
+        imageUrl: null,
+        unreadCount: 1,
+        createdAt: "2026-06-05 18:00:00",
+      }),
+    );
+
+    // 새로 고치지 않아도 미리보기와 배지가 따라온다.
+    cy.contains("방금 도착한 메시지").should("be.visible");
+    cy.get("[data-cy=unread-badge]").first().should("have.text", "2");
+  });
 });
