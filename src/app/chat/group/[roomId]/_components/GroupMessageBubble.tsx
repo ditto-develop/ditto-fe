@@ -51,9 +51,14 @@ export function GroupMessageBubble({
   if (isMine) {
     return (
       <SentRow>
-        {isLastInGroup && (
+        {(isLastInGroup || message.unreadCount > 0) && (
           <SentMeta>
-            <TimeLabel>{formatTime(message.createdAt)}</TimeLabel>
+            {message.unreadCount > 0 && (
+              <TimeLabel aria-label={`안 읽은 사람 ${message.unreadCount}명`}>
+                {message.unreadCount}
+              </TimeLabel>
+            )}
+            {isLastInGroup && <TimeLabel>{formatTime(message.createdAt)}</TimeLabel>}
           </SentMeta>
         )}
         <SentBubble $isFirstInGroup={isFirstInGroup}>{body}</SentBubble>

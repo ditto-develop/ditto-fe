@@ -38,6 +38,14 @@ export const CHAT_SYSTEM_EVENT_INSUFFICIENT_MEMBERS = "INSUFFICIENT_MEMBERS";
 export const CHAT_SYSTEM_EVENT_VOTE_CREATED = "VOTE_CREATED";
 export const CHAT_SYSTEM_EVENT_VOTE_CLOSED = "VOTE_CLOSED";
 
+export type ChatReadEvent = {
+  type: "READ";
+  roomId: number;
+  memberId: number;
+  previousLastReadMessageId: number | null;
+  lastReadMessageId: number;
+};
+
 /** GET /api/v1/chat/rooms/{roomId}/messages, STOMP 수신 payload 공통 형태. */
 export type ChatMessage = {
   id: number;
@@ -48,6 +56,8 @@ export type ChatMessage = {
   content: string;
   /** IMAGE 열람용 presigned URL. 그 외에는 null. 표시는 항상 이 값을 쓴다. */
   imageUrl: string | null;
+  /** 발신자를 제외한 현재 참여자 중 아직 읽지 않은 사람 수. */
+  unreadCount: number;
   /** yyyy-MM-dd HH:mm:ss */
   createdAt: string;
 };

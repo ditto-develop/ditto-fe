@@ -16,17 +16,30 @@ vi.mock("@/shared/lib/api/externalClient", () => ({
   externalApiFetch: (...args: unknown[]) => externalApiFetch(...args),
 }));
 
+const appAddListener = vi.fn(async () => ({ remove: async () => {} }));
+vi.mock("@capacitor/app", () => ({
+  App: { addListener: (...args: unknown[]) => appAddListener(...(args as [])) },
+}));
+const checkPermissions = vi.fn(async () => ({ receive: "granted" }));
 const requestPermissions = vi.fn(async () => ({ receive: "granted" }));
 const getToken = vi.fn(async () => ({ token: "fcm-token" }));
 const deleteToken = vi.fn(async () => {});
 const addListener = vi.fn(async () => ({ remove: async () => {} }));
 vi.mock("@capacitor-firebase/messaging", () => ({
-  FirebaseMessaging: {
+  // Capacitor 플러그인은 모든 프로퍼티 접근을 가상 메서드로 만드는 Proxy다.
+  // async 함수의 반환값으로 직접 쓰면 Promise가 then을 읽는 회귀를 잡는다.
+  FirebaseMessaging: new Proxy({
+    checkPermissions: () => checkPermissions(),
     requestPermissions: (...a: unknown[]) => requestPermissions(...(a as [])),
     getToken: (...a: unknown[]) => getToken(...(a as [])),
     deleteToken: (...a: unknown[]) => deleteToken(...(a as [])),
     addListener: (...a: unknown[]) => addListener(...(a as [])),
-  },
+  }, {
+    get(target, property, receiver) {
+      if (property === "then") throw new Error("Capacitor plugin must not be awaited directly");
+      return Reflect.get(target, property, receiver);
+    },
+  }),
 }));
 
 const isNativePlatform = vi.fn(() => false);
@@ -57,7 +70,10 @@ afterAll(() => {
   Reflect.deleteProperty(globalThis, "window");
 });
 
+const disposers: Array<() => void> = [];
+
 afterEach(() => {
+  disposers.splice(0).forEach((dispose) => dispose());
   vi.clearAllMocks();
   getPlatform.mockReturnValue("web");
   delete process.env.NEXT_PUBLIC_PUSH_ENABLED;
@@ -71,6 +87,7 @@ async function initOnNative(navigate = vi.fn()) {
 
   const push = await import("@/shared/lib/native/pushNotifications");
   const dispose = await push.initPushNotifications({ navigate });
+  disposers.push(dispose);
 
   const listenerFor = (event: string) => {
     const call = addListener.mock.calls.find(([name]) => name === event);
@@ -308,5 +325,42 @@ describe("네이티브 초기화 이후 동작", () => {
     expect(onPush).toHaveBeenCalled();
     expect(markNotificationRead).not.toHaveBeenCalled();
     window.removeEventListener(PUSH_RECEIVED_EVENT, onPush);
+  });
+});
+
+describe("디바이스 재등록 복구", () => {
+  it("앱 복귀 시 권한을 다시 확인하고 등록한다", async () => {
+    const { dispose } = await initOnNative();
+    externalApiFetch.mockClear();
+    const callback = appAddListener.mock.calls.at(-1)?.[1] as unknown as (state: { isActive: boolean }) => void;
+    callback({ isActive: true });
+    await vi.waitFor(() => expect(externalApiFetch).toHaveBeenCalledWith(
+      "/api/v1/notifications/devices",
+      { method: "POST", body: { token: "fcm-token", platform: "IOS" } },
+    ));
+    dispose();
+  });
+
+  it("온라인 복귀 시 재등록하고 정리 후에는 호출하지 않는다", async () => {
+    const { dispose } = await initOnNative();
+    externalApiFetch.mockClear();
+    window.dispatchEvent(new Event("online"));
+    await vi.waitFor(() => expect(externalApiFetch).toHaveBeenCalled());
+    dispose();
+    externalApiFetch.mockClear();
+    window.dispatchEvent(new Event("online"));
+    await Promise.resolve();
+    expect(externalApiFetch).not.toHaveBeenCalled();
+  });
+
+  it("복귀해도 권한이 거절되어 있으면 토큰을 등록하지 않는다", async () => {
+    const { dispose } = await initOnNative();
+    externalApiFetch.mockClear();
+    checkPermissions.mockResolvedValueOnce({ receive: "denied" });
+    const callback = appAddListener.mock.calls.at(-1)?.[1] as unknown as (state: { isActive: boolean }) => void;
+    callback({ isActive: true });
+    await vi.waitFor(() => expect(checkPermissions).toHaveBeenCalled());
+    expect(externalApiFetch).not.toHaveBeenCalled();
+    dispose();
   });
 });

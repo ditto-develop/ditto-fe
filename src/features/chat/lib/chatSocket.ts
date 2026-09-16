@@ -1,6 +1,6 @@
 import { Client, type IMessage, type StompSubscription } from "@stomp/stompjs";
 
-import type { ChatMessage, ChatOutgoingMessage } from "@/features/chat/model/types";
+import type { ChatMessage, ChatOutgoingMessage, ChatReadEvent } from "@/features/chat/model/types";
 import { getAccessToken } from "@/shared/lib/auth";
 import { getExternalApiBase } from "@/shared/lib/api/externalClient";
 
@@ -15,6 +15,7 @@ export function getChatSocketUrl(): string {
 
 type ChatSocketHandlers = {
   onMessage: (message: ChatMessage) => void;
+  onRead?: (event: ChatReadEvent) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
   onError?: (reason: string) => void;
@@ -67,7 +68,12 @@ export function createChatSocket(roomId: number, handlers: ChatSocketHandlers): 
 
     subscription = client.subscribe(`/sub/chat/rooms/${roomId}`, (frame: IMessage) => {
       try {
-        handlers.onMessage(JSON.parse(frame.body) as ChatMessage);
+        const payload = JSON.parse(frame.body) as ChatMessage | ChatReadEvent;
+        if ("type" in payload) {
+          if (payload.type === "READ" && payload.roomId === roomId) handlers.onRead?.(payload);
+          return;
+        }
+        handlers.onMessage(payload);
       } catch {
         handlers.onError?.("수신 메시지를 해석하지 못했어요.");
       }

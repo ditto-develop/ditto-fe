@@ -18,6 +18,7 @@ import type {
   ChatConnectionStatus,
   ChatMessage,
   ChatMessageType,
+  ChatReadEvent,
   ChatOptimisticMessage,
 } from "@/features/chat/model/types";
 import { getMyMemberId } from "@/shared/lib/auth";
@@ -80,6 +81,25 @@ export function mergeAscending(current: ChatMessage[], incoming: ChatMessage[]):
   incoming.forEach((message) => byId.set(message.id, message));
 
   return [...byId.values()].sort((left, right) => left.id - right.id);
+}
+
+/** READ는 직전 커서보다 큰 구간만 줄인다. 내 읽음은 내 메시지 수에 영향을 주지 않는다. */
+export function applyReadEvent(
+  messages: ChatMessage[],
+  event: ChatReadEvent,
+  myMemberId: number | null,
+): ChatMessage[] {
+  if (myMemberId === null || event.memberId === myMemberId) return messages;
+  return messages.map((message) =>
+    message.roomId === event.roomId &&
+    message.senderId === myMemberId &&
+    message.messageType !== "SYSTEM" &&
+    message.id > (event.previousLastReadMessageId ?? 0) &&
+    message.id <= event.lastReadMessageId &&
+    message.unreadCount > 0
+      ? { ...message, unreadCount: message.unreadCount - 1 }
+      : message,
+  );
 }
 
 /**
@@ -295,6 +315,8 @@ export function useChatRoom(
       }
 
       applyIncoming(collected.filter((message) => message.id > lastSeenId));
+      // 과거 메시지는 전송 에코로 처리하지 않고 최신 unreadCount만 포함해 병합한다.
+      setMessages((previous) => mergeAscending(previous, collected));
     },
     [applyIncoming, roomId],
   );
@@ -339,6 +361,9 @@ export function useChatRoom(
     setStatus("connecting");
     const socket = createChatSocket(roomId, {
       onMessage: (message) => applyIncoming([message]),
+      onRead: (event) => {
+        setMessages((previous) => applyReadEvent(previous, event, myMemberIdRef.current));
+      },
       onConnect: () => {
         setStatus("connected");
         // 끊겨 있는 동안 쌓인 메시지를 REST로 메운다. 메시지는 DB에 영속돼 유실이 아니다.

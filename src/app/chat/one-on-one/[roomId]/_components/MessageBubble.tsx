@@ -45,6 +45,7 @@ export function MessageBubble({
   }
 
   const deliveryStatus = "status" in message ? message.status : null;
+  const unreadCount = "unreadCount" in message ? message.unreadCount : 0;
   const imageUrl = "imageUrl" in message ? message.imageUrl : null;
   const body =
     message.messageType === "IMAGE" ? (
@@ -72,9 +73,12 @@ export function MessageBubble({
           <FailureIcon aria-label="전송 실패">!</FailureIcon>
         ) : deliveryStatus === "sending" ? (
           <SendingIndicator aria-label="전송 중" />
-        ) : isLastInGroup ? (
+        ) : isLastInGroup || unreadCount > 0 ? (
           <SentMeta>
-            <TimeLabel>{formatTime(message.createdAt)}</TimeLabel>
+            {unreadCount > 0 && (
+              <TimeLabel aria-label={`안 읽은 사람 ${unreadCount}명`}>{unreadCount}</TimeLabel>
+            )}
+            {isLastInGroup && <TimeLabel>{formatTime(message.createdAt)}</TimeLabel>}
           </SentMeta>
         ) : null}
         <SentContent>

@@ -35,8 +35,9 @@ import { getNativePlatform, isNativeApp } from "@/shared/lib/native/platform";
 
 /** 네이티브에서만 호출된다. 웹 번들의 초기 로드에서 firebase를 떼어내기 위한 지연 로딩. */
 async function loadMessaging() {
-    const { FirebaseMessaging } = await import("@capacitor-firebase/messaging");
-    return FirebaseMessaging;
+    // 플러그인 Proxy 자체를 반환하면 Promise가 가상의 then()을 호출해 멈춘다.
+    // 모듈 객체를 반환하고 호출부에서 플러그인을 꺼낸다.
+    return import("@capacitor-firebase/messaging");
 }
 
 /**
@@ -156,7 +157,7 @@ export async function registerDeviceToken(): Promise<void> {
     try {
         // 직전 로그아웃/탈퇴의 폐기가 아직 돌고 있으면 새 토큰이 그 폐기에 휩쓸린다.
         await awaitTokenDeletion();
-        const FirebaseMessaging = await loadMessaging();
+        const { FirebaseMessaging } = await loadMessaging();
         const { token } = await FirebaseMessaging.getToken();
         if (!token) return;
         await postDeviceToken(token);
@@ -252,11 +253,13 @@ type PushOptions = {
 export async function initPushNotifications({ navigate }: PushOptions): Promise<() => void> {
     if (!isNativeApp() || !isPushEnabled()) return () => {};
 
-    const FirebaseMessaging = await loadMessaging();
+    const { FirebaseMessaging } = await loadMessaging();
     const handles: PluginListenerHandle[] = [];
+    let active = true;
+    let retrying = false;
 
     const submitToken = (token: string) => {
-        if (!token) return;
+        if (!active || !token) return;
         postDeviceToken(token).catch((err: unknown) => {
             console.error("[push] 디바이스 토큰 등록 실패:", err);
         });
@@ -333,7 +336,35 @@ export async function initPushNotifications({ navigate }: PushOptions): Promise<
         console.error("[push] 토큰 발급 실패:", err);
     }
 
+    // 설정에서 권한을 허용했거나 최초 등록 때 네트워크가 끊겼다면 복귀 시 복구한다.
+    const retryRegistration = async () => {
+        if (!active || retrying) return;
+        retrying = true;
+        try {
+            const permission = await FirebaseMessaging.checkPermissions();
+            if (!active || permission.receive !== "granted") return;
+            await awaitTokenDeletion();
+            if (!active) return;
+            const { token } = await FirebaseMessaging.getToken();
+            if (active && token) await postDeviceToken(token);
+        } catch (err: unknown) {
+            console.error("[push] 디바이스 토큰 재등록 실패:", err);
+        } finally {
+            retrying = false;
+        }
+    };
+    const onOnline = () => { void retryRegistration(); };
+    const { App } = await import("@capacitor/app");
+    handles.push(
+        await App.addListener("appStateChange", ({ isActive }) => {
+            if (isActive) void retryRegistration();
+        }),
+    );
+    window.addEventListener("online", onOnline);
+
     return () => {
+        active = false;
+        window.removeEventListener("online", onOnline);
         handles.forEach((handle) => {
             handle.remove().catch(() => {});
         });
@@ -361,7 +392,7 @@ export async function releasePushToken(): Promise<void> {
 
 async function unlinkThenDiscardToken(): Promise<void> {
     try {
-        const FirebaseMessaging = await loadMessaging();
+        const { FirebaseMessaging } = await loadMessaging();
         // 해제 요청에 토큰이 필요하므로 폐기 전에 먼저 읽는다.
         const { token } = await FirebaseMessaging.getToken();
         // BE 해제는 **세션이 살아 있는 동안** 끝내야 하므로 여기서 기다린다.
