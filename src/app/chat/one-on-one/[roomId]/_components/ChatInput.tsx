@@ -17,11 +17,6 @@ interface ChatInputProps {
   onSend: (content: string) => Promise<void>;
   /** 이미지 첨부. 미지정 시 첨부 버튼을 숨긴다. */
   onSendImages?: (files: File[]) => Promise<void>;
-  /**
-   * 입력 포커스 변화. 페이지가 키보드 높이만큼 화면을 줄이는 데 쓴다 —
-   * 키보드는 레이아웃 뷰포트를 줄이지 않아 페이지가 직접 비켜 줘야 한다.
-   */
-  onFocusChange?: (focused: boolean) => void;
   disabled?: boolean;
 }
 
@@ -29,7 +24,7 @@ interface ChatInputProps {
 const MAX_MESSAGE_LENGTH = CHAT_TEXT_MAX_LENGTH;
 const TEXTAREA_MAX_HEIGHT = 190;
 
-export function ChatInput({ onSend, onSendImages, disabled, onFocusChange }: ChatInputProps) {
+export function ChatInput({ onSend, onSendImages, disabled }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [sending, setSending] = useState(false);
   /** 금칙어 확인 대기 중인 문장. null 이면 확인 모달이 닫혀 있다. */
@@ -159,8 +154,6 @@ export function ChatInput({ onSend, onSendImages, disabled, onFocusChange }: Cha
           onChange={(e) => setValue(e.target.value)}
           onInput={handleInput}
           placeholder="텍스트를 입력해 주세요."
-          onFocus={() => onFocusChange?.(true)}
-          onBlur={() => onFocusChange?.(false)}
           rows={1}
           maxLength={MAX_MESSAGE_LENGTH}
           disabled={disabled}
@@ -251,9 +244,9 @@ const AttachButton = styled.button`
 `;
 
 /*
- * display:none 을 쓰지 않는다. iOS 웹뷰에서 화면에 없는(렌더 트리에서 빠진) 파일 인풋을
- * click() 하면 사진 선택 시트가 붙을 자리를 잃어, 시트만 공중에 뜨고 뒤의 입력창이
- * 사라진 것처럼 보였다(2026-09-17 QA). 자리는 차지하되 보이지도 눌리지도 않게 둔다.
+ * display:none 을 쓰지 않는다. iOS 웹뷰에서 렌더 트리에 없는 파일 인풋을 click() 하면
+ * 사진 선택 시트가 붙을 자리를 잃어, 시트만 공중에 뜨고 뒤의 입력창이 사라진 것처럼
+ * 보였다(2026-09-17 QA). 자리는 차지하되 보이지도 눌리지도 않게 둔다.
  */
 const HiddenFileInput = styled.input`
   position: absolute;
