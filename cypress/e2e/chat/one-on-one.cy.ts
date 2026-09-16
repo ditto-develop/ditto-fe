@@ -158,7 +158,9 @@ describe("1:1 chat room", () => {
     cy.contains("아주 오래된 메시지").should("not.exist");
 
     // 리스트 최상단으로 스크롤하면 직전 응답의 nextCursor로 과거를 더 불러온다.
-    cy.get('[data-cy="message-list"]').scrollTo("top");
+    // 손가락이 닿았다는 신호를 먼저 준다 — 진입 직후의 프로그램 스크롤과 사용자의 스크롤을
+    // 가르기 위해 목록이 입력 이벤트를 기다린다(MessageList 의 userHasScrolled).
+    cy.get('[data-cy="message-list"]').trigger("touchstart").scrollTo("top");
 
     // 과거를 붙인 뒤에는 스크롤 위치를 유지하므로 화면 밖(위)에 있다. 존재만 확인한다.
     cy.contains("아주 오래된 메시지", { timeout: 8000 }).should("exist");

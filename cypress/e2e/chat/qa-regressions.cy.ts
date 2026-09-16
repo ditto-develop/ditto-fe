@@ -61,6 +61,64 @@ describe("chat QA regressions", () => {
   });
 
   /**
+   * 과거 페이지를 부르는 조건이 `scrollTop <= 60` 뿐이라, **바닥으로 맞추는 프로그램 스크롤도**
+   * 그 조건을 만족시켰다. 방이 짧아 바닥에서의 scrollTop 이 이미 60 이하면 들어가자마자 과거를
+   * 붙이고, 뒤이어 위치 보정이 돌면서 바닥 대신 이전 페이지의 첫 메시지로 화면이 튀었다.
+   * 손가락·휠이 닿기 전에는 과거를 부르지 않아야 한다.
+   */
+  it("pulls older pages only after the user touches the list", () => {
+    const older = { calls: 0 };
+    cy.intercept("GET", "**/chat/rooms/*/messages*", (req) => {
+      if (new URL(req.url).searchParams.get("cursor")) {
+        older.calls += 1;
+        req.reply({ success: true, data: { messages: [], nextCursor: null } });
+        return;
+      }
+      req.reply({
+        success: true,
+        data: {
+          // 스크롤이 생길 만큼 채운다. 응답은 최신 먼저다.
+          messages: Array.from({ length: 30 }, (_, index) => {
+            const id = 30 - index;
+            return {
+              id, roomId: 1, senderId: id === 30 ? 2 : 1, messageType: "TEXT",
+              content: `메시지 ${id}`, imageUrl: null, unreadCount: 0,
+              createdAt: "2026-06-06 10:10:00",
+            };
+          }),
+          nextCursor: 10,
+        },
+      });
+    });
+
+    cy.visit("/chat/one-on-one/1");
+    cy.contains("메시지 30", { timeout: 8000 }).should("be.visible");
+
+    // 사용자가 만지지 않은 스크롤 — 진입 시의 프로그램 스크롤과 같은 상황이다.
+    cy.get("[data-cy=message-list]").then((list) => {
+      const el = list[0];
+      el.scrollTop = 0;
+      el.dispatchEvent(new Event("scroll"));
+    });
+    cy.wait(300);
+    cy.then(() => {
+      expect(older.calls, "만지기 전 과거 요청").to.eq(0);
+    });
+
+    // 손가락이 닿은 뒤에는 열린다 — 위로 올려 과거를 읽는 경로는 살아 있어야 한다.
+    cy.get("[data-cy=message-list]").then((list) => {
+      const el = list[0];
+      el.dispatchEvent(new Event("touchstart", { bubbles: true }));
+      el.scrollTop = 0;
+      el.dispatchEvent(new Event("scroll"));
+    });
+    // 요청이 나가길 기다린다 — 바로 재면 아직 안 나간 상태를 잡는다.
+    cy.wrap(older).should((counter: { calls: number }) => {
+      expect(counter.calls, "만진 뒤 과거 요청").to.eq(1);
+    });
+  });
+
+  /**
    * 목록의 사진은 loading="lazy" 이고 크기를 예약하지 않아, 첫 스크롤이 끝난 뒤 로드되며
    * 높이를 최대 320px 늘린다. scrollTop 은 그대로라 방금 맞춰 둔 바닥이 위로 밀린다.
    *

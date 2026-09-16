@@ -85,6 +85,21 @@ export function MessageList({
   const renderedLatestKey = useRef<string | null>(null);
   // 위로 스크롤로 과거를 붙이면 스크롤 위치를 보정해야 하므로 자동 스크롤을 한 번 건너뛴다.
   const skipNextAutoScroll = useRef(false);
+
+  /**
+   * 사용자가 실제로 목록을 만졌는가.
+   *
+   * 과거 페이지를 부르는 조건이 `scrollTop <= 60` 뿐이라, **바닥으로 맞추는 프로그램 스크롤도
+   * scroll 이벤트를 낸다**는 점이 문제였다. 방이 짧아 바닥에서의 `scrollTop` 이 이미 60 이하면
+   * (내용이 화면에 다 들어오면 0이다) 들어가자마자 "사용자가 위로 올렸다"로 오해해 과거를
+   * 붙였고, 뒤이어 위치 보정이 돌면서 방금 맞춘 바닥 대신 **이전 페이지의 첫 메시지**로
+   * 화면이 튀었다. "들어가면 내가 연달아 보낸 것 중 가장 오래된 메시지가 떠 있다"의 정체다.
+   *
+   * 손가락·휠·키보드가 닿기 전에는 과거를 부르지 않는다. 시간(setTimeout)으로 재면 기기
+   * 성능에 따라 갈리지만, 입력 이벤트는 갈리지 않는다.
+   */
+  const userHasScrolled = useRef(false);
+
   const previousScrollHeight = useRef(0);
 
   useEffect(() => {
@@ -117,12 +132,29 @@ export function MessageList({
   const handleScroll = useCallback(() => {
     const el = listRef.current;
     if (!el || !hasMore || loadingOlder) return;
+    if (!userHasScrolled.current) return;
     if (el.scrollTop > 60) return;
 
     skipNextAutoScroll.current = true;
     previousScrollHeight.current = el.scrollHeight;
     onLoadOlder();
   }, [hasMore, loadingOlder, onLoadOlder]);
+
+  // 목록을 직접 만진 순간부터 과거 로드를 연다. 프로그램 스크롤은 이 이벤트를 내지 않는다.
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return undefined;
+
+    const markUserScroll = () => {
+      userHasScrolled.current = true;
+    };
+    const events = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
+    events.forEach((type) => el.addEventListener(type, markUserScroll, { passive: true }));
+
+    return () => {
+      events.forEach((type) => el.removeEventListener(type, markUserScroll));
+    };
+  }, []);
 
   useEffect(() => {
     const el = listRef.current;
