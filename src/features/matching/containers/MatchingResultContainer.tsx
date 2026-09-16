@@ -124,6 +124,8 @@ export function MatchingResultContainer({
                                 onClick={() => {
                                     const state = hasAcceptedMatch && match.profile.id === acceptedMatchUserId
                                         ? "chat_started"
+                                        : match.wasRejectedByThem || match.didRejectThem
+                                        ? "rejected"
                                         : match.hasReceivedRequest
                                         ? "after_acceptance"
                                         : match.hasRequested
@@ -140,6 +142,18 @@ export function MatchingResultContainer({
                                 }}
                             >
                                 <MatchProfileCard profile={match.profile} />
+                                {match.wasRejectedByThem && (
+                                    <StatusRow>
+                                        <StatusBlockIcon src="/icons/status/circle-block.svg" alt="" />
+                                        <StatusText>상대방이 신청을 거절했어요</StatusText>
+                                    </StatusRow>
+                                )}
+                                {match.didRejectThem && (
+                                    <StatusRow>
+                                        <StatusBlockIcon src="/icons/status/circle-block.svg" alt="" />
+                                        <StatusText>내가 신청을 거절했어요</StatusText>
+                                    </StatusRow>
+                                )}
                                 {match.hasReceivedRequest && (
                                     <StatusRow>
                                         <StatusIcon>▸</StatusIcon>
@@ -330,6 +344,13 @@ const StatusIcon = styled.span`
 
 /* Figma 2135:22944 — 채워진 원형 체크 아이콘(글자 ✓ 가 아니라 아이콘). */
 const StatusCheckIcon = styled.img`
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+`;
+
+/* 거절돼 더 진행할 수 없는 상태 — 체크 아이콘과 같은 크기로 맞춘다. */
+const StatusBlockIcon = styled.img`
   width: 16px;
   height: 16px;
   flex-shrink: 0;
