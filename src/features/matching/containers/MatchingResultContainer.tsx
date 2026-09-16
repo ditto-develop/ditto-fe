@@ -115,6 +115,8 @@ export function MatchingResultContainer({
                                         matchRequestId: match.matchRequestId,
                                         state: hasAcceptedMatch && match.profile.id === acceptedMatchUserId
                                             ? "chat_started"
+                                            : match.wasRejectedByThem || match.didRejectThem
+                                            ? "rejected"
                                             : match.hasReceivedRequest
                                             ? "after_acceptance"
                                             : match.hasRequested
@@ -124,6 +126,18 @@ export function MatchingResultContainer({
                                 }
                             >
                                 <MatchProfileCard profile={match.profile} />
+                                {match.wasRejectedByThem && (
+                                    <StatusRow>
+                                        <StatusCheck>—</StatusCheck>
+                                        <StatusText>상대방이 신청을 거절했어요</StatusText>
+                                    </StatusRow>
+                                )}
+                                {match.didRejectThem && (
+                                    <StatusRow>
+                                        <StatusCheck>—</StatusCheck>
+                                        <StatusText>내가 신청을 거절했어요</StatusText>
+                                    </StatusRow>
+                                )}
                                 {match.hasReceivedRequest && (
                                     <StatusRow>
                                         <StatusIcon>▸</StatusIcon>

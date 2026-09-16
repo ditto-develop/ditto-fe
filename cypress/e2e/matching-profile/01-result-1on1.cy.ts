@@ -89,6 +89,56 @@ describe("3.1 매칭 결과 - 1:1 매칭 (WF-06)", () => {
     });
   });
 
+  describe("거절된 요청", () => {
+    // 서버는 거절된 요청도 목록에 그대로 내려준다(보낸 목록에서 "거절당함"을 보여주려면 필요).
+    // 화면이 상태로 걸러야 하며, 걸러지지 않으면 이미 거절한 요청이 수락하기 탭에 계속 남는다.
+    beforeEach(() => {
+      cy.mockApi({
+        matchesFixture: "matches-1on1-received.json",
+        matchingStatusFixture: "matching-status-rejected.json",
+      });
+      cy.visit("/matching");
+      cy.contains("이번 주 매칭 결과", { timeout: 6000 }).should("be.visible");
+    });
+
+    it("거절한 요청은 수락하기 탭에서 사라진다", () => {
+      cy.contains("수락하기").click();
+
+      cy.contains("아직 받은 요청이 없어요").should("be.visible");
+      cy.contains("상대가 대화를 신청했어요").should("not.exist");
+    });
+
+    it("내가 거절한 후보에는 내가 거절했다는 상태가 표시된다", () => {
+      cy.contains("수민").should("be.visible");
+      cy.contains("내가 신청을 거절했어요").should("be.visible");
+    });
+
+    // "내가 거절했다"와 "거절당했다"는 사용자에게 전혀 다른 사실이라 문구를 나눈다.
+    it("내가 보낸 신청이 거절되면 거절당했다는 상태가 표시된다", () => {
+      cy.mockApi({
+        matchesFixture: "matches-1on1-received.json",
+        matchingStatusFixture: "matching-status-sent-rejected.json",
+      });
+      cy.visit("/matching");
+
+      cy.contains("이번 주 매칭 결과", { timeout: 6000 }).should("be.visible");
+      cy.contains("수민").should("be.visible");
+      cy.contains("상대방이 신청을 거절했어요").should("be.visible");
+      // 수락 대기로 오해하게 두지 않는다 — 거절 전에는 이 문구가 떠 있었다
+      cy.contains("내가 대화를 신청했어요").should("not.exist");
+    });
+
+    // 같은 주에는 다시 신청할 수 없다 — 서버가 MATCH_REQUEST_ALREADY_EXISTS 로 막으므로
+    // 신청 버튼을 되살리면 누를 때마다 실패한다.
+    it("거절된 후보의 소개노트에서는 대화를 다시 신청할 수 없다", () => {
+      cy.contains("수민").click();
+
+      cy.location("pathname", { timeout: 6000 }).should("match", /^\/profile\/501\/?$/);
+      cy.contains("이번 주에는 연결되지 않았어요").should("be.visible");
+      cy.contains("대화 신청하기").should("not.exist");
+    });
+  });
+
   describe("프로필 카드 → 소개노트 진입", () => {
     it("후보 카드를 누르면 해당 프로필 소개노트로 이동한다", () => {
       cy.mockApi({ matchesFixture: "matches-1on1-populated.json" });
