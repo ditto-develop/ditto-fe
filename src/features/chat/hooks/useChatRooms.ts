@@ -1,10 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getChatRooms } from "@/features/chat/api/chatApi";
 import { getCounterpartProfile } from "@/features/chat/api/counterpartApi";
-import type { ChatRoom, ChatRoomWithCounterpart } from "@/features/chat/model/types";
+import { createChatRoomsSocket } from "@/features/chat/lib/chatSocket";
+import { deriveRoomState } from "@/features/chat/lib/roomState";
+import type { ChatMessage, ChatRoom, ChatRoomWithCounterpart } from "@/features/chat/model/types";
+import { getMyMemberId } from "@/shared/lib/auth";
 
 type UseChatRoomsResult = {
   rooms: ChatRoomWithCounterpart[];
@@ -96,6 +99,69 @@ export function useChatRooms(): UseChatRoomsResult {
       window.removeEventListener("focus", refreshIfVisible);
     };
   }, [load]);
+
+  /**
+   * 구독할 수 있는 방만 추린다. 서버는 이탈·개방 전·종료된 방의 SUBSCRIBE 를 거부하고, STOMP 는
+   * 그 거부에 **연결 전체를 끊는다** — 한 방을 잘못 넣으면 나머지 방의 실시간까지 같이 죽는다.
+   * 판정은 화면이 쓰는 것과 같은 `deriveRoomState` 로 한다(기준이 갈리면 또 어긋난다).
+   */
+  const subscribableRoomIds = useMemo(
+    () =>
+      rooms
+        .filter((room) => !room.hasLeft && deriveRoomState(room) === "OPEN")
+        .map((room) => room.roomId),
+    [rooms],
+  );
+
+  // 구독 목록이 바뀔 때만 소켓에 알린다. 배열 정체성이 매번 바뀌어도 내용이 같으면 넘긴다.
+  const roomIdsKey = subscribableRoomIds.join(",");
+
+  /**
+   * 목록을 보고 있는 동안 들어온 메시지를 그 방 줄에 반영한다.
+   *
+   * 안읽음은 **보낸 사람과 무관하게** 올린다 — 서버의 방 단위 안읽음이 `id > 커서` 의 개수라
+   * 내 메시지도 SYSTEM 메시지도 함께 세기 때문이다. 목록에서는 내가 보낼 수 없으므로 실제로는
+   * 상대·시스템 메시지만 들어온다.
+   */
+  const applyIncoming = useCallback((roomId: number, message: ChatMessage) => {
+    setRooms((previous) =>
+      previous.map((room) =>
+        room.roomId === roomId
+          ? { ...room, lastMessage: message, unreadCount: room.unreadCount + 1 }
+          : room,
+      ),
+    );
+  }, []);
+
+  /** 다른 화면·기기에서 내가 읽었으면 배지를 내린다. 남이 읽은 것은 내 안읽음과 무관하다. */
+  const applySelfRead = useCallback((roomId: number, memberId: number) => {
+    if (memberId !== getMyMemberId()) return;
+    setRooms((previous) =>
+      previous.map((room) => (room.roomId === roomId ? { ...room, unreadCount: 0 } : room)),
+    );
+  }, []);
+
+  const socketRef = useRef<ReturnType<typeof createChatRoomsSocket> | null>(null);
+
+  useEffect(() => {
+    const socket = createChatRoomsSocket({
+      onMessage: applyIncoming,
+      onSelfRead: (roomId, event) => applySelfRead(roomId, event.memberId),
+      // 실시간이 끊겨도 목록은 조회·복귀 갱신으로 계속 동작한다. 조용히 접는다.
+      onError: () => undefined,
+    });
+    socketRef.current = socket;
+    socket.activate();
+
+    return () => {
+      socketRef.current = null;
+      void socket.deactivate();
+    };
+  }, [applyIncoming, applySelfRead]);
+
+  useEffect(() => {
+    socketRef.current?.setRooms(roomIdsKey === "" ? [] : roomIdsKey.split(",").map(Number));
+  }, [roomIdsKey]);
 
   return { rooms, loading, error, refresh: load };
 }
