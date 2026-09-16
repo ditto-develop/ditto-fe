@@ -139,13 +139,7 @@ export function IntroNoteContainer({
                 <BottomSection>
                     <GradientFade />
                     <ButtonArea>
-                        {state === "rejected" ? (
-                            // 거절된 요청은 되돌릴 수 없고 같은 주에 다시 신청할 수도 없다
-                            // (서버가 MATCH_REQUEST_ALREADY_EXISTS 로 막는다).
-                            <CompletedButton disabled>
-                                이번 주에는 연결되지 않았어요
-                            </CompletedButton>
-                        ) : state === "completed" ? (
+                        {state === "completed" ? (
                             <CompletedButton disabled>
                                 <ButtonIcon>
                                     <img src="/icons/status/circle-check-fill.svg" alt="" style={{ width: 20, height: 20, opacity: 0.32 }} />
