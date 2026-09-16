@@ -47,11 +47,32 @@ export function useStayAtBottom(listRef: RefObject<HTMLElement | null>): void {
     const el = listRef.current;
     if (!el) return;
 
+    /*
+     * **사용자가 직접 굴렸을 때만** 고정을 푼다.
+     *
+     * scroll 이벤트는 손가락뿐 아니라 우리가 맞춘 프로그램 스크롤·콘텐츠가 자라며 생긴
+     * 위치 변화로도 난다. 그걸 그대로 받으면, 방에 들어온 직후 사진이 아직 안 붙어 목록이
+     * 짧은 순간에 잰 값 하나로 pinned 가 꺼진다. 그 뒤 사진이 붙어 목록이 자라도 stick 이
+     * 막혀 있어 바닥으로 못 돌아온다 — 들락날락하다 보면 가끔 마지막 메시지가 아닌 곳에서
+     * 시작하던 것의 정체다(2026-09-17 QA).
+     *
+     * 실제 제스처(휠·터치·키보드)가 한 번이라도 있어야 판정을 시작하므로, 위로 올려
+     * 과거를 읽는 동안 건드리지 않는 성질은 그대로다.
+     */
+    let userDriven = false;
+    const markUserDriven = () => {
+      userDriven = true;
+    };
+
     const remember = () => {
+      if (!userDriven) return;
       pinnedRef.current = isPinnedToBottom(el);
     };
     remember();
     el.addEventListener("scroll", remember, { passive: true });
+    el.addEventListener("wheel", markUserDriven, { passive: true });
+    el.addEventListener("touchstart", markUserDriven, { passive: true });
+    el.addEventListener("keydown", markUserDriven);
 
     const timers: ReturnType<typeof setTimeout>[] = [];
 
@@ -68,6 +89,18 @@ export function useStayAtBottom(listRef: RefObject<HTMLElement | null>): void {
         timers.push(setTimeout(stick, delay));
       }
     };
+
+    /*
+     * 방에 들어온 직후에도 같은 일정으로 몇 번 다시 붙인다.
+     *
+     * 목록의 첫 스크롤은 메시지가 도착한 뒤 rAF 두 번 뒤에 한 번만 돈다. 그 시점에 아직
+     * 붙지 않은 것(지연 로드 사진·뒤늦게 붙는 배너·방 메타를 받아 늘어나는 안내 카드)이
+     * 있으면 바닥이 그만큼 밀리는데, 그 변화가 load 나 ResizeObserver 로 **떨어지지 않는
+     * 경우**가 있다. 들락날락을 반복하면 가끔 마지막 메시지가 아닌 곳에서 시작하던 이유다.
+     * 성장 이벤트에만 기대지 않고 첫 720ms 동안 몇 번 더 맞춘다 — 이미 바닥이면 no-op 이고,
+     * 사용자가 그 사이 위로 올리면 pinned 가 꺼져 건드리지 않는다.
+     */
+    handleViewportChange();
 
     // visualViewport 가 없는 환경(구형 브라우저·jsdom)에서는 window resize 로 떨어진다.
     const viewport = typeof window !== "undefined" ? window.visualViewport : undefined;
@@ -107,6 +140,9 @@ export function useStayAtBottom(listRef: RefObject<HTMLElement | null>): void {
 
     return () => {
       el.removeEventListener("scroll", remember);
+      el.removeEventListener("wheel", markUserDriven);
+      el.removeEventListener("touchstart", markUserDriven);
+      el.removeEventListener("keydown", markUserDriven);
       el.removeEventListener("load", stick, true);
       el.removeEventListener("error", stick, true);
       observer?.disconnect();
