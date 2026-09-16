@@ -25,12 +25,13 @@ export {
   formatVoteProgress,
   hasVoted,
   isTied,
+  summarizeVoteOutcome,
   tallyOptions,
   tallyPlaceOptions,
   tallyTimeOptions,
   toMeetAt,
 } from "./lib/voteResult";
-export type { VoteTally } from "./lib/voteResult";
+export type { VoteOutcome, VoteTally } from "./lib/voteResult";
 export {
   containsForbiddenWord,
   containsMoneyRequest,

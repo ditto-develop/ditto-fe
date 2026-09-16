@@ -88,11 +88,47 @@ describe("group meeting vote", () => {
     // 마감은 방 멤버 누구나 할 수 있고 멱등이다.
     cy.get(RESULTS, { timeout: 8000 }).contains("button", "투표 마감하기").click();
     cy.wait("@closeVote");
+    cy.get(RESULTS).find('[aria-label="뒤로가기"]').click();
+    cy.contains("만남 투표가 마감됐어요 · 결과 보기").should("be.visible").click();
 
     // 마감되면 진행 중 액션이 사라진다.
     cy.get(RESULTS).within(() => {
       cy.contains("button", "투표 마감하기").should("not.exist");
       cy.contains("button", "다시 투표하기").should("not.exist");
     });
+  });
+
+  /*
+   * 마감된 투표는 채팅방에 `VOTE_CLOSED:{id}` SYSTEM 메시지를 남기고, 그 메시지가
+   * 결과 카드를 그린다(Figma 4.2.4). 목업에 이미 마감된 투표 40번과 그 메시지를
+   * 심어 두었다 — 방금 마감한 투표로 확인하려면 STOMP 푸시가 필요한데 목업엔 없다.
+   */
+  it("renders the closed vote as a result card in the room", () => {
+    cy.visit("/chat/group/3");
+    cy.wait("@getRoomVotes");
+
+    // 장소·시간 모두 단독 1위라 '확정' 카드다.
+    cy.contains("투표 결과가 확정됐어요!", { timeout: 8000 }).should("be.visible");
+    cy.contains("성수 카페거리").should("be.visible");
+    cy.contains("6월 7일 일요일 오후 2시").should("be.visible");
+
+    // 예전의 한 줄 안내로 떨어지지 않는다.
+    cy.contains("만남 투표가 마감됐어요.").should("not.exist");
+  });
+
+  /*
+   * 동표로 끝난 투표(39번)는 확정 카드가 아니라 순위 목록 카드가 된다(Figma 2232:40125).
+   * 서버는 승자를 정하지 않고, 동표는 그대로 동표로 남는다 — 재투표·확정 절차는 없다.
+   */
+  it("renders a tied vote as a ranked result card", () => {
+    cy.visit("/chat/group/3");
+    cy.wait("@getRoomVotes");
+
+    cy.contains("투표가 동표로 마감됐어요", { timeout: 8000 })
+      .scrollIntoView()
+      .should("be.visible");
+    // 동표 둘이 입력 순서대로 1·2번으로 나열된다.
+    cy.contains("망원 한강공원").should("exist");
+    cy.contains("이태원 루프탑").should("exist");
   });
 });

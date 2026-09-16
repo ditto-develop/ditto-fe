@@ -27,7 +27,7 @@ export const Divider = styled.div<DividerProps>`
     `}
 
   /* Vertical */
-  ${({ $orientation = "vertical", $variant = "normal" }) =>
+  ${({ $orientation = "horizontal", $variant = "normal" }) =>
         $orientation === "vertical" &&
         css`
       width: 1px;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import styled from "styled-components";
@@ -12,6 +12,10 @@ export default function OnboardingCompletePage() {
   const router = useRouter();
   const { showToast } = useToast();
   const [isStarting, setIsStarting] = useState(false);
+  const [introSkipped, setIntroSkipped] = useState(false);
+  useEffect(() => {
+    setIntroSkipped(new URLSearchParams(window.location.search).get("introSkipped") === "1");
+  }, []);
 
   // 회원가입 직후 보유한 토큰을 refresh로 정식 로그인 세션으로 교체한 뒤 홈으로 이동한다.
   // (홈 진입 시 ClientLayout이 세션을 재검증하므로, 여기서 미리 세션을 확립해 튕김을 방지)
@@ -32,11 +36,17 @@ export default function OnboardingCompletePage() {
       <Body>
         <Content>
           <Header>
-            <TitleText>만남 준비 완료!</TitleText>
+            <TitleText>{introSkipped ? "소개 노트는 다음에 작성해도 괜찮아요" : "만남 준비 완료!"}</TitleText>
             <SubtitleText>
-              희박한 확률 속에서<br />
-              나와 닮은 누군가를 찾아보세요.<br />
-              우연한 만남이 당신을 기다리고 있어요.
+              {introSkipped ? <>
+                매칭에 참여하기 전, 필수 질문을 포함해<br />
+                소개 노트를 3개 이상 작성해 주세요.<br />
+                나를 소개할수록 더 잘 맞는 만남을 준비할 수 있어요.
+              </> : <>
+                희박한 확률 속에서<br />
+                나와 닮은 누군가를 찾아보세요.<br />
+                우연한 만남이 당신을 기다리고 있어요.
+              </>}
             </SubtitleText>
           </Header>
           <IllustrationWrapper>

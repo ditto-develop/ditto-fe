@@ -47,6 +47,7 @@ describe("edit intro note", () => {
     cy.wait("@putMyIntroNoteV1");
     cy.location("pathname").should("eq", "/profile/");
     cy.get("@putMyIntroNoteV1.all").should("have.length", 10);
+    cy.contains("소개 노트 수정이 완료되었어요.").should("be.visible");
   });
 
   it("submits typed but unsaved answers too", () => {
@@ -62,6 +63,17 @@ describe("edit intro note", () => {
 
     cy.wait("@putMyIntroNoteV1");
     cy.location("pathname").should("eq", "/profile/");
+  });
+
+  it("does not restore a cleared required answer when submitting an unsaved edit", () => {
+    cy.visit("/profile/intro-note");
+    cy.wait("@getMyIntroNotesV1");
+    cy.contains("따뜻함").click();
+    cy.contains("Q10.").parent().find("textarea").clear();
+    cy.contains("소개 노트 수정하기").click();
+    cy.contains("수정 완료").click();
+    cy.contains("필수 질문에 답해 주세요.").should("be.visible");
+    cy.get("@putMyIntroNoteV1.all").should("have.length", 0);
   });
 
   it("requires the Q10 answer", () => {

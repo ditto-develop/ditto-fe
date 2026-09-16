@@ -39,7 +39,14 @@ export function ReportContainer({ reportedMemberId, source = "profile" }: Report
     <ReportFormView
       target={target}
       form={form}
-      onCancel={() => router.back()}
+      onCancel={() => {
+        const returnTo = new URLSearchParams(window.location.search).get("returnTo");
+        if (returnTo && /^\/chat\/group\/\d+\/?\?member=\d+$/.test(returnTo)) {
+          router.replace(returnTo);
+        } else {
+          router.back();
+        }
+      }}
       onSubmit={handleSubmit}
     />
   );

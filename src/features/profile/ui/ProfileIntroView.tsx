@@ -37,7 +37,6 @@ export function ProfileIntroView({
     interests,
     introNotes,
     ratingSummary,
-    hasBottomButton = true,
     showAllNotes = false,
 }: ProfileIntroViewProps) {
     const previewNotes = useMemo(
@@ -90,7 +89,7 @@ export function ProfileIntroView({
 
             <QnACard $compact={Boolean(publicRatingSummary)}>
                 <TicketDeco src="/assets/decoration/deco.svg" alt="" />
-                <QnABody $compact={Boolean(publicRatingSummary)} $hasBottomButton={hasBottomButton}>
+                <QnABody $compact={Boolean(publicRatingSummary)}>
                     {previewNotes.map((item, i) => (
                         <IntroQAItem key={item.questionCode ?? item.question} data-testid="intro-note-preview-item">
                             <IntroQAQuestion>{item.question}</IntroQAQuestion>
@@ -100,7 +99,7 @@ export function ProfileIntroView({
                     ))}
                     {!showAllNotes && (
                         <>
-                            {previewNotes.length > 0 && <QnADivider $compact={Boolean(publicRatingSummary)} />}
+                            {previewNotes.length > 0 && <MoreDivider />}
                             <MoreIndicator $compact={Boolean(publicRatingSummary)}>
                                 <Dot /><Dot /><Dot />
                             </MoreIndicator>
@@ -272,7 +271,7 @@ const InterestBadge = styled.div`
 `;
 
 const QnACard = styled.div<{ $compact?: boolean }>`
-  flex: ${({ $compact }) => ($compact ? "0 0 auto" : "1")};
+  flex: 0 0 auto;
   min-height: ${({ $compact }) => ($compact ? "auto" : "0")};
   width: calc(100% - 32px);
   margin: ${({ $compact }) => ($compact ? "var(--space-5) var(--space-4) 0" : "32px 16px 0")};
@@ -292,20 +291,10 @@ const TicketDeco = styled.img`
   margin-bottom: -14px;
 `;
 
-const QnABody = styled.div<{ $compact?: boolean; $hasBottomButton?: boolean }>`
-  flex: ${({ $compact }) => ($compact ? "0 0 auto" : "1")};
-  min-height: ${({ $compact }) => ($compact ? "auto" : "0")};
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: ${({ $compact, $hasBottomButton }) => {
-    if ($compact) return "var(--space-5) var(--space-4)";
-    if ($hasBottomButton === false) return "32px 16px";
-    return "32px 16px calc(96px + env(safe-area-inset-bottom, 0px))";
-  }};
+const QnABody = styled.div<{ $compact?: boolean }>`
+  padding: ${({ $compact }) => $compact ? "var(--space-5) var(--space-4)" : "var(--space-8) var(--space-4)"};
   display: flex;
   flex-direction: column;
-  scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
 `;
 
 const IntroQAItem = styled.div`
@@ -338,12 +327,19 @@ const QnADivider = styled.hr<{ $compact?: boolean }>`
   width: 100%;
 `;
 
+const MoreDivider = styled.hr`
+  width: 100%;
+  margin: var(--space-4) 0 0;
+  border: 0;
+  border-top: 1px dashed var(--color-semantic-line-normal-neutral);
+`;
+
 const MoreIndicator = styled.div<{ $compact?: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: ${({ $compact }) => ($compact ? "var(--space-3) 0 var(--space-2)" : "24px 0 16px")};
+  padding: ${({ $compact }) => ($compact ? "var(--space-4) 0" : "var(--space-6) 0")};
 `;
 
 const Dot = styled.div`

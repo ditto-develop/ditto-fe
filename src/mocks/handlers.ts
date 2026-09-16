@@ -12,6 +12,7 @@ import {
   createVote as createMockVote,
   findVote as findMockVote,
   hasOpenVote as hasMockOpenVote,
+  listExtraMessages,
   listVotes as listMockVotes,
 } from "@/mocks/voteStore";
 
@@ -355,7 +356,12 @@ export const handlers = [
   http.get(apiPath("/chat/rooms/[^/]+/messages"), ({ request }) => {
     const url = new URL(request.url);
     const roomId = url.pathname.match(/\/chat\/rooms\/([^/]+)\/messages/)?.[1];
-    const page = roomId === "3" ? groupChatMessages : chatMessages;
+    const base = roomId === "3" ? groupChatMessages : chatMessages;
+    // 마감 등으로 런타임에 생긴 SYSTEM 메시지를 최신순 앞에 붙인다.
+    const extras = listExtraMessages(Number(roomId));
+    const page = extras.length
+      ? { ...base, messages: [...extras, ...base.messages] }
+      : base;
 
     // cursor가 오면 그보다 과거 구간을 돌려주고, 더 없으면 nextCursor를 null로 끝낸다.
     const cursor = url.searchParams.get("cursor");

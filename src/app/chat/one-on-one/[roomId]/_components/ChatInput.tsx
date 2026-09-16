@@ -1,6 +1,6 @@
 "use client";
 
-import type { ChangeEvent, KeyboardEvent } from "react";
+import type { ChangeEvent } from "react";
 import { useState, useRef } from "react";
 import styled from "styled-components";
 
@@ -106,25 +106,6 @@ export function ChatInput({ onSend, onSendImages, disabled }: ChatInputProps) {
     }
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    /**
-     * 한글 IME 조합 중의 Enter는 무시한다.
-     *
-     * 크롬은 조합 중 Enter에 keydown을 **두 번** 쏜다 — 조합 확정용(isComposing: true)과
-     * 실제 Enter. 가드가 없으면 첫 번째가 "안녕하세요"를 보내고 value를 비우는데,
-     * 조합이 아직 안 끝나 compositionend가 마지막 글자("요")를 되돌려 놓고,
-     * 두 번째 keydown이 그 "요"를 한 번 더 보낸다.
-     *
-     * keyCode 229는 isComposing을 안 채우는 구형 IME 대비다(deprecated지만 폴백으로만 쓴다).
-     */
-    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
-
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
   const handleInput = () => {
     const el = textareaRef.current;
     if (!el) return;
@@ -165,7 +146,6 @@ export function ChatInput({ onSend, onSendImages, disabled }: ChatInputProps) {
           ref={textareaRef}
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          onKeyDown={handleKeyDown}
           onInput={handleInput}
           placeholder="텍스트를 입력해 주세요."
           rows={1}
@@ -177,7 +157,6 @@ export function ChatInput({ onSend, onSendImages, disabled }: ChatInputProps) {
            * 버튼을 누르면 기본 동작으로 입력창의 포커스가 풀려 **키보드가 닫힌다**. 그러면
            * 시각 뷰포트가 커지는데 목록의 scrollTop 은 그대로라 마지막 메시지가 화면 밖으로
            * 밀려난다 — 사용자에게는 "보내자마자 대화가 내려가 버린다"로 보였다(2026-09-15 QA).
-           * Enter 로 보낼 때는 포커스가 안 풀려 멀쩡했던 것이 이 차이다.
            */
           onMouseDown={(e) => e.preventDefault()}
           onClick={handleSend}

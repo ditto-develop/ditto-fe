@@ -3,12 +3,18 @@
 import { useCallback, useEffect, useRef } from "react";
 import type React from "react";
 import styled from "styled-components";
-import { formatMeetAt, getSystemMessageText, parseVoteSystemMessage } from "@/features/chat";
+import {
+  formatMeetAt,
+  getSystemMessageText,
+  parseVoteSystemMessage,
+  summarizeVoteOutcome,
+} from "@/features/chat";
 import type { ChatMessage, CounterpartProfile, GroupVote } from "@/features/chat";
 import { renderChatSafetyWarnings } from "@/app/chat/_components/ChatSafetyWarning";
 import { useStayAtBottom } from "@/features/chat/hooks/useStayAtBottom";
 import { GroupMessageBubble } from "./GroupMessageBubble";
 import { VoteCreatedMessageBubble } from "./VoteCreatedMessageBubble";
+import { VoteResultMessageBubble } from "./VoteResultMessageBubble";
 
 interface GroupMessageListProps {
   messages: ChatMessage[];
@@ -163,10 +169,37 @@ export function GroupMessageList({
         }
 
         if (voteEvent?.code === "VOTE_CLOSED") {
+          const vote = getVoteById?.(voteEvent.voteId) ?? null;
+          /*
+           * 상세를 아직 못 읽었거나(vote === null) 아무도 고르지 않은 채 마감되면
+           * 보여 줄 결과가 없다. 그때만 예전 한 줄 안내로 떨어진다.
+           */
+          const outcome = vote ? summarizeVoteOutcome(vote) : null;
+
+          if (!outcome) {
+            items.push(
+              <SystemMessageRow key={message.id}>
+                <SystemMessageText>만남 투표가 마감됐어요.</SystemMessageText>
+              </SystemMessageRow>,
+            );
+            return;
+          }
+
+          const closer = memberById.get(message.senderId);
+
           items.push(
-            <SystemMessageRow key={message.id}>
-              <SystemMessageText>만남 투표가 마감됐어요.</SystemMessageText>
-            </SystemMessageRow>,
+            <VoteResultMessageBubble
+              key={message.id}
+              isMine={isMine}
+              senderNickname={closer?.nickname ?? "알 수 없음"}
+              senderAvatarUrl={closer?.profileImageUrl ?? null}
+              // 결과 카드도 늘 한 장짜리다 — 연속 말풍선 묶음에 넣지 않는다.
+              isFirstInGroup
+              isLastInGroup
+              outcome={outcome}
+              timestamp={message.createdAt}
+              onClick={() => onVoteClick?.(voteEvent.voteId)}
+            />,
           );
           return;
         }

@@ -125,6 +125,35 @@ describe("settings", () => {
     cy.get('[role="switch"][aria-label="채팅 알림"]').click();
     cy.wait("@patchNotificationSettings");
     cy.get('[role="switch"][aria-label="채팅 알림"]').should("have.attr", "aria-checked", "true");
+    cy.contains("채팅 알림이 설정되었어요.").should("be.visible");
+    cy.get('[role="switch"][aria-label="마케팅 정보 수신"]').click();
+    cy.wait("@patchNotificationSettings");
+    cy.contains(/마케팅 정보 수신 동의 완료!.*\(\d{4}\.\d{2}\.\d{2}\)/).should("be.visible");
+    cy.get('[role="switch"][aria-label="마케팅 정보 수신"]').click();
+    cy.wait("@patchNotificationSettings");
+    cy.contains(/마케팅 정보 수신이 해제되었어요.*\(\d{4}\.\d{2}\.\d{2}\)/).should("be.visible");
+  });
+
+  it("opens the official notice and FAQ documents", () => {
+    cy.visit("/settings");
+    cy.window().then((win) => cy.stub(win, "open").as("openDocument"));
+    cy.contains("공지사항").click();
+    cy.get("@openDocument").should("have.been.calledWith", "https://app.notion.com/p/3c712870078f809e8d5cfa5809bd18bf?source=copy_link");
+    cy.contains("자주 묻는 질문").click();
+    cy.get("@openDocument").should("have.been.calledWith", "https://app.notion.com/p/FAQ-89012870078f820a905901157d1450a8?source=copy_link");
+  });
+
+  it("hides withdrawal actions while typing and cancels without horizontal overflow", () => {
+    cy.visit("/settings/withdraw");
+    cy.contains("button", "확인").click();
+    cy.get("textarea").type("다음에 다시 만나요");
+    cy.contains("button", "탈퇴하기").should("not.exist");
+    cy.get("textarea").blur();
+    cy.contains("button", "취소").click();
+    cy.location("pathname").should("include", "/settings");
+    assertNoPageHorizontalScroll();
+    cy.contains("차단 목록").click();
+    assertNoPageHorizontalScroll();
   });
 
   it("unblocks a blocked user", () => {
@@ -207,6 +236,8 @@ describe("settings", () => {
     cy.contains("button", "탈퇴하기").click();
     cy.wait("@leaveUser");
     cy.contains("탈퇴 완료").should("be.visible");
+    cy.contains("탈퇴 실패").should("not.exist");
+    cy.get("@leaveUser.all").should("have.length", 1);
     cy.contains("button", "확인").click();
     cy.location("pathname").should("eq", "/");
   });

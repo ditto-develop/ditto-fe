@@ -14,23 +14,15 @@ type UseChatRoomsResult = {
 };
 
 async function attachCounterpart(room: ChatRoom): Promise<ChatRoomWithCounterpart> {
-  const counterpartId = room.counterpartMemberIds[0];
-
-  if (counterpartId === undefined) {
-    return { ...room, counterpartNickname: "알 수 없음", counterpartProfileImageUrl: null };
-  }
-
-  try {
-    const profile = await getCounterpartProfile(counterpartId);
-    return {
-      ...room,
-      counterpartNickname: profile.nickname,
-      counterpartProfileImageUrl: profile.profileImageUrl,
-    };
-  } catch {
-    // 프로필 조회 실패로 방 자체가 목록에서 사라지면 안 된다.
-    return { ...room, counterpartNickname: "알 수 없음", counterpartProfileImageUrl: null };
-  }
+  const ids = room.sourceType === "GROUP"
+    ? room.counterpartMemberIds
+    : room.counterpartMemberIds.slice(0, 1);
+  const profiles = await Promise.all(ids.map((id) => getCounterpartProfile(id).catch(() => null)));
+  return {
+    ...room,
+    counterpartNickname: profiles.map((profile) => profile?.nickname ?? "알 수 없음").join(", ") || "알 수 없음",
+    counterpartProfileImageUrl: profiles[0]?.profileImageUrl ?? null,
+  };
 }
 
 export function useChatRooms(): UseChatRoomsResult {

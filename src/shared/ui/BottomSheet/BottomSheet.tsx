@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import type React from 'react';
+import { useBodyScrollLock } from '@/shared/hooks/useBodyScrollLock';
 import styled, { keyframes } from 'styled-components';
 import { Heading2Bold, Label1Normal } from "@/shared/ui";
 import { useBackClose } from "@/shared/hooks/useBackClose";
@@ -16,13 +17,7 @@ const BottomSheet = ({ title, subTitle, detail, closer }: BottomSheetProps) => {
   // 이 컴포넌트는 열려 있는 동안만 마운트된다 — OS 뒤로가기로도 닫히게 한다.
   useBackClose(true, closer);
 
-  // 스크롤 잠금 처리만 남깁니다. (state 불필요)
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, []);
+  useBodyScrollLock(true);
 
   return (
     <Overlay onClick={closer}>
@@ -93,6 +88,7 @@ const Overlay = styled.div`
 `;
 
 const SheetContainer = styled.div`
+  box-sizing: border-box;
   width: 100%;
   max-width: 600px;
   background-color: var(--color-semantic-background-normal-normal);

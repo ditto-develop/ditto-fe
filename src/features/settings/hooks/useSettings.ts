@@ -46,12 +46,9 @@ export function useSettings(): UseSettingsResult {
   }, []);
 
   const updateSetting = useCallback(async (key: NotificationSettingKey, checked: boolean) => {
-    let previous: NotificationSettings | null = null;
-
-    setNotificationSettings((current) => {
-      previous = current;
-      return current ? { ...current, [key]: checked } : current;
-    });
+    const previous = notificationSettings;
+    if (!previous) return false;
+    setNotificationSettings({ ...previous, [key]: checked });
 
     try {
       const nextSettings = await updateNotificationSettings({ [key]: checked });
@@ -61,7 +58,7 @@ export function useSettings(): UseSettingsResult {
       setNotificationSettings(previous);
       return false;
     }
-  }, []);
+  }, [notificationSettings]);
 
   return { currentUser, notificationSettings, loading, error, updateSetting };
 }

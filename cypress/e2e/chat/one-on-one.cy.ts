@@ -195,7 +195,9 @@ describe("1:1 chat room", () => {
     cy.visit("/chat/one-on-one/1");
     cy.wait("@getChatMessages");
 
-    cy.get('textarea[placeholder="텍스트를 입력해 주세요."]').type("저도 반가워요!{enter}");
+    cy.get('textarea[placeholder="텍스트를 입력해 주세요."]').type("저도 반가워요!{enter}다음 줄").should("have.value", "저도 반가워요!\n다음 줄");
+    cy.get('[aria-label="전송 실패"]').should("not.exist");
+    cy.get('img[alt="전송"]').click();
     cy.contains("저도 반가워요!").should("be.visible");
     cy.get('[aria-label="전송 실패"]').should("be.visible");
     cy.contains("button", "재전송").should("be.visible").click();

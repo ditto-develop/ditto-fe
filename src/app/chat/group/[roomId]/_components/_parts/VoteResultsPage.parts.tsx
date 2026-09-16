@@ -323,6 +323,10 @@ export const BottomSpacer = styled.div`
 
 export const ActionArea = styled.div`
   flex-shrink: 0;
+  /* '다시 투표하기'와 '투표 마감하기'가 맞붙어 한 덩어리로 보였다. */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding: 16px;
   padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   background-color: var(--color-semantic-background-normal-normal);

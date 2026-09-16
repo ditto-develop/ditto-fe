@@ -1,6 +1,7 @@
 "use client";
 
 import styled from "styled-components";
+import { ChatMessageText } from "@/app/chat/_components/ChatMessageText";
 
 import { getSystemMessageText } from "@/features/chat";
 import type { ChatMessage, ChatOptimisticMessage } from "@/features/chat";
@@ -28,7 +29,6 @@ export function MessageBubble({
   message,
   isMine,
   isFirstInGroup,
-  isLastInGroup,
   partnerAvatarUrl,
   partnerNickname,
   onImageClick,
@@ -63,7 +63,7 @@ export function MessageBubble({
         )}
       </ImageButton>
     ) : (
-      <BubbleText>{message.content}</BubbleText>
+      <BubbleText><ChatMessageText content={message.content} /></BubbleText>
     );
 
   if (isMine) {
@@ -73,14 +73,14 @@ export function MessageBubble({
           <FailureIcon aria-label="전송 실패">!</FailureIcon>
         ) : deliveryStatus === "sending" ? (
           <SendingIndicator aria-label="전송 중" />
-        ) : isLastInGroup || unreadCount > 0 ? (
+        ) : (
           <SentMeta>
             {unreadCount > 0 && (
               <TimeLabel aria-label={`안 읽은 사람 ${unreadCount}명`}>{unreadCount}</TimeLabel>
             )}
-            {isLastInGroup && <TimeLabel>{formatTime(message.createdAt)}</TimeLabel>}
+            <TimeLabel>{formatTime(message.createdAt)}</TimeLabel>
           </SentMeta>
-        ) : null}
+        )}
         <SentContent>
           <SentBubble
             $isFirstInGroup={isFirstInGroup}
@@ -114,8 +114,9 @@ export function MessageBubble({
           >
             {body}
           </ReceivedBubble>
-          {isLastInGroup && (
+          {(
             <ReceivedMeta>
+              {unreadCount > 0 && <TimeLabel aria-label={`안 읽은 사람 ${unreadCount}명`}>{unreadCount}</TimeLabel>}
               <TimeLabel>{formatTime(message.createdAt)}</TimeLabel>
             </ReceivedMeta>
           )}
@@ -205,6 +206,7 @@ const ReceivedBubble = styled.div<{ $isFirstInGroup: boolean; $isImage: boolean 
 `;
 
 const BubbleText = styled.p`
+  white-space: pre-wrap;
   font-family: "Pretendard JP", sans-serif;
   font-size: var(--typography-body-2-normal-font-size);
   font-weight: 500;

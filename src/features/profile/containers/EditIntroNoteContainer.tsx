@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useToast } from "@/context/ToastContext";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { Step3Intro, type Step3Ref } from "@/components/onboarding/step/Step_3";
@@ -24,6 +25,7 @@ const EMPTY_FORM_DATA: FormData = {
 
 export function EditIntroNoteContainer() {
     const router = useRouter();
+    const { showToast } = useToast();
     const stepRef = useRef<Step3Ref>(null);
     const [controlButton, setControlButton] = useState<ControlButtonVariant>("disabled");
     const [formData, setFormData] = useState<FormData>(EMPTY_FORM_DATA);
@@ -78,7 +80,10 @@ export function EditIntroNoteContainer() {
                     saveExternalIntroNote(field.code, values[index] ?? "")
                 )),
             );
+            showToast("소개 노트 수정이 완료되었어요.", "default");
             router.push("/profile");
+        } catch {
+            showToast("소개 노트를 저장하지 못했어요. 다시 시도해 주세요.", "error");
         } finally {
             setSubmitting(false);
         }

@@ -151,29 +151,29 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
      */
     const keyboardInset = useKeyboardInset(activeId !== null);
 
-    // ✅ 부모에서 호출할 검증 함수
+    const getCurrentValues = () => questions.map((_, index) =>
+      textAreaRefs.current[index]?.getValue() ?? data.introduce[index] ?? "",
+    );
+
     useImperativeHandle(ref, () => ({
       handleSubmit: () => {
-        if (!requiredAnswered) {
-          // 토스트만으로는 어느 질문이 문제인지 알 수 없다. 해당 질문을 화면에 띄우고 강조한다.
+        const values = getCurrentValues();
+        const missingIndex = questions.findIndex((question) =>
+          question.required && !values[question.index].trim(),
+        );
+        if (missingIndex !== -1) {
           setShowRequiredHint(true);
-          questionRefs.current[missingRequiredIndex]?.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-          });
+          questionRefs.current[missingIndex]?.scrollIntoView({ behavior: "smooth", block: "center" });
           showToast("필수 질문에 답해 주세요.", "error");
-        } else if (completedCount < MIN_INTRO_NOTE_ANSWERS) {
-          showToast(`최소 ${MIN_INTRO_NOTE_ANSWERS}개 이상 작성해주세요.`, "error");
+          return false;
         }
-        return canSubmit;
+        if (values.filter((value) => value.trim()).length < MIN_INTRO_NOTE_ANSWERS) {
+          showToast(`최소 ${MIN_INTRO_NOTE_ANSWERS}개 이상 작성해주세요.`, "error");
+          return false;
+        }
+        return true;
       },
-      // 저장 여부와 관계없이 현재 입력된 모든 값 반환 (부분 저장용)
-      getCurrentValues: () => {
-        return questions.map((_, index) => {
-          const typed = textAreaRefs.current[index]?.getValue() ?? "";
-          return typed.trim().length > 0 ? typed : (data.introduce[index] ?? "");
-        });
-      },
+      getCurrentValues,
     }));
 
     // ✅ 버튼 활성화 조건 (3개 이상 및 필수 질문 작성 시 활성화)

@@ -57,6 +57,41 @@ export function isTied(tallies: Array<VoteTally<unknown>>): boolean {
   return tallies.filter((tally) => tally.isWinner).length > 1;
 }
 
+/**
+ * 마감된 투표의 결과 요약. 채팅방 결과 카드가 읽는다.
+ *
+ * `null` 은 **아무도 고르지 않은 채 마감된 경우**다 — 0표끼리는 동률이어도 승자가
+ * 아니라서(tallyOptions) 보여 줄 결과가 없다. 호출부는 기존 한 줄 안내로 떨어뜨린다.
+ *
+ * ⚠️ 장소·시간 중 **한쪽만 동표인 경우**도 `tied` 로 본다. Figma 에 그 조합이 없어
+ * 카드를 하나 더 만드는 대신, 확정된 쪽은 1번 하나만 있는 목록으로 그린다.
+ */
+export type VoteOutcome =
+  | { kind: "decided"; place: string; time: string }
+  | { kind: "tied"; places: string[]; times: string[] };
+
+export function summarizeVoteOutcome(vote: GroupVote): VoteOutcome | null {
+  const places = tallyPlaceOptions(vote).filter((tally) => tally.isWinner);
+  const times = tallyTimeOptions(vote).filter((tally) => tally.isWinner);
+
+  if (places.length === 0 || times.length === 0) return null;
+
+  if (places.length === 1 && times.length === 1) {
+    return {
+      kind: "decided",
+      place: places[0].option.label,
+      time: formatMeetAt(times[0].option.meetAt),
+    };
+  }
+
+  return {
+    kind: "tied",
+    // 동표의 노출 순서는 생성 시 입력 순이다(tallyOptions 가 정렬하지 않는 이유).
+    places: places.map((tally) => tally.option.label),
+    times: times.map((tally) => formatMeetAt(tally.option.meetAt)),
+  };
+}
+
 /** 내가 한 표라도 던졌는가. 제출 화면과 결과 화면을 가르는 기준이다. */
 export function hasVoted(myVote: MyVote | null): boolean {
   return myVote !== null;

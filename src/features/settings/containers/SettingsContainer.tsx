@@ -37,8 +37,11 @@ const notificationRows: Array<{ key: NotificationSettingKey; label: string }> = 
 
 export function SettingsContainer() {
   const router = useRouter();
-  const { showToast } = useToast();
+  const { showToast, removeToast } = useToast();
+  const notificationToastId = useRef<string | null>(null);
   const { currentUser, notificationSettings, loading, error, updateSetting } = useSettings();
+  const updating = useRef(false);
+  const [savingSetting, setSavingSetting] = useState(false);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   // 로그아웃은 몇 백 ms~수 초가 걸린다. 그 사이 "확인"이 다시 눌리면 안 된다.
   const loggingOut = useRef(false);
@@ -78,8 +81,27 @@ export function SettingsContainer() {
   ];
 
   const handleToggle = async (key: NotificationSettingKey, checked: boolean) => {
+    if (updating.current) return;
+    updating.current = true;
+    setSavingSetting(true);
     const updated = await updateSetting(key, checked);
-    if (!updated) showToast("알림 설정을 저장하지 못했어요.", "error");
+    updating.current = false;
+    setSavingSetting(false);
+    if (notificationToastId.current) removeToast(notificationToastId.current);
+    if (!updated) {
+      notificationToastId.current = showToast("알림 설정을 저장하지 못했어요.", "error");
+      return;
+    }
+    if (key === "marketing") {
+      const now = new Date();
+      const date = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0"), String(now.getDate()).padStart(2, "0")].join(".");
+      notificationToastId.current = showToast(checked
+        ? `마케팅 정보 수신 동의 완료! 알찬 혜택과 소식을 전해드릴게요. (${date})`
+        : `마케팅 정보 수신이 해제되었어요. 주요 서비스 알림은 계속 받아보실 수 있어요. (${date})`, "default");
+    } else {
+      const label = notificationRows.find((row) => row.key === key)?.label;
+      notificationToastId.current = showToast(`${label}이 ${checked ? "설정되었어요" : "해제되었어요"}.`, "default");
+    }
   };
 
   const handleLogout = async () => {
@@ -140,7 +162,7 @@ export function SettingsContainer() {
               <Switch
                 aria-label={row.label}
                 checked={Boolean(notificationSettings?.[row.key])}
-                disabled={!notificationSettings}
+                disabled={!notificationSettings || savingSetting}
                 onCheckedChange={(checked) => handleToggle(row.key, checked)}
               />
             </StaticRow>
@@ -219,10 +241,10 @@ const Section = styled.section`
 const SectionLabel = styled.h2`
   margin: 0;
   padding: 0 var(--space-5) var(--space-4);
-  font-size: var(--typography-body-1-normal-font-size);
-  font-weight: var(--typography-body-1-normal-font-weight);
-  line-height: var(--typography-body-1-normal-line-height);
-  letter-spacing: var(--typography-body-1-normal-letter-spacing);
+  font-size: var(--typography-heading-2-font-size);
+  font-weight: var(--typography-heading-2-font-weight);
+  line-height: var(--typography-heading-2-line-height);
+  letter-spacing: var(--typography-heading-2-letter-spacing);
   color: var(--color-semantic-label-strong);
 `;
 

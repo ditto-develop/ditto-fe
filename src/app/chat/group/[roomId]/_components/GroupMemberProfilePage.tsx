@@ -151,7 +151,8 @@ export function GroupMemberProfilePage({
           onClose={() => setIsMoreModalOpen(false)}
           onReport={() => {
             setIsMoreModalOpen(false);
-            router.push(`/report?userId=${userId}`);
+            const returnTo = `${window.location.pathname}?member=${encodeURIComponent(userId)}`;
+            router.push(`/report?userId=${userId}&source=chat-room&returnTo=${encodeURIComponent(returnTo)}`);
           }}
         />
       )}

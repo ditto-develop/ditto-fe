@@ -58,8 +58,96 @@ function seedVote(): GroupVote {
   };
 }
 
+/**
+ * 이미 마감된 지난 투표. 채팅방의 `VOTE_CLOSED:40` SYSTEM 메시지
+ * (group-chat-messages.json)가 이걸 읽어 결과 카드를 그린다.
+ *
+ * 장소·시간 모두 단독 1위라 '확정' 카드가 나온다. 동표 카드를 보려면 아래
+ * voterIds 를 같은 수로 맞추면 된다.
+ */
+function seedClosedVote(): GroupVote {
+  return {
+    voteId: 40,
+    roomId: MOCK_GROUP_ROOM_ID,
+    status: "CLOSED",
+    allowMultiple: false,
+    createdBy: 2,
+    createdAt: "2026-06-04 12:00:00",
+    closedAt: "2026-06-04 21:00:00",
+    totalMembers: MOCK_TOTAL_MEMBERS,
+    votedCount: 3,
+    placeOptions: [
+      {
+        optionId: 291,
+        label: "성수 카페거리",
+        address: "서울 성동구 아차산로",
+        mapLink: null,
+        latitude: null,
+        longitude: null,
+        voterIds: [1, 2],
+      },
+      {
+        optionId: 292,
+        label: "연남동 골목",
+        address: null,
+        mapLink: null,
+        latitude: null,
+        longitude: null,
+        voterIds: [3],
+      },
+    ],
+    timeOptions: [
+      { optionId: 293, meetAt: "2026-06-07 14:00:00", voterIds: [1, 2] },
+      { optionId: 294, meetAt: "2026-06-07 18:00:00", voterIds: [3] },
+    ],
+    myVote: { placeIds: [291], timeIds: [293] },
+  };
+}
+
+/** 장소·시간이 모두 동표로 끝난 투표. 동표 결과 카드(Figma 2232:40125)를 확인한다. */
+function seedTiedVote(): GroupVote {
+  return {
+    voteId: 39,
+    roomId: MOCK_GROUP_ROOM_ID,
+    status: "CLOSED",
+    allowMultiple: false,
+    createdBy: 3,
+    createdAt: "2026-06-03 12:00:00",
+    closedAt: "2026-06-03 21:00:00",
+    totalMembers: MOCK_TOTAL_MEMBERS,
+    votedCount: 2,
+    placeOptions: [
+      {
+        optionId: 281,
+        label: "망원 한강공원",
+        address: null,
+        mapLink: null,
+        latitude: null,
+        longitude: null,
+        voterIds: [1],
+      },
+      {
+        optionId: 282,
+        label: "이태원 루프탑",
+        address: null,
+        mapLink: null,
+        latitude: null,
+        longitude: null,
+        voterIds: [2],
+      },
+    ],
+    timeOptions: [
+      { optionId: 283, meetAt: "2026-06-06 11:00:00", voterIds: [1] },
+      { optionId: 284, meetAt: "2026-06-06 17:00:00", voterIds: [2] },
+    ],
+    myVote: { placeIds: [281], timeIds: [283] },
+  };
+}
+
 /** 최신순. 방마다 배열 하나. */
-const votesByRoomId = new Map<number, GroupVote[]>([[MOCK_GROUP_ROOM_ID, [seedVote()]]]);
+const votesByRoomId = new Map<number, GroupVote[]>([
+  [MOCK_GROUP_ROOM_ID, [seedVote(), seedClosedVote(), seedTiedVote()]],
+]);
 
 export function listVotes(roomId: number): GroupVote[] {
   return votesByRoomId.get(roomId) ?? [];
@@ -134,11 +222,50 @@ export function castVote(vote: GroupVote, body: CastVoteRequest): GroupVote {
   return vote;
 }
 
+/**
+ * 마감이 채팅방에 남기는 SYSTEM 메시지.
+ *
+ * 실제 BE 는 마감 시 `VOTE_CLOSED:{voteId}` 를 방에 흘리고, 그 메시지가 결과 카드를
+ * 그리는 방아쇠다(GroupMessageList). 목업이 이걸 안 남기면 마감을 눌러도 카드가
+ * 영영 안 뜬다 — 화면이 도는지 확인할 수가 없다.
+ */
+type MockSystemMessage = {
+  id: number;
+  roomId: number;
+  senderId: number;
+  messageType: "SYSTEM";
+  content: string;
+  imageUrl: null;
+  createdAt: string;
+};
+
+/** 고정 픽스처(group-chat-messages.json)의 최대 id 가 43이라 그 위에서 이어 붙인다. */
+let nextSystemMessageId = 100;
+const extraMessagesByRoomId = new Map<number, MockSystemMessage[]>();
+
+/** 최신순. 핸들러가 고정 픽스처 앞에 붙인다. */
+export function listExtraMessages(roomId: number): MockSystemMessage[] {
+  return extraMessagesByRoomId.get(roomId) ?? [];
+}
+
 /** 멱등 — 이미 마감된 투표에 다시 불러도 성공으로 답한다. */
 export function closeVote(vote: GroupVote): GroupVote {
   if (vote.status === "OPEN") {
     vote.status = "CLOSED";
     vote.closedAt = new Date().toISOString().slice(0, 19).replace("T", " ");
+
+    // 마감은 누가 눌렀든 그 사람이 보낸 SYSTEM 메시지로 남는다. 목업에선 나다.
+    const extras = extraMessagesByRoomId.get(vote.roomId) ?? [];
+    extras.unshift({
+      id: nextSystemMessageId++,
+      roomId: vote.roomId,
+      senderId: MOCK_MY_MEMBER_ID,
+      messageType: "SYSTEM",
+      content: `VOTE_CLOSED:${vote.voteId}`,
+      imageUrl: null,
+      createdAt: vote.closedAt,
+    });
+    extraMessagesByRoomId.set(vote.roomId, extras);
   }
   return vote;
 }

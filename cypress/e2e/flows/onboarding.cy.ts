@@ -9,7 +9,7 @@ describe("onboarding flow", () => {
     cy.contains("button", "다음에 할래요").click();
 
     cy.location("pathname", { timeout: 6000 }).should("match", /^\/onboarding\/complete\/?$/);
-    cy.contains("만남 준비 완료!", { timeout: 6000 }).should("be.visible");
+    cy.contains("소개 노트는 다음에 작성해도 괜찮아요", { timeout: 6000 }).should("be.visible");
     cy.contains("button", "시작하기").click();
 
     cy.location("pathname", { timeout: 6000 }).should("match", /^\/home\/?$/);
@@ -170,5 +170,18 @@ describe("onboarding flow", () => {
           expect(bottom, "질문 하단이 키보드 위에 있어야 한다").to.be.at.most(keyboardTop);
         });
     });
+  });
+});
+
+
+describe("skipping intro notes", () => {
+  it("explains the matching requirement instead of claiming readiness", () => {
+    cy.mockApi();
+    cy.login();
+    cy.visit("/onboarding/intro");
+    cy.contains("button", "다음에 할래요").click();
+    cy.contains("소개 노트는 다음에 작성해도 괜찮아요").should("be.visible");
+    cy.contains("소개 노트를 3개 이상 작성해 주세요.").should("be.visible");
+    cy.contains("만남 준비 완료!").should("not.exist");
   });
 });

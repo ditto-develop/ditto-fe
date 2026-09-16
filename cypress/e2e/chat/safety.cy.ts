@@ -4,7 +4,7 @@
  * - "욕설, 링크 등에 대한 채팅 금지단어 보내지기" — 금칙어가 배너로만 뜨고 그대로 나갔다.
  *   이제 한 번 더 묻는다. 차단이 아니라 확인인 이유는 부분 일치라 오탐이 남아서다.
  * - "계좌번호 같은 주의사항 알림이 없음" — 1:1 방에만 있던 주의 카드가 그룹 방에는 없었다.
- * - "점3개에서 신고하기는 그룹에서는 없어야" — 누르면 토스트만 뜨는 죽은 버튼이었다.
+ * - 그룹 메뉴의 신고하기는 멤버 선택으로 연결한다.
  */
 
 const INPUT = 'textarea[placeholder="텍스트를 입력해 주세요."]';
@@ -99,14 +99,15 @@ describe("chat safety", () => {
   });
 
   describe("신고 진입점", () => {
-    it("그룹 방 3점 메뉴에는 신고하기가 없다 — 대상 한 명을 고를 수 없기 때문", () => {
+    it("그룹 방 신고하기에서 신고할 멤버를 선택한다", () => {
       cy.visit("/chat/group/3");
       cy.wait("@getChatRooms");
       cy.contains("다들 안녕하세요!", { timeout: 8000 }).should("be.visible");
 
       cy.get('img[alt="더보기"]').click();
       cy.contains("멤버 목록").should("be.visible");
-      cy.contains("신고하기").should("not.exist");
+      cy.contains("신고하기").click();
+      cy.contains("멤버 전체보기").should("be.visible");
     });
 
     it("그룹 신고는 멤버 프로필의 더보기로 간다", () => {
@@ -124,6 +125,12 @@ describe("chat safety", () => {
       cy.get('img[alt="더보기"]', { timeout: 6000 }).last().click();
       cy.contains("신고하기").click();
       cy.location("pathname", { timeout: 6000 }).should("include", "/report");
+      cy.contains("상세 설명").should("exist");
+      cy.contains("증거 첨부").should("exist");
+      cy.contains("button", "취소").click();
+      cy.location("pathname").should("include", "/chat/group/3");
+      cy.location("search").should("include", "member=");
+      cy.get('img[alt="더보기"]').should("have.length", 2);
     });
 
     it("1:1 방 3점 메뉴의 신고하기는 그대로 남아 있다 — 상대가 한 명이라 대상이 분명하다", () => {

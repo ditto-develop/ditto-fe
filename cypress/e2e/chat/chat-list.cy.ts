@@ -19,6 +19,17 @@ describe("chat list", () => {
     cy.location("pathname", { timeout: 6000 }).should("include", "/chat/one-on-one/1");
   });
 
+  it("shows every counterpart name for a group room", () => {
+    cy.fixture("public-profile.json").then((profile) => {
+      cy.intercept("GET", /\/api\/v1\/users\/\d+\/profile/, (req) => {
+        const memberId = req.url.match(/users\/(\d+)\/profile/)?.[1];
+        req.reply({ success: true, data: { ...profile, userId: Number(memberId), nickname: `멤버${memberId}` } });
+      });
+    });
+    cy.visit("/chat");
+    cy.contains("멤버2, 멤버3, 멤버4").should("be.visible");
+  });
+
   // 로딩 문구 한 줄만 띄우면 데이터 도착 순간 레이아웃이 통째로 바뀌어 화면이 튄다.
   it("holds the layout with a skeleton while rooms load", () => {
     cy.intercept("GET", "**/api/**/chat/rooms", (req) => {

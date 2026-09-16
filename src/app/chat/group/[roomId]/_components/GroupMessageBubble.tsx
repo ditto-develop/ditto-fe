@@ -1,6 +1,7 @@
 "use client";
 
 import styled from "styled-components";
+import { ChatMessageText } from "@/app/chat/_components/ChatMessageText";
 import type { ChatMessage } from "@/features/chat";
 
 interface GroupMessageBubbleProps {
@@ -25,7 +26,6 @@ export function GroupMessageBubble({
   message,
   isMine,
   isFirstInGroup,
-  isLastInGroup,
   senderNickname,
   senderAvatarUrl,
   onImageClick,
@@ -45,20 +45,20 @@ export function GroupMessageBubble({
         )}
       </ImageButton>
     ) : (
-      <BubbleText>{message.content}</BubbleText>
+      <BubbleText><ChatMessageText content={message.content} /></BubbleText>
     );
 
   if (isMine) {
     return (
       <SentRow>
-        {(isLastInGroup || message.unreadCount > 0) && (
+        {(
           <SentMeta>
             {message.unreadCount > 0 && (
               <TimeLabel aria-label={`안 읽은 사람 ${message.unreadCount}명`}>
                 {message.unreadCount}
               </TimeLabel>
             )}
-            {isLastInGroup && <TimeLabel>{formatTime(message.createdAt)}</TimeLabel>}
+            <TimeLabel>{formatTime(message.createdAt)}</TimeLabel>
           </SentMeta>
         )}
         <SentBubble $isFirstInGroup={isFirstInGroup}>{body}</SentBubble>
@@ -79,8 +79,9 @@ export function GroupMessageBubble({
         {isFirstInGroup && <NicknameLabel>{senderNickname}</NicknameLabel>}
         <ReceivedBubbleRow>
           <ReceivedBubble $isFirstInGroup={isFirstInGroup}>{body}</ReceivedBubble>
-          {isLastInGroup && (
+          {(
             <ReceivedMeta>
+              {message.unreadCount > 0 && <TimeLabel aria-label={`안 읽은 사람 ${message.unreadCount}명`}>{message.unreadCount}</TimeLabel>}
               <TimeLabel>{formatTime(message.createdAt)}</TimeLabel>
             </ReceivedMeta>
           )}
@@ -166,6 +167,7 @@ const ReceivedBubble = styled.div<{ $isFirstInGroup: boolean }>`
 `;
 
 const BubbleText = styled.p`
+  white-space: pre-wrap;
   font-family: "Pretendard JP", sans-serif;
   font-size: var(--typography-body-2-normal-font-size);
   font-weight: 500;

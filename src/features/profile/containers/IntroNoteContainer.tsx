@@ -161,14 +161,14 @@ export function IntroNoteContainer({
             <TopNavigation onBack={onBack} />
 
             {loading && (
-                <IntroPreviewScroll>
+                <IntroPreviewScroll $hasButton={hasButton}>
                     <ProfileIntroSkeleton />
                 </IntroPreviewScroll>
             )}
             {error && <StateText>{toProfileErrorText(error)}</StateText>}
 
             {profile && (
-                <IntroPreviewScroll>
+                <IntroPreviewScroll $hasButton={hasButton}>
                     <ProfileIntroView
                         avatarUrl={profile.avatarUrl}
                         name={profile.nickname}
@@ -285,13 +285,15 @@ const StateText = styled.p`
   padding: 32px 0;
 `;
 
-const IntroPreviewScroll = styled.div`
+const IntroPreviewScroll = styled.div<{ $hasButton: boolean }>`
   flex: 1;
   min-height: 0;
   width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-bottom: calc(var(--space-30) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: ${({ $hasButton }) => $hasButton
+    ? "calc(var(--space-30) + env(safe-area-inset-bottom))"
+    : "var(--space-4)"};
   scrollbar-width: none;
 
   &::-webkit-scrollbar {

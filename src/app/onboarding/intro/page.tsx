@@ -80,7 +80,7 @@ export default function IntroNotePage() {
   };
 
   const handleSkip = async () => {
-    router.push("/onboarding/complete");
+    router.push("/onboarding/complete?introSkipped=1");
   };
 
   if (loading) return null;

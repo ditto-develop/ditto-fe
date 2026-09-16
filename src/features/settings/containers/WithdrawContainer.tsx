@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { trackEvent } from "@/shared/lib/analytics";
@@ -46,6 +46,9 @@ const noticeItems = [
 export function WithdrawContainer() {
   const router = useRouter();
   const { profile, rawProfile } = useMyProfile();
+  const withdrawing = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [editingDetail, setEditingDetail] = useState(false);
   const [step, setStep] = useState<WithdrawStep>("notice");
   const [reason, setReason] = useState<string | null>(null);
   const [reasonDetail, setReasonDetail] = useState("");
@@ -61,16 +64,17 @@ export function WithdrawContainer() {
   );
 
   const handleWithdraw = async () => {
-    if (!rawProfile?.userId || !reason) return;
+    if (!rawProfile?.userId || !reason || withdrawing.current || dialog === "success") return;
+    withdrawing.current = true;
+    setSubmitting(true);
 
     /**
      * 푸시는 **탈퇴 요청 전에** 끊어야 한다. 탈퇴가 끝나면 보유 토큰이 전부 무효(6012)라
      * 해제 API를 부를 수 없고, 그러면 BE에 남은 디바이스 토큰으로 이 기기에 계속
      * 알림이 간다(BE 위키 Frontend-Push-Guide §2).
      */
-    await releasePushToken();
-
     try {
+      await releasePushToken();
       await leaveExternalUser(rawProfile.userId, reason, reasonDetail.trim() || undefined);
       // 사유는 정해진 선택지 값만 싣는다. 자유 입력(reasonDetail)은 절대 보내지 않는다.
       trackEvent("withdraw_complete", { reason });
@@ -91,6 +95,9 @@ export function WithdrawContainer() {
         setFailureMessage(FAILURE_MESSAGE.unknown);
       }
       setDialog("failure");
+    } finally {
+      withdrawing.current = false;
+      setSubmitting(false);
     }
   };
 
@@ -142,6 +149,8 @@ export function WithdrawContainer() {
               {/* 선택 입력이다. '기타'가 아니어도 BE가 받는다. */}
               <FieldLabel>더 하고 싶은 말이 있다면 남겨 주세요. (선택)</FieldLabel>
               <ReasonDetailInput
+                onFocus={() => setEditingDetail(true)}
+                onBlur={() => setEditingDetail(false)}
                 value={reasonDetail}
                 onChange={(event) => setReasonDetail(event.target.value)}
                 placeholder="자유롭게 적어 주세요"
@@ -156,7 +165,7 @@ export function WithdrawContainer() {
         ) : null}
       </Content>
 
-      {profileReady ? (
+      {profileReady && !editingDetail ? (
         <BottomActions>
           <CancelButton type="button" onClick={handleCancel}>
             취소
@@ -173,7 +182,7 @@ export function WithdrawContainer() {
           ) : (
             <PrimaryButton
               type="button"
-              disabled={!reason || !rawProfile?.userId}
+              disabled={!reason || !rawProfile?.userId || submitting || dialog === "success"}
               onClick={handleWithdraw}
             >
               탈퇴하기

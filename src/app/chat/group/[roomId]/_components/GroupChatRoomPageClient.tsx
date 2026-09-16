@@ -77,6 +77,12 @@ export function GroupChatRoomPageClient() {
   } = useChatRoom(roomId, { roomType: "group" });
   const { room, members, memberById, loading: metaLoading, refresh: refreshRoom } =
     useChatRoomMeta(roomId);
+  useEffect(() => {
+    const memberId = Number(new URLSearchParams(window.location.search).get("member"));
+    const member = members.find((item) => item.userId === memberId);
+    if (member) setSelectedMember(member);
+  }, [members]);
+
   // 개방 판정의 기준. 어드민 시각 오버라이드가 반영된 서버 기간이다.
   const serverPeriod = useSystemPeriod();
   const { showToast } = useToast();
@@ -105,6 +111,7 @@ export function GroupChatRoomPageClient() {
 
   // 투표는 그룹 방에만 있다. 다른 유형에 호출하면 서버가 8208로 거절한다.
   const {
+    votes,
     openVote,
     getVoteById,
     create: createVote,
@@ -123,6 +130,7 @@ export function GroupChatRoomPageClient() {
     return names;
   }, [members, myUserId]);
 
+  const latestClosedVote = votes.find((vote) => vote.status === "CLOSED");
   const activeVote = voteView ? getVoteById(voteView.voteId) : null;
 
   /** 아직 안 던졌으면 제출 화면, 던졌으면 결과 화면으로 연다. */
@@ -136,10 +144,10 @@ export function GroupChatRoomPageClient() {
   );
 
   const handleCreateVote = async (payload: CreateGroupVoteRequest) => {
-    const created = await createVote(payload);
+    await createVote(payload);
     setIsCreateVoteOpen(false);
-    // 만든 사람은 아직 표를 던지지 않았다 — 바로 제출 화면으로 이어 준다.
-    setVoteView({ mode: "submission", voteId: created.voteId });
+    setVoteView(null);
+    showToast("투표를 만들었어요.", "default");
   };
 
   const handleCastVote = async (body: CastVoteRequest) => {
@@ -212,6 +220,12 @@ export function GroupChatRoomPageClient() {
           }
           onVoteClick={() => openVoteView(openVote.voteId)}
         />
+      )}
+
+      {!openVote && latestClosedVote && (
+        <ClosedVoteBanner type="button" onClick={() => openVoteView(latestClosedVote.voteId)}>
+          만남 투표가 마감됐어요 · 결과 보기
+        </ClosedVoteBanner>
       )}
 
       <GroupMessageList
@@ -305,7 +319,12 @@ export function GroupChatRoomPageClient() {
           userId={String(selectedMember.userId)}
           nickname={selectedMember.nickname}
           profileImageUrl={selectedMember.profileImageUrl}
-          onClose={() => setSelectedMember(null)}
+          onClose={() => {
+            setSelectedMember(null);
+            if (new URLSearchParams(window.location.search).has("member")) {
+              router.replace(window.location.pathname, { scroll: false });
+            }
+          }}
         />
       )}
     </PageContainer>
@@ -333,4 +352,16 @@ const EmptyMessage = styled.div`
 
 const RateButton = styled(Button)`
   width: 100%;
+`;
+
+const ClosedVoteBanner = styled.button`
+  flex-shrink: 0;
+  margin: 0 var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-radi-4);
+  background-color: var(--color-semantic-background-elevated-normal);
+  color: var(--color-semantic-label-normal);
+  font: inherit;
+  cursor: pointer;
 `;

@@ -49,5 +49,125 @@
       }
     ],
     "myVote": null
+  },
+  {
+    "voteId": 40,
+    "roomId": 3,
+    "status": "CLOSED",
+    "allowMultiple": false,
+    "createdBy": 2,
+    "createdAt": "2026-06-04 12:00:00",
+    "closedAt": "2026-06-04 21:00:00",
+    "totalMembers": 4,
+    "votedCount": 3,
+    "placeOptions": [
+      {
+        "optionId": 291,
+        "label": "성수 카페거리",
+        "address": "서울 성동구 아차산로",
+        "mapLink": null,
+        "latitude": null,
+        "longitude": null,
+        "voterIds": [
+          1,
+          2
+        ]
+      },
+      {
+        "optionId": 292,
+        "label": "연남동 골목",
+        "address": null,
+        "mapLink": null,
+        "latitude": null,
+        "longitude": null,
+        "voterIds": [
+          3
+        ]
+      }
+    ],
+    "timeOptions": [
+      {
+        "optionId": 293,
+        "meetAt": "2026-06-07 14:00:00",
+        "voterIds": [
+          1,
+          2
+        ]
+      },
+      {
+        "optionId": 294,
+        "meetAt": "2026-06-07 18:00:00",
+        "voterIds": [
+          3
+        ]
+      }
+    ],
+    "myVote": {
+      "placeIds": [
+        291
+      ],
+      "timeIds": [
+        293
+      ]
+    }
+  },
+  {
+    "voteId": 39,
+    "roomId": 3,
+    "status": "CLOSED",
+    "allowMultiple": false,
+    "createdBy": 3,
+    "createdAt": "2026-06-03 12:00:00",
+    "closedAt": "2026-06-03 21:00:00",
+    "totalMembers": 4,
+    "votedCount": 2,
+    "placeOptions": [
+      {
+        "optionId": 281,
+        "label": "망원 한강공원",
+        "address": null,
+        "mapLink": null,
+        "latitude": null,
+        "longitude": null,
+        "voterIds": [
+          1
+        ]
+      },
+      {
+        "optionId": 282,
+        "label": "이태원 루프탑",
+        "address": null,
+        "mapLink": null,
+        "latitude": null,
+        "longitude": null,
+        "voterIds": [
+          2
+        ]
+      }
+    ],
+    "timeOptions": [
+      {
+        "optionId": 283,
+        "meetAt": "2026-06-06 11:00:00",
+        "voterIds": [
+          1
+        ]
+      },
+      {
+        "optionId": 284,
+        "meetAt": "2026-06-06 17:00:00",
+        "voterIds": [
+          2
+        ]
+      }
+    ],
+    "myVote": {
+      "placeIds": [
+        281
+      ],
+      "timeIds": [
+        283
+      ]
+    }
   }
 ]

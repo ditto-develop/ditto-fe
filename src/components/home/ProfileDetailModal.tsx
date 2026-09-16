@@ -113,7 +113,7 @@ export function ProfileDetailModal({
       <FullScreenModal isOpen={isOpen} onClose={onClose}>
         <Nav prev={onClose} />
 
-        <ContentBody>
+        <ContentBody $hideCta={hideCta}>
           <ProfileIntroView
             avatarUrl={profile.avatarUrl ?? '/assets/avatar/m1.png'}
             name={profile.name}
@@ -177,10 +177,11 @@ export function ProfileDetailModal({
   );
 }
 
-const ContentBody = styled.div`
+const ContentBody = styled.div<{ $hideCta: boolean }>`
+  min-height: 0;
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 120px;
+  padding-bottom: ${({ $hideCta }) => $hideCta ? "var(--space-4)" : "calc(var(--space-30) + env(safe-area-inset-bottom))"};
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -130,6 +130,7 @@ export function GroupMatchingResultModal({
 
   /** 수락은 했지만 아직 성사 전(수락자 3명 미만). 응답을 끝낸 상태라 버튼은 잠긴다. */
   const awaitingFormation = group.myStatus === "ACCEPTED";
+  const hasResponded = group.myStatus !== "PENDING";
 
   const shown = candidates.slice(0, 3);
   const extra = candidates.length - 3;
@@ -152,7 +153,7 @@ export function GroupMatchingResultModal({
 
       if (result.isFormed) {
         const toastId = `group-join-active-${Date.now()}`;
-        showToast("그룹에 참여했어요! 대화는 금요일에 시작 돼요", "default", {
+        showToast("그룹에 참여했어요. 대화는 금요일에 시작돼요.", "default", {
           id: toastId,
           actionLabel: "확인",
           onAction: () => removeToast(toastId),
@@ -287,13 +288,15 @@ export function GroupMatchingResultModal({
           <BottomActions>
             <ActionRow>
               <EqualActionButton
-                variant={awaitingFormation ? "disabled" : "secondary"}
+                variant={hasResponded ? "disabled" : "secondary"}
+                disabled={hasResponded || accepting}
                 onClick={!awaitingFormation ? () => setRejectAlertOpen(true) : undefined}
               >
                 거절하기
               </EqualActionButton>
               <EqualActionButton
-                variant={awaitingFormation ? "disabled" : "primary"}
+                variant={hasResponded ? "disabled" : "primary"}
+                disabled={hasResponded || accepting}
                 onClick={!awaitingFormation && !accepting ? () => setJoinConfirmOpen(true) : undefined}
               >
                 {accepting ? "참여 중..." : "참여하기"}

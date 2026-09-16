@@ -94,7 +94,7 @@ describe("3.1 매칭 결과 - 그룹 매칭 (WF-07)", () => {
       cy.contains("네, 참여할게요").click();
 
       cy.wait("@acceptGroupMatch");
-      cy.contains("그룹에 참여했어요! 대화는 금요일에 시작 돼요", { timeout: 6000 }).should("be.visible");
+      cy.contains("그룹에 참여했어요. 대화는 금요일에 시작돼요.", { timeout: 6000 }).should("be.visible");
       cy.contains("매칭 완료").should("be.visible");
       cy.contains("만남이 이루어졌어요!").should("be.visible");
     });
