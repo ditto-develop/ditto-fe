@@ -16,7 +16,12 @@ interface TimelineProps {
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px; /* 각 단계 사이의 간격 — 3단계 합쳐 100px(Figma Progress Tracker). */
+  /*
+   * 각 단계 사이의 간격. 행 높이(IconWrapper 28px)와 합쳐 단계 간 중심거리가
+   * Figma Progress Tracker 와 같은 40px 이 된다 — 8px 이던 때는 36px 이라
+   * 세 단계가 위로 4px 씩 당겨 붙어 보였다(QA BUG-053 '타임라인 상하 간격').
+   */
+  gap: var(--space-3);
   position: relative;
 `;
 
