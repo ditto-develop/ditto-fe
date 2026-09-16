@@ -2,10 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
+import { getGroupRoomTitle } from "@/features/chat";
 import { useTimer } from "@/app/chat/one-on-one/[roomId]/_components/useTimer";
 
 interface GroupChatRoomHeaderProps {
   memberNames: string[];
+  /** 그룹 퀴즈 주제. 서버가 주지 못하면(예전 방·조회 실패) null 이다. */
+  roomName?: string | null;
   totalMembers: number;
   expiresAt: Date | null;
   onMenuClick: () => void;
@@ -13,6 +16,7 @@ interface GroupChatRoomHeaderProps {
 
 export function GroupChatRoomHeader({
   memberNames,
+  roomName,
   totalMembers,
   expiresAt,
   onMenuClick,
@@ -20,7 +24,7 @@ export function GroupChatRoomHeader({
   const router = useRouter();
   const timeLeft = useTimer(expiresAt);
 
-  const titleText = memberNames.join(", ");
+  const titleText = getGroupRoomTitle(roomName, memberNames);
 
   return (
     <HeaderContainer>

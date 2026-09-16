@@ -21,7 +21,8 @@
     "isEnded": false,
     "endedAt": null,
     "endedReason": null,
-    "hasLeft": false
+    "hasLeft": false,
+    "roomName": null
   },
   {
     "roomId": 3,
@@ -47,7 +48,8 @@
     "isEnded": false,
     "endedAt": null,
     "endedReason": null,
-    "hasLeft": false
+    "hasLeft": false,
+    "roomName": "주말 취미 퀴즈"
   },
   {
     "roomId": 2,
@@ -71,6 +73,7 @@
     "isEnded": true,
     "endedAt": "2026-06-01 00:00:00",
     "endedReason": "EXPIRED",
-    "hasLeft": false
+    "hasLeft": false,
+    "roomName": null
   }
 ]

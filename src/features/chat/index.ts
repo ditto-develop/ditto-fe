@@ -11,6 +11,7 @@ export {
 export { castVote, closeVote, createVote, getRoomVotes, getVote } from "./api/voteApi";
 export {
   deriveRoomState,
+  getGroupRoomTitle,
   getLastMessagePreview,
   getRoomEndedMessage,
   getSystemMessageText,

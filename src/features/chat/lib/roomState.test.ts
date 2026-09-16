@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   deriveRoomState,
+  getGroupRoomTitle,
   getLastMessagePreview,
   getRoomEndedMessage,
   getSystemMessageText,
@@ -225,5 +226,21 @@ describe("getLastMessagePreview", () => {
 
   it("메시지가 없으면 undefined다", () => {
     expect(getLastMessagePreview({ lastMessage: null })).toBeUndefined();
+  });
+});
+
+describe("getGroupRoomTitle", () => {
+  it("방 이름이 있으면 그것을 쓴다 — 그룹 퀴즈 주제다", () => {
+    expect(getGroupRoomTitle("주말 취미 퀴즈", ["민지", "현우"])).toBe("주말 취미 퀴즈");
+  });
+
+  // 예전에 열린 방이나 조회 실패. 제목이 통째로 비는 것보다 낫다.
+  it("이름이 없으면 참여자 닉네임을 이어 붙인다", () => {
+    expect(getGroupRoomTitle(null, ["민지", "현우"])).toBe("민지, 현우");
+    expect(getGroupRoomTitle(undefined, ["민지"])).toBe("민지");
+  });
+
+  it("공백뿐인 이름은 없는 것으로 본다", () => {
+    expect(getGroupRoomTitle("   ", ["민지", "현우"])).toBe("민지, 현우");
   });
 });
