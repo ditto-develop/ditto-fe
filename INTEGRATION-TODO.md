@@ -319,8 +319,19 @@ CORS 와 무관한 서버 내부 오류다.
 
 ### B-1. OpenAPI 스펙 재생성
 
-`ditto-api.json`이 **구 스펙**이다(`localhost:4000`, v0.0.1, `/api/v1` 0개).
-`https://api.ditto.pics/docs/openapi.yaml`로 교체 후 `npm run generate-client`.
+~~`https://api.ditto.pics/docs/openapi.yaml`로 교체 후 `npm run generate-client`.~~
+**해결됨(2026-09-17) — 다만 재생성이 아니라 폐기로.**
+
+`ditto-api.json`은 구 스펙이 맞다(v0.0.1, `/api/v1` 0개). 그런데 **라이브 스펙으로 재생성하면 안 된다.**
+BE는 REST Docs(restdocs-api-spec)로 스펙을 만드는데 명명된 스키마가 없어, 생성기가
+`api_v1_chat_rooms_roomId_votes_696220761` 같은 해시 이름을 뱉는다. 응답 형태가 바뀔 때마다
+이름이 통째로 달라져 타입으로 쓸 수 없다.
+
+대신 이렇게 정리했다:
+- 생성된 `services/`는 **삭제했다.** 아무 데서도 호출하지 않는 죽은 코드였는데, 실제 서버에 없는
+  경로(`/api/chat/group-rooms/...`)를 가리켜 그대로 부르면 404가 나는 함정이었다(BUG-082 작업 중 발견).
+- `models/`(타입)와 `core/`(`client.ts`·`adminClient.ts`가 쓰는 request 래퍼)만 남겼다.
+- 새 엔드포인트는 수기 레이어(`externalApiFetch`)로 붙인다. 이미 chat·vote·matching이 그 방식이다.
 
 BE가 스키마 누락을 반영 완료했다([ditto-server#141](https://github.com/ditto-develop/ditto-server/pull/141)) —
 `endedAt`·`endedReason`·`lastMessage.imageUrl`·`messages[].imageUrl` 포함, 같은 원인으로 빠져 있던

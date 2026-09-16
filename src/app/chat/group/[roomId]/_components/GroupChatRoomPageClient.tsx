@@ -31,6 +31,7 @@ import { VoteResultsPage } from "./VoteResultsPage";
 import { VoteSubmissionPage } from "./VoteSubmissionPage";
 import { BottomActionArea, Button } from "@/shared/ui";
 import type { CounterpartProfile } from "@/features/chat";
+import type { AddOptionInput } from "@/features/chat/hooks/useGroupVote";
 
 /** 투표 화면은 방 위에 전체 화면으로 덮인다. 어떤 투표를 어느 모드로 볼지의 상태. */
 type VoteView = { mode: "submission" | "results"; voteId: number };
@@ -116,6 +117,7 @@ export function GroupChatRoomPageClient() {
     getVoteById,
     create: createVote,
     cast: castVote,
+    addOption: addVoteOption,
     close: closeVote,
   } = useGroupVote(roomId, {
     messages,
@@ -148,6 +150,15 @@ export function GroupChatRoomPageClient() {
     setIsCreateVoteOpen(false);
     setVoteView(null);
     showToast("투표를 만들었어요.", "default");
+  };
+
+  /**
+   * 진행 중 투표에 선택지 추가. 응답이 갱신된 상세라 훅이 그대로 갈아끼우므로
+   * 화면은 다시 열 필요 없이 새 선택지가 붙는다.
+   */
+  const handleAddVoteOption = async (option: AddOptionInput) => {
+    if (!voteView) return;
+    await addVoteOption(voteView.voteId, option);
   };
 
   const handleCastVote = async (body: CastVoteRequest) => {
@@ -285,6 +296,7 @@ export function GroupChatRoomPageClient() {
           vote={activeVote}
           onClose={() => setVoteView(null)}
           onSubmit={handleCastVote}
+          onAddOption={handleAddVoteOption}
         />
       )}
 

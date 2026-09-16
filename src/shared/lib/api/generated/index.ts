@@ -96,16 +96,3 @@ export type { VoteTimeOptionDto } from './models/VoteTimeOptionDto';
 export type { WeekGroupDto } from './models/WeekGroupDto';
 export type { YearGroupDto } from './models/YearGroupDto';
 
-export { AdminService } from './services/AdminService';
-export { AppService } from './services/AppService';
-export { AuthService } from './services/AuthService';
-export { ChatService } from './services/ChatService';
-export { MatchingService } from './services/MatchingService';
-export { ProfileService } from './services/ProfileService';
-export { ProfileDetailService } from './services/ProfileDetailService';
-export { QuizProgressService } from './services/QuizProgressService';
-export { QuizSetsService } from './services/QuizSetsService';
-export { QuizzesService } from './services/QuizzesService';
-export { RoleService } from './services/RoleService';
-export { SystemService } from './services/SystemService';
-export { UserService } from './services/UserService';

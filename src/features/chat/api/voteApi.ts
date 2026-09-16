@@ -1,6 +1,8 @@
 import type {
   CastVoteRequest,
   CreateGroupVoteRequest,
+  CreateVotePlaceOption,
+  CreateVoteTimeOption,
   GroupVote,
   MyVote,
   VotePlaceOption,
@@ -11,8 +13,8 @@ import { externalApiFetch } from "@/shared/lib/api/externalClient";
 /**
  * 그룹 만남 투표 (`/api/v1/chat/rooms/{roomId}/votes`).
  *
- * 다섯 엔드포인트가 **모두 같은 상세 형태**를 돌려준다. 생성·cast·close가 갱신된 상세를
- * 주므로 성공 후 재조회가 필요 없다.
+ * 일곱 엔드포인트가 **모두 같은 상세 형태**를 돌려준다. 생성·cast·close·선택지 추가가 갱신된
+ * 상세를 주므로 성공 후 재조회가 필요 없다.
  *
  * 투표는 그룹 방 전용이다(1:1·재매칭에 호출하면 8208). 방당 열린 투표는 하나뿐이라
  * 진행 중인 투표가 있는데 또 만들면 8202가 온다.
@@ -116,6 +118,37 @@ export async function closeVote(roomId: number, voteId: number): Promise<GroupVo
   const vote = await externalApiFetch<GroupVote>(
     `/api/v1/chat/rooms/${roomId}/votes/${voteId}/close`,
     { method: "POST" },
+  );
+  return normalizeVote(vote);
+}
+
+/**
+ * 진행 중인 투표에 장소 선택지를 하나 추가한다. 방 멤버 누구나 가능하고 SYSTEM 메시지는 남지 않는다.
+ *
+ * 생성과 달리 **한 번에 하나**만 보낸다(BE `place-options`). 타입당 10개가 상한이라 넘기면 8206,
+ * 같은 라벨이 이미 있으면 8207로 거절된다.
+ */
+export async function addPlaceOption(
+  roomId: number,
+  voteId: number,
+  body: CreateVotePlaceOption,
+): Promise<GroupVote> {
+  const vote = await externalApiFetch<GroupVote>(
+    `/api/v1/chat/rooms/${roomId}/votes/${voteId}/place-options`,
+    { method: "POST", body },
+  );
+  return normalizeVote(vote);
+}
+
+/** 시간 선택지 추가. 규칙은 [addPlaceOption]과 같고 중복 판정만 분 단위다. */
+export async function addTimeOption(
+  roomId: number,
+  voteId: number,
+  body: CreateVoteTimeOption,
+): Promise<GroupVote> {
+  const vote = await externalApiFetch<GroupVote>(
+    `/api/v1/chat/rooms/${roomId}/votes/${voteId}/time-options`,
+    { method: "POST", body },
   );
   return normalizeVote(vote);
 }

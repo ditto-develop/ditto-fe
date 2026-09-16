@@ -18,7 +18,7 @@
     "verify": "npm run lint && npm run typecheck && npm run test",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "generate-client": "openapi --input ./ditto-api.json --output ./src/shared/lib/api/generated --client fetch",
+    "generate-client": "echo '[중단] generated/ 는 동결 상태입니다. 재생성하면 해시 이름이 나옵니다 — README \"API 클라이언트\" 절 참고. 새 엔드포인트는 externalApiFetch 로 붙이세요.' && exit 1",
     "cf:rewrite": "node scripts/generate-cf-rewrite-function.mjs",
     "cf:rewrite:check": "node scripts/generate-cf-rewrite-function.mjs --check",
     "verify:domains": "node scripts/verify-domains.mjs",

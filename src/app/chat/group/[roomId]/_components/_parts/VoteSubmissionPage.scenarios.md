@@ -1,9 +1,13 @@
 # VoteSubmissionPage Behavior Notes
 
-선택지 추가(`chatControllerAddVoteOption`)는 이 화면에 없다. 선택지는 **투표 생성 시 확정**된다
-(BE 위키 Frontend-Vote-Guide). Figma 2294/2153 에 "+ 새로운 장소/시간 추가하기" 행이 남아 있지만
-그 결정이 정본이므로 그리지 않는다 — 이 문서가 예전에 적어 두었던 add-place/add-time 모드는
-구현된 적이 없다.
+선택지 추가는 **이 화면에서 한다**(2026-09-17, BUG-082). Figma 2294/2153 의
+"+ 새로운 장소/시간 추가하기" 행이 정본이다. 예전에는 "선택지는 생성 시 확정"으로 적어 두었으나
+그 결정이 뒤집혔다.
+
+호출은 BE 의 `place-options`/`time-options` 두 엔드포인트다 — 생성된 클라이언트의
+`chatControllerAddVoteOption`(단일 경로)은 **실제 서버와 맞지 않으니 쓰지 않는다**.
+장소는 `PlaceSearchModal`, 시간은 날짜·시간 피커로 받고 한 번에 하나씩 보낸다.
+상한(타입당 10개)과 중복은 서버가 판정한다(8206/8207).
 
 ## Inputs
 

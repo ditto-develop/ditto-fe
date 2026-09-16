@@ -1,6 +1,7 @@
 "use client";
 
 import styled from "styled-components";
+import { selectableContent } from "@/shared/styles/selection";
 import { ChatMessageText } from "@/app/chat/_components/ChatMessageText";
 import type { ChatMessage } from "@/features/chat";
 
@@ -155,6 +156,7 @@ const SentBubble = styled.div<{ $isFirstInGroup: boolean }>`
     $isFirstInGroup ? "12px 0 12px 12px" : "12px"};
   padding: 8px;
   word-break: break-word;
+  ${selectableContent}
 `;
 
 const ReceivedBubble = styled.div<{ $isFirstInGroup: boolean }>`
@@ -164,6 +166,7 @@ const ReceivedBubble = styled.div<{ $isFirstInGroup: boolean }>`
     $isFirstInGroup ? "0 12px 12px 12px" : "12px"};
   padding: 8px;
   word-break: break-word;
+  ${selectableContent}
 `;
 
 const BubbleText = styled.p`
