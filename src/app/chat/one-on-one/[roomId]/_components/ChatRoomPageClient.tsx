@@ -22,6 +22,8 @@ import { ChatRoomSkeleton } from "@/app/chat/_components/ChatRoomSkeleton";
 import { ChatRoomHeader } from "./ChatRoomHeader";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
+import { useKeyboardInset } from "@/shared/hooks/useKeyboardInset";
+import { useKeyboardOverlay } from "@/shared/hooks/useKeyboardOverlay";
 import { ChatLeaveModal } from "./ChatLeaveModal";
 import { ChatMenuBottomSheet } from "./ChatMenuBottomSheet";
 import { ChatStatusBanner } from "./ChatStatusBanner";
@@ -63,6 +65,12 @@ export function ChatRoomPageClient() {
   // 개방 판정의 기준. 어드민 시각 오버라이드가 반영된 서버 기간이다.
   const serverPeriod = useSystemPeriod();
   const { showToast } = useToast();
+
+  // 입력 중일 때만 잰다. 꺼지면 0 으로 돌아가 화면이 원래 높이로 내려온다.
+  const [inputFocused, setInputFocused] = useState(false);
+  // 이 화면에서만 네이티브 리사이즈를 끈다 — 접는 주체를 CSS 하나로 모은다.
+  useKeyboardOverlay();
+  const keyboardInset = useKeyboardInset(inputFocused);
 
   const counterpart = members[0] ?? null;
 
@@ -123,7 +131,7 @@ export function ChatRoomPageClient() {
 
   if (loading) {
     return (
-      <PageContainer>
+      <PageContainer $keyboardInset={keyboardInset}>
         <ChatRoomSkeleton />
       </PageContainer>
     );
@@ -131,7 +139,7 @@ export function ChatRoomPageClient() {
 
   if (error) {
     return (
-      <PageContainer>
+      <PageContainer $keyboardInset={keyboardInset}>
         <EmptyMessage>{error}</EmptyMessage>
       </PageContainer>
     );
@@ -152,7 +160,7 @@ export function ChatRoomPageClient() {
     !isEnded && timer.isUrgent && !timer.isExpired && !isUrgentNoticeDismissed;
 
   return (
-    <PageContainer>
+    <PageContainer $keyboardInset={keyboardInset}>
       <ChatRoomHeader
         roomId={String(roomId)}
         partnerNickname={partnerNickname}
@@ -187,6 +195,7 @@ export function ChatRoomPageClient() {
             />
           )}
           <ChatInput
+          onFocusChange={setInputFocused}
             onSend={sendText}
             onSendImages={sendImages}
             disabled={roomState !== "OPEN"}
@@ -227,10 +236,19 @@ export function ChatRoomPageClient() {
   );
 }
 
-const PageContainer = styled.div`
+const PageContainer = styled.div<{ $keyboardInset?: number }>`
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  /*
+   * 키보드가 가린 높이만큼 화면을 줄인다. 키보드는 레이아웃 뷰포트를 줄이지 않고 위에
+   * 겹쳐 올라오므로, 줄이지 않으면 입력창과 최근 메시지가 키보드 뒤로 들어간다.
+   * 네이티브가 웹뷰 프레임을 줄여 주는 환경에서는 인셋이 0 이라 100dvh 그대로다.
+   *
+   * transition 은 키보드 애니메이션과 발을 맞추기 위한 것이다 — useKeyboardInset 이
+   * 누른 즉시 예상 높이를 내주므로, 화면이 키보드를 따라 함께 올라온다.
+   */
+  height: calc(100dvh - ${({ $keyboardInset = 0 }) => $keyboardInset}px);
+  transition: height 0.25s ease-out;
   width: 100%;
   background-color: var(--color-semantic-background-normal-normal);
   overflow: hidden;

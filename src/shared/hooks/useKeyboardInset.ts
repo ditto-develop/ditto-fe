@@ -1,7 +1,10 @@
 "use client";
 
+import { Keyboard } from "@capacitor/keyboard";
+import type { PluginListenerHandle } from "@capacitor/core";
 import { useEffect, useState } from "react";
 
+import { isNativeApp } from "@/shared/lib/native/platform";
 import {
   getExpectedKeyboardInset,
   getKeyboardInset,
@@ -37,6 +40,35 @@ export function useKeyboardInset(enabled: boolean): number {
     if (!enabled) {
       setInset(0);
       return;
+    }
+
+    /*
+     * 네이티브 앱에서는 키보드 플러그인이 **정확한 높이를 애니메이션 시작과 함께** 준다.
+     * visualViewport 로 재면 값이 여러 번(0 → 120 → 336…) 들어오고 마지막에 한 번 더
+     * 보정하느라 화면이 두 번 움직여 번쩍인다. 이벤트는 한 번에 끝나므로 그쪽을 쓴다.
+     */
+    if (isNativeApp()) {
+      const handles: PluginListenerHandle[] = [];
+      let cancelled = false;
+
+      void Keyboard.addListener("keyboardWillShow", (info) => {
+        setInset(info.keyboardHeight);
+        // 다음 번 웹 폴백이 쓸 수 있도록 실측을 남긴다.
+        rememberKeyboardInset(info.keyboardHeight);
+      }).then((handle) => {
+        if (cancelled) void handle.remove();
+        else handles.push(handle);
+      });
+
+      void Keyboard.addListener("keyboardWillHide", () => setInset(0)).then((handle) => {
+        if (cancelled) void handle.remove();
+        else handles.push(handle);
+      });
+
+      return () => {
+        cancelled = true;
+        handles.forEach((handle) => void handle.remove());
+      };
     }
 
     /*
