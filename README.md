@@ -156,13 +156,16 @@ docker build --target storybook-runner -t ditto-storybook .
 
 ## API 클라이언트 재생성
 
-백엔드 API 스펙(`ditto-api.json`)이 변경된 경우, 아래 명령어로 클라이언트를 재생성합니다.
-
-```bash
-npm run generate-client
-```
-
-생성된 파일은 `src/shared/lib/api/generated/` 에 위치합니다.
+> ⚠️ **`npm run generate-client`는 더 이상 쓰지 않습니다.**
+>
+> BE 스펙은 REST Docs로 만들어져 명명된 스키마가 없습니다. 라이브 스펙으로 재생성하면
+> `api_v1_chat_rooms_roomId_votes_696220761` 같은 해시 이름이 나와 타입으로 쓸 수 없습니다.
+>
+> `src/shared/lib/api/generated/`는 **동결 상태**입니다 — 남은 `models/`는 타입 참조용,
+> `core/`는 `client.ts`·`adminClient.ts`의 request 래퍼입니다.
+> 호출 코드를 만들던 `services/`는 실제 서버에 없는 경로를 가리켜 삭제했습니다(2026-09-17).
+>
+> **새 엔드포인트는 수기 레이어(`externalApiFetch`)로 붙입니다.** chat·vote·matching이 그 방식입니다.
 
 ---
 
