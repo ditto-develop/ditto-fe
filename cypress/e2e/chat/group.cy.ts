@@ -36,7 +36,13 @@ describe("group chat room", () => {
     cy.wait("@getChatRooms");
     cy.wait("@getRoomVotes");
 
-    cy.contains("다들 안녕하세요!", { timeout: 8000 }).should("be.visible");
+    /*
+     * 메시지가 그려졌는지만 확인한다 — 보이는지까지 따지지 않는 이유가 있다.
+     * 투표 배너가 붙으면 목록이 그만큼 짧아지고, 목록은 바닥(= 최신 메시지)에 붙으므로
+     * 이 메시지는 위로 밀려 화면 밖에 있는 것이 정상이다. 예전에는 배너가 높이를 줄여도
+     * 목록이 바닥을 다시 잡지 않아 우연히 보였다(useStayAtBottom 이 고친 증상).
+     */
+    cy.contains("다들 안녕하세요!", { timeout: 8000 }).should("exist");
     cy.contains("만남 투표 진행 중").should("be.visible");
   });
 

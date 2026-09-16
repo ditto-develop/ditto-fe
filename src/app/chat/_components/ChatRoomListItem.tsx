@@ -106,7 +106,7 @@ export function ChatRoomListItem({ room }: ChatRoomListItemProps) {
             </ReviewButton>
           )}
           {showUnread && (
-            <UnreadBadge>
+            <UnreadBadge data-cy="unread-badge">
               <UnreadBadgeBg />
               <UnreadCount>{room.unreadCount > 99 ? "99+" : room.unreadCount}</UnreadCount>
             </UnreadBadge>
