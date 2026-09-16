@@ -18,6 +18,7 @@ function ProfileContent() {
     const initialState: IntroNoteState =
         rawState === "after_acceptance" ||
         rawState === "completed" ||
+        rawState === "rejected" ||
         rawState === "chat_started"
             ? rawState
             : "before_request";

@@ -72,4 +72,5 @@ export type IntroNoteState =
     | "before_request"   // 대화 신청 전 (신청자 화면)
     | "after_acceptance" // 대화 수락 대기 중 (수신자 화면)
     | "completed"        // 대화 신청 완료 (신청자, 상대방 수락 대기)
+    | "rejected"         // 요청이 거절돼 이번 주에는 더 진행할 수 없음
     | "chat_started";    // 매칭 성사 후 전체 Q&A 공개
