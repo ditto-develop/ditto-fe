@@ -1,6 +1,7 @@
 "use client";
 
 import styled from "styled-components";
+import { selectableContent } from "@/shared/styles/selection";
 import { ChatMessageText } from "@/app/chat/_components/ChatMessageText";
 
 import { getSystemMessageText } from "@/features/chat";
@@ -193,6 +194,7 @@ const SentBubble = styled.div<{ $isFirstInGroup: boolean; $isImage: boolean }>`
   padding: ${({ $isImage }) => ($isImage ? "0" : "8px")};
   overflow: hidden;
   word-break: break-word;
+  ${selectableContent}
 `;
 
 const ReceivedBubble = styled.div<{ $isFirstInGroup: boolean; $isImage: boolean }>`
@@ -203,6 +205,7 @@ const ReceivedBubble = styled.div<{ $isFirstInGroup: boolean; $isImage: boolean 
   padding: ${({ $isImage }) => ($isImage ? "0" : "8px")};
   overflow: hidden;
   word-break: break-word;
+  ${selectableContent}
 `;
 
 const BubbleText = styled.p`
