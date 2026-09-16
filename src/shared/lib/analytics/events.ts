@@ -155,6 +155,8 @@ export interface AnalyticsEventMap {
   /** 그룹 투표. 만남 성사로 이어지는 마지막 단계라 따로 본다. */
   vote_create: { option_count: number };
   vote_submit: Record<string, never>;
+  /** 진행 중 투표에 선택지를 덧붙인 경우. 생성 시 선택지와 구분해서 센다. */
+  vote_option_add: { option_type: "place" | "time" };
   vote_close: Record<string, never>;
 
   /** 대화 상대 평가 제출. */

@@ -1,9 +1,7 @@
 # VoteResultsPage Behavior Notes
 
-선택지 추가(`chatControllerAddVoteOption`)는 이 화면에 없다. 선택지는 **투표 생성 시 확정**된다
-(BE 위키 Frontend-Vote-Guide). Figma 2116 에 "+ 새로운 장소/시간 추가하기" 행이 남아 있지만
-그 결정이 정본이므로 그리지 않는다 — 이 문서가 예전에 적어 두었던 add-place/add-time 모드는
-구현된 적이 없다.
+선택지 추가는 **투표 화면(VoteSubmissionPage)에서 한다**(2026-09-17, BUG-082).
+결과 화면에는 두지 않는다 — 마감된 결과에 선택지를 붙일 수 없고, 진행 중이면 투표 화면으로 가면 된다.
 
 ## Inputs
 

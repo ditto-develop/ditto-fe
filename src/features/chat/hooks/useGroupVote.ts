@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  addPlaceOption as addPlaceOptionRequest,
+  addTimeOption as addTimeOptionRequest,
   castVote as castVoteRequest,
   closeVote as closeVoteRequest,
   createVote as createVoteRequest,
@@ -15,8 +17,18 @@ import type {
   CastVoteRequest,
   ChatMessage,
   CreateGroupVoteRequest,
+  CreateVotePlaceOption,
+  CreateVoteTimeOption,
   GroupVote,
 } from "@/features/chat/model/types";
+
+/**
+ * 선택지 추가 입력. 장소·시간이 엔드포인트도 본문도 달라 유니온으로 갈라 둔다 —
+ * 하나의 옵셔널 덩어리로 합치면 호출부에서 잘못된 조합을 만들 수 있다.
+ */
+export type AddOptionInput =
+  | { type: "place"; place: CreateVotePlaceOption }
+  | { type: "time"; time: CreateVoteTimeOption };
 
 type UseGroupVoteOptions = {
   /** 방 메시지. 투표는 별도 destination이 없어 SYSTEM 메시지로만 실시간 신호가 온다. */
@@ -36,6 +48,8 @@ type UseGroupVoteResult = {
   refresh: () => Promise<void>;
   create: (body: CreateGroupVoteRequest) => Promise<GroupVote>;
   cast: (voteId: number, body: CastVoteRequest) => Promise<GroupVote>;
+  /** 진행 중 투표에 선택지 하나 추가. 상한·중복은 서버 판정(8206/8207). */
+  addOption: (voteId: number, option: AddOptionInput) => Promise<GroupVote>;
   close: (voteId: number) => Promise<GroupVote>;
 };
 
@@ -147,6 +161,22 @@ export function useGroupVote(
     [roomId],
   );
 
+  /**
+   * 진행 중 투표에 선택지를 하나 붙인다. 생성과 달리 **한 번에 하나**이고, 응답이 갱신된 상세라
+   * 재조회 없이 그대로 반영한다. 상한(타입당 10개)·중복은 서버가 판정한다.
+   */
+  const addOption = useCallback(
+    async (voteId: number, option: AddOptionInput) => {
+      const updated = option.type === "place"
+        ? await addPlaceOptionRequest(roomId, voteId, option.place)
+        : await addTimeOptionRequest(roomId, voteId, option.time);
+      trackEvent("vote_option_add", { option_type: option.type });
+      if (activeRef.current) setVotes((previous) => upsertVote(previous, updated));
+      return updated;
+    },
+    [roomId],
+  );
+
   const close = useCallback(
     async (voteId: number) => {
       const closed = await closeVoteRequest(roomId, voteId);
@@ -164,5 +194,5 @@ export function useGroupVote(
     [votes],
   );
 
-  return { votes, openVote, loading, error, getVoteById, refresh, create, cast, close };
+  return { votes, openVote, loading, error, getVoteById, refresh, create, cast, addOption, close };
 }

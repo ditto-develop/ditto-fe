@@ -287,3 +287,10 @@ export function CheckIcon() {
     </IconSvgSmall>
   );
 }
+
+/** 시간 선택지 추가 행 — 날짜·시간 피커와 추가 버튼을 한 덩어리로 묶는다. */
+export const AddTimeRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+`;

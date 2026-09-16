@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type React from "react";
 import {
   ActionArea,
@@ -13,7 +13,6 @@ import {
   ErrorMessage,
   Heading,
   HeadingRow,
-  HiddenPickerInput,
   Hint,
   IconButton,
   LocationIcon,
@@ -22,7 +21,6 @@ import {
   NavigationFiller,
   OptionFieldGroup,
   OptionList,
-  PickerLabel,
   PlaceOptionContent,
   PlaceOptionField,
   PlaceOptionLabel,
@@ -33,7 +31,6 @@ import {
   RadioDot,
   Section,
   StepChip,
-  TimeInputRow,
   TimeOptionCard,
   Title,
   TopNavigation,
@@ -41,6 +38,12 @@ import {
 } from "./_parts/GroupVoteCreateModal.parts";
 import { useBackClose } from "@/shared/hooks/useBackClose";
 import { toMeetAt } from "@/features/chat";
+import {
+  formatDateLabel,
+  formatTimeLabel,
+  MAX_OPTION_COUNT,
+  NativePickerField,
+} from "./_parts/VoteOptionPicker";
 import type { CreateGroupVoteRequest } from "@/features/chat";
 import { PlaceSearchModal } from "./PlaceSearchModal";
 import type { SelectedPlace } from "./PlaceSearchModal";
@@ -62,107 +65,6 @@ interface GroupVoteCreateModalProps {
 
 /** 장소·시간 각 2~10개. 서버가 같은 상한으로 검증한다(위반 시 0001). */
 const MIN_OPTION_COUNT = 2;
-const MAX_OPTION_COUNT = 10;
-
-function formatDateLabel(value: string) {
-  if (!value) return "날짜 선택";
-
-  const [year, month, day] = value.split("-").map(Number);
-  if (!year || !month || !day) return value;
-
-  const date = new Date(year, month - 1, day);
-  const weekdays = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
-
-  return `${month}월 ${day}일 ${weekdays[date.getDay()]}`;
-}
-
-function formatTimeLabel(value: string) {
-  if (!value) return "시간 선택";
-
-  const [hourValue, minuteValue] = value.split(":").map(Number);
-  if (Number.isNaN(hourValue) || Number.isNaN(minuteValue)) return value;
-
-  const period = hourValue < 12 ? "오전" : "오후";
-  const hour = hourValue % 12 || 12;
-  const minute = minuteValue > 0 ? ` ${minuteValue}분` : "";
-
-  return `${period} ${hour}시${minute}`;
-}
-
-type NativePickerFieldProps = {
-  type: "date" | "time";
-  value: string;
-  label: string;
-  isPlaceholder: boolean;
-  subtle?: boolean;
-  ariaLabel: string;
-  icon: React.ReactNode;
-  onChange: (value: string) => void;
-};
-
-function NativePickerField({
-  type,
-  value,
-  label,
-  isPlaceholder,
-  subtle,
-  ariaLabel,
-  icon,
-  onChange,
-}: NativePickerFieldProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const isOpeningRef = useRef(false);
-
-  const openPicker = () => {
-    if (isOpeningRef.current) return;
-
-    const input = inputRef.current;
-    if (!input) return;
-
-    isOpeningRef.current = true;
-    input.focus();
-
-    try {
-      if (typeof input.showPicker === "function") {
-        input.showPicker();
-      } else {
-        input.click();
-      }
-    } catch {
-      input.click();
-    } finally {
-      window.setTimeout(() => {
-        isOpeningRef.current = false;
-      }, 0);
-    }
-  };
-
-  return (
-    <TimeInputRow
-      role="button"
-      tabIndex={0}
-      $subtle={subtle}
-      onClick={openPicker}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          openPicker();
-        }
-      }}
-    >
-      {icon}
-      <PickerLabel $placeholder={isPlaceholder}>{label}</PickerLabel>
-      <HiddenPickerInput
-        ref={inputRef}
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        aria-label={ariaLabel}
-        tabIndex={-1}
-      />
-    </TimeInputRow>
-  );
-}
 
 export function GroupVoteCreateModal({
   onClose,
