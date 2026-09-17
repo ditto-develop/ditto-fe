@@ -12,6 +12,10 @@ import {
   useGroupVote,
 } from "@/features/chat";
 import type { CastVoteRequest, CreateGroupVoteRequest } from "@/features/chat";
+import {
+  CHAT_KEYBOARD_ANIMATION_MS,
+  useChatKeyboardInset,
+} from "@/features/chat/hooks/useChatKeyboardInset";
 import { useSystemPeriod } from "@/features/system/hooks/useSystemPeriod";
 import { useToast } from "@/context/ToastContext";
 import { getMyMemberId } from "@/shared/lib/auth";
@@ -63,6 +67,7 @@ export function GroupChatRoomPageClient() {
   const [voteView, setVoteView] = useState<VoteView | null>(null);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const keyboardInset = useChatKeyboardInset();
 
   const {
     messages,
@@ -214,7 +219,7 @@ export function GroupChatRoomPageClient() {
         : undefined;
 
   return (
-    <PageContainer>
+    <PageContainer $keyboardInset={keyboardInset} data-cy="chat-room">
       <GroupChatRoomHeader
         memberNames={memberNames}
         totalMembers={totalMembers}
@@ -343,13 +348,18 @@ export function GroupChatRoomPageClient() {
   );
 }
 
-const PageContainer = styled.div`
+const PageContainer = styled.div<{ $keyboardInset?: number }>`
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  height: ${({ $keyboardInset = 0 }) => `calc(100dvh - ${$keyboardInset}px)`};
   width: 100%;
+  --chat-input-bottom-padding: ${({ $keyboardInset = 0 }) =>
+    $keyboardInset > 0
+      ? "var(--space-4)"
+      : "calc(var(--space-4) + env(safe-area-inset-bottom, 0px))"};
   background-color: var(--color-semantic-background-normal-normal);
   overflow: hidden;
+  transition: height ${CHAT_KEYBOARD_ANIMATION_MS}ms ease-out;
 `;
 
 const EmptyMessage = styled.div`

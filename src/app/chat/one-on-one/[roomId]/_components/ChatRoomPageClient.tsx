@@ -13,6 +13,10 @@ import {
   useChatRoomMeta,
 } from "@/features/chat";
 import type { ChatRoomState } from "@/features/chat";
+import {
+  CHAT_KEYBOARD_ANIMATION_MS,
+  useChatKeyboardInset,
+} from "@/features/chat/hooks/useChatKeyboardInset";
 import { useSystemPeriod } from "@/features/system/hooks/useSystemPeriod";
 import { useToast } from "@/context/ToastContext";
 import { getMyMemberId } from "@/shared/lib/auth";
@@ -63,6 +67,7 @@ export function ChatRoomPageClient() {
   // 개방 판정의 기준. 어드민 시각 오버라이드가 반영된 서버 기간이다.
   const serverPeriod = useSystemPeriod();
   const { showToast } = useToast();
+  const keyboardInset = useChatKeyboardInset();
 
   const counterpart = members[0] ?? null;
 
@@ -152,7 +157,7 @@ export function ChatRoomPageClient() {
     !isEnded && timer.isUrgent && !timer.isExpired && !isUrgentNoticeDismissed;
 
   return (
-    <PageContainer>
+    <PageContainer $keyboardInset={keyboardInset} data-cy="chat-room">
       <ChatRoomHeader
         roomId={String(roomId)}
         partnerNickname={partnerNickname}
@@ -227,13 +232,18 @@ export function ChatRoomPageClient() {
   );
 }
 
-const PageContainer = styled.div`
+const PageContainer = styled.div<{ $keyboardInset?: number }>`
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  height: ${({ $keyboardInset = 0 }) => `calc(100dvh - ${$keyboardInset}px)`};
   width: 100%;
+  --chat-input-bottom-padding: ${({ $keyboardInset = 0 }) =>
+    $keyboardInset > 0
+      ? "var(--space-4)"
+      : "calc(var(--space-4) + env(safe-area-inset-bottom, 0px))"};
   background-color: var(--color-semantic-background-normal-normal);
   overflow: hidden;
+  transition: height ${CHAT_KEYBOARD_ANIMATION_MS}ms ease-out;
 `;
 
 const EmptyMessage = styled.div`

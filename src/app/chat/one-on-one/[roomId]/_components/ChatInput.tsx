@@ -10,6 +10,7 @@ import {
   CHAT_TEXT_MAX_LENGTH,
   containsForbiddenWord,
 } from "@/features/chat";
+import { CHAT_KEYBOARD_ANIMATION_MS } from "@/features/chat/hooks/useChatKeyboardInset";
 import { useToast } from "@/context/ToastContext";
 import { AlertModal, Icon } from "@/shared/ui";
 
@@ -150,6 +151,7 @@ export function ChatInput({ onSend, onSendImages, disabled }: ChatInputProps) {
         )}
         <TextArea
           ref={textareaRef}
+          data-chat-composer=""
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onInput={handleInput}
@@ -189,8 +191,9 @@ const Outer = styled.div`
   position: relative;
   flex-shrink: 0;
   background-color: var(--color-semantic-background-normal-normal);
-  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  padding: var(--space-4) var(--space-4) var(--chat-input-bottom-padding);
   box-sizing: border-box;
+  transition: padding-bottom ${CHAT_KEYBOARD_ANIMATION_MS}ms ease-out;
 `;
 
 const InputWarning = styled.div`

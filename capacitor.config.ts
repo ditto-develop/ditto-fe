@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import type { CapacitorConfig } from "@capacitor/cli";
+import { KeyboardResize } from "@capacitor/keyboard";
 
 /**
  * Capacitor 앱 셸 설정.
@@ -122,6 +123,14 @@ const config: CapacitorConfig = {
         contentInset: "never",
     },
     plugins: {
+        /**
+         * 일반 화면은 키보드가 열리면 iOS가 WebView 자체를 줄이는 기본 동작을 쓴다.
+         * 채팅 입력창만 키보드와 동시에 움직여야 해서 포커스 중에 일시적으로 none으로
+         * 바꾸고, 네이티브 keyboardWillShow 높이로 레이아웃을 직접 맞춘다.
+         */
+        Keyboard: {
+            resize: KeyboardResize.Native,
+        },
         /**
          * 카카오 네이티브 로그인(native-plugins/capacitor-kakao-login)의 앱 키.
          *

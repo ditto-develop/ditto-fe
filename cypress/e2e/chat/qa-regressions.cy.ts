@@ -6,6 +6,32 @@ describe("chat QA regressions", () => {
   });
 
   for (const path of ["/chat/one-on-one/1", "/chat/group/3"]) {
+    it(`moves the composer with the native keyboard in ${path}`, () => {
+      cy.viewport("iphone-x");
+      cy.visit(path);
+      cy.get('[data-cy="chat-room"]').then(($room) => {
+        const initialHeight = $room[0].getBoundingClientRect().height;
+
+        cy.window().then((win) => {
+          const showEvent = new win.Event("keyboardWillShow");
+          Object.defineProperty(showEvent, "keyboardHeight", { value: 300 });
+          win.dispatchEvent(showEvent);
+        });
+
+        cy.get('[data-cy="chat-room"]').should(($resizedRoom) => {
+          expect($resizedRoom[0].getBoundingClientRect().height).to.be.closeTo(
+            initialHeight - 300,
+            1,
+          );
+        });
+
+        cy.window().then((win) => win.dispatchEvent(new win.Event("keyboardWillHide")));
+        cy.get('[data-cy="chat-room"]').should(($restoredRoom) => {
+          expect($restoredRoom[0].getBoundingClientRect().height).to.be.closeTo(initialHeight, 1);
+        });
+      });
+    });
+
     it(`renders each timestamp and clickable links in ${path}`, () => {
       cy.intercept("GET", "**/chat/rooms/*/messages*", {
         success: true,

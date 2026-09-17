@@ -8,13 +8,7 @@ import { useEffect, useRef, type RefObject } from "react";
  */
 const BOTTOM_THRESHOLD_PX = 48;
 
-/**
- * 키보드가 닫히는 동안 뷰포트가 여러 번 바뀐다. 마지막 변화 뒤에도 한 번 더 맞춰야
- * 애니메이션이 끝난 최종 높이에 정확히 붙는다. 기존 키보드 코드가 재는 250~700ms 를 덮는다.
- */
-const SETTLE_DELAYS_MS = [0, 120, 320, 720];
-
-/** 목록이 바닥에 붙어 있는가. 위로 올려 과거를 읽는 중이면 false. */
+/** 목록이 바닥에 붙어 있다고 볼 수 있는가. 위로 올려 과거를 읽는 중이면 false. */
 export function isPinnedToBottom(
   el: Pick<HTMLElement, "scrollHeight" | "scrollTop" | "clientHeight">,
   threshold = BOTTOM_THRESHOLD_PX,
@@ -25,9 +19,8 @@ export function isPinnedToBottom(
 /**
  * 키보드가 열리고 닫힐 때 대화 목록을 바닥에 붙여 둔다.
  *
- * 모바일에서 키보드는 레이아웃 뷰포트를 줄이지 않고 화면 위를 덮는다. 채팅방은
- * `height: 100dvh; overflow: hidden` 이고 목록만 안쪽에서 스크롤하는 구조라, 키보드가
- * 닫히면 목록의 높이(clientHeight)만 커지고 `scrollTop` 은 그대로다. 그러면 바닥에 붙어
+ * 채팅방은 화면 높이에 맞춰지고(`overflow: hidden`) 목록만 안쪽에서 스크롤하는 구조라,
+ * 키보드가 닫히면 목록의 높이(clientHeight)만 커지고 `scrollTop` 은 그대로다. 그러면 바닥에 붙어
  * 있던 마지막 메시지가 화면 밖으로 밀려난다 — "보내고 나면 대화가 내려가 버린다"의 정체다.
  * 목록의 자동 스크롤은 메시지 배열이 바뀔 때만 돌아서 이 변화를 못 본다.
  *
@@ -53,29 +46,37 @@ export function useStayAtBottom(listRef: RefObject<HTMLElement | null>): void {
     remember();
     el.addEventListener("scroll", remember, { passive: true });
 
-    const timers: ReturnType<typeof setTimeout>[] = [];
+    let frame: number | null = null;
 
     const stick = () => {
       if (!pinnedRef.current) return;
       const target = listRef.current;
       if (!target) return;
-      // 애니메이션 중에는 부드럽게 굴릴 이유가 없다 — 어차피 여러 번 다시 맞춘다.
       target.scrollTop = target.scrollHeight;
     };
 
-    const handleViewportChange = () => {
-      for (const delay of SETTLE_DELAYS_MS) {
-        timers.push(setTimeout(stick, delay));
-      }
+    const runScheduledStick = () => {
+      frame = null;
+      stick();
     };
 
-    // visualViewport 가 없는 환경(구형 브라우저·jsdom)에서는 window resize 로 떨어진다.
-    const viewport = typeof window !== "undefined" ? window.visualViewport : undefined;
-    if (viewport) {
-      viewport.addEventListener("resize", handleViewportChange);
-    } else {
-      window.addEventListener("resize", handleViewportChange);
-    }
+    const scheduleStick = () => {
+      if (frame !== null || !pinnedRef.current) return;
+      frame = window.requestAnimationFrame(runScheduledStick);
+    };
+
+    /**
+     * 키보드와 함께 채팅방 높이가 애니메이션되는 동안 목록 높이도 매 프레임 달라진다.
+     * 정해진 시각에 여러 번 점프시키지 않고 실제 크기가 달라진 프레임에만 바닥을 맞춘다.
+     */
+    const observer =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(scheduleStick);
+    observer?.observe(el);
+
+    // 요소 크기가 그대로인 오버레이형 모바일 브라우저에서도 기존 보정을 유지한다.
+    const viewport = window.visualViewport;
+    if (viewport) viewport.addEventListener("resize", scheduleStick);
+    else window.addEventListener("resize", scheduleStick);
 
     /*
      * 사진이 다 그려지면 그 높이만큼 목록이 자란다. img 의 load 는 버블링하지 않으므로
@@ -84,15 +85,6 @@ export function useStayAtBottom(listRef: RefObject<HTMLElement | null>): void {
     el.addEventListener("load", stick, true);
     // 실패한 사진은 대체 박스로 바뀌며 높이가 또 달라진다.
     el.addEventListener("error", stick, true);
-
-    /*
-     * 목록 자신의 높이도 나중에 바뀐다 — 위쪽 배너·안내 카드가 방 정보를 받아 뒤늦게 붙으면
-     * 목록이 그만큼 짧아지고, `scrollTop` 은 그대로라 바닥이 또 밀린다. visualViewport 는
-     * 이 변화를 내지 않으므로 요소 크기를 직접 본다.
-     */
-    const observer =
-      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => stick());
-    observer?.observe(el);
 
     /*
      * 웹폰트가 교체되면 모든 말풍선의 줄바꿈이 다시 잡히며 높이가 달라진다.
@@ -111,12 +103,9 @@ export function useStayAtBottom(listRef: RefObject<HTMLElement | null>): void {
       el.removeEventListener("error", stick, true);
       observer?.disconnect();
       fontsSettled = true;
-      if (viewport) {
-        viewport.removeEventListener("resize", handleViewportChange);
-      } else {
-        window.removeEventListener("resize", handleViewportChange);
-      }
-      for (const timer of timers) clearTimeout(timer);
+      if (viewport) viewport.removeEventListener("resize", scheduleStick);
+      else window.removeEventListener("resize", scheduleStick);
+      if (frame !== null) window.cancelAnimationFrame(frame);
     };
   }, [listRef]);
 }
