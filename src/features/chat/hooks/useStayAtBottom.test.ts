@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { isPinnedToBottom } from "@/features/chat/hooks/useStayAtBottom";
+import {
+  isPinnedToBottom,
+  scrollListToBottom,
+} from "@/features/chat/hooks/useStayAtBottom";
 
 /**
  * 키보드가 닫히면 목록의 clientHeight 만 커지고 scrollTop 은 그대로라 마지막 메시지가
@@ -22,5 +25,36 @@ describe("isPinnedToBottom", () => {
 
   it("스크롤이 없는 짧은 목록은 항상 붙은 것으로 본다", () => {
     expect(isPinnedToBottom({ scrollHeight: 300, scrollTop: 0, clientHeight: 300 })).toBe(true);
+  });
+});
+
+describe("scrollListToBottom", () => {
+  it("바깥 문서 대신 전달받은 메시지 목록의 scrollTop만 바닥으로 맞춘다", () => {
+    const list = {
+      scrollHeight: 1200,
+      scrollTop: 300,
+      scrollTo: () => {
+        throw new Error("일반 이동은 scrollTo를 쓰지 않는다");
+      },
+    };
+
+    scrollListToBottom(list);
+
+    expect(list.scrollTop).toBe(1200);
+  });
+
+  it("부드러운 이동도 메시지 목록 자체에만 요청한다", () => {
+    let options: ScrollToOptions | undefined;
+    const list = {
+      scrollHeight: 1200,
+      scrollTop: 300,
+      scrollTo: (nextOptions: ScrollToOptions) => {
+        options = nextOptions;
+      },
+    };
+
+    scrollListToBottom(list, "smooth");
+
+    expect(options).toEqual({ top: 1200, behavior: "smooth" });
   });
 });

@@ -1,14 +1,15 @@
 "use client";
 
-import type { PluginListenerHandle } from "@capacitor/core";
 import { MatchingDay } from "@/components/home/MatchingDay";
 import { MatchingCardSkeleton } from "@/components/home/_parts/MatchingCardSkeleton";
 import { matchAcceptedNotifKey } from "@/components/home/_parts/MatchingDay.helpers";
 import { ThisWeekQuiz } from "@/components/home/ThisWeekQuiz";
 import { TimeLine } from "@/components/home/Timeline";
 import type { MatchingCardType } from "@/components/home/MatchingDay";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
+import { usePolling } from "@/shared/lib/hooks/usePolling";
+import { POLLING_INTERVAL_MS } from "@/shared/lib/constants/polling";
 import { QuizProgressDto } from "@/shared/lib/api/generated";
 import type { SystemStateDto } from "@/shared/lib/api/generated";
 import { getChatRooms } from "@/features/chat";
@@ -24,7 +25,6 @@ import { useHomeReady } from "@/context/HomeReadyContext";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useToast } from "@/context/ToastContext";
 import { describeError } from "@/shared/lib/api/apiError";
-import { isNativeApp } from "@/shared/lib/native/platform";
 
 const MainSectionContainer = styled.div`
   /**
@@ -104,12 +104,13 @@ export function MainSection() {
   }, [searchParams, showToast, router]);
 
 
-  useEffect(() => {
-    // 마운트 시 리셋: 홈으로 다시 진입할 때 Splash가 다시 뜨도록
-    setHomeReady(false);
-
-    async function load() {
-      try {
+  /**
+   * 마운트 시 1회 호출되고, MATCHING 기간에는 아래 폴링 effect에서도 재호출된다
+   * (QUIZ/CHATTING은 각자 더 가벼운 전용 폴링이 있어 여기서 다시 돌리지 않는다).
+   * setter만 참조하므로 의존성 없이 고정된 참조를 유지한다.
+   */
+  const load = useCallback(async () => {
+    try {
         // 기간 판정·매칭 후보·소개노트는 서로 의존하지 않는다. 순차로 기다리면 홈 카드가
         // 그만큼 늦게 뜨므로 같이 쏜다. 퀴즈 기간에는 후보 조회 1건이 버려지지만,
         // 매칭/대화 기간(카드가 무거운 쪽)의 왕복이 한 번 줄어드는 편이 낫다.
@@ -206,46 +207,33 @@ export function MainSection() {
           console.error("[MainSection] 매칭 상태 조회 실패, failmatch로 폴백:", describeError(err));
           setMatchType("failmatch");
         }
-      } catch (err: unknown) {
-        console.error("[MainSection] 홈 데이터 로딩 실패:", describeError(err));
-      } finally {
-        setLoading(false);
-        setHomeReady(true);
-      }
+    } catch (err: unknown) {
+      console.error("[MainSection] 홈 데이터 로딩 실패:", describeError(err));
+    } finally {
+      setLoading(false);
+      setHomeReady(true);
     }
-    load();
   }, [setHomeReady]);
 
   useEffect(() => {
-    if (period !== "CHATTING") return;
+    // 마운트 시 리셋: 홈으로 다시 진입할 때 Splash가 다시 뜨도록
+    setHomeReady(false);
+    void load();
+  }, [load, setHomeReady]);
 
-    let isMounted = true;
-    let isFetching = false;
+  /**
+   * MATCHING 기간에는 후보 수락/거절·그룹 성사 여부가 상대방 행동에 따라 바뀔 수 있어
+   * 화면을 열어 둔 동안 전체 로딩을 다시 돈다. QUIZ/CHATTING은 각자 더 가벼운 전용
+   * 폴링(아래)이 있으므로 여기서 중복으로 돌리지 않는다.
+   */
+  usePolling(load, POLLING_INTERVAL_MS, { enabled: period === "MATCHING" });
 
-    const refreshLatestChatRoom = async () => {
-      if (isFetching) return;
-      isFetching = true;
+  const refreshLatestChatRoom = useCallback(async () => {
+    const latestChatRoom = await getLatestChatRoom();
+    if (latestChatRoom) setChatRoom(latestChatRoom);
+  }, []);
 
-      try {
-        const latestChatRoom = await getLatestChatRoom();
-        if (isMounted && latestChatRoom) setChatRoom(latestChatRoom);
-      } catch {
-        // ignore
-      } finally {
-        isFetching = false;
-      }
-    };
-
-    const intervalId = window.setInterval(() => {
-      if (document.hidden) return;
-      refreshLatestChatRoom();
-    }, 3000);
-
-    return () => {
-      isMounted = false;
-      window.clearInterval(intervalId);
-    };
-  }, [period]);
+  usePolling(refreshLatestChatRoom, 3000, { enabled: period === "CHATTING" });
 
   /**
    * 퀴즈 기간 동안 "참여한 사람" 수를 따라 올린다. 서버가 이 값을 밀어 주는 채널이
@@ -255,69 +243,14 @@ export function MainSection() {
    * 카드 상태가 open → completed 로 뒤집히면 `ThisWeekQuiz` 의 `useCardImpression` 이
    * 노출 이벤트를 다시 쏘고, 퀴즈 카드 클릭률의 분모가 통째로 틀어진다.
    */
-  useEffect(() => {
-    if (period !== "QUIZ") return;
+  const refreshParticipantCount = useCallback(async () => {
+    const progress = await getExternalQuizProgress();
+    setParticipantCount(progress.participantCount ?? 0);
+  }, []);
 
-    let isMounted = true;
-    let isFetching = false;
-    let nativeListener: PluginListenerHandle | undefined;
-
-    const refreshParticipantCount = async () => {
-      if (isFetching) return;
-      isFetching = true;
-
-      try {
-        const progress = await getExternalQuizProgress();
-        if (isMounted) setParticipantCount(progress.participantCount ?? 0);
-      } catch {
-        // 폴링 실패는 무시한다 — 다음 tick 에서 다시 시도한다.
-      } finally {
-        isFetching = false;
-      }
-    };
-
-    const intervalId = window.setInterval(() => {
-      if (document.hidden) return;
-      refreshParticipantCount();
-    }, QUIZ_PARTICIPANT_POLL_INTERVAL_MS);
-
-    /**
-     * 돌아온 즉시 한 번 당긴다. 백그라운드에서는 tick 을 건너뛰므로, 이게 없으면
-     * 복귀 직후 최대 20초 묵은 숫자를 그대로 보게 된다.
-     */
-    const onVisibilityChange = () => {
-      if (!document.hidden) void refreshParticipantCount();
-    };
-    document.addEventListener("visibilitychange", onVisibilityChange);
-
-    /**
-     * 앱 웹뷰에서는 `visibilitychange` 를 믿을 수 없다(특히 안드로이드 웹뷰).
-     * `useScreenTracking` 과 같은 이유로 Capacitor 앱 상태 이벤트를 함께 건다 —
-     * 정적 import 하지 않는 것도 같은 이유(웹 방문자가 플러그인 비용을 내지 않게).
-     */
-    if (isNativeApp()) {
-      void (async () => {
-        try {
-          const { App } = await import("@capacitor/app");
-          const handle = await App.addListener("appStateChange", ({ isActive }) => {
-            if (isActive) void refreshParticipantCount();
-          });
-          // 등록이 끝나기 전에 언마운트됐으면 즉시 되돌린다.
-          if (isMounted) nativeListener = handle;
-          else void handle.remove();
-        } catch (err: unknown) {
-          console.error("[MainSection] 앱 상태 리스너 등록 실패:", describeError(err));
-        }
-      })();
-    }
-
-    return () => {
-      isMounted = false;
-      window.clearInterval(intervalId);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-      void nativeListener?.remove();
-    };
-  }, [period]);
+  usePolling(refreshParticipantCount, QUIZ_PARTICIPANT_POLL_INTERVAL_MS, {
+    enabled: period === "QUIZ",
+  });
 
   // 로딩 중에는 카드 자리를 스켈레톤으로 잡아둔다. 스플래시가 2.5초에 먼저 걷혀도
   // 타임라인만 덩그러니 남았다가 카드가 뒤늦게 밀고 들어오는 일이 없다.

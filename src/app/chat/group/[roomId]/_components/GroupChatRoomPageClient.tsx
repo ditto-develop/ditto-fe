@@ -270,7 +270,7 @@ export function GroupChatRoomPageClient() {
       )}
 
       {isEnded && !hasLeft && (
-        <BottomActionArea>
+        <ChatBottomActionArea>
           <RateButton
             type="button"
             $size="large"
@@ -278,7 +278,7 @@ export function GroupChatRoomPageClient() {
           >
             평가하기
           </RateButton>
-        </BottomActionArea>
+        </ChatBottomActionArea>
       )}
 
       {isMenuOpen && (
@@ -377,6 +377,11 @@ const EmptyMessage = styled.div`
 
 const RateButton = styled(Button)`
   width: 100%;
+`;
+
+const ChatBottomActionArea = styled(BottomActionArea)`
+  position: static;
+  flex-shrink: 0;
 `;
 
 const ClosedVoteBanner = styled.button`

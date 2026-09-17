@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { getSystemPeriod, type SystemPeriod } from "@/features/system/api/systemStateApi";
+import { usePolling } from "@/shared/lib/hooks/usePolling";
+import { POLLING_INTERVAL_MS } from "@/shared/lib/constants/polling";
 
 /**
  * 서버 기간을 읽어 준다. 아직 못 읽었거나 조회에 실패하면 null이다.
@@ -24,6 +26,18 @@ export function useSystemPeriod(): SystemPeriod | null {
       active = false;
     };
   }, []);
+
+  /**
+   * 30초 캐시(`systemStateApi`)를 두고 있어 `force`로 우회하지 않으면 이 폴링이
+   * 사실상 무의미해진다 — 어드민 시각 오버라이드가 바뀌는 것도 이걸로 반영된다.
+   */
+  usePolling(
+    useCallback(async () => {
+      const value = await getSystemPeriod({ force: true });
+      setPeriod(value);
+    }, []),
+    POLLING_INTERVAL_MS,
+  );
 
   return period;
 }

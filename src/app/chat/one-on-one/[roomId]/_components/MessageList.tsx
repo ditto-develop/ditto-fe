@@ -6,7 +6,11 @@ import styled from "styled-components";
 import { isRoomEndedSystemMessage } from "@/features/chat";
 import type { ChatMessage, ChatOptimisticMessage } from "@/features/chat";
 import { renderChatSafetyWarnings } from "@/app/chat/_components/ChatSafetyWarning";
-import { isPinnedToBottom, useStayAtBottom } from "@/features/chat/hooks/useStayAtBottom";
+import {
+  isPinnedToBottom,
+  scrollListToBottom,
+  useStayAtBottom,
+} from "@/features/chat/hooks/useStayAtBottom";
 import { useVisibleMessageRead } from "@/features/chat/hooks/useVisibleMessageRead";
 import { MessageBubble } from "./MessageBubble";
 import { RoomNoticeCard } from "./RoomNoticeCard";
@@ -80,7 +84,6 @@ export function MessageList({
   onRetrySend,
 }: MessageListProps) {
   const listRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const isInitialLoad = useRef(true);
   const wasPinnedToBottom = useRef(true);
   // 키보드가 열리고 닫혀 목록 높이가 바뀌어도 바닥에 붙어 있게 한다(위로 읽는 중이면 건드리지 않는다).
@@ -141,7 +144,10 @@ export function MessageList({
     isInitialLoad.current = false;
 
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ behavior }));
+      requestAnimationFrame(() => {
+        const list = listRef.current;
+        if (list) scrollListToBottom(list, behavior);
+      });
     });
   }, [messages, myUserId, optimisticMessages]);
 
@@ -264,7 +270,7 @@ export function MessageList({
       {loadingOlder && <LoadingOlder>이전 메시지를 불러오는 중...</LoadingOlder>}
       {renderMessages()}
       {notice && !hasRoomEndedSystemMessage && <RoomNoticeCard>{notice}</RoomNoticeCard>}
-      <div ref={bottomRef} />
+      <div />
     </ListContainer>
   );
 }

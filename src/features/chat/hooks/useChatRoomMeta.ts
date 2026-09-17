@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { getChatRooms } from "@/features/chat/api/chatApi";
 import { getCounterpartProfile, type CounterpartProfile } from "@/features/chat/api/counterpartApi";
 import type { ChatRoom } from "@/features/chat/model/types";
+import { usePolling } from "@/shared/lib/hooks/usePolling";
+import { POLLING_INTERVAL_MS } from "@/shared/lib/constants/polling";
 
 type UseChatRoomMetaResult = {
   /** 목록에서 찾은 방. 방 상세 API가 없어 이게 유일한 출처다. */
@@ -74,6 +76,12 @@ export function useChatRoomMeta(roomId: number): UseChatRoomMetaResult {
       active = false;
     };
   }, [load]);
+
+  /**
+   * 방 개방/만료/종료 상태와 상대 프로필(예: 차단)은 상대방 행동으로 바뀔 수 있다.
+   * 메시지는 WebSocket으로 실시간 수신되지만 메타는 그 채널을 안 타서 폴링이 필요하다.
+   */
+  usePolling(() => load(), POLLING_INTERVAL_MS);
 
   const memberById = useMemo(
     () => new Map(members.map((member) => [member.userId, member])),

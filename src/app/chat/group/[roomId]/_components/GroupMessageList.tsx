@@ -11,7 +11,11 @@ import {
 } from "@/features/chat";
 import type { ChatMessage, CounterpartProfile, GroupVote } from "@/features/chat";
 import { renderChatSafetyWarnings } from "@/app/chat/_components/ChatSafetyWarning";
-import { isPinnedToBottom, useStayAtBottom } from "@/features/chat/hooks/useStayAtBottom";
+import {
+  isPinnedToBottom,
+  scrollListToBottom,
+  useStayAtBottom,
+} from "@/features/chat/hooks/useStayAtBottom";
 import { useVisibleMessageRead } from "@/features/chat/hooks/useVisibleMessageRead";
 import { GroupMessageBubble } from "./GroupMessageBubble";
 import { VoteCreatedMessageBubble } from "./VoteCreatedMessageBubble";
@@ -72,7 +76,6 @@ export function GroupMessageList({
   onVoteClick,
 }: GroupMessageListProps) {
   const listRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const isInitialLoad = useRef(true);
   const wasPinnedToBottom = useRef(true);
   // 키보드가 열리고 닫혀 목록 높이가 바뀌어도 바닥에 붙어 있게 한다(위로 읽는 중이면 건드리지 않는다).
@@ -121,7 +124,8 @@ export function GroupMessageList({
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        bottomRef.current?.scrollIntoView({ behavior });
+        const list = listRef.current;
+        if (list) scrollListToBottom(list, behavior);
       });
     });
   }, [messages, myUserId]);
@@ -326,7 +330,7 @@ export function GroupMessageList({
           </EndedNoticeContent>
         </EndedNoticeCard>
       )}
-      <div ref={bottomRef} />
+      <div />
     </ListContainer>
   );
 }

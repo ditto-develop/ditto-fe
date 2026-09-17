@@ -54,6 +54,46 @@ describe("chat QA regressions", () => {
     });
   }
 
+  it("applies the keyboard inset only once after leaving and re-entering a room", () => {
+    cy.viewport("iphone-x");
+    cy.visit("/chat");
+    cy.contains("안녕하세요, 반가워요!", { timeout: 8000 }).click();
+    cy.location("pathname").should("match", /^\/chat\/one-on-one\/1\/?$/);
+
+    cy.get('[data-cy="chat-room"]').then(($room) => {
+      const fullHeight = $room[0].getBoundingClientRect().height;
+
+      cy.window().then((win) => {
+        const showEvent = new win.Event("keyboardWillShow");
+        Object.defineProperty(showEvent, "keyboardHeight", { value: 300 });
+        win.dispatchEvent(showEvent);
+      });
+      cy.get('[data-cy="chat-room"]').should(($resizedRoom) => {
+        expect($resizedRoom[0].getBoundingClientRect().height).to.be.closeTo(
+          fullHeight - 300,
+          1,
+        );
+      });
+
+      // 키보드 닫힘 이벤트보다 먼저 방을 나갔다가 같은 방에 다시 들어오는 경로다.
+      cy.get('img[alt="뒤로가기"]').click();
+      cy.contains("안녕하세요, 반가워요!", { timeout: 8000 }).click();
+      cy.location("pathname").should("match", /^\/chat\/one-on-one\/1\/?$/);
+
+      cy.window().then((win) => {
+        const showEvent = new win.Event("keyboardDidShow");
+        Object.defineProperty(showEvent, "keyboardHeight", { value: 300 });
+        win.dispatchEvent(showEvent);
+      });
+      cy.get('[data-cy="chat-room"]').should(($reenteredRoom) => {
+        expect($reenteredRoom[0].getBoundingClientRect().height).to.be.closeTo(
+          fullHeight - 300,
+          1,
+        );
+      });
+    });
+  });
+
   /**
    * 방에 들어가면 서버의 안읽은 수는 0 이 되는데, 목록은 마운트할 때 한 번만 읽어서
    * 뒤로 나와도 들어가기 전 배지가 남아 있었다. 화면이 다시 보이는 시점에 다시 읽는다.
@@ -148,9 +188,9 @@ describe("chat QA regressions", () => {
    * 목록의 사진은 loading="lazy" 이고 크기를 예약하지 않아, 첫 스크롤이 끝난 뒤 로드되며
    * 높이를 최대 320px 늘린다. scrollTop 은 그대로라 방금 맞춰 둔 바닥이 위로 밀린다.
    *
-   * ⚠️ 이 테스트는 **회귀를 가려내지 못한다** — Chrome 의 스크롤 앵커링이 같은 상황을
-   * 자동으로 보정해서 `useStayAtBottom` 의 보정을 지워도 통과한다. 증상이 보고된 iOS
-   * 웹뷰에는 그 보정이 없다. 여기서는 "들어가면 바닥에서 시작한다"는 계약만 지킨다.
+   * Chrome은 목록 내부 스크롤을 앵커링으로 보정할 수 있지만, 문서 자체가
+   * 움직이는 회귀는 scrollY로 별도 확인한다. 입력창은 목록 밖에 있으므로 문서가
+   * 스크롤되면 사진 크기만큼 같이 위로 밀린다.
    */
   it("stays at the bottom after a late-loading image grows the list", () => {
     cy.intercept("GET", "**/chat/rooms/*/messages*", {
@@ -191,6 +231,7 @@ describe("chat QA regressions", () => {
       // 바닥 판정 여유는 useStayAtBottom 의 BOTTOM_THRESHOLD_PX 와 같다.
       expect(el.scrollHeight - el.scrollTop - el.clientHeight).to.be.at.most(48);
     });
+    cy.window().its("scrollY").should("eq", 0);
   });
 
   it("edits draft vote options and returns to chat after creating a vote", () => {

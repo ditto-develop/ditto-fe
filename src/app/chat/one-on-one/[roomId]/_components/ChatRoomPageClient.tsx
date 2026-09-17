@@ -202,7 +202,7 @@ export function ChatRoomPageClient() {
       )}
 
       {isEnded && (
-        <BottomActionArea>
+        <ChatBottomActionArea>
           <RateButton
             type="button"
             $size="large"
@@ -210,7 +210,7 @@ export function ChatRoomPageClient() {
           >
             평가하기
           </RateButton>
-        </BottomActionArea>
+        </ChatBottomActionArea>
       )}
 
       {isMenuOpen && (
@@ -260,4 +260,9 @@ const EmptyMessage = styled.div`
 
 const RateButton = styled(Button)`
   width: 100%;
+`;
+
+const ChatBottomActionArea = styled(BottomActionArea)`
+  position: static;
+  flex-shrink: 0;
 `;

@@ -290,6 +290,7 @@ describe("1:1 chat room", () => {
 
     cy.wait("@chatImageUploadUrls").its("request.body.files.0.contentType").should("eq", "image/png");
     cy.wait("@chatImagePut");
+    cy.window().its("scrollY").should("eq", 0);
   });
 
   it("keeps a failed message in the room and retries it", () => {

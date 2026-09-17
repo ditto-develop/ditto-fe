@@ -16,6 +16,18 @@ export function isPinnedToBottom(
   return el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
 }
 
+/** 채팅 목록만 바닥으로 내린다. scrollIntoView처럼 바깥 문서까지 움직이지 않는다. */
+export function scrollListToBottom(
+  el: Pick<HTMLElement, "scrollHeight" | "scrollTop" | "scrollTo">,
+  behavior: ScrollBehavior = "auto",
+): void {
+  if (behavior === "smooth") {
+    el.scrollTo({ top: el.scrollHeight, behavior });
+    return;
+  }
+  el.scrollTop = el.scrollHeight;
+}
+
 /**
  * 키보드가 열리고 닫힐 때 대화 목록을 바닥에 붙여 둔다.
  *
@@ -52,7 +64,7 @@ export function useStayAtBottom(listRef: RefObject<HTMLElement | null>): void {
       if (!pinnedRef.current) return;
       const target = listRef.current;
       if (!target) return;
-      target.scrollTop = target.scrollHeight;
+      scrollListToBottom(target);
     };
 
     const runScheduledStick = () => {

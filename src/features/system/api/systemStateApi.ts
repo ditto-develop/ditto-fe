@@ -26,8 +26,8 @@ let inflight: Promise<SystemStateDto | null> | null = null;
  * "이번 주 퍼널이 지난주보다 나아졌나"가 기본 질문인데, 달력 날짜만으로는
  * 주차 경계가 맞지 않는다. 기간과 같은 응답에 실려 오므로 따로 부르지 않는다.
  */
-export function getSystemState(): Promise<SystemStateDto | null> {
-  if (cached && Date.now() - cached.readAt < CACHE_TTL_MS) {
+export function getSystemState(options?: { force?: boolean }): Promise<SystemStateDto | null> {
+  if (!options?.force && cached && Date.now() - cached.readAt < CACHE_TTL_MS) {
     return Promise.resolve(cached.state);
   }
   if (inflight) return inflight;
@@ -49,8 +49,8 @@ export function getSystemState(): Promise<SystemStateDto | null> {
  * 현재 기간을 읽는다. 실패하면 null이다.
  * 호출부는 null을 '모름'으로 보고 기존 동작(클라 시계 기준)을 유지해야 한다.
  */
-export function getSystemPeriod(): Promise<SystemPeriod | null> {
-  return getSystemState().then((state) => state?.period ?? null);
+export function getSystemPeriod(options?: { force?: boolean }): Promise<SystemPeriod | null> {
+  return getSystemState(options).then((state) => state?.period ?? null);
 }
 
 /** 어드민이 오버라이드를 바꾼 직후처럼 캐시를 버려야 할 때 쓴다. */
