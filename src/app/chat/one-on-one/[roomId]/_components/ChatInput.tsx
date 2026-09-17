@@ -243,17 +243,8 @@ const AttachButton = styled.button`
   }
 `;
 
-/*
- * display:none 을 쓰지 않는다. iOS 웹뷰에서 렌더 트리에 없는 파일 인풋을 click() 하면
- * 사진 선택 시트가 붙을 자리를 잃어, 시트만 공중에 뜨고 뒤의 입력창이 사라진 것처럼
- * 보였다(2026-09-17 QA). 자리는 차지하되 보이지도 눌리지도 않게 둔다.
- */
 const HiddenFileInput = styled.input`
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
+  display: none;
 `;
 
 const TextArea = styled.textarea`
