@@ -35,6 +35,8 @@ export function MessageBubble({
   onImageClick,
   onRetry,
 }: MessageBubbleProps) {
+  const messageId = "id" in message ? message.id : undefined;
+
   // SYSTEM 메시지는 좌우 구분 없이 가운데 안내로 표시한다.
   // content에는 문장이 아니라 사건 코드가 오므로 문구는 FE가 만든다.
   // isMine(senderId === 내 ID)이 곧 '내가 종료했는가'다. 모르는 코드는 아예 그리지 않는다.
@@ -42,7 +44,7 @@ export function MessageBubble({
     const systemText = getSystemMessageText(message, isMine);
     if (!systemText) return null;
 
-    return <RoomNoticeCard>{systemText}</RoomNoticeCard>;
+    return <RoomNoticeCard messageId={messageId}>{systemText}</RoomNoticeCard>;
   }
 
   const deliveryStatus = "status" in message ? message.status : null;
@@ -69,7 +71,7 @@ export function MessageBubble({
 
   if (isMine) {
     return (
-      <SentRow>
+      <SentRow data-chat-message-id={messageId}>
         {deliveryStatus === "failed" ? (
           <FailureIcon aria-label="전송 실패">!</FailureIcon>
         ) : deliveryStatus === "sending" ? (
@@ -100,7 +102,7 @@ export function MessageBubble({
   }
 
   return (
-    <ReceivedRow $isFirstInGroup={isFirstInGroup}>
+    <ReceivedRow $isFirstInGroup={isFirstInGroup} data-chat-message-id={messageId}>
       {isFirstInGroup && (
         <AvatarSlot>
           <Avatar src={partnerAvatarUrl ?? "/assets/avatar/f1.png"} alt={partnerNickname} />

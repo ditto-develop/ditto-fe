@@ -75,6 +75,7 @@ export function GroupChatRoomPageClient() {
     hasMore,
     loadingOlder,
     loadOlder,
+    markReadThrough,
     status,
     sendText,
     sendImages,
@@ -221,6 +222,7 @@ export function GroupChatRoomPageClient() {
   return (
     <PageContainer $keyboardInset={keyboardInset} data-cy="chat-room">
       <GroupChatRoomHeader
+        roomName={room.roomName}
         memberNames={memberNames}
         totalMembers={totalMembers}
         expiresAt={isEnded ? null : expiresAt}
@@ -251,6 +253,7 @@ export function GroupChatRoomPageClient() {
         hasMore={hasMore}
         loadingOlder={loadingOlder}
         onLoadOlder={loadOlder}
+        onVisibleMessage={markReadThrough}
         notice={notice}
         onImageClick={(imageUrl) => window.open(imageUrl, "_blank", "noopener,noreferrer")}
         getVoteById={getVoteById}

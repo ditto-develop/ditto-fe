@@ -22,8 +22,8 @@ describe("group chat room", () => {
     cy.wait("@getChatRooms");
     cy.wait("@getChatMessages");
 
-    // 헤더 타이틀은 counterpartMemberIds로 조회한 참여자 닉네임이다.
-    cy.contains("수민", { timeout: 8000 }).should("be.visible");
+    // 헤더 타이틀은 서버가 내려준 그룹 퀴즈 주제(roomName)다.
+    cy.contains("주말 취미 퀴즈", { timeout: 8000 }).should("be.visible");
 
     // 메시지는 1:1과 같은 커서 페이징 응답을 그대로 쓴다.
     cy.contains("다들 안녕하세요!").should("be.visible");

@@ -115,6 +115,107 @@ describe("1:1 chat room", () => {
     cy.wait("@markChatAsRead").its("request.body").should("deep.equal", { lastReadMessageId: 30 });
   });
 
+  it("does not mark an off-screen incoming message read while viewing older messages", () => {
+    const readIds: number[] = [];
+    let subscribed = false;
+    let deliver: (payload: object) => void = () => {
+      throw new Error("socket not subscribed");
+    };
+
+    cy.intercept("GET", "**/api/**/chat/rooms/1/messages*", {
+      success: true,
+      data: {
+        messages: Array.from({ length: 30 }, (_, index) => {
+          const id = 30 - index;
+          return {
+            id,
+            roomId: 1,
+            senderId: 2,
+            messageType: "TEXT",
+            content: `메시지 ${id}\n두 번째 줄\n세 번째 줄`,
+            imageUrl: null,
+            unreadCount: 1,
+            createdAt: "2026-06-06 10:10:00",
+          };
+        }),
+        nextCursor: null,
+      },
+    }).as("visibleBoundaryMessages");
+    cy.intercept("POST", "**/api/**/chat/rooms/1/read", (req) => {
+      readIds.push(req.body.lastReadMessageId as number);
+      req.reply({ success: true, data: null });
+    }).as("visibleBoundaryRead");
+
+    cy.visit("/chat/one-on-one/1", {
+      onBeforeLoad(win) {
+        const OriginalWebSocket = win.WebSocket;
+        class ChatSocket {
+          readyState = 1;
+          binaryType = "arraybuffer";
+          onopen: (() => void) | null = null;
+          onmessage: ((event: { data: string }) => void) | null = null;
+          onclose: (() => void) | null = null;
+          constructor() {
+            setTimeout(() => this.onopen?.(), 0);
+          }
+          send(frame: string) {
+            if (frame.startsWith("CONNECT")) {
+              setTimeout(
+                () =>
+                  this.onmessage?.({
+                    data: "CONNECTED\nversion:1.2\nheart-beat:0,0\n\n\0",
+                  }),
+                0,
+              );
+            }
+            if (frame.startsWith("SUBSCRIBE")) {
+              const subscription = frame.match(/\nid:([^\n]+)/)?.[1];
+              deliver = (payload) =>
+                this.onmessage?.({
+                  data: `MESSAGE\nsubscription:${subscription}\nmessage-id:visible-boundary\ndestination:/sub/chat/rooms/1\n\n${JSON.stringify(payload)}\0`,
+                });
+              subscribed = true;
+            }
+          }
+          close() {
+            this.readyState = 3;
+          }
+        }
+        win.WebSocket = new Proxy(OriginalWebSocket, {
+          construct(target, args) {
+            return String(args[0]).endsWith("/ws")
+              ? new ChatSocket()
+              : Reflect.construct(target, args);
+          },
+        });
+      },
+    });
+
+    cy.wait("@visibleBoundaryMessages");
+    cy.wrap(readIds).should((ids) => expect(ids).to.include(30));
+    cy.wrap(null).should(() => expect(subscribed).to.equal(true));
+
+    cy.get('[data-cy="message-list"]').trigger("touchstart").scrollTo("top");
+    cy.get('[data-chat-message-id="1"]').should("be.visible");
+
+    cy.then(() =>
+      deliver({
+        id: 31,
+        roomId: 1,
+        senderId: 2,
+        messageType: "TEXT",
+        content: "화면 밖 새 메시지",
+        imageUrl: null,
+        unreadCount: 1,
+        createdAt: "2026-06-06 10:11:00",
+      }),
+    );
+
+    cy.get('[data-chat-message-id="31"]').should("exist").and("not.be.visible");
+    cy.wait(200);
+    cy.then(() => expect(readIds, "서버에 보낸 읽음 경계").not.to.include(31));
+  });
+
   it("loads older messages when scrolled to the top (cursor paging)", () => {
     // 첫 페이지는 목록이 실제로 스크롤되도록 넉넉히 채운다.
     const firstPage = Array.from({ length: 30 }, (_, index) => ({

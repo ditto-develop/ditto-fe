@@ -28,6 +28,8 @@ type GroupVoteLike = {
   createdBy: number;
   createdAt: string;
   closedAt: string | null;
+  closedReason: "MEMBER" | "ROOM_ENDED" | null;
+  closedBy: number | null;
   totalMembers: number;
   votedCount: number;
   placeOptions: Array<VoteOptionLike & {
@@ -243,6 +245,8 @@ Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
         createdBy: 1,
         createdAt: "2026-06-05 18:30:00",
         closedAt: null,
+        closedReason: null,
+        closedBy: null,
         totalMembers: 4,
         votedCount: 0,
         placeOptions: body.placeOptions.map((option) => ({
@@ -297,6 +301,8 @@ Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
       if (!vote) return;
       vote.status = "CLOSED";
       vote.closedAt = "2026-06-05 19:00:00";
+      vote.closedReason = "MEMBER";
+      vote.closedBy = 1;
       req.reply(successResponse(vote));
     }).as("closeVote");
   });

@@ -51,6 +51,8 @@ type UseChatRoomResult = {
   hasMore: boolean;
   loadingOlder: boolean;
   loadOlder: () => Promise<void>;
+  /** 화면에 실제로 노출된 마지막 메시지까지만 서버 읽음 커서를 올린다. */
+  markReadThrough: (messageId: number) => void;
   status: ChatConnectionStatus;
   sending: boolean;
   sendText: (content: string) => Promise<void>;
@@ -384,14 +386,18 @@ export function useChatRoom(
     };
   }, [applyIncoming, resumeFrom, roomId]);
 
-  // 읽음 처리 — 새 메시지가 들어올 때마다 마지막 id를 올린다.
-  useEffect(() => {
-    const latest = messages[messages.length - 1];
-    if (!latest || latest.id <= lastReadSentRef.current) return;
+  const markReadThrough = useCallback(
+    (messageId: number) => {
+      if (!Number.isInteger(messageId) || messageId <= lastReadSentRef.current) return;
 
-    lastReadSentRef.current = latest.id;
-    void markChatRoomRead(roomId, latest.id).catch(() => undefined);
-  }, [messages, roomId]);
+      lastReadSentRef.current = messageId;
+      void markChatRoomRead(roomId, messageId).catch(() => {
+        // 최신 요청 자체가 실패했을 때만 다음 가시성 검사에서 재시도할 수 있게 되돌린다.
+        if (lastReadSentRef.current === messageId) lastReadSentRef.current = messageId - 1;
+      });
+    },
+    [roomId],
+  );
 
   const loadOlder = useCallback(async () => {
     if (nextCursor == null || loadingOlder) return;
@@ -492,6 +498,7 @@ export function useChatRoom(
     hasMore: nextCursor != null,
     loadingOlder,
     loadOlder,
+    markReadThrough,
     status,
     sending,
     sendText,

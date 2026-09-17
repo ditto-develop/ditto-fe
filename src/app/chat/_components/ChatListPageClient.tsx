@@ -5,7 +5,12 @@ import styled from "styled-components";
 import { MainBottomNav } from "@/app/home/MainBottomNav";
 import { ChatRoomListItem, type ChatRoomListItemData } from "./ChatRoomListItem";
 import { ChatRoomListSkeleton } from "./ChatRoomListSkeleton";
-import { deriveRoomState, getLastMessagePreview, useChatRooms } from "@/features/chat";
+import {
+  deriveRoomState,
+  getGroupRoomTitle,
+  getLastMessagePreview,
+  useChatRooms,
+} from "@/features/chat";
 import type { ChatRoomWithCounterpart } from "@/features/chat";
 import { toReviewHref, usePendingReviews } from "@/features/rating/hooks/usePendingReviews";
 import { useSystemPeriod } from "@/features/system/hooks/useSystemPeriod";
@@ -22,7 +27,10 @@ function toListItem(
 ): ChatRoomListItemData {
   return {
     roomId: room.roomId,
-    partnerNickname: room.counterpartNickname,
+    partnerNickname:
+      room.sourceType === "GROUP"
+        ? getGroupRoomTitle(room.roomName, [room.counterpartNickname])
+        : room.counterpartNickname,
     partnerAvatarUrl: room.counterpartProfileImageUrl,
     lastMessageContent: getLastMessagePreview(room),
     lastMessageAt: room.lastMessage?.createdAt,

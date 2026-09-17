@@ -3,11 +3,12 @@ import styled from "styled-components";
 
 interface RoomNoticeCardProps {
   children: ReactNode;
+  messageId?: number;
 }
 
-export function RoomNoticeCard({ children }: RoomNoticeCardProps) {
+export function RoomNoticeCard({ children, messageId }: RoomNoticeCardProps) {
   return (
-    <Card>
+    <Card data-chat-message-id={messageId}>
       <Content>
         <Icon aria-hidden="true">i</Icon>
         <Message>{children}</Message>

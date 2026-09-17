@@ -80,6 +80,7 @@ export type {
   CreateVotePlaceOption,
   CreateVoteTimeOption,
   GroupVote,
+  GroupVoteClosedReason,
   GroupVoteStatus,
   MyVote,
   VotePlaceOption,

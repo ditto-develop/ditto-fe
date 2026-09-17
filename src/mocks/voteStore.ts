@@ -27,6 +27,8 @@ function seedVote(): GroupVote {
     createdBy: 3,
     createdAt: "2026-06-05 18:10:00",
     closedAt: null,
+    closedReason: null,
+    closedBy: null,
     totalMembers: MOCK_TOTAL_MEMBERS,
     votedCount: 2,
     placeOptions: [
@@ -74,6 +76,8 @@ function seedClosedVote(): GroupVote {
     createdBy: 2,
     createdAt: "2026-06-04 12:00:00",
     closedAt: "2026-06-04 21:00:00",
+    closedReason: "MEMBER",
+    closedBy: 2,
     totalMembers: MOCK_TOTAL_MEMBERS,
     votedCount: 3,
     placeOptions: [
@@ -114,6 +118,8 @@ function seedTiedVote(): GroupVote {
     createdBy: 3,
     createdAt: "2026-06-03 12:00:00",
     closedAt: "2026-06-03 21:00:00",
+    closedReason: "MEMBER",
+    closedBy: 3,
     totalMembers: MOCK_TOTAL_MEMBERS,
     votedCount: 2,
     placeOptions: [
@@ -170,6 +176,8 @@ export function createVote(roomId: number, body: CreateGroupVoteRequest): GroupV
     createdBy: MOCK_MY_MEMBER_ID,
     createdAt: new Date().toISOString().slice(0, 19).replace("T", " "),
     closedAt: null,
+    closedReason: null,
+    closedBy: null,
     totalMembers: MOCK_TOTAL_MEMBERS,
     votedCount: 0,
     placeOptions: body.placeOptions.map((option) => ({
@@ -253,6 +261,8 @@ export function closeVote(vote: GroupVote): GroupVote {
   if (vote.status === "OPEN") {
     vote.status = "CLOSED";
     vote.closedAt = new Date().toISOString().slice(0, 19).replace("T", " ");
+    vote.closedReason = "MEMBER";
+    vote.closedBy = MOCK_MY_MEMBER_ID;
 
     // 마감은 누가 눌렀든 그 사람이 보낸 SYSTEM 메시지로 남는다. 목업에선 나다.
     const extras = extraMessagesByRoomId.get(vote.roomId) ?? [];

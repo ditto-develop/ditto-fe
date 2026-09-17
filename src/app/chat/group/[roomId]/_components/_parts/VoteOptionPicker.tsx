@@ -4,7 +4,7 @@ import { useRef } from "react";
 
 import { HiddenPickerInput, PickerLabel, TimeInputRow } from "./GroupVoteCreateModal.parts";
 
-/** 타입당 선택지 상한. 서버도 같은 값으로 막는다(초과 시 8206). */
+/** 타입당 선택지 상한. 서버도 같은 값으로 막는다(초과 시 8204). */
 export const MAX_OPTION_COUNT = 10;
 
 export function formatDateLabel(value: string) {

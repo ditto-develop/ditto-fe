@@ -81,8 +81,8 @@ function handleRowKeyDown(event: React.KeyboardEvent, action: () => void) {
 /**
  * 만남 투표 제출 화면.
  *
- * 선택지는 **생성 시 확정**되어 여기서 추가·삭제할 수 없다(선택지 추가 API는 만들지 않기로
- * 확정 — BE 위키 Frontend-Vote-Guide). 재투표도 같은 화면에서 같은 요청을 다시 보낸다.
+ * 진행 중에는 방 멤버 누구나 장소·시간 선택지를 추가할 수 있다. 삭제는 지원하지 않으며,
+ * 재투표도 같은 화면에서 같은 요청을 다시 보낸다.
  */
 export function VoteSubmissionPage({ vote, onClose, onSubmit, onAddOption }: VoteSubmissionPageProps) {
   const [selectedPlaceIds, setSelectedPlaceIds] = useState<number[]>(vote.myVote?.placeIds ?? []);

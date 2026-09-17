@@ -130,6 +130,7 @@ function normalizeRoom(room: ChatRoom): ChatRoom {
   return {
     ...room,
     sourceType: room.sourceType ?? "PERSONAL",
+    roomName: room.roomName ?? null,
     counterpartMemberIds: room.counterpartMemberIds ?? [],
     lastMessage: room.lastMessage ? normalizeMessage(room.lastMessage) : null,
     unreadCount: room.unreadCount ?? 0,

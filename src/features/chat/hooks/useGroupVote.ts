@@ -48,7 +48,7 @@ type UseGroupVoteResult = {
   refresh: () => Promise<void>;
   create: (body: CreateGroupVoteRequest) => Promise<GroupVote>;
   cast: (voteId: number, body: CastVoteRequest) => Promise<GroupVote>;
-  /** 진행 중 투표에 선택지 하나 추가. 상한·중복은 서버 판정(8206/8207). */
+  /** 진행 중 투표에 선택지 하나 추가. 상한·중복은 서버 판정(8204/8205). */
   addOption: (voteId: number, option: AddOptionInput) => Promise<GroupVote>;
   close: (voteId: number) => Promise<GroupVote>;
 };

@@ -51,7 +51,7 @@ export function GroupMessageBubble({
 
   if (isMine) {
     return (
-      <SentRow>
+      <SentRow data-chat-message-id={message.id}>
         {(
           <SentMeta>
             {message.unreadCount > 0 && (
@@ -68,7 +68,7 @@ export function GroupMessageBubble({
   }
 
   return (
-    <ReceivedRow $isFirstInGroup={isFirstInGroup}>
+    <ReceivedRow $isFirstInGroup={isFirstInGroup} data-chat-message-id={message.id}>
       {isFirstInGroup ? (
         <AvatarSlot>
           <Avatar src={senderAvatarUrl ?? "/assets/avatar/f1.png"} alt={senderNickname} />

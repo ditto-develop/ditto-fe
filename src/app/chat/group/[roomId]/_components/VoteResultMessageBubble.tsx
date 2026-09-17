@@ -6,6 +6,7 @@ import type { VoteOutcome } from "@/features/chat";
 import { parseServerDateTime } from "@/shared/lib/serverDateTime";
 
 interface VoteResultMessageBubbleProps {
+  messageId: number;
   isMine: boolean;
   senderNickname: string;
   senderAvatarUrl: string | null;
@@ -36,6 +37,7 @@ function formatTime(date: string): string {
  * `summarizeVoteOutcome`(features/chat/lib/voteResult.ts)이 하고 이 화면은 그리기만 한다.
  */
 export function VoteResultMessageBubble({
+  messageId,
   isMine,
   senderNickname,
   senderAvatarUrl,
@@ -105,7 +107,7 @@ export function VoteResultMessageBubble({
 
   if (isMine) {
     return (
-      <SentRow>
+      <SentRow data-chat-message-id={messageId}>
         {isLastInGroup && <SentMeta>{timeLabel && <TimeLabel>{timeLabel}</TimeLabel>}</SentMeta>}
         {card}
       </SentRow>
@@ -113,7 +115,7 @@ export function VoteResultMessageBubble({
   }
 
   return (
-    <ReceivedRow>
+    <ReceivedRow data-chat-message-id={messageId}>
       {isFirstInGroup ? (
         <AvatarSlot>
           <Avatar src={senderAvatarUrl ?? "/assets/avatar/f1.png"} alt={senderNickname} />

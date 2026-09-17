@@ -58,6 +58,8 @@ function normalizeVote(vote: GroupVote): GroupVote {
   return {
     ...vote,
     closedAt: vote.closedAt ?? null,
+    closedReason: vote.closedReason ?? null,
+    closedBy: vote.closedBy ?? null,
     placeOptions: (vote.placeOptions ?? []).map(normalizePlaceOption),
     timeOptions: (vote.timeOptions ?? []).map(normalizeTimeOption),
     myVote: normalizeMyVote(vote.myVote),
@@ -125,8 +127,8 @@ export async function closeVote(roomId: number, voteId: number): Promise<GroupVo
 /**
  * 진행 중인 투표에 장소 선택지를 하나 추가한다. 방 멤버 누구나 가능하고 SYSTEM 메시지는 남지 않는다.
  *
- * 생성과 달리 **한 번에 하나**만 보낸다(BE `place-options`). 타입당 10개가 상한이라 넘기면 8206,
- * 같은 라벨이 이미 있으면 8207로 거절된다.
+ * 생성과 달리 **한 번에 하나**만 보낸다(BE `place-options`). 타입당 10개가 상한이라 넘기면 8204,
+ * 같은 라벨이 이미 있으면 8205로 거절된다.
  */
 export async function addPlaceOption(
   roomId: number,

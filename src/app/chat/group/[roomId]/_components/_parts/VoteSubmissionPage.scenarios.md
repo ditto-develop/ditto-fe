@@ -7,7 +7,7 @@
 호출은 BE 의 `place-options`/`time-options` 두 엔드포인트다 — 생성된 클라이언트의
 `chatControllerAddVoteOption`(단일 경로)은 **실제 서버와 맞지 않으니 쓰지 않는다**.
 장소는 `PlaceSearchModal`, 시간은 날짜·시간 피커로 받고 한 번에 하나씩 보낸다.
-상한(타입당 10개)과 중복은 서버가 판정한다(8206/8207).
+상한(타입당 10개)과 중복은 서버가 판정한다(8204/8205).
 
 ## Inputs
 

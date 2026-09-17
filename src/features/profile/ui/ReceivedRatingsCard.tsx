@@ -33,7 +33,7 @@ export function ReceivedRatingsCard({ ratingSummary }: ReceivedRatingsCardProps)
                         <CountText>({totalCount})</CountText>
                     </ScoreRow>
                     <ChipRow aria-label="받은 평가 코멘트">
-                        {publicRatingSummary.noShowCount > 0 && (
+                        {(publicRatingSummary.noShowCount ?? 0) > 0 && (
                             <NoShowChip>⚠ 노쇼 {publicRatingSummary.noShowCount}회</NoShowChip>
                         )}
                         {comments.map((comment) => (

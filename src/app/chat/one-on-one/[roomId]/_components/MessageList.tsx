@@ -6,7 +6,8 @@ import styled from "styled-components";
 import { isRoomEndedSystemMessage } from "@/features/chat";
 import type { ChatMessage, ChatOptimisticMessage } from "@/features/chat";
 import { renderChatSafetyWarnings } from "@/app/chat/_components/ChatSafetyWarning";
-import { useStayAtBottom } from "@/features/chat/hooks/useStayAtBottom";
+import { isPinnedToBottom, useStayAtBottom } from "@/features/chat/hooks/useStayAtBottom";
+import { useVisibleMessageRead } from "@/features/chat/hooks/useVisibleMessageRead";
 import { MessageBubble } from "./MessageBubble";
 import { RoomNoticeCard } from "./RoomNoticeCard";
 
@@ -19,6 +20,7 @@ interface MessageListProps {
   hasMore: boolean;
   loadingOlder: boolean;
   onLoadOlder: () => void;
+  onVisibleMessage: (messageId: number) => void;
   /** 연결이 끊겼을 때 상단에 띄우는 안내. */
   notice?: string | null;
   onImageClick?: (imageUrl: string) => void;
@@ -72,6 +74,7 @@ export function MessageList({
   hasMore,
   loadingOlder,
   onLoadOlder,
+  onVisibleMessage,
   notice,
   onImageClick,
   onRetrySend,
@@ -79,6 +82,7 @@ export function MessageList({
   const listRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const isInitialLoad = useRef(true);
+  const wasPinnedToBottom = useRef(true);
   // 키보드가 열리고 닫혀 목록 높이가 바뀌어도 바닥에 붙어 있게 한다(위로 읽는 중이면 건드리지 않는다).
   useStayAtBottom(listRef);
 
@@ -101,7 +105,10 @@ export function MessageList({
   const userHasScrolled = useRef(false);
 
   useEffect(() => {
-    const latest = optimisticMessages[optimisticMessages.length - 1] ?? messages[messages.length - 1];
+    const latest: ChatMessage | ChatOptimisticMessage | undefined =
+      optimisticMessages.length > 0
+        ? optimisticMessages[optimisticMessages.length - 1]
+        : messages[messages.length - 1];
     if (!latest) return;
 
     const latestKey = messageKey(latest);
@@ -125,17 +132,31 @@ export function MessageList({
       return;
     }
 
+    const sentByMe =
+      isOptimisticMessage(latest) ||
+      (myUserId !== null && latest.senderId === myUserId);
+    if (!isInitialLoad.current && !wasPinnedToBottom.current && !sentByMe) return;
+
     const behavior: ScrollBehavior = isInitialLoad.current ? "instant" : "smooth";
     isInitialLoad.current = false;
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ behavior }));
     });
-  }, [messages, optimisticMessages]);
+  }, [messages, myUserId, optimisticMessages]);
+
+  // 최초 바닥 정렬이 예약된 뒤 가시성 검사를 붙여, 화면이 이동하기 전 ID를 먼저 보내지 않는다.
+  useVisibleMessageRead(
+    listRef,
+    messages.map((message) => message.id).join(","),
+    onVisibleMessage,
+  );
 
   const handleScroll = useCallback(() => {
     const el = listRef.current;
-    if (!el || !hasMore || loadingOlder) return;
+    if (!el) return;
+    wasPinnedToBottom.current = isPinnedToBottom(el);
+    if (!hasMore || loadingOlder) return;
     if (!userHasScrolled.current) return;
     if (el.scrollTop > 60) return;
 
@@ -294,4 +315,3 @@ const DateChip = styled.div`
   line-height: 1.385;
   color: var(--color-semantic-label-alternative);
 `;
-

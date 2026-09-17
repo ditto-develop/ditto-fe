@@ -5,6 +5,7 @@ import styled, { css } from "styled-components";
 import { parseServerDateTime } from "@/shared/lib/serverDateTime";
 
 interface VoteCreatedMessageBubbleProps {
+  messageId: number;
   isMine: boolean;
   senderNickname: string;
   senderAvatarUrl: string | null;
@@ -33,6 +34,7 @@ function summaryText(summary: { head: string; extraCount: number }): string {
 }
 
 export function VoteCreatedMessageBubble({
+  messageId,
   isMine,
   senderNickname,
   senderAvatarUrl,
@@ -72,7 +74,7 @@ export function VoteCreatedMessageBubble({
 
   if (isMine) {
     return (
-      <SentRow>
+      <SentRow data-chat-message-id={messageId}>
         {isLastInGroup && (
           <SentMeta>
             {timeLabel && <TimeLabel>{timeLabel}</TimeLabel>}
@@ -84,7 +86,7 @@ export function VoteCreatedMessageBubble({
   }
 
   return (
-    <ReceivedRow>
+    <ReceivedRow data-chat-message-id={messageId}>
       {isFirstInGroup ? (
         <AvatarSlot>
           <Avatar

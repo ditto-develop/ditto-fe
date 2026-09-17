@@ -31,14 +31,14 @@ export interface MyStats {
  * 화면이 이 타입 하나를 공유한다.
  *
  * 공개 여부 플래그는 내려오지 않는다 — `totalCount >= publicThreshold` 로 판정한다.
- * 미달이면 서버가 `averageScore`·`noShowCount` 를 0, `ratings` 를 빈 배열로 내리고
+ * 미달이면 서버가 `averageScore` 를 0, `noShowCount` 를 null, `ratings` 를 빈 배열로 내리고
  * `totalCount` 만 실제 값을 준다.
  */
 export interface RatingSummary {
     averageScore: number;
     totalCount: number;
     publicThreshold: number;
-    noShowCount: number;
+    noShowCount: number | null;
     ratings?: Array<{
         comment?: string;
         createdAt?: string;

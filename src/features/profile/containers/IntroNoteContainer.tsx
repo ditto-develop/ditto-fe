@@ -26,9 +26,8 @@ import { ProfileIntroView } from "@/features/profile/ui/ProfileIntroView";
 import { ProfileIntroSkeleton } from "@/features/profile/ui/ProfileIntroSkeleton";
 
 /**
- * 서버는 0003(403) 하나로 여러 상황을 덮는다 — 차단 관계, 그리고 매칭이 성사되지 않은
- * 상대. 후자는 useUserProfile이 매칭 후보 목록으로 폴백하므로 여기까지 오지 않는다.
- * 남는 건 원인을 가릴 수 없는 경우들뿐이라 '차단'으로 단정하지 않고 중립적으로 안내한다.
+ * 매칭 후보의 공개 프로필 조회는 서버가 허용한다. 따라서 여기 도달한 0003(403)은 차단 등
+ * 실제 접근 불가 상태지만, 구체적인 원인을 노출하지 않고 중립적으로 안내한다.
  */
 function toProfileErrorText(error: unknown): string {
     return hasApiErrorCode(error, API_ERROR_CODE.FORBIDDEN)

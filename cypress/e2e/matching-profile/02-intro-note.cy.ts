@@ -29,6 +29,22 @@ describe("3.2 소개노트", () => {
       cy.contains("대화가 시작되면 더 많은 질문과 답변을 볼 수 있어요").should("be.visible");
       cy.contains("대화 신청하기").should("be.visible");
     });
+
+    it("403 프로필은 후보 목록으로 우회하지 않고 접근 불가로 안내한다", () => {
+      cy.intercept("GET", "**/api/v1/users/501/profile", {
+        statusCode: 403,
+        body: {
+          success: false,
+          error: { code: "0003", message: "프로필에 접근할 수 없습니다." },
+        },
+      }).as("forbiddenProfile");
+
+      cy.visit(`${PROFILE}&state=before_request`);
+      cy.wait("@forbiddenProfile");
+
+      cy.contains("지금은 이 프로필을 볼 수 없어요.").should("be.visible");
+      cy.get("@getMatchesOneOnOne.all").should("have.length", 0);
+    });
   });
 
   /*
@@ -88,7 +104,7 @@ describe("3.2 소개노트", () => {
           averageScore: 0,
           totalCount: 2,
           publicThreshold: 3,
-          noShowCount: 0,
+          noShowCount: null,
           ratings: [],
         },
       }).as("getUserRatingsPrivate");

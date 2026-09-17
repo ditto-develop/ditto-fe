@@ -11,7 +11,8 @@ import {
 } from "@/features/chat";
 import type { ChatMessage, CounterpartProfile, GroupVote } from "@/features/chat";
 import { renderChatSafetyWarnings } from "@/app/chat/_components/ChatSafetyWarning";
-import { useStayAtBottom } from "@/features/chat/hooks/useStayAtBottom";
+import { isPinnedToBottom, useStayAtBottom } from "@/features/chat/hooks/useStayAtBottom";
+import { useVisibleMessageRead } from "@/features/chat/hooks/useVisibleMessageRead";
 import { GroupMessageBubble } from "./GroupMessageBubble";
 import { VoteCreatedMessageBubble } from "./VoteCreatedMessageBubble";
 import { VoteResultMessageBubble } from "./VoteResultMessageBubble";
@@ -24,6 +25,7 @@ interface GroupMessageListProps {
   hasMore: boolean;
   loadingOlder: boolean;
   onLoadOlder: () => void;
+  onVisibleMessage: (messageId: number) => void;
   /** 종료·개방 전·연결 끊김 안내. 없으면 카드를 그리지 않는다. */
   notice?: string;
   onImageClick?: (imageUrl: string) => void;
@@ -63,6 +65,7 @@ export function GroupMessageList({
   hasMore,
   loadingOlder,
   onLoadOlder,
+  onVisibleMessage,
   notice,
   onImageClick,
   getVoteById,
@@ -71,6 +74,7 @@ export function GroupMessageList({
   const listRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const isInitialLoad = useRef(true);
+  const wasPinnedToBottom = useRef(true);
   // 키보드가 열리고 닫혀 목록 높이가 바뀌어도 바닥에 붙어 있게 한다(위로 읽는 중이면 건드리지 않는다).
   useStayAtBottom(listRef);
 
@@ -109,6 +113,9 @@ export function GroupMessageList({
       return;
     }
 
+    const sentByMe = myUserId !== null && latest.senderId === myUserId;
+    if (!isInitialLoad.current && !wasPinnedToBottom.current && !sentByMe) return;
+
     const behavior: ScrollBehavior = isInitialLoad.current ? "instant" : "smooth";
     isInitialLoad.current = false;
 
@@ -117,12 +124,21 @@ export function GroupMessageList({
         bottomRef.current?.scrollIntoView({ behavior });
       });
     });
-  }, [messages]);
+  }, [messages, myUserId]);
+
+  // 최초 바닥 정렬이 예약된 뒤 가시성 검사를 붙여, 화면이 이동하기 전 ID를 먼저 보내지 않는다.
+  useVisibleMessageRead(
+    listRef,
+    messages.map((message) => message.id).join(","),
+    onVisibleMessage,
+  );
 
   // 과거 메시지는 훅이 커서로 가져온다. 여기서는 스크롤 위치만 보존한다.
   const handleScroll = useCallback(() => {
     const el = listRef.current;
-    if (!el || !hasMore || loadingOlder) return;
+    if (!el) return;
+    wasPinnedToBottom.current = isPinnedToBottom(el);
+    if (!hasMore || loadingOlder) return;
     if (!userHasScrolled.current) return;
     if (el.scrollTop > 60) return;
 
@@ -183,6 +199,7 @@ export function GroupMessageList({
           items.push(
             <VoteCreatedMessageBubble
               key={message.id}
+              messageId={message.id}
               isMine={isMine}
               senderNickname={creator?.nickname ?? "알 수 없음"}
               senderAvatarUrl={creator?.profileImageUrl ?? null}
@@ -210,19 +227,21 @@ export function GroupMessageList({
 
           if (!outcome) {
             items.push(
-              <SystemMessageRow key={message.id}>
+              <SystemMessageRow key={message.id} data-chat-message-id={message.id}>
                 <SystemMessageText>만남 투표가 마감됐어요.</SystemMessageText>
               </SystemMessageRow>,
             );
             return;
           }
 
-          const closer = memberById.get(message.senderId);
+          const closerId = vote?.closedBy ?? message.senderId;
+          const closer = memberById.get(closerId);
 
           items.push(
             <VoteResultMessageBubble
               key={message.id}
-              isMine={isMine}
+              messageId={message.id}
+              isMine={myUserId !== null && closerId === myUserId}
               senderNickname={closer?.nickname ?? "알 수 없음"}
               senderAvatarUrl={closer?.profileImageUrl ?? null}
               // 결과 카드도 늘 한 장짜리다 — 연속 말풍선 묶음에 넣지 않는다.
@@ -245,7 +264,7 @@ export function GroupMessageList({
         );
         if (systemText) {
           items.push(
-            <SystemMessageRow key={message.id}>
+            <SystemMessageRow key={message.id} data-chat-message-id={message.id}>
               <SystemMessageText>{systemText}</SystemMessageText>
             </SystemMessageRow>,
           );
@@ -296,7 +315,7 @@ export function GroupMessageList({
   };
 
   return (
-    <ListContainer ref={listRef}>
+    <ListContainer ref={listRef} data-cy="message-list">
       {loadingOlder && <LoadingOlder>이전 메시지를 불러오는 중...</LoadingOlder>}
       {renderMessages()}
       {notice && (

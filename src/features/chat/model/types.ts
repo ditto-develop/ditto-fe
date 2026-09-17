@@ -149,13 +149,14 @@ export type ChatRoomNotice = {
 /* ────────────────────────── 그룹 만남 투표 ──────────────────────────
  *
  * 그룹 방에서 만날 장소·시간을 정하는 투표. 방당 열린 투표는 하나뿐이다.
- * 선택지는 생성 시 확정되며 이후 추가·삭제가 없다(선택지 추가 API는 만들지 않기로 확정).
+ * 진행 중에는 방 멤버 누구나 장소·시간 선택지를 추가할 수 있고 삭제는 할 수 없다.
  *
  * 서버는 승자·득표율을 계산하지 않는다 — voterIds와 입력 순 배열만 내려주고
  * 1위·동표 판정은 FE가 한다(features/chat/lib/voteResult.ts).
  */
 
 export type GroupVoteStatus = "OPEN" | "CLOSED";
+export type GroupVoteClosedReason = "MEMBER" | "ROOM_ENDED";
 
 export type VotePlaceOption = {
   optionId: number;
@@ -183,7 +184,7 @@ export type MyVote = {
   timeIds: number[];
 };
 
-/** 투표 다섯 엔드포인트(목록·상세·생성·cast·close)가 모두 이 형태를 돌려준다. */
+/** 투표 일곱 엔드포인트(목록·상세·생성·cast·close·선택지 추가)가 모두 이 형태를 돌려준다. */
 export type GroupVote = {
   voteId: number;
   roomId: number;
@@ -195,6 +196,10 @@ export type GroupVote = {
   createdAt: string;
   /** 진행 중이면 null. */
   closedAt: string | null;
+  /** 직접 마감이면 MEMBER, 방 종료에 따른 자동 마감이면 ROOM_ENDED. 진행 중이면 null. */
+  closedReason: GroupVoteClosedReason | null;
+  /** 직접 마감한 회원 ID. 자동 마감·진행 중이면 null. */
+  closedBy: number | null;
   /** 진행 카운터의 분모 — 이탈하지 않은 멤버 수. */
   totalMembers: number;
   /** 장소·시간 중 하나라도 표를 던진 활성 멤버 수. */

@@ -55,6 +55,7 @@ export function ChatRoomPageClient() {
     hasMore,
     loadingOlder,
     loadOlder,
+    markReadThrough,
     status,
     sendText,
     sendImages,
@@ -179,6 +180,7 @@ export function ChatRoomPageClient() {
         hasMore={hasMore}
         loadingOlder={loadingOlder}
         onLoadOlder={loadOlder}
+        onVisibleMessage={markReadThrough}
         notice={notice}
         onRetrySend={retrySend}
       />

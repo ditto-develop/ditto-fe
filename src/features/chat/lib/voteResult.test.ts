@@ -21,6 +21,8 @@ function makeVote(overrides: Partial<GroupVote> = {}): GroupVote {
     createdBy: 3,
     createdAt: "2026-03-13 12:00:00",
     closedAt: null,
+    closedReason: null,
+    closedBy: null,
     totalMembers: 4,
     votedCount: 2,
     placeOptions: [
