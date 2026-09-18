@@ -20,7 +20,9 @@ describe("my profile", () => {
   it("shows my profile summary and routes to edit screens", () => {
     cy.visit("/profile");
 
-    cy.contains("내 프로필").should("be.visible");
+    // 상단 바에는 제목 없이 설정 버튼만 둔다(2026-09-18).
+    cy.contains("내 프로필").should("not.exist");
+    cy.get('[aria-label="설정"]').should("be.visible");
     cy.contains("개굴개굴렌").should("be.visible");
     cy.contains("25~29세 · 남성 · 서울").should("be.visible");
     cy.contains("주말마다 한강 산책하는 걸 좋아해요!").should("be.visible");

@@ -33,8 +33,9 @@ export function MyProfileContainer() {
 
     return (
         <Page>
+            {/* 제목 없이 설정 버튼만 두는 바다(2026-09-18 요청). label 을 비우면
+                좌측 자리는 숨김 IconBox 가 그대로 잡아 설정 아이콘은 우측에 남는다. */}
             <TopNavigation
-                label="내 프로필"
                 trailingElement={(
                     <IconButton
                         type="button"
