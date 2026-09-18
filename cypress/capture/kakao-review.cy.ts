@@ -187,7 +187,8 @@ describe("카카오 심사 제출용 화면 캡처", () => {
       cy.contains("11. 개인정보 보호책임자", { timeout: 10000 }).scrollIntoView({
         offset: { top: -140, left: 0 },
       });
-      cy.contains("오세영").should("be.visible");
+      // 성명·전화번호는 방침에서 뺐다(2026-09-18). 남은 건 직책과 이메일뿐이다.
+      cy.contains("직책: 대표").should("be.visible");
       cy.contains("ditto.apply@gmail.com").should("be.visible");
       shoot("04b-개인정보처리방침-보호책임자");
     });
