@@ -223,6 +223,48 @@ describe("notification center", () => {
     cy.contains("button", "모두 읽음").should("be.disabled");
   });
 
+  /**
+   * 옆으로 밀어 지우기. 서버에 삭제 API 가 없어 기기 로컬 숨김이다
+   * (docs/be-request-notification-chat-delete.md) — 그래서 새로고침 뒤 검증까지 한다.
+   */
+  it("옆으로 밀어 알림 하나를 지운다", () => {
+    mockNotificationsApi();
+    cy.visit("/notifications");
+    cy.wait("@getNotifications");
+
+    const swipeOpen = (selector: string) =>
+      cy
+        .contains(selector)
+        .trigger("pointerdown", { clientX: 320, clientY: 120, pointerId: 1 })
+        .trigger("pointermove", { clientX: 200, clientY: 120, pointerId: 1 })
+        .trigger("pointerup", { clientX: 200, clientY: 120, pointerId: 1 });
+
+    swipeOpen("이번 주 매칭 결과가 나왔어요");
+    cy.get('[aria-label="알림 삭제: 이번 주 매칭 결과가 나왔어요"]').click();
+
+    cy.contains("이번 주 매칭 결과가 나왔어요").should("not.exist");
+    // 다른 알림은 그대로 남는다.
+    cy.contains("산책러버님의 새 메시지").should("be.visible");
+
+    cy.reload();
+    cy.wait("@getNotifications");
+    cy.contains("산책러버님의 새 메시지").should("be.visible");
+    cy.contains("이번 주 매칭 결과가 나왔어요").should("not.exist");
+  });
+
+  it("전체 지우기로 목록을 비운다", () => {
+    mockNotificationsApi();
+    cy.visit("/notifications");
+    cy.wait("@getNotifications");
+
+    cy.contains("button", "전체 지우기").click();
+    cy.contains("알림을 모두 지울까요?").should("be.visible");
+    cy.contains("button", "모두 지우기").click();
+
+    cy.contains("새로운 알림이 없어요").should("be.visible");
+    cy.contains("button", "전체 지우기").should("be.disabled");
+  });
+
   it("shows the empty state when there is no notification", () => {
     mockNotificationsApi([]);
     cy.visit("/notifications");

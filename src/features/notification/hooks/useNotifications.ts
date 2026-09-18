@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import {
   getNotifications,
@@ -8,6 +8,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from "@/features/notification/api/notificationApi";
+import { hiddenNotifications } from "@/features/notification/lib/hiddenNotifications";
 import { isToday } from "@/features/notification/lib/notificationTime";
 import { isUnread } from "@/features/notification/model/notificationMeta";
 import type {
@@ -16,6 +17,7 @@ import type {
   NotificationItem,
   NotificationSection,
 } from "@/features/notification/model/types";
+import { EMPTY_HIDDEN_IDS } from "@/shared/lib/hiddenItemStore";
 import { PUSH_RECEIVED_EVENT } from "@/shared/lib/native/pushNotifications";
 import { parseServerDateTime } from "@/shared/lib/serverDateTime";
 
@@ -41,6 +43,12 @@ type UseNotificationsResult = {
   isEmpty: boolean;
   markRead: (id: number) => void;
   markAllRead: () => void;
+  /** 알림 한 건을 목록에서 치운다(기기 로컬 — hiddenNotifications 주석 참고). */
+  hide: (id: number) => void;
+  /** 지금 목록에 보이는 알림을 모두 치운다. 다른 탭의 알림은 건드리지 않는다. */
+  hideAll: () => void;
+  /** '전체 지우기'를 누를 수 있는 상태인지. */
+  canHideAll: boolean;
 };
 
 function toSections(items: NotificationItem[], now: number): NotificationSection[] {
@@ -87,6 +95,16 @@ export function useNotifications(): UseNotificationsResult {
    * Frontend-Push-Guide §앱 구현 노트), 열려 있는 알림 센터가 스스로 최신을 받아야 한다.
    */
   const [reloadKey, setReloadKey] = useState(0);
+  /**
+   * 이 기기에서 치운 알림 id. 서버에 삭제 API 가 없어 로컬로만 숨긴다
+   * (hiddenNotifications 주석 참고). 다른 탭에서 치운 것도 따라오도록 구독한다.
+   */
+  const hiddenIds = useSyncExternalStore(
+    hiddenNotifications.subscribe,
+    hiddenNotifications.read,
+    // SSR(정적 내보내기)에는 저장소가 없다. 빈 Set 이어야 하이드레이션이 어긋나지 않는다.
+    () => EMPTY_HIDDEN_IDS,
+  );
 
   // 웹에서는 이 이벤트가 발생하지 않는다(푸시 진입점 전체가 네이티브로 막혀 있다).
   useEffect(() => {
@@ -135,8 +153,11 @@ export function useNotifications(): UseNotificationsResult {
   }, [reloadKey]);
 
   const visibleItems = useMemo(
-    () => [...items].sort((left, right) => toTimestamp(right.createdAt) - toTimestamp(left.createdAt)),
-    [items],
+    () =>
+      items
+        .filter((item) => !hiddenIds.has(String(item.id)))
+        .sort((left, right) => toTimestamp(right.createdAt) - toTimestamp(left.createdAt)),
+    [items, hiddenIds],
   );
 
   const sections = useMemo(() => toSections(visibleItems, now), [visibleItems, now]);
@@ -160,6 +181,25 @@ export function useNotifications(): UseNotificationsResult {
     void markAllNotificationsRead().catch(() => undefined);
   }, []);
 
+  /**
+   * 치우기는 읽음까지 함께 처리한다. 목록에서 사라진 알림이 벨 배지에는 계속 잡혀 있으면
+   * "안 읽은 알림이 있다는데 목록은 비어 있다"가 된다.
+   */
+  const hide = useCallback(
+    (id: number) => {
+      const target = items.find((item) => item.id === id);
+      if (target && isUnread(target)) markRead(id);
+      hiddenNotifications.hide(id);
+    },
+    [items, markRead],
+  );
+
+  const hideAll = useCallback(() => {
+    if (visibleItems.length === 0) return;
+    if (visibleItems.some(isUnread)) markAllRead();
+    hiddenNotifications.hideAll(visibleItems.map((item) => item.id));
+  }, [visibleItems, markAllRead]);
+
   return {
     sections,
     now,
@@ -171,5 +211,8 @@ export function useNotifications(): UseNotificationsResult {
     isEmpty: !loading && visibleItems.length === 0,
     markRead,
     markAllRead,
+    hide,
+    hideAll,
+    canHideAll: visibleItems.length > 0,
   };
 }

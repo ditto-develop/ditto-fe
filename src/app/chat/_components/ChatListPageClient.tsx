@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { MainBottomNav } from "@/app/home/MainBottomNav";
 import { ChatRoomListItem, type ChatRoomListItemData } from "./ChatRoomListItem";
@@ -15,7 +15,9 @@ import type { ChatRoomWithCounterpart } from "@/features/chat";
 import { toReviewHref, usePendingReviews } from "@/features/rating/hooks/usePendingReviews";
 import { useSystemPeriod } from "@/features/system/hooks/useSystemPeriod";
 import type { SystemPeriod } from "@/features/system/api/systemStateApi";
-import { Button } from "@/shared/ui";
+import { hiddenChatRooms } from "@/features/chat/lib/hiddenChatRooms";
+import { EMPTY_HIDDEN_IDS } from "@/shared/lib/hiddenItemStore";
+import { AlertModal, Button, SwipeToDelete } from "@/shared/ui";
 
 type FilterType = "전체" | "진행중" | "종료";
 const FILTERS: FilterType[] = ["전체", "진행중", "종료"];
@@ -44,6 +46,7 @@ function toListItem(
 
 export function ChatListPageClient() {
   const [filter, setFilter] = useState<FilterType>("전체");
+  const [isClearEndedOpen, setIsClearEndedOpen] = useState(false);
   const { rooms: chatRooms, loading } = useChatRooms();
   const { reviews } = usePendingReviews();
   // '대기중' 배지도 어드민 시각 오버라이드를 따라야 한다.
@@ -55,12 +58,21 @@ export function ChatListPageClient() {
     [reviews],
   );
 
+  /** 이 기기에서 치운 방 id. 서버에 삭제 API 가 없어 로컬 숨김이다(hiddenChatRooms 주석). */
+  const hiddenRoomIds = useSyncExternalStore(
+    hiddenChatRooms.subscribe,
+    hiddenChatRooms.read,
+    () => EMPTY_HIDDEN_IDS,
+  );
+
   const rooms = useMemo(
     () =>
-      chatRooms.map((room) =>
-        toListItem(room, serverPeriod, reviewHrefByRoomId.get(String(room.roomId))),
-      ),
-    [chatRooms, reviewHrefByRoomId, serverPeriod],
+      chatRooms
+        .filter((room) => !hiddenRoomIds.has(String(room.roomId)))
+        .map((room) =>
+          toListItem(room, serverPeriod, reviewHrefByRoomId.get(String(room.roomId))),
+        ),
+    [chatRooms, hiddenRoomIds, reviewHrefByRoomId, serverPeriod],
   );
 
   // 개방 전(금요일 대기) 방은 아직 끝나지 않았으므로 '진행중'에 함께 둔다.
@@ -69,6 +81,14 @@ export function ChatListPageClient() {
     const ended = room.state === "ENDED";
     return filter === "진행중" ? !ended : ended;
   });
+
+  /**
+   * 지금 목록에 보이는 완료된 방. '완료된 대화 지우기'의 대상이자 버튼 노출 조건이다.
+   * 진행 중인 방은 대상이 아니다 — hiddenChatRooms 주석 참고.
+   */
+  const endedRoomIds = filteredRooms
+    .filter((room) => room.state === "ENDED")
+    .map((room) => room.roomId);
 
   return (
     <Container>
@@ -82,6 +102,11 @@ export function ChatListPageClient() {
             {f}
           </FilterChip>
         ))}
+        {endedRoomIds.length > 0 && (
+          <ClearEndedButton type="button" onClick={() => setIsClearEndedOpen(true)}>
+            완료된 대화 지우기
+          </ClearEndedButton>
+        )}
       </FilterRow>
 
       <Body>
@@ -105,11 +130,36 @@ export function ChatListPageClient() {
         ) : (
           <RoomList>
             {filteredRooms.map((room) => (
-              <ChatRoomListItem key={room.roomId} room={room} />
+              <SwipeToDelete
+                key={room.roomId}
+                // 진행 중인 방은 밀어도 열리지 않는다 — 숨기면 다시 들어갈 길이 없다.
+                disabled={room.state !== "ENDED"}
+                deleteLabel={`대화방 삭제: ${room.partnerNickname}`}
+                onDelete={() => hiddenChatRooms.hide(room.roomId)}
+              >
+                <ChatRoomListItem room={room} />
+              </SwipeToDelete>
             ))}
           </RoomList>
         )}
       </Body>
+
+      {/* 되돌릴 수 없으므로(로컬 숨김이다) 한 번 묻는다. */}
+      <AlertModal
+        isOpen={isClearEndedOpen}
+        title="완료된 대화를 모두 지울까요?"
+        message="지운 대화방은 이 기기에서 다시 볼 수 없어요. 진행 중인 대화는 그대로 남아요."
+        confirmParams={{
+          // 필터 줄의 '완료된 대화 지우기'와 글자가 겹치지 않게 둔다.
+          text: "모두 지우기",
+          onClick: () => {
+            hiddenChatRooms.hideAll(endedRoomIds);
+            setIsClearEndedOpen(false);
+          },
+        }}
+        cancelParams={{ text: "취소", onClick: () => setIsClearEndedOpen(false) }}
+        onClose={() => setIsClearEndedOpen(false)}
+      />
 
       <MainBottomNav />
     </Container>
@@ -162,6 +212,22 @@ const FilterChip = styled.button<{ $active: boolean }>`
       ? "var(--color-semantic-inverse-label)"
       : "var(--color-semantic-label-alternative)"};
   transition: background-color 0.15s;
+`;
+
+/* 필터 칩 오른쪽 끝에 붙는 텍스트 버튼. 칩이 아니라 동작이므로 테두리를 두지 않는다. */
+const ClearEndedButton = styled.button`
+  margin-left: auto;
+  padding: 6px 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: "Pretendard JP", sans-serif;
+  font-size: var(--typography-label-1-normal-font-size);
+  font-weight: 500;
+  line-height: 1.429;
+  letter-spacing: 0.203px;
+  color: var(--color-semantic-label-alternative);
 `;
 
 const Body = styled.div`

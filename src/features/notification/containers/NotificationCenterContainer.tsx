@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 
@@ -12,7 +13,7 @@ import {
 } from "@/features/notification/model/notificationMeta";
 import type { NotificationItem } from "@/features/notification/model/types";
 import { NotificationRow } from "@/features/notification/ui/NotificationRow";
-import { EmptyState, FilterChips, TopNavigation } from "@/shared/ui";
+import { AlertModal, EmptyState, FilterChips, SwipeToDelete, TopNavigation } from "@/shared/ui";
 
 /**
  * Figma 7.2 알림 센터 [2508:31674] / empty [2508:32222]
@@ -30,7 +31,11 @@ export function NotificationCenterContainer() {
     isEmpty,
     markRead,
     markAllRead,
+    hide,
+    hideAll,
+    canHideAll,
   } = useNotifications();
+  const [isClearAllOpen, setIsClearAllOpen] = useState(false);
 
   /**
    * 방 목록이 1:1/그룹을 구분하는 유일한 출처다(방 상세 API가 없다).
@@ -67,13 +72,18 @@ export function NotificationCenterContainer() {
           titleAlign="left"
           onBack={() => router.back()}
           trailingElement={
-            <MarkAllButton
-              type="button"
-              onClick={markAllRead}
-              disabled={unreadCount === 0}
-            >
-              모두 읽음
-            </MarkAllButton>
+            <TrailingActions>
+              <TextButton type="button" onClick={markAllRead} disabled={unreadCount === 0}>
+                모두 읽음
+              </TextButton>
+              <TextButton
+                type="button"
+                onClick={() => setIsClearAllOpen(true)}
+                disabled={!canHideAll}
+              >
+                전체 지우기
+              </TextButton>
+            </TrailingActions>
           }
         />
         <FilterChips
@@ -103,17 +113,39 @@ export function NotificationCenterContainer() {
             <SectionLabel>{section.label}</SectionLabel>
             <List>
               {section.items.map((item) => (
-                <NotificationRow
+                <SwipeToDelete
                   key={item.id}
-                  item={item}
-                  now={now}
-                  onSelect={(selected) => void handleSelect(selected)}
-                />
+                  deleteLabel={`알림 삭제: ${item.title}`}
+                  onDelete={() => hide(item.id)}
+                >
+                  <NotificationRow
+                    item={item}
+                    now={now}
+                    onSelect={(selected) => void handleSelect(selected)}
+                  />
+                </SwipeToDelete>
               ))}
             </List>
           </Section>
         ))}
       </Content>
+
+      {/* 지운 알림은 되돌릴 수 없으므로(서버에 삭제 API 가 없어 로컬 숨김이다) 한 번 묻는다. */}
+      <AlertModal
+        isOpen={isClearAllOpen}
+        title="알림을 모두 지울까요?"
+        message="지운 알림은 이 기기에서 다시 볼 수 없어요."
+        confirmParams={{
+          // 상단 바 버튼과 글자가 겹치지 않게 둔다 — 겹치면 어느 쪽을 눌렀는지 모른다.
+          text: "모두 지우기",
+          onClick: () => {
+            hideAll();
+            setIsClearAllOpen(false);
+          },
+        }}
+        cancelParams={{ text: "취소", onClick: () => setIsClearAllOpen(false) }}
+        onClose={() => setIsClearAllOpen(false)}
+      />
     </Page>
   );
 }
@@ -184,7 +216,14 @@ const StateText = styled.p`
   color: var(--color-semantic-label-alternative);
 `;
 
-const MarkAllButton = styled.button`
+/* '모두 읽음'과 '전체 지우기'가 나란히 들어가므로 TrailingBox 안에서 한 줄로 묶는다. */
+const TrailingActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+`;
+
+const TextButton = styled.button`
   border: none;
   background: none;
   padding: var(--space-1) 0;
