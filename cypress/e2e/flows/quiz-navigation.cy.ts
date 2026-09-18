@@ -100,6 +100,36 @@ describe("quiz navigation", () => {
     cy.contains("그룹 매칭").should("not.exist");
   });
 
+  it("labels each quiz type with the set's category, falling back to its title", () => {
+    // 같은 주에 두 종류가 열린 상태. 1:1 은 category 를, 그룹은 category 가 비어 title 을 쓴다.
+    cy.fixture("quiz-current.json").then((page) => {
+      const oneToOne = { ...page.quizSets[0], category: "여행 취향", title: "쓰이지 않는 제목" };
+      const group = {
+        ...page.quizSets[0],
+        id: "102",
+        matchingType: "GROUP",
+        category: "",
+        title: "주말을 보내는 방식",
+      };
+      cy.intercept("GET", "**/api/v1/quiz-sets/current-week", {
+        success: true,
+        data: { ...page, quizSets: [oneToOne, group] },
+      }).as("getCurrentWeekQuizTopics");
+    });
+
+    cy.visit("/home");
+    cy.contains("button", "시작하기", { timeout: 8000 }).click();
+    cy.wait("@getCurrentWeekQuizTopics");
+
+    cy.contains("퀴즈의 종류를 선택하세요").should("be.visible");
+    cy.contains("여행 취향").should("be.visible");
+    cy.contains("주말을 보내는 방식").should("be.visible");
+    // 하드코딩된 옛 문구가 다시 새어 나오지 않는지 함께 본다.
+    cy.contains("성격, 가치관").should("not.exist");
+    cy.contains("취미, 취향").should("not.exist");
+    cy.contains("쓰이지 않는 제목").should("not.exist");
+  });
+
   it("turns on matching notifications from the finish screen", () => {
     cy.intercept("PATCH", "**/api/**/users/me/notification-settings", (req) => {
       req.reply({ success: true, data: { matching: true, chat: true, marketing: false } });

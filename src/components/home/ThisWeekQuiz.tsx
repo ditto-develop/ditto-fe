@@ -23,6 +23,35 @@ import styled from "styled-components";
 /** 퀴즈 종류. 서버 퀴즈 세트의 matchingType 과 같은 값이다. */
 type QuizMatchingType = "ONE_TO_ONE" | "GROUP";
 
+/** 이번 주에 열린 퀴즈 종류 하나. label 은 시트에 찍는 주제 문구다. */
+type QuizTypeOption = { type: QuizMatchingType; label: string };
+
+/**
+ * 주제를 못 읽었을 때만 쓰는 문구. 예전에는 이 두 줄이 하드코딩돼 있어서, 어드민이
+ * 다른 주제의 세트를 올려도 시트에는 늘 같은 이름표가 찍혔다.
+ */
+const DEFAULT_QUIZ_TOPIC_LABEL: Record<QuizMatchingType, string> = {
+  ONE_TO_ONE: "성격, 가치관",
+  GROUP: "취미, 취향",
+};
+
+/**
+ * 퀴즈 세트의 주제 문구. `category` 가 있으면 그걸 쓰고, 없으면 `title` 로 간다
+ * (2026-09-18 요청). 둘 다 비면 기본 문구로 떨어진다.
+ */
+function toQuizTopicLabel(quizSet: { matchingType: unknown; category?: string; title?: string }): string {
+  const category = quizSet.category?.trim();
+  if (category) return category;
+
+  const title = quizSet.title?.trim();
+  if (title) return title;
+
+  const type = String(quizSet.matchingType);
+  return type === "GROUP"
+    ? DEFAULT_QUIZ_TOPIC_LABEL.GROUP
+    : DEFAULT_QUIZ_TOPIC_LABEL.ONE_TO_ONE;
+}
+
 const CardContainer = styled.div`
   display: flex;
   padding: 16px;
@@ -134,7 +163,7 @@ export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: T
    * 다시 한번 확인한다). 어드민이 한 종류만 활성화했는데 다른 종류까지 보이면, 그걸 골랐을 때
    * 같은 퀴즈가 다른 이름표를 달고 나왔다(QA 2026-09-09).
    */
-  const [availableTypes, setAvailableTypes] = useState<QuizMatchingType[] | null>(null);
+  const [availableTypes, setAvailableTypes] = useState<QuizTypeOption[] | null>(null);
   const [typesLoading, setTypesLoading] = useState(false);
 
   // 시트를 띄웠으면 쿼리는 지운다. 남겨 두면 새로고침·뒤로가기마다 시트가 다시 뜬다.
@@ -152,8 +181,13 @@ export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: T
         if (ignore) return;
         setAvailableTypes(
           (quizSets ?? [])
-            .map((quizSet) => String(quizSet.matchingType))
-            .filter((type): type is QuizMatchingType => type === "ONE_TO_ONE" || type === "GROUP"),
+            .map((quizSet) => ({
+              type: String(quizSet.matchingType),
+              label: toQuizTopicLabel(quizSet),
+            }))
+            .filter((option): option is QuizTypeOption =>
+              option.type === "ONE_TO_ONE" || option.type === "GROUP",
+            ),
         );
       })
       .catch(() => {
@@ -168,7 +202,14 @@ export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: T
   }, [isQuizStart]);
 
   const isTypeAvailable = (type: QuizMatchingType) =>
-    availableTypes === null || availableTypes.includes(type);
+    availableTypes === null || availableTypes.some((option) => option.type === type);
+  /**
+   * 시트에 찍을 퀴즈 주제. 세트를 못 읽은 상태(null)에서는 두 종류를 모두 보여 주므로
+   * 이때만 기본 문구로 떨어진다 — 서버 세트를 읽었다면 항상 서버 값이 이긴다.
+   */
+  const quizTopicLabel = (type: QuizMatchingType) =>
+    availableTypes?.find((option) => option.type === type)?.label ??
+    DEFAULT_QUIZ_TOPIC_LABEL[type];
   const noQuizThisWeek = availableTypes !== null && availableTypes.length === 0;
 
   const isIntroComplete = introNoteCount === INTRO_NOTE_FIELDS.length;
@@ -297,7 +338,7 @@ export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: T
                   </QuizTypeCaption>
                 </QuizTypeLabelRow>
                 <QuizTypeTitleRow>
-                  <Heading2Bold>성격, 가치관</Heading2Bold>
+                  <Heading2Bold>{quizTopicLabel("ONE_TO_ONE")}</Heading2Bold>
                   <ArrowRightIcon src="/icons/navigation/arrow-left.svg" />
                 </QuizTypeTitleRow>
                 <QuizTypeLabelRow>
@@ -323,7 +364,7 @@ export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: T
                   </QuizTypeCaption>
                 </QuizTypeLabelRow>
                 <QuizTypeTitleRow>
-                  <Heading2Bold>취미, 취향</Heading2Bold>
+                  <Heading2Bold>{quizTopicLabel("GROUP")}</Heading2Bold>
                   <ArrowRightIcon src="/icons/navigation/arrow-left.svg" />
                 </QuizTypeTitleRow>
                 <QuizTypeLabelRow>
