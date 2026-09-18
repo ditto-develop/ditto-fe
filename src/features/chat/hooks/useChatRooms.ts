@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getChatRooms } from "@/features/chat/api/chatApi";
 import { getCounterpartProfile } from "@/features/chat/api/counterpartApi";
 import { createChatRoomsSocket } from "@/features/chat/lib/chatSocket";
+import { setChatUnreadFromRooms } from "@/features/chat/lib/chatUnreadStore";
 import { deriveRoomState } from "@/features/chat/lib/roomState";
 import type { ChatMessage, ChatRoom, ChatRoomWithCounterpart } from "@/features/chat/model/types";
 import { getMyMemberId } from "@/shared/lib/auth";
@@ -162,6 +163,17 @@ export function useChatRooms(): UseChatRoomsResult {
   useEffect(() => {
     socketRef.current?.setRooms(roomIdsKey === "" ? [] : roomIdsKey.split(",").map(Number));
   }, [roomIdsKey]);
+
+  /**
+   * 하단 탭 배지가 읽는 총합을 목록과 같은 값으로 맞춘다.
+   *
+   * 최초 로드 전(loading)에는 밀어 넣지 않는다 — 빈 배열이 0 으로 계산돼 배지가 잠깐
+   * 사라졌다 돌아온다. 실시간 수신·읽음 반영도 rooms 를 갈아 끼우므로 여기 한 곳이면 된다.
+   */
+  useEffect(() => {
+    if (loading) return;
+    setChatUnreadFromRooms(rooms);
+  }, [rooms, loading]);
 
   return { rooms, loading, error, refresh: load };
 }

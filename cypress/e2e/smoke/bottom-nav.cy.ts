@@ -29,4 +29,35 @@ describe("bottom navigation", () => {
       });
     });
   });
+
+  /**
+   * '대화방' 탭 안읽음 배지. chat-rooms.json 은 진행 중인 방 두 개(1건 + 2건)와
+   * 종료된 방 하나(0건)를 담고 있다 — 종료 방은 종료 안내(SYSTEM)가 안읽음에 섞이므로
+   * 목록 줄 배지와 같은 기준으로 빼고 센다.
+   */
+  it("대화방 탭에 안읽은 메시지 총합이 뜬다", () => {
+    cy.clockPeriod("CHATTING");
+    cy.visit("/home");
+
+    cy.contains("nav a", "대화방").within(() => {
+      cy.contains("3", { timeout: 8000 }).should("be.visible");
+    });
+    // 다른 탭에는 배지가 붙지 않는다.
+    cy.contains("nav a", "홈").find('[aria-label*="안 읽은 메시지"]').should("not.exist");
+  });
+
+  it("안읽은 메시지가 없으면 배지를 달지 않는다", () => {
+    cy.clockPeriod("CHATTING");
+    cy.fixture("chat-rooms.json").then((rooms) => {
+      cy.intercept("GET", "**/api/v1/chat/rooms", {
+        success: true,
+        data: rooms.map((room: { unreadCount: number }) => ({ ...room, unreadCount: 0 })),
+      }).as("getChatRoomsAllRead");
+    });
+
+    cy.visit("/home");
+
+    cy.contains("nav a", "대화방", { timeout: 8000 }).should("be.visible");
+    cy.get('nav [aria-label*="안 읽은 메시지"]').should("not.exist");
+  });
 });

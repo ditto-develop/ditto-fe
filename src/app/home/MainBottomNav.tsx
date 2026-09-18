@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Caption2 } from '@/shared/ui';
 import { Icon, type IconName } from '@/shared/ui';
+import { useChatUnreadTotal } from '@/features/chat/hooks/useChatUnreadTotal';
 import { isPathActive } from '@/shared/lib/routePath';
 
 // 1. 네비게이션 아이템 설정 (경로, 라벨, 아이콘 경로 등)
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
 
 const MainBottomNav = () => {
   const pathname = usePathname(); // 현재 경로 가져오기
+  const chatUnreadTotal = useChatUnreadTotal();
 
   return (
     <NavContainer>
@@ -37,6 +39,8 @@ const MainBottomNav = () => {
         // trailingSlash 설정 탓에 하드 로드면 "/home/", 클라이언트 내비게이션이면 "/home"이
         // 들어온다. 문자열 동등 비교로는 전자가 통째로 빗나가므로 정규화해서 본다.
         const isActive = isPathActive(pathname, item.path);
+        // 대화방 탭에만 카카오톡식 안읽음 배지를 단다. 다른 탭에는 셀 값이 없다.
+        const badgeCount = item.path === "/chat" ? chatUnreadTotal : 0;
 
         return (
           <NavItem
@@ -47,8 +51,13 @@ const MainBottomNav = () => {
             {/* 이미지 영역: 활성 상태에 따라 다른 이미지 렌더링 */}
             <IconWrapper>
               <TabIcon name={item.iconName} $isActive={isActive} />
+              {badgeCount > 0 && (
+                <UnreadBadge aria-label={`안 읽은 메시지 ${badgeCount}개`}>
+                  {badgeCount > 99 ? "99+" : badgeCount}
+                </UnreadBadge>
+              )}
             </IconWrapper>
-            
+
             {/* 텍스트 영역: active 상태를 props로 전달하여 색상 변경 */}
             <NavLabel $isActive={isActive}>
               {item.label}
@@ -91,8 +100,34 @@ const NavItem = styled(Link)`
 `;
 
 const IconWrapper = styled.div`
+  position: relative; // 안읽음 배지를 아이콘 우상단에 얹기 위한 기준
   margin-bottom: 4px; // 아이콘과 텍스트 사이 간격
   /* 이미지가 div 배경이 아니라 img 태그로 들어가므로 사이즈 제어는 Image 컴포넌트나 여기서 */
+`;
+
+/**
+ * 대화방 탭 안읽음 배지. 목록 줄의 배지(ChatRoomListItem)와 같은 색·글자를 쓰되,
+ * 탭 아이콘 위에 얹히므로 크기만 줄인다. '99+'가 들어가도 넘치지 않게 폭은 최소값만 잡는다.
+ */
+const UnreadBadge = styled.span`
+  position: absolute;
+  top: -4px;
+  left: 60%;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-semantic-primary-normal);
+  color: var(--color-semantic-static-white);
+  font-family: "Pretendard JP", sans-serif;
+  font-size: var(--typography-caption-2-font-size);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
 `;
 
 const TabIcon = styled(Icon)<{ $isActive: boolean }>`
