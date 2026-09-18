@@ -1,3 +1,4 @@
+import { stabilizeChatImageUrl } from "@/features/chat/lib/chatImageUrlCache";
 import { CHAT_PAGE_SIZE } from "@/features/chat/model/constants";
 import type {
   ChatImageUploadFileRequest,
@@ -114,9 +115,27 @@ export async function uploadChatImages(roomId: number, files: File[]): Promise<s
   return uploads.map((upload) => upload.objectKey);
 }
 
-/** 선택 필드를 명시적 null로 정규화해 화면에서 undefined 분기를 없앤다. */
-function normalizeMessage<T extends { imageUrl?: string | null }>(message: T) {
-  return { ...message, imageUrl: message.imageUrl ?? null };
+/**
+ * 선택 필드를 명시적 null로 정규화해 화면에서 undefined 분기를 없앤다.
+ *
+ * IMAGE 메시지의 presigned URL 은 조회마다 서명이 달라져 브라우저 캐시가 매번 빗나간다.
+ * 같은 objectKey(`content`)로 이미 받아 둔 URL 이 살아 있으면 그걸 다시 쓴다
+ * (stabilizeChatImageUrl).
+ */
+function normalizeMessage<T extends {
+  imageUrl?: string | null;
+  content?: string;
+  messageType?: string;
+}>(message: T) {
+  const imageUrl = message.imageUrl ?? null;
+
+  return {
+    ...message,
+    imageUrl:
+      message.messageType === "IMAGE"
+        ? stabilizeChatImageUrl(message.content ?? "", imageUrl)
+        : imageUrl,
+  };
 }
 
 /**
