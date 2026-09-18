@@ -434,6 +434,26 @@ S3 prefixes:
 
 To compare deployed vs local content directly: `aws s3 ls s3://ditto-pics-247842832483-ap-northeast-2/ --recursive`, or `aws s3 cp <key> -` to inspect a file. Note that `_next/static/chunks/*` filenames are content-hashed and the build ID differs on every build, so chunk-name diffs are expected noise — compare route/HTML structure and normalized content, not raw filenames.
 
+### 13.2.1 Cache-Control: never rewrite S3 metadata in place
+
+**Do not use `aws s3 cp <s3-uri> <same-s3-uri> --metadata-directive REPLACE` to change cache
+headers.** It also rewrites `Content-Type`, and for an S3→S3 copy the CLI does **not** re-guess
+it from the key — every object lands as `binary/octet-stream`. On 2026-09-18 this took
+production down: all of `_next/static/**` was served as octet-stream with `max-age=31536000,
+immutable`, and because the header-verification step then failed, the CloudFront invalidation
+never ran (run `35312035278`).
+
+To set a long cache, **re-upload from `./out`** (`aws s3 cp ./out <bucket> --recursive --include
+…`). A local upload guesses the type the same way `s3 sync` does, so types stay correct.
+
+Classify by **file extension, not directory**. `out/quiz/` and `out/onboarding/` hold both
+`public/` assets *and* route output (`index.html`, `__next.*.txt`) in the same path — a
+directory-wide 30-day cache pins route HTML in browser caches and deploys stop reaching users.
+
+The `Verify Content-Type and Cache-Control` step asserts one object per class plus route HTML;
+keep it, and note it gates the invalidation, so a failure there leaves S3 updated but edges
+stale — fix forward and re-run rather than leaving it red.
+
 ### 13.3 Verify GitHub Actions
 
 After pushing, verify GitHub Actions:

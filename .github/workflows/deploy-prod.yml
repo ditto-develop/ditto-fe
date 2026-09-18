@@ -124,35 +124,43 @@ jobs:
           aws s3 sync ./out s3://${{ secrets.S3_BUCKET }}/prod --delete \
             --cache-control "public, max-age=0, must-revalidate"
 
-      - name: Set Cache-Control on static assets
+      - name: Re-upload static assets with a long Cache-Control
         # 이미지·아이콘·청크가 배포마다 통째로 다시 내려오던 문제를 막는다.
-        # `s3 sync` 는 내용이 바뀐 파일만 올리므로, 헤더만 바꾸려면 이렇게 server-side
-        # copy 로 메타데이터를 다시 써야 한다(그래서 매 배포 전량 적용 — 수 MB라 싸다).
         #
-        # `_next/static/**` 는 파일명에 콘텐츠 해시가 붙어 있어 immutable 로 못 박아도
-        # 안전하다. public/ 자산(assets·icons·quiz·onboarding 등)은 해시가 없어 같은
-        # 이름으로 내용이 바뀔 수 있으므로 30일로 끊고 stale-while-revalidate 를 붙인다.
+        # **로컬(./out)에서 다시 올린다. S3→S3 복사를 쓰면 안 된다.**
+        # `aws s3 cp --metadata-directive REPLACE` 로 헤더만 바꾸면 Content-Type 이
+        # 전부 `binary/octet-stream` 으로 떨어져 JS/CSS/이미지가 통째로 깨진다
+        # (2026-09-18 실제 사고 — run 35312035278). 로컬 업로드는 `sync` 와 같은 경로로
+        # 확장자에서 타입을 추측하므로 안전하다. 매 배포 전량 재업로드지만 수 MB라 싸다.
+        #
+        # 분류는 **디렉터리가 아니라 확장자**로 한다. `out/quiz`·`out/onboarding` 은
+        # public 자산과 라우트 산출물(index.html·__next.*.txt)이 **같은 경로에 섞여** 있어서,
+        # 디렉터리째 30일을 걸면 라우트 HTML 이 캐시에 박혀 배포가 사용자에게 도달하지 않는다.
         run: |
           set -euo pipefail
           BUCKET="s3://${{ secrets.S3_BUCKET }}/prod"
 
-          aws s3 cp "$BUCKET/_next/static/" "$BUCKET/_next/static/" \
-            --recursive --metadata-directive REPLACE \
+          # 파일명에 콘텐츠 해시가 붙어 있어 immutable 로 못 박아도 안전하다.
+          aws s3 cp ./out "$BUCKET" --recursive --only-show-errors \
+            --exclude "*" --include "_next/static/*" \
             --cache-control "public, max-age=31536000, immutable"
 
-          for DIR in assets icons logo display quiz onboarding; do
-            # 산출물에 없는 디렉터리는 조용히 건너뛴다(public/ 구성이 바뀔 수 있다).
-            if [ -d "./out/$DIR" ]; then
-              aws s3 cp "$BUCKET/$DIR/" "$BUCKET/$DIR/" \
-                --recursive --metadata-directive REPLACE \
-                --cache-control "public, max-age=2592000, stale-while-revalidate=86400"
-            fi
-          done
+          # public/ 자산은 해시가 없어 같은 이름으로 내용이 바뀔 수 있으므로 30일로 끊는다.
+          # 마지막 --exclude 가 이긴다 — 위에서 immutable 을 준 것을 되돌리지 않는다.
+          aws s3 cp ./out "$BUCKET" --recursive --only-show-errors \
+            --exclude "*" \
+            --include "*.svg" --include "*.png" --include "*.jpg" --include "*.jpeg" \
+            --include "*.webp" --include "*.gif" --include "*.ico" \
+            --include "*.woff" --include "*.woff2" \
+            --exclude "_next/static/*" \
+            --cache-control "public, max-age=2592000, stale-while-revalidate=86400"
 
-      - name: Verify static asset headers survived the metadata rewrite
-        # `--metadata-directive REPLACE` 는 Content-Type 도 다시 쓴다(CLI 가 확장자로 추측).
-        # 추측이 빗나가면 CSS/JS 가 text/plain 으로 내려가 사이트가 통째로 깨지므로,
-        # 각 클래스에서 한 개만 뽑아 타입과 캐시 헤더를 함께 확인한다.
+      - name: Verify Content-Type and Cache-Control on the uploaded objects
+        # 캐시 헤더를 다시 쓰는 과정에서 Content-Type 이 망가지면 사이트가 통째로 깨진다
+        # (2026-09-18 사고). 클래스마다 한 개씩 뽑아 타입과 캐시를 함께 확인한다.
+        #
+        # 라우트 HTML/txt 도 본다 — 여기에 긴 캐시가 붙으면 배포가 사용자에게 도달하지
+        # 않는다. `quiz`/`onboarding` 처럼 자산과 라우트가 섞인 경로가 특히 위험하다.
         run: |
           set -euo pipefail
           BUCKET="${{ secrets.S3_BUCKET }}"
@@ -178,8 +186,22 @@ jobs:
           JS_KEY=$(cd ./out && find _next/static -name '*.js' | head -n 1)
           assert_head "prod/$JS_KEY" "*javascript*" "immutable"
 
+          CSS_KEY=$(cd ./out && find _next/static -name '*.css' | head -n 1)
+          assert_head "prod/$CSS_KEY" "text/css*" "immutable"
+
           SVG_KEY=$(cd ./out && find assets -name '*.svg' | head -n 1)
           assert_head "prod/$SVG_KEY" "image/svg+xml*" "max-age=2592000"
+
+          PNG_KEY=$(cd ./out && find assets -name '*.png' | head -n 1)
+          assert_head "prod/$PNG_KEY" "image/png*" "max-age=2592000"
+
+          # 라우트 HTML 은 자산과 경로가 섞여 있어도 매 요청 재검증이어야 한다.
+          assert_head "prod/index.html" "text/html*" "must-revalidate"
+          assert_head "prod/quiz/current/index.html" "text/html*" "must-revalidate"
+          assert_head "prod/onboarding/intro/index.html" "text/html*" "must-revalidate"
+
+          TXT_KEY=$(cd ./out && find quiz -name '*.txt' | head -n 1)
+          assert_head "prod/$TXT_KEY" "text/plain*" "must-revalidate"
 
       - name: Fix apple-app-site-association content type
         # 이 파일은 확장자가 없어서 `s3 sync` 가 binary/octet-stream 으로 올린다.
