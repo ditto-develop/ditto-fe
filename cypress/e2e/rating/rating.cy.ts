@@ -32,6 +32,8 @@ describe("rating system", () => {
     cy.get('button[aria-label="5점"]').click();
     cy.get('textarea[aria-label="한줄 코멘트"]').type("친절하고 재밌어요");
     cy.contains("9/50").should("be.visible");
+    cy.contains("button", "평가 제출하기").should("not.exist");
+    cy.get('textarea[aria-label="한줄 코멘트"]').blur();
     cy.contains("button", "평가 제출하기").should("be.enabled").click();
 
     // 1:1은 wantsOneToOneRematch를 보내면 8002라 바디에 실리면 안 된다.
@@ -138,6 +140,8 @@ describe("rating system", () => {
     cy.contains("button", "약속 잡았어요").click();
     cy.get('button[aria-label="5점"]').click();
     cy.get('textarea[aria-label="한줄 코멘트"]').type("즐거웠어요");
+    cy.contains("button", "평가 제출하기").should("not.exist");
+    cy.get('textarea[aria-label="한줄 코멘트"]').blur();
     cy.contains("button", "평가 제출하기").click();
 
     cy.wait("@submitMemberReview").then(({ request }) => {

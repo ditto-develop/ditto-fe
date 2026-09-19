@@ -40,6 +40,7 @@ function OneOnOneRatingContent({ review, reload }: OneOnOneRatingContentProps) {
   const [completed, setCompleted] = useState(false);
   const [shouldReport, setShouldReport] = useState(false);
   const [skipModalOpen, setSkipModalOpen] = useState(false);
+  const [commentFocused, setCommentFocused] = useState(false);
   const rating = useOneOnOneRating(review, reload);
 
   // 성사 축하가 떠 있으면 닫힌 뒤에 이동한다(1:1 rematch는 계약상 항상 null이다).
@@ -82,7 +83,11 @@ function OneOnOneRatingContent({ review, reload }: OneOnOneRatingContentProps) {
           </HeaderText>
         </ProfileHeader>
 
-        <RatingFormFields value={rating.form} onChange={rating.setForm} />
+        <RatingFormFields
+          value={rating.form}
+          onChange={rating.setForm}
+          onCommentFocusChange={setCommentFocused}
+        />
         <Checkbox
           checked={shouldReport}
           onChange={setShouldReport}
@@ -91,16 +96,18 @@ function OneOnOneRatingContent({ review, reload }: OneOnOneRatingContentProps) {
         />
       </ScrollArea>
 
-      <BottomActionArea>
-        <SubmitButton
-          type="button"
-          $size="large"
-          disabled={!rating.canSubmit}
-          onClick={handleSubmit}
-        >
-          {rating.submitting ? "제출 중..." : "평가 제출하기"}
-        </SubmitButton>
-      </BottomActionArea>
+      {!commentFocused && (
+        <BottomActionArea>
+          <SubmitButton
+            type="button"
+            $size="large"
+            disabled={!rating.canSubmit}
+            onClick={handleSubmit}
+          >
+            {rating.submitting ? "제출 중..." : "평가 제출하기"}
+          </SubmitButton>
+        </BottomActionArea>
+      )}
 
       {rating.rematch && (
         <RematchSuccessModal nickname={nickname} onClose={rating.clearRematch} />

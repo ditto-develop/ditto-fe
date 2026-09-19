@@ -9,9 +9,14 @@ import type { ReviewFormValue } from "@/features/rating/model/types";
 interface RatingFormFieldsProps {
   value: ReviewFormValue;
   onChange: (value: ReviewFormValue) => void;
+  onCommentFocusChange?: (focused: boolean) => void;
 }
 
-export function RatingFormFields({ value, onChange }: RatingFormFieldsProps) {
+export function RatingFormFields({
+  value,
+  onChange,
+  onCommentFocusChange,
+}: RatingFormFieldsProps) {
   return (
     <Fields>
       <FieldSection>
@@ -37,6 +42,7 @@ export function RatingFormFields({ value, onChange }: RatingFormFieldsProps) {
         <CommentField
           value={value.comment}
           onChange={(comment) => onChange({ ...value, comment })}
+          onFocusChange={onCommentFocusChange}
         />
       </FieldSection>
     </Fields>

@@ -40,6 +40,7 @@ function GroupRatingContent({ review, reload }: GroupRatingContentProps) {
   const [helpOpen, setHelpOpen] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [skipModalOpen, setSkipModalOpen] = useState(false);
+  const [commentFocused, setCommentFocused] = useState(false);
   const rating = useGroupRating(review, reload);
 
   // 마지막 대상까지 확정되면 떠난다. 성사 축하가 떠 있으면 닫힌 뒤에 이동한다.
@@ -83,25 +84,28 @@ function GroupRatingContent({ review, reload }: GroupRatingContentProps) {
           current={rating.current}
           total={rating.total}
           onFormChange={rating.setFormValue}
+          onCommentFocusChange={setCommentFocused}
           onRematchChange={rating.setWantsOneToOneRematch}
           onHelpClick={() => setHelpOpen(true)}
         />
       </ScrollArea>
 
-      <BottomActionArea>
-        <SubmitButton
-          type="button"
-          $size="large"
-          disabled={!rating.canContinue}
-          onClick={handleAction}
-        >
-          {rating.submitting
-            ? "제출 중..."
-            : rating.isLast
-              ? "평가 제출하기"
-              : "다음 멤버 평가하기"}
-        </SubmitButton>
-      </BottomActionArea>
+      {!commentFocused && (
+        <BottomActionArea>
+          <SubmitButton
+            type="button"
+            $size="large"
+            disabled={!rating.canContinue}
+            onClick={handleAction}
+          >
+            {rating.submitting
+              ? "제출 중..."
+              : rating.isLast
+                ? "평가 제출하기"
+                : "다음 멤버 평가하기"}
+          </SubmitButton>
+        </BottomActionArea>
+      )}
 
       {helpOpen && <RematchHelpBottomSheet onClose={() => setHelpOpen(false)} />}
 

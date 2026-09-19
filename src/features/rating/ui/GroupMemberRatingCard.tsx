@@ -17,6 +17,7 @@ interface GroupMemberRatingCardProps {
   current: number;
   total: number;
   onFormChange: (form: ReviewFormValue) => void;
+  onCommentFocusChange: (focused: boolean) => void;
   onRematchChange: (checked: boolean) => void;
   onHelpClick: () => void;
 }
@@ -27,6 +28,7 @@ export function GroupMemberRatingCard({
   current,
   total,
   onFormChange,
+  onCommentFocusChange,
   onRematchChange,
   onHelpClick,
 }: GroupMemberRatingCardProps) {
@@ -42,7 +44,11 @@ export function GroupMemberRatingCard({
         </MemberText>
       </MemberHeader>
 
-      <RatingFormFields value={form} onChange={onFormChange} />
+      <RatingFormFields
+        value={form}
+        onChange={onFormChange}
+        onCommentFocusChange={onCommentFocusChange}
+      />
 
       <RematchRow>
         <Checkbox

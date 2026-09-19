@@ -7,9 +7,10 @@ const MAX_LENGTH = 50;
 interface CommentFieldProps {
   value: string;
   onChange: (value: string) => void;
+  onFocusChange?: (focused: boolean) => void;
 }
 
-export function CommentField({ value, onChange }: CommentFieldProps) {
+export function CommentField({ value, onChange, onFocusChange }: CommentFieldProps) {
   return (
     <Field>
       <TextArea
@@ -18,6 +19,8 @@ export function CommentField({ value, onChange }: CommentFieldProps) {
         aria-label="한줄 코멘트"
         placeholder="예: 따뜻해요, 재밌어요, 약속 잘 지켜요"
         onChange={(event) => onChange(event.target.value)}
+        onFocus={() => onFocusChange?.(true)}
+        onBlur={() => onFocusChange?.(false)}
       />
       <Counter aria-live="polite">{value.length}/{MAX_LENGTH}</Counter>
     </Field>
