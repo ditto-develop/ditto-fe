@@ -6,7 +6,7 @@ Repository-level rules must be read from `../CLAUDE.md` first.
 
 Codex must read `ditto-fe-migration/AGENTS.md`, which points back to this document as the FE source of truth.
 
-This FE project is developed on the `feat/s3-migration` branch and is deployed statically through S3/CloudFront using `output: 'export'` in `next.config.ts`.
+This FE project is developed on the `feat/s3-migration` branch, released by merging into the `deploy` branch, and deployed statically through S3/CloudFront using `output: 'export'` in `next.config.ts`.
 
 The project is gradually migrating from legacy API code in `src/lib/api` to OpenAPI codegen services in `src/shared/lib/api/generated`.
 
@@ -387,41 +387,49 @@ npm run test:e2e:cypress
 
 ### 13.0 How Deployment Works (read this first)
 
-**Pushing to `feat/s3-migration` deploys straight to production (`ditto.pics`).**
+**`deploy` is the release branch. Pushing to `deploy` deploys straight to production
+(`ditto.pics`).** Day-to-day work still lands on `feat/s3-migration`; a release is a
+`feat/s3-migration` → `deploy` merge (since 2026-09-19 — before that, pushing the work branch
+itself released).
+
 There is no staging environment as of 2026-08-26 — `test.ditto.pics` was dropped during the
 Route53 migration and is not coming back. An `alpha.ditto.pics` environment is planned for
 after the first release, at which point a second workflow will be added.
 
 - The only deploy workflow is [`.github/workflows/deploy-prod.yml`](.github/workflows/deploy-prod.yml).
-  It runs on push to `feat/s3-migration` and on manual `workflow_dispatch`.
+  It runs on push to `deploy` and on manual `workflow_dispatch`.
 - It has two jobs. **`verify` gates `deploy`** — lint, typecheck, vitest, and Cypress E2E must
   all pass before anything reaches S3. This gate replaces the staging buffer; do not weaken it.
-- `deploy` then runs `npm run build` (static export to `./out`) →
-  `aws s3 sync ./out s3://<bucket>/prod --delete` → CloudFront `/*` invalidation →
-  publishes the CloudFront rewrite function (skipped until `CF_REWRITE_FUNCTION_NAME` is set).
+- `deploy` then runs `npm run build` (static export to `./out`) → S3 upload (see §13.2.2) →
+  CloudFront `/*` invalidation → publishes the CloudFront rewrite function (skipped until
+  `CF_REWRITE_FUNCTION_NAME` is set) → prunes abandoned chunks.
 - [`.github/workflows/e2e.yml`](.github/workflows/e2e.yml) is **pull-request only**. The push
   path's E2E lives in the deploy workflow's `verify` job, so it can block the deploy.
 - `ditto.pics` and `www.ditto.pics` are routed to the `/prod` S3 prefix (`www` 301s to the apex).
 - **Uncommitted or unpushed changes are NEVER deployed.** Working-tree edits and local
   `npm run build` output (`./out`) have no effect on the live site until they are committed AND
-  pushed. If "deployment isn't happening," first check `git status` and
-  `git log origin/feat/s3-migration..feat/s3-migration` for unpushed work.
+  pushed. If "deployment isn't happening," first check `git status`, then
+  `git log origin/deploy..feat/s3-migration` for work that has not been released yet.
 
 ### 13.1 When the User Says "Push" / "Deploy"
 
-**A push is a production release.** It means: commit ALL relevant changes, push to
-`feat/s3-migration`, and watch the run until it succeeds. Run
-`npm run lint && npm run build && npx tsc --noEmit` locally first — the workflow will run the
-full suite anyway, but catching failures locally is faster than waiting for CI.
+These are now two different actions — check which one is meant.
 
-Do not stop at "validation passed" — the user expects the code to actually reach production.
-After the run succeeds, confirm the live site with `npm run verify:domains`.
+- **"Push"** = commit all relevant changes and push `feat/s3-migration`. This runs no deploy.
+- **"Deploy" / "릴리스"** = merge `feat/s3-migration` into `deploy` and push `deploy`, then
+  watch the run until it succeeds.
+
+Run `npm run lint && npm run build && npx tsc --noEmit` locally first — the workflow will run
+the full suite anyway, but catching failures locally is faster than waiting for CI.
+
+For a deploy, do not stop at "validation passed" — the user expects the code to actually reach
+production. After the run succeeds, confirm the live site with `npm run verify:domains`.
 
 ### 13.2 Deployment Infrastructure (AWS, account `247842832483`)
 
 | Resource | Value |
 |---|---|
-| GitHub repo | `ditto-develop/ditto-fe` (branch `feat/s3-migration`) |
+| GitHub repo | `ditto-develop/ditto-fe` (work: `feat/s3-migration`, release: `deploy`) |
 | S3 bucket | `ditto-pics-247842832483-ap-northeast-2` (region `ap-northeast-2`) |
 | CloudFront distribution | `E2IAN5BWR5D33B` |
 | Domains | `ditto.pics`, `www.ditto.pics` (`d28wm0h79feewt.cloudfront.net`). DNS is Route53 since 2026-08-26 |
@@ -453,6 +461,33 @@ directory-wide 30-day cache pins route HTML in browser caches and deploys stop r
 The `Verify Content-Type and Cache-Control` step asserts one object per class plus route HTML;
 keep it, and note it gates the invalidation, so a failure there leaves S3 updated but edges
 stale — fix forward and re-run rather than leaving it red.
+
+### 13.2.2 Upload order and chunk retention (zero-downtime)
+
+S3/CloudFront never goes down during a deploy — there is no process to restart. The real
+hazard is **version skew**: a tab that loaded before the deploy holds route HTML pointing at
+the old build's hashed chunks. Three rules keep that tab alive; do not undo them.
+
+1. **Chunks go up first, route HTML second.** Reversing the order opens a window where the new
+   HTML references chunks that are not in S3 yet.
+2. **`prod/_next/static/**` is never deleted by the sync.** The chunk upload uses
+   `cp --recursive` with no `--delete`, and the main sync passes `--exclude "_next/static/*"`
+   (which excludes those keys from deletion too, not just from copying). Filenames are
+   content-hashed, so old chunks coexist harmlessly. Deleting them is what turns a deploy into
+   a mass `ChunkLoadError`.
+3. **Old chunks are pruned inside the deploy, not by an S3 lifecycle rule.** The final
+   `Prune abandoned chunks older than 7 days` step removes `prod/_next/static/**` objects older
+   than 7 days that are not in the current build. A bucket lifecycle `Expiration` rule would be
+   wrong here: it runs regardless of deploys, so a 7-day quiet period would expire the **live**
+   chunks and take the site down. Keeping the prune in the deploy preserves "only a deploy
+   changes production." The chunk upload re-uploads every live chunk each deploy precisely so
+   their `LastModified` stays fresh and only orphans age out.
+
+The client-side backstop is [`src/shared/lib/chunkReload.ts`](src/shared/lib/chunkReload.ts),
+wired in `ClientLayout`: on a chunk/module load failure it reloads the document once (30s
+cooldown, so a permanently-missing chunk cannot cause a reload loop). It only reacts to
+same-origin `/_next/static/` failures — third-party scripts blocked by an ad blocker must not
+trigger reloads.
 
 ### 13.3 Verify GitHub Actions
 

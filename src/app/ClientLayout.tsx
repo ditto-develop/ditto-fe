@@ -14,6 +14,7 @@ import { tryRefreshToken } from "@/shared/lib/api/client";
 import { getExternalSystemState } from "@/shared/lib/api/externalApi";
 import { API_ERROR_CODE, describeError, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { getGtagScriptSrc, useAnalytics } from "@/shared/lib/analytics";
+import { initChunkReloadGuard } from "@/shared/lib/chunkReload";
 import { isBootSplashPath, normalizePathname } from "@/shared/lib/routePath";
 import { initAppShell } from "@/shared/lib/native/appShell";
 import { initPushNotifications } from "@/shared/lib/native/pushNotifications";
@@ -121,6 +122,13 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     setIsHydrated(true);
     syncAuthState();
   }, [path, syncAuthState]);
+
+  /**
+   * 배포로 청크가 갈린 탭을 살리는 가드. 배포 직후 열려 있던 탭이 라우트를 옮길 때
+   * 옛 청크를 요청하다 실패하면 문서를 한 번 다시 받는다(`chunkReload` 주석 참고).
+   * 인증·경로와 무관하므로 가장 먼저, 한 번만 건다.
+   */
+  useEffect(() => initChunkReloadGuard(), []);
 
   // 네이티브 앱 셸(Capacitor) 초기화. 웹 브라우저에서는 전부 no-op이다.
   // Android 하드웨어 뒤로가기 · 상태바 · 딥링크만 담당한다.

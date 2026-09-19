@@ -87,7 +87,11 @@ api.ditto.pics   A(Alias) → ALB          ✅ BE
 ### staging 환경은 두지 않는다 (2026-08-26)
 
 `test.ditto.pics` 는 Route53 이전 때 누락됐고 **복구하지 않기로 했다.**
-그 결과 **`feat/s3-migration` 에 푸시하면 곧바로 프로덕션에 배포된다.**
+그 결과 **릴리스 브랜치에 푸시하면 곧바로 프로덕션에 배포된다.**
+
+> 2026-09-19 부터 릴리스 브랜치는 `deploy` 다. 개발·통합은 `feat/s3-migration` 에서 하고,
+> 릴리스는 `feat/s3-migration` → `deploy` 머지로만 일어난다 — 작업 브랜치에 푸시했다고
+> 프로덕션이 나가지 않는다. (그 전에는 `feat/s3-migration` 푸시가 곧 배포였다.)
 
 검증 버퍼가 사라진 대신 배포 워크플로에 `verify` 잡을 두어
 lint · typecheck · vitest · Cypress 가 전부 통과해야 `deploy` 가 돌게 했다.

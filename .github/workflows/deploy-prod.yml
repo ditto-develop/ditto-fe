@@ -1,15 +1,19 @@
 name: ✈️ DITTO FE PROD DEPLOY
 
-# feat/s3-migration 에 푸시하면 곧바로 프로덕션(ditto.pics)에 배포된다.
+# `deploy` 에 푸시하면 곧바로 프로덕션(ditto.pics)에 배포된다.
 # staging 환경을 두지 않기로 했기 때문이다(2026-08-26). 검증 버퍼가 없는 대신
 # 아래 verify 잡이 통과해야만 deploy 가 돌도록 게이팅한다.
+#
+# 릴리스 브랜치를 `feat/s3-migration` 에서 `deploy` 로 분리했다(2026-09-19).
+# 개발/통합은 계속 feat/s3-migration 에서 하고, 릴리스는 feat/s3-migration → deploy
+# 머지로만 일어난다 — 작업 브랜치에 푸시했다고 프로덕션이 나가는 일이 없어진다.
 #
 # alpha.ditto.pics 를 도입하면 이 파일을 복제해 S3 프리픽스와 트리거 브랜치만
 # 바꾸면 된다. 자세한 절차는 docs/app-shell-runbook.md 참고.
 on:
   push:
     branches:
-      - feat/s3-migration
+      - deploy
   workflow_dispatch:
 
 env:
@@ -116,22 +120,48 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: S3 Upload — static chunks first (additive, never deleted)
+        # **순서가 중요하다.** 청크를 라우트 HTML 보다 먼저 올린다 — 반대로 하면
+        # 새 HTML 이 아직 없는 청크를 가리키는 창이 생긴다.
+        #
+        # **`--delete` 를 쓰지 않는다.** 파일명에 콘텐츠 해시가 붙어 있어 구 청크가
+        # 남아 있어도 충돌하지 않고, 배포 시점에 이미 문서를 받아 둔 탭이 그 구 청크를
+        # 요청한다. 여기서 지우면 그 탭은 라우트를 옮기는 순간 ChunkLoadError 로 죽는다
+        # (=배포가 곧 세션 끊김). 남은 구 청크는 이 잡 마지막의 "Prune abandoned chunks"
+        # 단계가 7일 뒤 정리한다.
+        #
+        # `cp --recursive` 라 매 배포 전량 재업로드다(수 MB). 그래야 살아 있는 청크의
+        # LastModified 가 갱신돼 정리 대상이 **버려진 청크에만** 걸린다.
+        #
+        # **로컬(./out)에서 올린다. S3→S3 복사를 쓰면 안 된다.**
+        # `aws s3 cp --metadata-directive REPLACE` 로 헤더만 바꾸면 Content-Type 이
+        # 전부 `binary/octet-stream` 으로 떨어져 JS/CSS/이미지가 통째로 깨진다
+        # (2026-09-18 실제 사고 — run 35312035278). 로컬 업로드는 `sync` 와 같은 경로로
+        # 확장자에서 타입을 추측하므로 안전하다.
+        run: |
+          set -euo pipefail
+          aws s3 cp ./out "s3://${{ secrets.S3_BUCKET }}/prod" --recursive --only-show-errors \
+            --exclude "*" --include "_next/static/*" \
+            --cache-control "public, max-age=31536000, immutable"
+
       - name: S3 Sync to prod prefix
+        # 청크를 제외한 나머지(라우트 HTML·__next.*.txt·public 자산)를 동기화한다.
+        # 여기는 `--delete` 를 유지한다 — 삭제된 라우트가 그 URL 에 계속 살아 있으면 안 된다.
+        #
+        # `--exclude "_next/static/*"` 는 복사뿐 아니라 **삭제 대상에서도** 뺀다.
+        # 위 단계에서 올린 청크와 이전 배포의 구 청크가 이 sync 에 지워지지 않는 이유다.
+        #
         # 기본값은 HTML 기준으로 안전한 쪽(매 요청 재검증)에 둔다. 정적 자산의
         # 긴 캐시는 아래 단계에서 덮어쓴다 — 여기서 길게 주면 라우트 HTML 이 배포 뒤에도
         # 며칠 동안 옛 청크를 가리킨다.
         run: |
           aws s3 sync ./out s3://${{ secrets.S3_BUCKET }}/prod --delete \
+            --exclude "_next/static/*" \
             --cache-control "public, max-age=0, must-revalidate"
 
-      - name: Re-upload static assets with a long Cache-Control
-        # 이미지·아이콘·청크가 배포마다 통째로 다시 내려오던 문제를 막는다.
-        #
-        # **로컬(./out)에서 다시 올린다. S3→S3 복사를 쓰면 안 된다.**
-        # `aws s3 cp --metadata-directive REPLACE` 로 헤더만 바꾸면 Content-Type 이
-        # 전부 `binary/octet-stream` 으로 떨어져 JS/CSS/이미지가 통째로 깨진다
-        # (2026-09-18 실제 사고 — run 35312035278). 로컬 업로드는 `sync` 와 같은 경로로
-        # 확장자에서 타입을 추측하므로 안전하다. 매 배포 전량 재업로드지만 수 MB라 싸다.
+      - name: Re-upload public assets with a long Cache-Control
+        # 이미지·아이콘·폰트가 배포마다 통째로 다시 내려오던 문제를 막는다.
+        # (`_next/static` 은 위에서 이미 immutable 로 올렸다.)
         #
         # 분류는 **디렉터리가 아니라 확장자**로 한다. `out/quiz`·`out/onboarding` 은
         # public 자산과 라우트 산출물(index.html·__next.*.txt)이 **같은 경로에 섞여** 있어서,
@@ -139,11 +169,6 @@ jobs:
         run: |
           set -euo pipefail
           BUCKET="s3://${{ secrets.S3_BUCKET }}/prod"
-
-          # 파일명에 콘텐츠 해시가 붙어 있어 immutable 로 못 박아도 안전하다.
-          aws s3 cp ./out "$BUCKET" --recursive --only-show-errors \
-            --exclude "*" --include "_next/static/*" \
-            --cache-control "public, max-age=31536000, immutable"
 
           # public/ 자산은 해시가 없어 같은 이름으로 내용이 바뀔 수 있으므로 30일로 끊는다.
           # 마지막 --exclude 가 이긴다 — 위에서 immutable 을 준 것을 되돌리지 않는다.
@@ -238,3 +263,38 @@ jobs:
             --function-code fileb://infra/cloudfront/rewrite-dynamic-routes.js
           NEW_ETAG=$(aws cloudfront describe-function --name "$FN" --query 'ETag' --output text)
           aws cloudfront publish-function --name "$FN" --if-match "$NEW_ETAG"
+
+      - name: Prune abandoned chunks older than 7 days
+        # 청크 업로드에서 `--delete` 를 뺀 대가로 버려진 청크가 쌓인다. 여기서 정리한다.
+        #
+        # **S3 라이프사이클 룰(나이 기준 Expiration)을 쓰지 않는 이유**: 룰은 배포와
+        # 무관하게 돌기 때문에, 7일간 배포가 없으면 **살아 있는 청크까지 전부** 만료돼
+        # 사이트가 통째로 깨진다. 정리를 배포 안에 두면 "배포할 때만 프로덕션이 바뀐다"는
+        # 성질이 유지되고, 조용한 기간에는 아무것도 지워지지 않는다.
+        #
+        # 안전장치 두 겹: (1) 7일 넘은 객체만 후보다 — 위 업로드 단계가 매 배포 살아 있는
+        # 청크를 전량 재업로드하므로 현재 빌드의 객체는 방금 갱신돼 후보에 들지 않는다.
+        # (2) 그래도 이번 빌드(./out)에 들어 있는 키는 후보에서 뺀다.
+        #
+        # 실패해도 배포를 막지 않는다 — 정리가 밀려도 사이트는 멀쩡하다(용량만 남는다).
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          BUCKET="${{ secrets.S3_BUCKET }}"
+          # aws CLI 의 LastModified 출력 형식과 글자 그대로 맞춘다(사전식 비교를 쓴다).
+          CUTOFF=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%S+00:00)
+          echo "기준 시각: $CUTOFF"
+
+          (cd ./out && find _next/static -type f) | sed 's|^|prod/|' | sort > current-keys.txt
+
+          aws s3api list-objects-v2 --bucket "$BUCKET" --prefix "prod/_next/static/" --output json \
+            | jq -r --arg cutoff "$CUTOFF" '.Contents[]? | select(.LastModified < $cutoff) | .Key' \
+            | sort > old-keys.txt
+
+          comm -23 old-keys.txt current-keys.txt > prune-keys.txt
+          COUNT=$(wc -l < prune-keys.txt | tr -d ' ')
+          echo "버려진 청크 $COUNT 개 (현재 빌드 $(wc -l < current-keys.txt | tr -d ' ') 개는 보존)"
+          if [ "$COUNT" -eq 0 ]; then exit 0; fi
+
+          xargs -a prune-keys.txt -n 1 -P 8 -I {} \
+            aws s3 rm "s3://$BUCKET/{}" --only-show-errors

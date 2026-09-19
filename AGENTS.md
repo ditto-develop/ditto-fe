@@ -58,6 +58,7 @@ Do not modify out-of-scope projects unless the user explicitly asks.
 ## Branch and PR Rules
 
 - Base branch: `feat/s3-migration`
+- Release branch: `deploy` — pushing it deploys to production. Work branches never deploy.
 - Cleanup branch naming: `chore/cleanup-<letter>-<slug>`
   - Example: `chore/cleanup-b-fetch-unify`
 - One cleanup batch = one PR
