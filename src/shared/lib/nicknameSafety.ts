@@ -120,3 +120,21 @@ export function containsForbiddenNicknameWord(nickname: string): boolean {
   const decomposed = decomposeHangul(literal);
   return FUZZY_FORBIDDEN_NICKNAME_WORDS.some((word) => decomposed.includes(word));
 }
+
+/**
+ * 닉네임 형식 규칙(2~10자, 한글·영문·숫자, 금지어). 회원가입과 프로필 수정이 같이 쓴다.
+ * 중복 여부는 서버만 알기 때문에 여기서 보지 않는다.
+ */
+export function getNicknameRuleErrors(nickname: string): string[] {
+  const errors: string[] = [];
+  if (nickname.length < 2 || nickname.length > 10) {
+    errors.push("· 닉네임은 2자 이상 10자 이하로 입력해주세요.");
+  }
+  if (!/^[a-zA-Z0-9가-힣]+$/.test(nickname)) {
+    errors.push("· 한글, 영문, 숫자만 사용할 수 있습니다. (특수문자, 공백 불가)");
+  }
+  if (containsForbiddenNicknameWord(nickname)) {
+    errors.push("· 사용할 수 없는 닉네임입니다.");
+  }
+  return errors;
+}

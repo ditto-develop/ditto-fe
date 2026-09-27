@@ -1,12 +1,21 @@
 /**
- * PATCH /api/v1/users/me/profile 는 캐리커쳐/관심사만 받는다.
+ * PATCH /api/v1/users/me/profile — 캐리커쳐·관심사·사는 곳·직업, 바뀐 경우에만 닉네임.
+ * 성별·나이는 읽기 전용이다(2026-09-27).
  * (한 줄 소개는 소개 노트 Q10 과 같은 값이라 이 화면에 두지 않는다 — Figma 6.1.1.)
  */
 type ProfilePatch = {
   introduction?: string;
   profileImageUrl?: string;
   interests?: string[];
+  nickname?: string;
+  location?: string;
+  occupation?: string;
 };
+
+function selectFromBottomSheet(labelText: string, optionText: string) {
+  cy.get(`button[aria-label="${labelText}"]`).click();
+  cy.contains("li", optionText, { timeout: 4000 }).click();
+}
 
 let lastProfilePatch: ProfilePatch | null = null;
 
@@ -59,8 +68,10 @@ describe("edit my profile", () => {
     cy.location("pathname").should("eq", "/profile/");
 
     cy.then(() => {
-      // 서버가 받는 값은 이 둘뿐이다. 닉네임/성별/나이/사는곳/직업/한 줄 소개는 보내지 않는다.
-      expect(lastProfilePatch).to.have.keys(["profileImageUrl", "interests"]);
+      // 닉네임은 안 바꿨으니 보내지 않는다(서버가 변경 횟수로 셀 수 있다). 성별/나이/한 줄 소개도 없다.
+      expect(lastProfilePatch).to.have.keys(["profileImageUrl", "interests", "location", "occupation"]);
+      expect(lastProfilePatch?.location).to.equal("seoul");
+      expect(lastProfilePatch?.occupation).to.equal("it-tech");
       expect(lastProfilePatch?.profileImageUrl).to.equal("/assets/avatar/m5.png");
       expect(lastProfilePatch?.interests).to.include("music");
     });
@@ -86,6 +97,47 @@ describe("edit my profile", () => {
 
     cy.then(() => {
       expect(lastProfilePatch?.interests).to.include("exhibition");
+    });
+  });
+
+  it("edits nickname, location and occupation", () => {
+    cy.visit("/profile/edit");
+    cy.wait("@getMyProfile");
+
+    cy.contains("닉네임은 14일 동안 최대 2번 바꿀 수 있어요. 대화 중에는 바꿀 수 없어요.").should("be.visible");
+    cy.get('input[placeholder="사용할 닉네임을 입력해주세요"]').clear().type("새닉네임");
+    selectFromBottomSheet("사는 곳", "부산");
+    selectFromBottomSheet("직업", "디자인");
+    cy.contains("저장").click();
+
+    cy.wait("@checkNickname");
+    cy.wait("@patchMyProfile");
+    cy.location("pathname").should("eq", "/profile/");
+
+    cy.then(() => {
+      expect(lastProfilePatch?.nickname).to.equal("새닉네임");
+      expect(lastProfilePatch?.location).to.equal("busan");
+      expect(lastProfilePatch?.occupation).to.equal("design");
+    });
+  });
+
+  it("keeps the screen and shows an inline error when the nickname is taken", () => {
+    cy.intercept("GET", "**/api/v1/users/nickname/*/availability", {
+      success: true,
+      data: { available: false },
+    }).as("nicknameTaken");
+
+    cy.visit("/profile/edit");
+    cy.wait("@getMyProfile");
+
+    cy.get('input[placeholder="사용할 닉네임을 입력해주세요"]').clear().type("이미있음");
+    cy.contains("저장").click();
+    cy.wait("@nicknameTaken");
+
+    cy.contains("이미 사용 중인 닉네임이에요.").should("be.visible");
+    cy.location("pathname").should("include", "/profile/edit");
+    cy.then(() => {
+      expect(lastProfilePatch).to.equal(null);
     });
   });
 });

@@ -14,17 +14,27 @@ import { ProfileSelect, toAvatarGender } from "@/components/onboarding/ProfileSe
 import { interestOptions } from "@/components/onboarding/step/Step_2";
 import { useToast } from "@/context/ToastContext";
 import { getMyProfile, updateMyProfile } from "@/features/profile/api/profileApi";
-import type { PublicProfileDto } from "@/features/profile/api/profileApi";
-import { toLocationLabel, toOccupationLabel } from "@/shared/lib/profileLabels";
-import { BottomActionArea, Button, TopNavigation } from "@/shared/ui";
+import type { PublicProfileDto, UpdateMyProfileRequest } from "@/features/profile/api/profileApi";
+import { describeError, isApiError } from "@/shared/lib/api/apiError";
+import { checkExternalNicknameAvailability } from "@/shared/lib/api/externalApi";
+import { getNicknameRuleErrors } from "@/shared/lib/nicknameSafety";
+import { LOCATION_LABELS, OCCUPATION_LABELS } from "@/shared/lib/profileLabels";
+import { BottomActionArea, Button, Select, TextField, TopNavigation } from "@/shared/ui";
 
 const MAX_INTEREST_COUNT = 5;
+
+const LOCATION_OPTIONS = Object.entries(LOCATION_LABELS).map(([value, label]) => ({ value, label }));
+const OCCUPATION_OPTIONS = Object.entries(OCCUPATION_LABELS).map(([value, label]) => ({ value, label }));
+
+/** 닉네임 변경 정책(2026-09-27). 서버가 검증하고, 화면은 미리 알려 주기만 한다. */
+const NICKNAME_POLICY_MESSAGE = "닉네임은 14일 동안 최대 2번 바꿀 수 있어요. 대화 중에는 바꿀 수 없어요.";
 
 /**
  * 프로필 수정 — Figma 6.1.1 프로필 수정.
  *
- * 편집 가능한 것은 캐리커쳐와 관심사뿐이다. 닉네임·성별·나이·사는 곳·직업은 Figma 에서
- * 비활성으로 그려져 있고 BE(PATCH /users/me/profile)도 받지 않는다.
+ * 편집 가능한 것은 캐리커쳐·닉네임·관심사·사는 곳·직업이다(2026-09-27 QA — BE PATCH 가
+ * nickname/location/occupation 을 받게 됐다). 성별·나이는 매칭 조건이라 읽기 전용으로 둔다.
+ * 닉네임은 바뀐 경우에만 보낸다 — 같은 값을 보내도 서버가 변경 횟수로 셀 수 있다.
  * 한 줄 소개는 이 화면에 없다 — BE 가 소개 노트 Q10("나를 한 줄로 표현한다면?")과 같은 값으로
  * 다루므로 소개 노트 수정 화면에서만 고친다. 여기 두면 같은 값을 고치는 입구가 둘이 된다.
  */
@@ -34,6 +44,10 @@ export function EditProfileContainer() {
     const [profile, setProfile] = useState<PublicProfileDto | null>(null);
     const [profileId, setProfileId] = useState("m1");
     const [interests, setInterests] = useState<string[]>([]);
+    const [nickname, setNickname] = useState("");
+    const [nicknameErrors, setNicknameErrors] = useState<string[]>([]);
+    const [location, setLocation] = useState<string | null>(null);
+    const [occupation, setOccupation] = useState<string | null>(null);
     const [isProfileSelectOpen, setIsProfileSelectOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
@@ -41,15 +55,23 @@ export function EditProfileContainer() {
         getMyProfile().then((dto) => {
             setProfile(dto);
             setInterests(dto.interests ?? []);
+            setNickname(dto.nickname);
+            setLocation(dto.location ?? null);
+            setOccupation(dto.occupation ?? null);
             setProfileId(toAvatarId(dto.profileImageUrl, dto.gender));
         });
     }, []);
 
     const avatarUrl = useMemo(() => `/assets/avatar/${profileId}.png`, [profileId]);
-    const isValid = interests.length > 0;
+    const trimmedNickname = nickname.trim();
+    const nicknameChanged = Boolean(profile) && trimmedNickname !== profile?.nickname;
+    const isValid = interests.length > 0 && trimmedNickname.length > 0 && Boolean(location) && Boolean(occupation);
     const isDirty = Boolean(profile) && (
         avatarUrl !== (profile?.profileImageUrl ?? "") ||
-        interests.join("|") !== (profile?.interests ?? []).join("|")
+        interests.join("|") !== (profile?.interests ?? []).join("|") ||
+        nicknameChanged ||
+        location !== (profile?.location ?? null) ||
+        occupation !== (profile?.occupation ?? null)
     );
     const canSubmit = isDirty && isValid && !submitting;
 
@@ -81,15 +103,43 @@ export function EditProfileContainer() {
             showToast("관심사를 1개 이상 선택해주세요.", "error");
             return;
         }
+        if (nicknameChanged) {
+            const ruleErrors = getNicknameRuleErrors(trimmedNickname);
+            setNicknameErrors(ruleErrors);
+            if (ruleErrors.length > 0) return;
+        }
 
         setSubmitting(true);
         try {
-            await updateMyProfile({
+            if (nicknameChanged) {
+                const availability = await checkExternalNicknameAvailability(trimmedNickname);
+                if (availability.available === false) {
+                    setNicknameErrors(["· 이미 사용 중인 닉네임이에요."]);
+                    return;
+                }
+            }
+
+            const body: UpdateMyProfileRequest = {
                 profileImageUrl: avatarUrl,
                 interests,
-            });
+                location: location ?? undefined,
+                occupation: occupation ?? undefined,
+            };
+            if (nicknameChanged) body.nickname = trimmedNickname;
+
+            await updateMyProfile(body);
             showToast("프로필이 저장되었어요.", "success");
             router.push("/profile");
+        } catch (err: unknown) {
+            console.error("Profile update failed:", describeError(err));
+            // 닉네임 변경 제한(14일 2회·대화 중)은 서버가 거절한다. 전용 코드가 정해지기 전까지는
+            // 서버 문구를 그대로 보여 준다(docs/be-request-qa-2026-09-27.md §3).
+            showToast(
+                isApiError(err) && err.code && err.message
+                    ? err.message
+                    : "프로필을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.",
+                "error",
+            );
         } finally {
             setSubmitting(false);
         }
@@ -124,7 +174,20 @@ export function EditProfileContainer() {
                     </ProfileWrapper>
                 </AvatarSection>
 
-                <ReadOnlyField label="닉네임" value={profile?.nickname ?? ""} />
+                <TextField
+                    label="닉네임"
+                    isessential
+                    placeholder="사용할 닉네임을 입력해주세요"
+                    maxLength={10}
+                    status={nicknameErrors.length > 0 ? "error" : "default"}
+                    errmessage={nicknameErrors}
+                    message={nicknameErrors.length > 0 ? undefined : NICKNAME_POLICY_MESSAGE}
+                    value={nickname}
+                    onChange={(event) => {
+                        setNickname(event.target.value);
+                        if (nicknameErrors.length > 0) setNicknameErrors([]);
+                    }}
+                />
 
                 <TwoColumnRow>
                     <ReadOnlyField label="성별" value={toGenderLabel(profile?.gender)} hasChevron />
@@ -152,8 +215,22 @@ export function EditProfileContainer() {
                     </InterestGrid>
                 </FieldGroup>
 
-                <ReadOnlyField label="사는 곳" value={profile?.location ? toLocationLabel(profile.location) : ""} hasChevron />
-                <ReadOnlyField label="직업" value={profile?.occupation ? toOccupationLabel(profile.occupation) : ""} hasChevron />
+                <Select
+                    label="사는 곳"
+                    isessential
+                    bottomSheetTitle="사는 곳"
+                    value={location}
+                    onChange={setLocation}
+                    options={LOCATION_OPTIONS}
+                />
+                <Select
+                    label="직업"
+                    isessential
+                    bottomSheetTitle="직업"
+                    value={occupation}
+                    onChange={setOccupation}
+                    options={OCCUPATION_OPTIONS}
+                />
             </FormArea>
 
             <BottomActionArea>

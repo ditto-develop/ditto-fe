@@ -27,7 +27,7 @@ import {
 } from "@/shared/ui";
 import { checkExternalNicknameAvailability } from "@/shared/lib/api/externalApi";
 import { MIN_SIGNUP_AGE, isEligibleAge } from "@/shared/lib/age";
-import { containsForbiddenNicknameWord } from "@/shared/lib/nicknameSafety";
+import { getNicknameRuleErrors } from "@/shared/lib/nicknameSafety";
 import {
   DefaultContainer,
   DivideContainer,
@@ -65,13 +65,15 @@ interface Step2Props {
   data: FormData;
   onChange: OnChange;
   setControlButton: React.Dispatch<React.SetStateAction<ControlButtonVariant>>;
+  /** 소셜 로그인(카카오·애플)이 이메일을 내려줬으면 true — 그 값으로 고정하고 수정을 막는다. */
+  emailLocked?: boolean;
 }
 
 export interface Step2Ref {
   handleSubmit: () => boolean;
 }
 
-export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, setControlButton }, ref) => {
+export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, setControlButton, emailLocked = false }, ref) => {
   const { showToast } = useToast();
   
   const [profile, setProfile] = useState(data.pic);
@@ -126,18 +128,7 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
 
   // 3. 닉네임 검증 로직 (재사용을 위해 분리)
   const validateNickname = (nickname: string): boolean => {
-    const newErrors: string[] = [];
-    if (nickname.length < 2 || nickname.length > 10) {
-      newErrors.push("· 닉네임은 2자 이상 10자 이하로 입력해주세요.");
-    }
-    const regex = /^[a-zA-Z0-9가-힣]+$/;
-    if (!regex.test(nickname)) {
-      newErrors.push("· 한글, 영문, 숫자만 사용할 수 있습니다. (특수문자, 공백 불가)");
-    }
-    if (containsForbiddenNicknameWord(nickname)) {
-      newErrors.push("· 사용할 수 없는 닉네임입니다.");
-    }
-
+    const newErrors = getNicknameRuleErrors(nickname);
     setNickerr(newErrors);
     return newErrors.length === 0;
   };
@@ -324,9 +315,8 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
 
       <DefaultContainer>
         {/*
-          카카오 동의항목에서 이메일을 뺐다(2026-09-06). 프리필로 채워질 수도 있지만
-          비어 있는 경우가 기본이라 필수 입력으로 둔다 — 개인정보처리방침의 필수
-          수집 항목이다.
+          소셜 로그인이 이메일을 내려주면 그 값으로 고정한다(2026-09-27 QA). 동의를 거부해
+          이메일이 비어 온 경우에만 직접 입력받는다 — 개인정보처리방침의 필수 수집 항목이다.
         */}
         <TextField
           label="이메일"
@@ -334,7 +324,7 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
           type="email"
           inputMode="email"
           autoComplete="email"
-          status={emailerr.length > 0 ? "error" : "default"}
+          status={emailLocked ? "disabled" : emailerr.length > 0 ? "error" : "default"}
           placeholder="이메일을 입력해주세요"
           errmessage={emailerr}
           value={data.email}

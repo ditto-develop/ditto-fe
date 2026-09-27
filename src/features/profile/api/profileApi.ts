@@ -53,10 +53,11 @@ export interface IntroNoteAnswer {
     answer: string;
 }
 
-export type UpdateMyProfileRequest = Pick<
+/** PATCH /api/v1/users/me/profile — 부분 수정. 보낸 필드만 바뀐다. */
+export type UpdateMyProfileRequest = Partial<Pick<
     PublicProfileDto,
-    "introduction" | "profileImageUrl" | "interests"
->;
+    "introduction" | "profileImageUrl" | "interests" | "nickname" | "location" | "occupation"
+>>;
 
 // --- API ---
 
