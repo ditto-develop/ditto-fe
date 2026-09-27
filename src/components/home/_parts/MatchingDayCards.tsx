@@ -307,9 +307,15 @@ export const MatchingButton = ({
   buttonState,
   isChatTime,
   hasChat = false,
+  isEnded = false,
   onClick,
 }: MatchingButtonProps) => {
+  const isDisabled = isChatTime && isEnded;
+
   const getButtonProps = () => {
+    if (isDisabled) {
+      return { icon: "/icons/action/message.svg", text: "종료된 대화예요" };
+    }
     if (isChatTime) {
       return hasChat
         ? { icon: "/icons/action/message.svg", text: "대화 계속하기" }
@@ -326,7 +332,8 @@ export const MatchingButton = ({
   return (
     <ActionContainer>
       <ActionButton
-        variant={buttonState}
+        variant={isDisabled ? "disabled" : buttonState}
+        disabled={isDisabled}
         onClick={onClick || (() => { })}
         icon={<img src={buttonProps.icon} />}
       >

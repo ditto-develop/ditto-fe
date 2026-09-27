@@ -355,6 +355,7 @@ export function MatchingDay({
             buttonState={buttonState}
             isChatTime={isChatTime}
             hasChat={!!(chatRoom && getLastMessagePreview(chatRoom))}
+            isEnded={chatRoom?.isEnded ?? false}
             onClick={!isChatTime
               ? matchType === "many"
                 ? () => {

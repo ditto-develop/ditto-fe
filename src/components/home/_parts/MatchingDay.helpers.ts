@@ -13,6 +13,8 @@ export type MatchingButtonProps = {
   buttonState: ButtonStateType;
   isChatTime: boolean;
   hasChat?: boolean;
+  /** 대화방이 종료됐으면 버튼을 비활성화한다. */
+  isEnded?: boolean;
   onClick?: () => void;
 };
 
