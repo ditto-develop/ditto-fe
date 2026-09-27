@@ -93,8 +93,22 @@ describe("rating system", () => {
       }).as("getEndedGroupRoom");
     });
 
+    // 평가 목록에 방 3의 그룹 평가가 있어야 진입 버튼이 열린다(없으면 완료한 평가로 본다).
+    cy.fixture("member-reviews.json").then((reviews: Record<string, unknown>[]) => {
+      cy.intercept("GET", "**/api/**/member-reviews", {
+        statusCode: 200,
+        body: {
+          success: true,
+          data: reviews.map((review) =>
+            review.matchType === "GROUP" ? { ...review, chatRoomId: 3 } : review,
+          ),
+        },
+      }).as("getRoom3Reviews");
+    });
+
     cy.visit("/chat/group/3");
     cy.wait("@getEndedGroupRoom");
+    cy.wait("@getRoom3Reviews");
 
     cy.contains("button", "평가하기", { timeout: 8000 }).click();
     cy.location("pathname").should("include", "/chat/group/3/rate");

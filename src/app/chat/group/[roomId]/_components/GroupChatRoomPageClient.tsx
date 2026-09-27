@@ -33,7 +33,7 @@ import { GroupVoteCreateModal } from "./GroupVoteCreateModal";
 import { VoteBanner } from "./VoteBanner";
 import { VoteResultsPage } from "./VoteResultsPage";
 import { VoteSubmissionPage } from "./VoteSubmissionPage";
-import { BottomActionArea, Button } from "@/shared/ui";
+import { ChatRateAction } from "@/app/chat/_components/ChatRateAction";
 import type { CounterpartProfile } from "@/features/chat";
 import type { AddOptionInput } from "@/features/chat/hooks/useGroupVote";
 
@@ -270,15 +270,7 @@ export function GroupChatRoomPageClient() {
       )}
 
       {isEnded && !hasLeft && (
-        <ChatBottomActionArea>
-          <RateButton
-            type="button"
-            $size="large"
-            onClick={() => router.push(`/chat/group/${roomId}/rate`)}
-          >
-            평가하기
-          </RateButton>
-        </ChatBottomActionArea>
+        <ChatRateAction roomId={roomId} matchType="GROUP" />
       )}
 
       {isMenuOpen && (
@@ -375,14 +367,6 @@ const EmptyMessage = styled.div`
   color: var(--color-semantic-label-alternative);
 `;
 
-const RateButton = styled(Button)`
-  width: 100%;
-`;
-
-const ChatBottomActionArea = styled(BottomActionArea)`
-  position: static;
-  flex-shrink: 0;
-`;
 
 const ClosedVoteBanner = styled.button`
   flex-shrink: 0;

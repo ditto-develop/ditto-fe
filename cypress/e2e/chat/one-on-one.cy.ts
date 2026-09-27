@@ -68,7 +68,10 @@ describe("1:1 chat room", () => {
     cy.contains("남은 시간 0분", { timeout: 8000 }).should("be.visible");
     cy.contains("대화 기간이 끝나 메시지를 보낼 수 없어요.").should("be.visible");
     cy.get('textarea[placeholder="텍스트를 입력해 주세요."]').should("not.exist");
-    cy.contains("button", "평가하기").should("be.visible");
+    // 평가 목록(member-reviews.json)에 방 2의 1:1 평가가 없다 — 완료한 평가로 본다.
+    cy.wait("@getMemberReviews");
+    cy.contains("button", "완료된 평가입니다").should("be.visible").and("be.disabled");
+    cy.contains("button", "평가하기").should("not.exist");
   });
 
   it("dismisses the urgent notice for the room during the session", () => {

@@ -30,7 +30,7 @@ import { ChatLeaveModal } from "./ChatLeaveModal";
 import { ChatMenuBottomSheet } from "./ChatMenuBottomSheet";
 import { ChatStatusBanner } from "./ChatStatusBanner";
 import { useTimer } from "./useTimer";
-import { BottomActionArea, Button } from "@/shared/ui";
+import { ChatRateAction } from "@/app/chat/_components/ChatRateAction";
 
 const URGENT_NOTICE_MESSAGE =
   "대화가 1시간 후 종료돼요. 아직 하고 싶은 말이 있다면 지금 전해보세요!";
@@ -202,15 +202,7 @@ export function ChatRoomPageClient() {
       )}
 
       {isEnded && (
-        <ChatBottomActionArea>
-          <RateButton
-            type="button"
-            $size="large"
-            onClick={() => router.push(`/chat/one-on-one/${roomId}/rate`)}
-          >
-            평가하기
-          </RateButton>
-        </ChatBottomActionArea>
+        <ChatRateAction roomId={roomId} matchType="PERSONAL" />
       )}
 
       {isMenuOpen && (
@@ -258,11 +250,3 @@ const EmptyMessage = styled.div`
   color: var(--color-semantic-label-alternative);
 `;
 
-const RateButton = styled(Button)`
-  width: 100%;
-`;
-
-const ChatBottomActionArea = styled(BottomActionArea)`
-  position: static;
-  flex-shrink: 0;
-`;
