@@ -256,7 +256,8 @@ export function EditProfileContainer() {
                                 type="button"
                                 key={option.value}
                                 $selected={interests.includes(option.value)}
-                                disabled={!interests.includes(option.value) && interests.length >= MAX_INTEREST_COUNT}
+                                // 프로필이 오기 전에 고른 값은 늦게 도착한 응답이 덮어써 사라진다 — 오기 전엔 막는다.
+                                disabled={!profile || (!interests.includes(option.value) && interests.length >= MAX_INTEREST_COUNT)}
                                 onClick={() => handleToggleInterest(option.value)}
                             >
                                 {option.label}

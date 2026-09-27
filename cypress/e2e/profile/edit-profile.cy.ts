@@ -53,6 +53,7 @@ describe("edit my profile", () => {
     cy.contains("한 줄 소개").should("not.exist");
     cy.get("textarea").should("not.exist");
 
+    cy.get('input[placeholder="사용할 닉네임을 입력해주세요"]').should("have.value", "개굴개굴렌");
     cy.get("[aria-label='프로필 이미지 수정']").click();
     cy.contains("캐리커쳐 선택하기").should("be.visible");
     // 캐리커쳐는 계정 성별(픽스처: MALE)에 고정된다 — 남자/여자 탭이 없고 남자 캐리커쳐만 보인다.
@@ -88,6 +89,9 @@ describe("edit my profile", () => {
      * 기다리지 않으면 이 스펙은 머신·네트워크 속도에 따라 통과했다 실패했다 한다.
      */
     cy.wait("@getMyProfile");
+    // 응답이 화면에 반영됐는지(닉네임이 채워졌는지)까지 본 뒤에 고른다 — 요청 완료와 렌더 사이 틈에
+    // 누르면 늦게 반영된 응답이 선택을 덮어써 저장 버튼이 비활성으로 남았다(CI run 36313699110).
+    cy.get('input[placeholder="사용할 닉네임을 입력해주세요"]').should("have.value", "개굴개굴렌");
 
     cy.contains("🖼️ 전시").should("be.visible");
     // 저장은 바뀐 것이 있어야 활성화된다 — 관심사를 하나 더 고른다.
