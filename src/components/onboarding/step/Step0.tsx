@@ -21,6 +21,7 @@ import {
 import { SplashCarousel } from "@/components/onboarding/Carousel";
 import { AppleLogin } from "@/components/auth/AppleLogin";
 import { KakaoLogin } from "@/components/auth/KakaoLogin";
+import { POLICY_VISIBILITY } from "@/features/settings/model/policyVisibility";
 import { BUSINESS_INFO } from "@/shared/lib/businessInfo";
 import type { KakaoLoginResult } from "@/types/kakao";
 import { useRouter } from "next/navigation";
@@ -63,7 +64,7 @@ const LoginButtons = styled.div`
   gap: var(--space-3);
 `;
 
-/** 약관 안내와 사업자 정보. 로그인 버튼보다 눈에 덜 띄어야 한다. */
+/** 약관 안내와 선택적으로 노출하는 사업자 정보. 로그인 버튼보다 눈에 덜 띄어야 한다. */
 const LegalArea = styled.div`
   display: flex;
   flex-direction: column;
@@ -193,22 +194,18 @@ export function Step0({ onLoginComplete }: Step0Props) {
                 </PolicyLink>
                 에 동의하는 것으로 간주됩니다.
               </Caption1>
-              {/*
-                사업자 정보와 문의처는 **로그인 전 화면에서 보이고 눌려야 한다.** 카카오
-                비즈앱 심사자는 로그인을 통과하지 못한 상태로 사이트를 확인하므로, 설정
-                안에만 두면 "사이트 내 사업자 정보가 확인되지 않는다"로 다시 반려된다.
-                나머지 항목(업태·종목 등)은 '사업자 정보'에서 이어진다.
-              */}
-              <BusinessLine $color="var(--color-semantic-label-assistive)" $align="center">
-                {BUSINESS_INFO.companyName} · 사업자등록번호 {BUSINESS_INFO.registrationNumber} ·{" "}
-                <ContactLink href={`mailto:${BUSINESS_INFO.contactEmail}`}>
-                  {BUSINESS_INFO.contactEmail}
-                </ContactLink>{" "}
-                ·{" "}
-                <BusinessLink type="button" onClick={() => router.push("/settings/business")}>
-                  사업자 정보
-                </BusinessLink>
-              </BusinessLine>
+              {POLICY_VISIBILITY.businessInfo ? (
+                <BusinessLine $color="var(--color-semantic-label-assistive)" $align="center">
+                  {BUSINESS_INFO.companyName} · 사업자등록번호 {BUSINESS_INFO.registrationNumber} ·{" "}
+                  <ContactLink href={`mailto:${BUSINESS_INFO.contactEmail}`}>
+                    {BUSINESS_INFO.contactEmail}
+                  </ContactLink>{" "}
+                  ·{" "}
+                  <BusinessLink type="button" onClick={() => router.push("/settings/business")}>
+                    사업자 정보
+                  </BusinessLink>
+                </BusinessLine>
+              ) : null}
             </LegalArea>
           </LoginFooter>
         </MainContainer>

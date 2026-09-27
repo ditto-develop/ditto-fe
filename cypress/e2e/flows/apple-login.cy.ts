@@ -54,13 +54,12 @@ describe("애플 로그인 진입", () => {
     }).should("be.visible");
   });
 
-  it("애플 버튼이 들어와도 사업자 정보가 화면 밖으로 밀리지 않는다", () => {
-    // 첫 화면은 100dvh + overflow:hidden 이라 아래 항목이 조용히 잘릴 수 있다.
-    // 카카오 비즈앱 심사가 보는 자리라 잘리면 그대로 반려 사유다.
+  it("비활성화된 사업자 정보는 로그인 첫 화면에 노출하지 않는다", () => {
     cy.visit("/");
 
-    cy.contains("카운트제로", { timeout: 10000 }).should("be.visible");
-    cy.contains("291-39-01610").should("be.visible");
-    cy.contains("사업자 정보").should("be.visible");
+    cy.contains("button", APPLE_BUTTON, { timeout: 10000 }).should("be.visible");
+    cy.contains("카운트제로").should("not.exist");
+    cy.contains("291-39-01610").should("not.exist");
+    cy.contains("사업자 정보").should("not.exist");
   });
 });

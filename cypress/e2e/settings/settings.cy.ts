@@ -121,6 +121,8 @@ describe("settings", () => {
     cy.contains("test@email.com").should("be.visible");
     // 휴대폰 번호는 수집하지 않으므로 계정 섹션에 노출되지 않는다(2026-08-30).
     cy.contains("휴대폰 번호").should("not.exist");
+    cy.contains("위치기반 서비스 이용약관").should("not.exist");
+    cy.contains("사업자 정보").should("not.exist");
     cy.get('[role="switch"][aria-label="매칭 알림"]').should("have.attr", "aria-checked", "true");
     cy.get('[role="switch"][aria-label="채팅 알림"]').click();
     cy.wait("@patchNotificationSettings");

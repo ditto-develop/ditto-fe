@@ -6,12 +6,12 @@ import styled from "styled-components";
 import { useToast } from "@/context/ToastContext";
 import { useSettings } from "@/features/settings/hooks/useSettings";
 import { SETTINGS_EXTERNAL_LINKS } from "@/features/settings/model/externalLinks";
+import { POLICY_VISIBILITY } from "@/features/settings/model/policyVisibility";
 import type { NotificationSettingKey } from "@/features/settings/model/types";
 import { clearToken } from "@/shared/lib/api/client";
 import { clearTokens } from "@/shared/lib/auth";
 import { logoutExternal } from "@/shared/lib/api/externalApi";
 import { WEB_APP_VERSION, getAppVersion } from "@/shared/lib/native/appVersion";
-import { clearScheduledNotifications } from "@/shared/lib/native/localNotifications";
 import { releasePushToken } from "@/shared/lib/native/pushNotifications";
 import {
   ActionArea,
@@ -76,8 +76,12 @@ export function SettingsContainer() {
     { label: "자주 묻는 질문", onClick: () => openExternal(SETTINGS_EXTERNAL_LINKS.faq) },
     { label: "서비스 이용약관", onClick: () => router.push("/settings/terms") },
     { label: "개인정보 처리방침", onClick: () => router.push("/settings/privacy") },
-    { label: "위치기반 서비스 이용약관", onClick: () => router.push("/settings/location-terms") },
-    { label: "사업자 정보", onClick: () => router.push("/settings/business") },
+    ...(POLICY_VISIBILITY.locationTerms
+      ? [{ label: "위치기반 서비스 이용약관", onClick: () => router.push("/settings/location-terms") }]
+      : []),
+    ...(POLICY_VISIBILITY.businessInfo
+      ? [{ label: "사업자 정보", onClick: () => router.push("/settings/business") }]
+      : []),
   ];
 
   const handleToggle = async (key: NotificationSettingKey, checked: boolean) => {
@@ -118,12 +122,6 @@ export function SettingsContainer() {
        * 계속 온다. 탈퇴(`WithdrawContainer`)가 같은 이유로 같은 순서를 쓴다.
        */
       await releasePushToken();
-      /**
-       * 예약된 로컬 알림을 지운다. 안 지우면 다른 계정으로 로그인해도, 심지어
-       * 로그아웃 상태로 두어도 매칭 알림이 계속 울린다.
-       * 세션과 무관한 기기 로컬 작업이라 화면 전환을 붙잡아 둘 이유가 없다.
-       */
-      void clearScheduledNotifications();
       await logoutExternal().catch(() => null);
       clearTokens();
       clearToken();

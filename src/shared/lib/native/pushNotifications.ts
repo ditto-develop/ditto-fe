@@ -15,9 +15,8 @@ import { getNativePlatform, isNativeApp } from "@/shared/lib/native/platform";
  * 계약 정본은 BE 위키 `Frontend-Push-Guide` 다. 이 파일이 구현하는 항목:
  *   §1 토큰 등록 · §2 토큰 해제 · §3 payload(`deepLink` 이동 + `notificationId` 읽음 처리)
  *
- * 로컬 알림(`localNotifications.ts`)과 역할이 다르다 — 로컬은 고정 일정을 기기가
- * 스스로 예약하고, 이쪽은 **언제 올지 모르는 이벤트**(새 채팅 메시지, 매칭 성사 등)를
- * 서버가 밀어 넣는다. 백그라운드에서는 JS가 돌지 않으므로 이건 서버 없이 불가능하다.
+ * 모든 알림 발송과 일정 판단은 서버가 담당한다. `localNotifications.ts`는 이미 도착한
+ * FCM을 Android 포그라운드에서도 배너로 표시하기 위한 보조 계층일 뿐이다.
  *
  * 웹 푸시는 쓰지 않는다. `getToken`의 `vapidKey`/서비스워커 경로는 웹 전용인데,
  * 아래 모든 진입점이 `isNativeApp()`으로 막혀 있어 웹에서는 아무 일도 일어나지 않는다.

@@ -18,7 +18,10 @@ import { initChunkReloadGuard } from "@/shared/lib/chunkReload";
 import { isBootSplashPath, normalizePathname } from "@/shared/lib/routePath";
 import { initAppShell } from "@/shared/lib/native/appShell";
 import { initPushNotifications } from "@/shared/lib/native/pushNotifications";
-import { initLocalNotifications } from "@/shared/lib/native/localNotifications";
+import {
+  clearLegacyScheduledNotifications,
+  initLocalNotifications,
+} from "@/shared/lib/native/localNotifications";
 import { usePathname, useRouter } from "next/navigation";
 import Script from "next/script";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -134,6 +137,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   // Android 하드웨어 뒤로가기 · 상태바 · 딥링크만 담당한다.
   useEffect(() => {
     let dispose: (() => void) | undefined;
+    // 이전 버전이 기기에 예약한 주간 알림을 제거한다. 웹에서는 no-op이다.
+    void clearLegacyScheduledNotifications();
     initAppShell({ navigate: (target) => router.push(target) })
       .then((cleanup) => {
         dispose = cleanup;
@@ -148,15 +153,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
    * 알림 초기화. **로그인 이후에만** 돈다 — 디바이스 토큰 등록 API가 인증을
    * 요구하므로 비로그인 상태에서 부르면 401이다.
    *
-   * 로컬(주간 리추얼) → 원격 푸시(FCM) 순서로 **직렬**이다. 둘 다 OS 알림 권한을
-   * 요청하는데 안드로이드 13+ 는 런타임 권한 대화상자를 동시에 두 개 띄우지 못한다.
-   * 병렬로 부르면 나중 요청이 대화상자도 없이 거부로 떨어지고, 그게 푸시 쪽이면
-   * FCM 토큰을 못 받아 BE 등록이 통째로 빠진다(=이 기기로 푸시가 영영 안 온다).
-   * 로컬이 먼저 권한을 받아 두면 푸시의 요청은 대화상자 없이 granted로 끝난다.
-   *
-   * - 로컬: BE 발송 인프라 없이 동작한다. 목(매칭 결과)·일(채팅 마감)이 고정 일정이라
-   *   기기가 스스로 예약할 수 있다.
-   * - 푸시: 언제 올지 모르는 이벤트(새 메시지, 매칭 성사)를 BE가 밀어 넣는다.
+   * 알림 발송은 서버 FCM만 담당한다. 먼저 포그라운드 표시용 로컬 배너의 탭 리스너를
+   * 연결하고, 그다음 FCM 권한 요청·토큰 등록·수신 리스너를 초기화한다.
    */
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -175,7 +173,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       try {
         track(await initLocalNotifications({ navigate }));
       } catch (err: unknown) {
-        console.error("[native] 로컬 알림 초기화 실패:", err);
+        console.error("[native] 포그라운드 알림 표시 초기화 실패:", err);
       }
       try {
         track(await initPushNotifications({ navigate }));
