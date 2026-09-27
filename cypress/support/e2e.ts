@@ -11,3 +11,17 @@ Cypress.on("uncaught:exception", (err) => {
   if (err.message.includes("Script error")) return false;
   return undefined;
 });
+
+/**
+ * 홈 첫 진입 시 미평가 유도(usePendingReviewPrompt)는 기본 픽스처의 열린 평가 때문에
+ * 모든 홈 스펙을 평가 화면으로 보낸다. 기본으로 "이미 확인함" 상태로 시작하고,
+ * 유도 자체를 검증하는 스펙만 `Cypress.env("reviewPrompt", true)` 로 켠다.
+ */
+Cypress.on("window:before:load", (win) => {
+  if (Cypress.env("reviewPrompt")) return;
+  try {
+    win.sessionStorage.setItem("ditto:review:prompted", "1");
+  } catch {
+    // 저장소가 막힌 환경에서는 유도가 뜰 수 있다 — 해당 스펙이 알아서 드러낸다.
+  }
+});

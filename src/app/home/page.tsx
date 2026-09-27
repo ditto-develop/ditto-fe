@@ -5,6 +5,7 @@ import { MainHeader } from "./MainHeader";
 import { MainSection } from "./MainSection";
 import { MainBottomNav } from "./MainBottomNav";
 import { Suspense } from "react";
+import { usePendingReviewPrompt } from "@/features/rating/hooks/usePendingReviewPrompt";
 
 const MainContainer = styled.div`
   width: 100%;
@@ -17,6 +18,8 @@ const MainContainer = styled.div`
 `;
 
 export default function Main() {
+  usePendingReviewPrompt();
+
   return (
     <MainContainer>
       <MainHeader />

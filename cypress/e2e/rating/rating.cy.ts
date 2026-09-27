@@ -193,3 +193,38 @@ describe("rating system", () => {
     cy.location("pathname").should("include", "/rate");
   });
 });
+
+describe("미평가 유도 (홈 첫 진입)", () => {
+  beforeEach(() => {
+    Cypress.env("reviewPrompt", true);
+    cy.clockPeriod("CHATTING");
+    cy.mockApi();
+    cy.login();
+  });
+
+  afterEach(() => {
+    Cypress.env("reviewPrompt", false);
+  });
+
+  it("열린 평가가 있으면 가장 오래된 평가 화면으로 보내고, 홈에 돌아오면 다시 보내지 않는다", () => {
+    cy.visit("/home");
+    cy.wait("@getMemberReviews");
+
+    // 픽스처 첫 평가(availableAt 가장 이른)는 1:1 방 1이다.
+    cy.location("pathname", { timeout: 8000 }).should("include", "/chat/one-on-one/1/rate");
+
+    cy.go("back");
+    cy.location("pathname").should("match", /^\/home\/?$/);
+    cy.wait(1000);
+    cy.location("pathname").should("match", /^\/home\/?$/);
+  });
+
+  it("열린 평가가 없으면 홈에 머문다", () => {
+    cy.intercept("GET", "**/api/**/member-reviews", { statusCode: 200, body: { success: true, data: [] } }).as(
+      "noReviews",
+    );
+    cy.visit("/home");
+    cy.wait("@noReviews");
+    cy.location("pathname").should("match", /^\/home\/?$/);
+  });
+});
