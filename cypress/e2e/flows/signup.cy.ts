@@ -233,4 +233,18 @@ describe("signup flow", () => {
     cy.wait("@createUserFail");
     cy.contains("회원가입 중 문제가 발생했어요.", { timeout: 6000 }).should("be.visible");
   });
+
+  it("locks the email field when the social login provides one", () => {
+    cy.intercept("GET", "**/api/v1/users/me", {
+      success: true,
+      data: { name: null, phoneNumber: null, gender: null, email: "kakao@example.com", birthDate: null },
+    }).as("getCurrentUserWithEmail");
+    cy.visit(OAUTH_ENTRY);
+    cy.wait("@getCurrentUserWithEmail");
+
+    // 소셜 계정의 이메일로 고정된다(2026-09-27 QA) — 가입 폼에서 바꿀 수 없다.
+    cy.get('input[placeholder="이메일을 입력해주세요"]', { timeout: 6000 })
+      .should("have.value", "kakao@example.com")
+      .and("be.disabled");
+  });
 });

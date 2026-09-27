@@ -143,6 +143,9 @@ export function Tutorial({ initialData }: TutorialProps) {
     kakaoId: initialData?.kakaoId || undefined,
   });
 
+  // 소셜 로그인이 준 이메일. 있으면 가입 화면에서 수정할 수 없게 잠근다.
+  const [providerEmail, setProviderEmail] = useState(initialData?.email || "");
+
   const handleInputChange: OnChange = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
@@ -150,6 +153,7 @@ export function Tutorial({ initialData }: TutorialProps) {
   // ✅ initialData가 변경될 때 formData를 업데이트
   useEffect(() => {
     if (initialData) {
+      if (initialData.email) setProviderEmail(initialData.email);
       setFormData((prev) => ({
         ...prev,
         email: initialData.email || prev.email,
@@ -196,6 +200,7 @@ export function Tutorial({ initialData }: TutorialProps) {
     if (loginResult.isRegistered) {
       router.push("/home");
     } else {
+      if (loginResult.email) setProviderEmail(loginResult.email);
       setFormData((prev) => ({
         ...prev,
         kakaoId: loginResult.kakaoId,
@@ -433,7 +438,13 @@ export function Tutorial({ initialData }: TutorialProps) {
               </>
             }
           >
-            <Step2Profile ref={step2Ref} data={formData} onChange={handleInputChange} setControlButton={setControlButton} />
+            <Step2Profile
+              ref={step2Ref}
+              data={formData}
+              onChange={handleInputChange}
+              setControlButton={setControlButton}
+              emailLocked={providerEmail.length > 0}
+            />
           </OnboardingLayout>
         );
       case 2:
@@ -448,6 +459,7 @@ export function Tutorial({ initialData }: TutorialProps) {
             subbuttonText="다음에 할래요"
             onSubAction={handleSkip}
             hideActions={editingIntroAnswer}
+            scrollHeader
             onPrev={goPrevStep}
             description={
               <>
