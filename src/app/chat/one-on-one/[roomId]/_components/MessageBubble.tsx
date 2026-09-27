@@ -2,6 +2,7 @@
 
 import styled from "styled-components";
 import { selectableContent } from "@/shared/styles/selection";
+import { ChatImage } from "@/app/chat/_components/ChatImage";
 import { ChatMessageText } from "@/app/chat/_components/ChatMessageText";
 
 import { getSystemMessageText } from "@/features/chat";
@@ -58,7 +59,7 @@ export function MessageBubble({
         disabled={!imageUrl}
       >
         {imageUrl ? (
-          <SentImage src={imageUrl} alt="보낸 이미지" loading="lazy" />
+          <ChatImage key={imageUrl} src={imageUrl} alt="보낸 이미지" />
         ) : (
           <ImageFallback>
             {deliveryStatus === "failed" ? "사진 전송에 실패했어요" : "사진을 보내는 중이에요"}
@@ -231,19 +232,14 @@ const ImageButton = styled.button`
   line-height: 0;
 `;
 
-const SentImage = styled.img`
-  display: block;
-  max-width: 255px;
-  max-height: 320px;
-  width: auto;
-  height: auto;
-  border-radius: 12px;
-  object-fit: cover;
-`;
 
+// 로드된 ChatImage와 같은 칸 크기여야 전송 완료 시 버블이 튀지 않는다.
 const ImageFallback = styled.span`
-  display: inline-block;
-  padding: 24px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 200px;
+  height: 200px;
   border-radius: 12px;
   background-color: var(--color-semantic-fill-normal);
   font-family: "Pretendard JP", sans-serif;
