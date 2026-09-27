@@ -23,6 +23,7 @@ import { getMyMemberId } from "@/shared/lib/auth";
 import { parseServerDateTime } from "@/shared/lib/serverDateTime";
 import { resolveStaticRouteParam } from "@/shared/lib/staticRouteParam";
 import { ChatRoomSkeleton } from "@/app/chat/_components/ChatRoomSkeleton";
+import { ChatImageViewer } from "@/app/chat/_components/ChatImageViewer";
 import { GroupChatRoomHeader } from "./GroupChatRoomHeader";
 import { GroupMessageList } from "./GroupMessageList";
 import { GroupChatMenuBottomSheet } from "./GroupChatMenuBottomSheet";
@@ -62,6 +63,7 @@ export function GroupChatRoomPageClient() {
   const [roomId] = useState(() => Number(resolveStaticRouteParam("group", String(params.roomId))));
   const [myUserId, setMyUserId] = useState<number | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [viewerImageUrl, setViewerImageUrl] = useState<string | null>(null);
   const [isMemberListOpen, setIsMemberListOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<CounterpartProfile | null>(null);
   const [isCreateVoteOpen, setIsCreateVoteOpen] = useState(false);
@@ -257,7 +259,7 @@ export function GroupChatRoomPageClient() {
         onLoadOlder={loadOlder}
         onVisibleMessage={markReadThrough}
         notice={notice}
-        onImageClick={(imageUrl) => window.open(imageUrl, "_blank", "noopener,noreferrer")}
+        onImageClick={setViewerImageUrl}
         getVoteById={getVoteById}
         onVoteClick={openVoteView}
       />
@@ -314,6 +316,8 @@ export function GroupChatRoomPageClient() {
           onCloseVote={handleCloseVote}
         />
       )}
+
+      <ChatImageViewer imageUrl={viewerImageUrl} onClose={() => setViewerImageUrl(null)} />
 
       <ChatLeaveModal
         isOpen={isLeaveModalOpen}

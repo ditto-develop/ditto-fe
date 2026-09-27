@@ -24,6 +24,7 @@ import { getMyMemberId } from "@/shared/lib/auth";
 import { parseServerDateTime } from "@/shared/lib/serverDateTime";
 import { resolveStaticRouteParam } from "@/shared/lib/staticRouteParam";
 import { ChatRoomSkeleton } from "@/app/chat/_components/ChatRoomSkeleton";
+import { ChatImageViewer } from "@/app/chat/_components/ChatImageViewer";
 import { ChatRoomHeader } from "./ChatRoomHeader";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
@@ -46,6 +47,7 @@ export function ChatRoomPageClient() {
   const [myUserId, setMyUserId] = useState<number | null>(null);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [viewerImageUrl, setViewerImageUrl] = useState<string | null>(null);
   const [ending, setEnding] = useState(false);
   const [isUrgentNoticeDismissed, setIsUrgentNoticeDismissed] = useState(false);
 
@@ -185,6 +187,7 @@ export function ChatRoomPageClient() {
         onVisibleMessage={markReadThrough}
         notice={notice}
         onRetrySend={retrySend}
+        onImageClick={setViewerImageUrl}
       />
 
       {!isEnded && (
@@ -221,6 +224,8 @@ export function ChatRoomPageClient() {
           }
         />
       )}
+
+      <ChatImageViewer imageUrl={viewerImageUrl} onClose={() => setViewerImageUrl(null)} />
 
       <ChatLeaveModal
         isOpen={isLeaveModalOpen}
