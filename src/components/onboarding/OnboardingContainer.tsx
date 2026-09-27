@@ -137,6 +137,25 @@ export const DescriptionGroup = styled.div`
   padding-bottom: 3px;
 `
 
+/**
+ * 본문과 함께 스크롤되는 머리말(소개 노트 작성·수정, 2026-09-27 QA). 스크롤하면 제목·설명은
+ * 올라가고 진행 카드만 상단에 남는다.
+ *
+ * BodyContainer 안쪽이라 좌우 패딩은 본문이 준다. 위쪽은 본문 패딩(--space-8)을 되돌려 고정
+ * 머리말일 때와 같은 자리(내비게이션 아래 --space-2)에 둔다. 아래 --space-4 는 본문 gap(16px)과
+ * 합쳐 진행 카드의 sticky 위쪽 띠(--space-8, Step_3 ProgressSticky)와 같은 높이가 된다 —
+ * 띠가 설명 마지막 줄을 덮지 않게 하려는 값이다.
+ */
+export const ScrollingHeadContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  align-self: stretch;
+  margin-top: calc(var(--space-2) - var(--space-8));
+  margin-bottom: var(--space-4);
+`;
+
 export const HeaderTop = styled.div`
   display: flex;
   justify-content: space-between;

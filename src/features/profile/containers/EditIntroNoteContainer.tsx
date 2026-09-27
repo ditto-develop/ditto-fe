@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/context/ToastContext";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
+import { ScrollingHeadContainer } from "@/components/onboarding/OnboardingContainer";
 import { Step3Intro, type Step3Ref } from "@/components/onboarding/step/Step_3";
 import { getMyIntroNoteAnswersByIndex } from "@/features/profile/api/profileApi";
 import { INTRO_NOTE_FIELDS } from "@/features/profile/model/introNotes";
@@ -95,62 +96,56 @@ export function EditIntroNoteContainer() {
     return (
         <Page>
             <TopNavigation onBack={() => router.push("/profile")} />
-            <Header>
-                <Title>소개 노트 수정하기</Title>
-                <Description>
-                    대화 상대에게만 공개되는 나만의 소개 노트예요.
-                    <br />
-                    작성한 내용이 많을수록 더 진솔하게 다가갈 수 있어요.
-                </Description>
-            </Header>
-            {!loading && (
-                <>
-                    <Body>
-                        <Step3Intro
-                            ref={stepRef}
-                            data={formData}
-                            onChange={handleChange}
-                            setControlButton={setControlButton}
-                            onEditingChange={setEditingAnswer}
-                            // 온보딩 작성 화면과 같은 처리(BUG-033) — 스크롤해도 진행 카드가 따라온다.
-                            stickyProgress
-                        />
-                    </Body>
-                    {!editingAnswer && (
-                        <BottomActionArea>
-                            <SubmitButton
-                                type="button"
-                                $variant="solid"
-                                $size="large"
-                                $looksDisabled={looksDisabled}
-                                aria-disabled={looksDisabled}
-                                onClick={handleSubmit}
-                            >
-                                수정 완료
-                            </SubmitButton>
-                        </BottomActionArea>
-                    )}
-                </>
+            <Body>
+                <ScrollingHeadContainer>
+                    <Title>소개 노트 수정하기</Title>
+                    <Description>
+                        대화 상대에게만 공개되는 나만의 소개 노트예요.
+                        <br />
+                        작성한 내용이 많을수록 더 진솔하게 다가갈 수 있어요.
+                    </Description>
+                </ScrollingHeadContainer>
+                {!loading && (
+                    <Step3Intro
+                        ref={stepRef}
+                        data={formData}
+                        onChange={handleChange}
+                        setControlButton={setControlButton}
+                        onEditingChange={setEditingAnswer}
+                        // 온보딩 작성 화면과 같은 처리(BUG-033) — 스크롤해도 진행 카드가 따라온다.
+                        stickyProgress
+                    />
+                )}
+            </Body>
+            {!loading && !editingAnswer && (
+                <BottomActionArea>
+                    <SubmitButton
+                        type="button"
+                        $variant="solid"
+                        $size="large"
+                        $looksDisabled={looksDisabled}
+                        aria-disabled={looksDisabled}
+                        onClick={handleSubmit}
+                    >
+                        수정 완료
+                    </SubmitButton>
+                </BottomActionArea>
             )}
         </Page>
     );
 }
 
+/**
+ * 회원가입 소개 노트(OnboardingLayout)와 같은 구조 — 페이지는 고정하고 본문만 스크롤한다.
+ * 문서 전체가 스크롤되면 진행 카드가 sticky TopNavigation(z-index 1000) 밑에 붙어 가려졌다
+ * (2026-09-27 QA "소개노트 수정하기 상단 고정이 안됨").
+ */
 const Page = styled.div`
-  min-height: 100dvh;
-  background-color: var(--color-semantic-background-normal-normal);
-`;
-
-/* 상단 내비게이션과 제목 사이는 제목과 설명 사이(--space-2)만큼만 띄운다. */
-const Header = styled.header`
-  width: 100%;
-  max-width: var(--space-max);
-  margin: 0 auto;
-  box-sizing: border-box;
-  padding: var(--space-2) var(--space-4) 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  height: 100dvh;
+  overflow: hidden;
+  background-color: var(--color-semantic-background-normal-normal);
 `;
 
 const Title = styled.h1`
@@ -171,7 +166,14 @@ const Description = styled.p`
   color: var(--color-semantic-label-neutral);
 `;
 
+/* Step_3 의 ProgressSticky 는 이 스크롤 컨테이너의 위쪽 패딩(--space-8)을 기준으로 붙는다. */
 const Body = styled.main`
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-height: 0;
+  overflow-y: auto;
   width: 100%;
   max-width: var(--space-max);
   margin: 0 auto;

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { ActionContainer, BodyContainer, DescriptionGroup, HeadContainer, HeaderTop, PageContainer } from "@/components/onboarding/OnboardingContainer";
+import { ActionContainer, BodyContainer, DescriptionGroup, HeadContainer, HeaderTop, PageContainer, ScrollingHeadContainer } from "@/components/onboarding/OnboardingContainer";
 import { Label1Normal, Title3 } from "@/shared/ui";
 import { Nav } from "@/shared/ui";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
@@ -20,6 +20,11 @@ interface OnboardingLayoutProps {
    * 입력 영역이 좁아지는 것을 막기 위한 옵션이다.
    */
   hideActions?: boolean;
+  /**
+   * 제목·설명을 본문과 함께 스크롤한다. 소개 노트처럼 진행 카드만 상단에 남겨야 하는 화면용
+   * (2026-09-27 QA — 고정 머리말이 화면을 차지해 입력 영역이 좁았다).
+   */
+  scrollHeader?: boolean;
 
   onNext: () => void;
   onPrev?: () => void;
@@ -40,6 +45,7 @@ export function OnboardingLayout({
   subbuttonText,
   variant,
   hideActions = false,
+  scrollHeader = false,
   onNext,
   onPrev,
   onClose,
@@ -57,22 +63,27 @@ export function OnboardingLayout({
     bodyRef.current?.scrollTo({ top: 0 });
   }, [step]);
 
+  const head = (
+    <>
+      <HeaderTop>
+        <Title3 $weight="bold">{title}</Title3>
+        <Label1Normal $color="var(--color-semantic-status-positive)">
+          {step}/{totalSteps}단계
+        </Label1Normal>
+      </HeaderTop>
+      <DescriptionGroup>{description}</DescriptionGroup>
+    </>
+  );
+
   return (
     <>
     <PageContainer>
     <Nav prev={onPrev} close={onClose} label={navTitle} />
 
-      <HeadContainer>
-        <HeaderTop>
-          <Title3 $weight="bold">{title}</Title3>
-          <Label1Normal $color="var(--color-semantic-status-positive)">
-            {step}/{totalSteps}단계
-          </Label1Normal>
-        </HeaderTop>
-        <DescriptionGroup>{description}</DescriptionGroup>
-      </HeadContainer>
+      {!scrollHeader && <HeadContainer>{head}</HeadContainer>}
 
       <BodyContainer ref={bodyRef}>
+        {scrollHeader && <ScrollingHeadContainer>{head}</ScrollingHeadContainer>}
         {children}
       </BodyContainer>
 

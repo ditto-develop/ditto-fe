@@ -364,6 +364,9 @@ const QuestionProgressCard: React.FC<QuestionProgressCardProps> = ({
  * 붙고, 그 위 빈 띠로 지나가는 질문이 비쳐 보인다. 그래서 패딩만큼 위로 올려 붙이고
  * (top 음수), 같은 높이의 여백을 카드 위에 배경색으로 깔아 띠를 가린다.
  * 실측 결과 카드 위치는 고정 전과 같다(컨테이너 패딩 = 여백).
+ *
+ * 아래쪽에도 배경 띠(--space-4)를 둔다. 없으면 고정된 카드 바로 밑으로 질문이 붙어 지나가
+ * 답답해 보였다(2026-09-27 QA "progress bar 하단 여백").
  */
 const ProgressSticky = styled.div`
   position: sticky;
@@ -371,6 +374,7 @@ const ProgressSticky = styled.div`
   z-index: 1;
   width: 100%;
   padding-top: var(--space-8);
+  padding-bottom: var(--space-4);
   margin-top: calc(-1 * var(--space-8));
   background-color: var(--color-semantic-background-normal-normal);
 `;

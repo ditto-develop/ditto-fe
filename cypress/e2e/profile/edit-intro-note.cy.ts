@@ -30,7 +30,8 @@ describe("edit intro note", () => {
     cy.contains("소개 노트 수정하기").should("be.visible");
     // 저장된 답변이 그대로 보여야 한다 — 다시 들어오면 전부 비어 있던 회귀(QA 2026-09-09).
     cy.contains("짐은 단출하게 챙기는 편이에요.").should("be.visible");
-    cy.contains("따뜻함").should("be.visible");
+    // 본문만 스크롤되는 구조라(회원가입 소개 노트와 동일) 아래쪽 답변은 스크롤해서 확인한다.
+    cy.contains("따뜻함").scrollIntoView().should("be.visible");
     cy.contains("10/10 질문 완료").should("be.visible");
 
     // 저장된 답변을 눌러 편집한다.
@@ -93,7 +94,7 @@ describe("edit intro note", () => {
     cy.visit("/profile/intro-note");
     cy.wait("@getMyIntroNotesWithoutRequired");
 
-    cy.contains("Q10. 나를 한 줄로 표현한다면?").should("be.visible");
+    cy.contains("Q10. 나를 한 줄로 표현한다면?").scrollIntoView().should("be.visible");
     cy.contains("수정 완료").click();
 
     cy.contains("필수 질문에 답해 주세요.").should("be.visible");
@@ -120,8 +121,8 @@ describe("edit intro note", () => {
   });
 
   /**
-   * 편집이 끝나면 화면을 원점(0,0)으로 되돌리던 코드가 있었다. 문서 전체가 스크롤되는
-   * 이 화면에서는 답변 하나를 저장할 때마다 맨 위로 튀었다(QA 2026-09-10).
+   * 편집이 끝나면 화면을 원점(0,0)으로 되돌리던 코드가 있었다. 답변 하나를 저장할 때마다
+   * 맨 위로 튀었다(QA 2026-09-10). 2026-09-27 부터는 문서 대신 본문(main)이 스크롤된다.
    */
   it("저장/취소해도 보던 질문 자리에 남는다", () => {
     cy.viewport("iphone-x");
@@ -129,7 +130,7 @@ describe("edit intro note", () => {
     cy.wait("@getMyIntroNotesV1");
 
     cy.contains("Q8.").scrollIntoView();
-    cy.window().its("scrollY").as("beforeY");
+    cy.get("main").invoke("scrollTop").as("beforeY");
 
     cy.contains("Q8.").parent().find("textarea, p").last().click();
     cy.contains("Q8.").parent().contains("button", "취소").click();
@@ -137,8 +138,8 @@ describe("edit intro note", () => {
     cy.get("@beforeY").then((beforeY) => {
       const before = Number(beforeY);
       expect(before, "편집 전 스크롤 위치").to.be.greaterThan(0);
-      cy.window().should((win) => {
-        expect(win.scrollY, "취소 후 스크롤 위치").to.be.closeTo(before, 120);
+      cy.get("main").should(($main) => {
+        expect($main[0].scrollTop, "취소 후 스크롤 위치").to.be.closeTo(before, 120);
       });
     });
   });
@@ -193,7 +194,7 @@ describe("edit intro note", () => {
     const KEYBOARD_HEIGHT = 336;
 
     cy.visit("/profile/intro-note");
-    cy.contains("Q10. 나를 한 줄로 표현한다면?").should("be.visible");
+    cy.contains("Q10. 나를 한 줄로 표현한다면?").scrollIntoView().should("be.visible");
 
     cy.window().then((win) => {
       const viewport = win.visualViewport;
