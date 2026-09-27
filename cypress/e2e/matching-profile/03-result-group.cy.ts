@@ -48,6 +48,33 @@ describe("3.1 매칭 결과 - 그룹 매칭 (WF-07)", () => {
     });
   });
 
+  describe("그룹 이름", () => {
+    it("그룹 퀴즈셋의 카테고리로 그룹 이름을 짓는다", () => {
+      mockGroupWeek();
+      // 그룹 후보의 quizSetId(102)와 같은 GROUP 세트를 이번 주 퀴즈셋에 싣는다.
+      cy.fixture("quiz-current.json").then((data) => {
+        const [oneToOne] = data.quizSets;
+        cy.intercept("GET", "**/api/v1/quiz-sets/current-week", {
+          statusCode: 200,
+          body: {
+            success: true,
+            data: {
+              ...data,
+              quizSets: [
+                oneToOne,
+                { ...oneToOne, id: "102", category: "여행, 음식", matchingType: "GROUP" },
+              ],
+            },
+          },
+        });
+      });
+
+      openGroupModal();
+      cy.contains("같은 여행, 음식 그룹").should("be.visible");
+      cy.contains("같은 취미, 취향 그룹").should("not.exist");
+    });
+  });
+
   describe("프로필 선택 → 멤버 상세", () => {
     beforeEach(() => mockGroupWeek());
 

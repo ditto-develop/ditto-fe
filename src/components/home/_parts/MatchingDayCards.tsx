@@ -8,6 +8,7 @@ import { formatChatMessagePreview } from "@/app/chat/_utils/messagePreview";
 import { Body1Bold, Body2Reading, Caption1, Caption2, Heading2Bold, Headline1, Headline2, Label1Normal, Label2 } from "@/shared/ui";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import { toLocationLabel } from "@/shared/lib/profileLabels";
+import { DEFAULT_GROUP_NAME } from "@/shared/lib/quizTopic";
 import { ProfileImg, ProfileWrapper } from "@/components/onboarding/OnboardingContainer";
 import { useTargetDayCountdown } from "@/lib/hooks/useKstCountdown";
 import {
@@ -156,6 +157,7 @@ export const ChattingView = ({
   candidates,
   acceptedCandidate,
   chatRoom,
+  groupName = DEFAULT_GROUP_NAME,
 }: {
   cardType: MatchingCardType;
   openProfileSelector: () => void;
@@ -164,6 +166,8 @@ export const ChattingView = ({
   candidates: MatchCandidateDto[];
   acceptedCandidate?: MatchCandidateDto;
   chatRoom?: ChatRoom;
+  /** 그룹 이름("같은 {주제} 그룹"). 주제는 이번 주 그룹 퀴즈셋 카테고리다. */
+  groupName?: string;
 }) => {
   const timeMondayLeft = useTargetDayCountdown(1);
   const lastMessagePreview = chatRoom ? getLastMessagePreview(chatRoom) : undefined;
@@ -256,7 +260,7 @@ export const ChattingView = ({
           <ChatRightContainer>
             <ChatGroupHeaderRow>
               <ChatTitleSlot>
-                <Heading2Bold>같은 취미, 취향 그룹</Heading2Bold>
+                <Heading2Bold>{groupName}</Heading2Bold>
                 <Label2 $color="var(--color-semantic-label-alternative)">
                   {firstName}님 외 {othersCount}명
                 </Label2>
@@ -390,7 +394,15 @@ export const BottomSheetProfile = ({ profile }: { profile: Profile }) => {
   );
 };
 
-export const GroupJoinedCard = ({ candidates, onCardClick }: { candidates: MatchCandidateDto[]; onCardClick: () => void }) => {
+export const GroupJoinedCard = ({
+  candidates,
+  onCardClick,
+  groupName = DEFAULT_GROUP_NAME,
+}: {
+  candidates: MatchCandidateDto[];
+  onCardClick: () => void;
+  groupName?: string;
+}) => {
   const timeLeft = useTargetDayCountdown(5); // 금요일(대화 시작일)까지
   const shown = candidates.slice(0, 3);
   const extra = candidates.length - 3;
@@ -416,7 +428,7 @@ export const GroupJoinedCard = ({ candidates, onCardClick }: { candidates: Match
           </TopImgContainer>
         </ProfileWrapper>
         <GroupTextColumn>
-          <Headline2>같은 취미, 취향 그룹</Headline2>
+          <Headline2>{groupName}</Headline2>
           <Label2 $color="var(--color-semantic-label-alternative)">
             {firstName}님 외 {othersCount}명
           </Label2>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { DEFAULT_GROUP_NAME } from "@/shared/lib/quizTopic";
 import styled from "styled-components";
 import { trackEvent } from "@/shared/lib/analytics";
 import { FullScreenModal } from "@/shared/ui";
@@ -107,7 +108,7 @@ export function GroupMatchingResultModal({
   onAccepted,
   onDeclined,
   onStale,
-  groupName = "같은 취미, 취향 그룹",
+  groupName = DEFAULT_GROUP_NAME,
 }: GroupMatchingResultModalProps) {
   const { showToast, removeToast } = useToast();
   const [accepting, setAccepting] = useState(false);

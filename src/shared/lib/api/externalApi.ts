@@ -173,12 +173,20 @@ function isCypressRuntime(): boolean {
     return typeof window !== "undefined" && "Cypress" in window;
 }
 
-export async function getExternalCurrentWeekQuizSets(): Promise<CurrentWeekQuizSetsResponseDto> {
+/**
+ * 이번 주 퀴즈셋 조회만 한다. 저장된 퀴즈셋 ID 를 건드리지 않으므로
+ * 퀴즈를 풀지 않는 화면(홈 그룹 카드의 주제 표시 등)은 이쪽을 쓴다.
+ */
+export async function fetchExternalCurrentWeekQuizSets(): Promise<CurrentWeekQuizSetsResponseDto> {
     const data = await externalApiFetch<CurrentWeekQuizSetsResponseDto>("/api/v1/quiz-sets/current-week");
-    const normalized = {
+    return {
         ...data,
         quizSets: data.quizSets.map(normalizeCurrentWeekQuizSet),
     };
+}
+
+export async function getExternalCurrentWeekQuizSets(): Promise<CurrentWeekQuizSetsResponseDto> {
+    const normalized = await fetchExternalCurrentWeekQuizSets();
     const firstQuizSetId = normalized.quizSets?.[0]?.id;
     if (firstQuizSetId) setStoredQuizSetId(String(firstQuizSetId));
     return normalized;

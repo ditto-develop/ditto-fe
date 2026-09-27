@@ -25,6 +25,7 @@ import { useHomeReady } from "@/context/HomeReadyContext";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useToast } from "@/context/ToastContext";
 import { describeError } from "@/shared/lib/api/apiError";
+import { useGroupName } from "@/features/matching/hooks/useGroupName";
 
 const MainSectionContainer = styled.div`
   /**
@@ -252,6 +253,9 @@ export function MainSection() {
     enabled: period === "QUIZ",
   });
 
+  // 그룹 카드·모달의 그룹 이름. 훅이라 아래 조기 반환보다 위에 둔다.
+  const groupName = useGroupName(isGroupWeek ? quizSetId : null);
+
   // 로딩 중에는 카드 자리를 스켈레톤으로 잡아둔다. 스플래시가 2.5초에 먼저 걷혀도
   // 타임라인만 덩그러니 남았다가 카드가 뒤늦게 밀고 들어오는 일이 없다.
   if (loading) {
@@ -327,6 +331,7 @@ export function MainSection() {
             onGroupDeclined={handleGroupDeclined}
             onGroupStale={refreshGroups}
             quizSetId={quizSetId}
+            groupName={groupName}
           />
         );
       case "CHATTING": {
@@ -362,6 +367,7 @@ export function MainSection() {
             hasAcceptedMatch={hasAcceptedMatch}
             acceptedCandidate={acceptedCandidate}
             chatRoom={chatRoom}
+            groupName={groupName}
             onStartChat={handleStartChat}
           />
         );
