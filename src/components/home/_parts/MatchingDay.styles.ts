@@ -11,6 +11,8 @@ export const ViewCardContainer = styled.div`
   gap: 8px;
   align-self: stretch;
   flex: 1 1;
+  /* 긴 글자가 카드 폭을 밀어 가로 스크롤을 만들지 않게 한다 */
+  min-width: 0;
 `;
 
 export const CenteredTextBlock = styled.div`
@@ -271,6 +273,7 @@ export const GroupJoinedInner = styled.div`
   align-items: center;
   gap: 16px;
   width: 100%;
+  min-width: 0;
   cursor: pointer;
 `;
 
@@ -363,6 +366,13 @@ export const GroupTextColumn = styled.div`
   flex-direction: column;
   gap: 4px;
   flex: 1;
+  min-width: 0;
+
+  > * {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 `;
 
 export const TimeLabelRow = styled.div`

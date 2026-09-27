@@ -8,7 +8,6 @@ import { formatChatMessagePreview } from "@/app/chat/_utils/messagePreview";
 import { Body1Bold, Body2Reading, Caption1, Caption2, Heading2Bold, Headline1, Headline2, Label1Normal, Label2 } from "@/shared/ui";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import { toLocationLabel } from "@/shared/lib/profileLabels";
-import { DEFAULT_GROUP_NAME } from "@/shared/lib/quizTopic";
 import { ProfileImg, ProfileWrapper } from "@/components/onboarding/OnboardingContainer";
 import { useTargetDayCountdown } from "@/lib/hooks/useKstCountdown";
 import {
@@ -150,6 +149,13 @@ export const MatchingCandidateCard = ({ timeLeft, candidates }: { timeLeft: stri
   );
 };
 
+/**
+ * 홈 카드의 그룹 제목. 타이머와 한 줄을 나눠 쓰는 자리라 4글자 안팎만 들어간다 —
+ * 카테고리 이름("같은 {주제} 그룹")은 길어지면 잘리므로 여기서는 고정 문구를 쓰고,
+ * 카테고리 이름은 폭이 넉넉한 그룹 결과 모달에서 보여 준다.
+ */
+const HOME_GROUP_TITLE = "그룹대화";
+
 export const ChattingView = ({
   cardType,
   openProfileSelector,
@@ -157,7 +163,6 @@ export const ChattingView = ({
   candidates,
   acceptedCandidate,
   chatRoom,
-  groupName = DEFAULT_GROUP_NAME,
 }: {
   cardType: MatchingCardType;
   openProfileSelector: () => void;
@@ -166,8 +171,6 @@ export const ChattingView = ({
   candidates: MatchCandidateDto[];
   acceptedCandidate?: MatchCandidateDto;
   chatRoom?: ChatRoom;
-  /** 그룹 이름("같은 {주제} 그룹"). 주제는 이번 주 그룹 퀴즈셋 카테고리다. */
-  groupName?: string;
 }) => {
   const timeMondayLeft = useTargetDayCountdown(1);
   const lastMessagePreview = chatRoom ? getLastMessagePreview(chatRoom) : undefined;
@@ -260,7 +263,7 @@ export const ChattingView = ({
           <ChatRightContainer>
             <ChatGroupHeaderRow>
               <ChatTitleSlot>
-                <Heading2Bold>{groupName}</Heading2Bold>
+                <Heading2Bold>{HOME_GROUP_TITLE}</Heading2Bold>
                 <Label2 $color="var(--color-semantic-label-alternative)">
                   {firstName}님 외 {othersCount}명
                 </Label2>
@@ -394,15 +397,7 @@ export const BottomSheetProfile = ({ profile }: { profile: Profile }) => {
   );
 };
 
-export const GroupJoinedCard = ({
-  candidates,
-  onCardClick,
-  groupName = DEFAULT_GROUP_NAME,
-}: {
-  candidates: MatchCandidateDto[];
-  onCardClick: () => void;
-  groupName?: string;
-}) => {
+export const GroupJoinedCard = ({ candidates, onCardClick }: { candidates: MatchCandidateDto[]; onCardClick: () => void }) => {
   const timeLeft = useTargetDayCountdown(5); // 금요일(대화 시작일)까지
   const shown = candidates.slice(0, 3);
   const extra = candidates.length - 3;
@@ -428,7 +423,7 @@ export const GroupJoinedCard = ({
           </TopImgContainer>
         </ProfileWrapper>
         <GroupTextColumn>
-          <Headline2>{groupName}</Headline2>
+          <Headline2>{HOME_GROUP_TITLE}</Headline2>
           <Label2 $color="var(--color-semantic-label-alternative)">
             {firstName}님 외 {othersCount}명
           </Label2>

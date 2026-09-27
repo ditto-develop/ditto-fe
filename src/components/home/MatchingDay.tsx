@@ -73,7 +73,7 @@ export function MatchingDay({
   onGroupStale?: () => void;
   chatRoom?: ChatRoom;
   quizSetId?: string;
-  /** 그룹 이름("같은 {주제} 그룹"). 비우면 각 카드의 기본 문구를 쓴다. */
+  /** 그룹 결과 모달의 그룹 이름("같은 {주제} 그룹"). 비우면 기본 문구를 쓴다. */
   groupName?: string;
   onStartChat?: () => void;
 }) {
@@ -165,7 +165,7 @@ export function MatchingDay({
               만남이 이루어졌어요!<br />소개 노트를 보며 대화를 시작해 보세요.
             </>
           }
-          viewCard={<GroupJoinedCard candidates={candidates} groupName={groupName} onCardClick={() => {
+          viewCard={<GroupJoinedCard candidates={candidates} onCardClick={() => {
             trackClick("open_group_profiles");
             setProfileSelect(true);
           }} />}
@@ -339,7 +339,6 @@ export function MatchingDay({
               candidates={candidates}
               acceptedCandidate={acceptedCandidate}
               chatRoom={chatRoom}
-              groupName={groupName}
             />
           ) : (
             <MatchingCandidateCard timeLeft={timeLeft} candidates={candidates} />

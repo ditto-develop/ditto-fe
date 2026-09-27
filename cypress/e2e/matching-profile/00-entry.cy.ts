@@ -80,7 +80,8 @@ describe("진입 — 홈 매칭 카드", () => {
 
       cy.contains("매칭 완료", { timeout: 6000 }).should("be.visible");
       cy.contains("만남이 이루어졌어요!").should("be.visible");
-      cy.contains("같은 취미, 취향 그룹").should("be.visible");
+      // 홈 카드는 폭이 좁아 카테고리 이름 대신 고정 문구를 쓴다.
+      cy.contains("그룹대화").should("be.visible");
     });
   });
 
