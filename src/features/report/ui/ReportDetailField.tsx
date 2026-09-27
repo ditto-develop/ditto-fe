@@ -9,10 +9,17 @@ interface ReportDetailFieldProps {
   onChange: (value: string) => void;
   /** reason=etc면 BE가 detail을 필수로 본다(code 6003). 라벨을 (필수)로 바꾼다. */
   required?: boolean;
+  /** 입력 중에는 하단 CTA 를 숨긴다 — 키보드 위로 딸려 올라와 입력창을 가린다. */
+  onFocusChange?: (focused: boolean) => void;
 }
 
 /** Figma 7.1 [2444:30905] — 상세 설명 (선택). 최대 500자, 하단 우측 카운터. */
-export function ReportDetailField({ value, onChange, required = false }: ReportDetailFieldProps) {
+export function ReportDetailField({
+  value,
+  onChange,
+  required = false,
+  onFocusChange,
+}: ReportDetailFieldProps) {
   return (
     <Field>
       <FieldLabel htmlFor="report-detail">
@@ -26,6 +33,8 @@ export function ReportDetailField({ value, onChange, required = false }: ReportD
           maxLength={REPORT_DETAIL_MAX_LENGTH}
           placeholder="신고 내용을 자세히 작성해 주시면 빠른 처리에 도움이 됩니다."
           onChange={(event) => onChange(event.target.value)}
+          onFocus={() => onFocusChange?.(true)}
+          onBlur={() => onFocusChange?.(false)}
         />
         <Counter>
           {value.length}/{REPORT_DETAIL_MAX_LENGTH}
@@ -47,8 +56,10 @@ const Required = styled.span`
   color: var(--color-semantic-status-negative);
 `;
 
+/* 글자 폭만 차지한다. 한 줄을 다 채우면 옆 빈 곳을 눌러도 입력창에 포커스가 가 키보드가 안 내려간다. */
 const FieldLabel = styled.label`
   display: flex;
+  align-self: flex-start;
   align-items: center;
   font-size: var(--typography-label-1-normal-font-size);
   font-weight: 500;

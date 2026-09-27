@@ -93,7 +93,7 @@ describe("report a user", () => {
     cy.contains("부적절한 행동").click();
     cy.contains("button", "신고하기").should("not.be.disabled");
 
-    cy.get("#report-detail").type("대화 중에 불쾌한 발언을 반복했어요.");
+    cy.get("#report-detail").type("대화 중에 불쾌한 발언을 반복했어요.").blur();
     cy.contains("20/500").should("be.visible");
     // 신고는 항상 차단을 동반한다(2026-09-27 정책) — 차단 체크박스는 없다.
     cy.contains("이 사용자 차단하기").should("not.exist");
@@ -196,7 +196,7 @@ describe("report a user", () => {
     cy.contains("상세 설명 (필수)").should("be.visible");
     cy.contains("button", "신고하기").should("be.disabled");
 
-    cy.get("#report-detail").type("직접 입력한 사유입니다.");
+    cy.get("#report-detail").type("직접 입력한 사유입니다.").blur();
     cy.contains("button", "신고하기").should("not.be.disabled").click();
     cy.wait("@createReport");
     cy.contains("신고가 접수됐어요").should("be.visible");

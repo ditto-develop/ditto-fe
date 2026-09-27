@@ -1,5 +1,6 @@
 "use client";
 
+import type { PointerEvent } from "react";
 import { useState } from "react";
 import styled from "styled-components";
 
@@ -21,9 +22,20 @@ interface ReportFormViewProps {
 /** Figma 7.1 신고/차단 [2441:30585] (빈 상태) / [2448:31174] (입력 상태) */
 export function ReportFormView({ target, form, onCancel, onSubmit }: ReportFormViewProps) {
   const [tooltipVisible, setTooltipVisible] = useState(true);
+  const [detailFocused, setDetailFocused] = useState(false);
+
+  /** 입력창 밖 빈 곳을 누르면 키보드를 내린다. 모바일 웹뷰는 알아서 내려 주지 않는다. */
+  const dismissKeyboard = (event: PointerEvent<HTMLDivElement>) => {
+    const active = document.activeElement;
+    if (!(active instanceof HTMLTextAreaElement || active instanceof HTMLInputElement)) return;
+    if (event.target instanceof Element && event.target.closest("textarea, input, button, label, a")) {
+      return;
+    }
+    active.blur();
+  };
 
   return (
-    <Page>
+    <Page onPointerDown={dismissKeyboard}>
       <TopNavigation label="신고하기" onBack={onCancel} />
 
       <Content>
@@ -61,6 +73,7 @@ export function ReportFormView({ target, form, onCancel, onSubmit }: ReportFormV
             value={form.detail}
             onChange={form.changeDetail}
             required={form.detailRequired}
+            onFocusChange={setDetailFocused}
           />
 
           <EvidenceAttachField
@@ -73,22 +86,25 @@ export function ReportFormView({ target, form, onCancel, onSubmit }: ReportFormV
         </Body>
       </Content>
 
-      <Actions>
-        <ActionsInner>
-          <Button type="button" $variant="outlined" $size="large" onClick={onCancel}>
-            취소
-          </Button>
-          <Button
-            type="button"
-            $variant="solid"
-            $size="large"
-            disabled={!form.canSubmit}
-            onClick={onSubmit}
-          >
-            신고하기
-          </Button>
-        </ActionsInner>
-      </Actions>
+      {/* 입력 중엔 숨긴다 — fixed 라 키보드 위로 딸려 올라와 입력창을 가린다. */}
+      {!detailFocused && (
+        <Actions>
+          <ActionsInner>
+            <Button type="button" $variant="outlined" $size="large" onClick={onCancel}>
+              취소
+            </Button>
+            <Button
+              type="button"
+              $variant="solid"
+              $size="large"
+              disabled={!form.canSubmit}
+              onClick={onSubmit}
+            >
+              신고하기
+            </Button>
+          </ActionsInner>
+        </Actions>
+      )}
     </Page>
   );
 }
