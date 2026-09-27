@@ -16,6 +16,26 @@ export type ChatRoomSourceType = "PERSONAL" | "GROUP" | "REMATCH";
 export type ChatRoomEndedReason = "EXPIRED" | "USER_ENDED" | "INSUFFICIENT_MEMBERS";
 
 /**
+ * 서버가 판정한 방 상태(BE 위키 Frontend-QA-Fixes-Guide §권장). **서버 시각 기준**이라
+ * 어드민 시각 오버라이드에서도 맞다. SCHEDULED = 개방 전, ACTIVE = 진행 중, ENDED = 종료.
+ */
+export type ChatRoomServerStatus = "SCHEDULED" | "ACTIVE" | "ENDED";
+
+/**
+ * 이 방의 평가 상태(§3).
+ * - NOT_APPLICABLE: 평가가 없는 방(재매칭 방) — 진입점 숨김
+ * - NOT_OPENED: 아직 안 열림(방이 안 끝났거나, 끝났고 평가 생성 대기 중)
+ * - NOT_STARTED / IN_PROGRESS: 평가 가능(처음 / 이어서)
+ * - COMPLETED: 완료 — 재진입 막기
+ */
+export type ChatRoomReviewStatus =
+  | "NOT_APPLICABLE"
+  | "NOT_OPENED"
+  | "NOT_STARTED"
+  | "IN_PROGRESS"
+  | "COMPLETED";
+
+/**
  * SYSTEM 메시지의 content는 완성된 문장이 아니라 사건 코드다.
  * 같은 사건도 보는 사람에 따라 문구가 달라져서 FE가 senderId로 갈라 만든다.
  * 값은 추가될 수 있으니 모르는 코드는 무시한다.
@@ -99,6 +119,17 @@ export type ChatRoom = {
    * 1:1·재매칭은 상대가 한 명이라 서버가 null 을 준다.
    */
   roomName: string | null;
+  /**
+   * 서버 판정 상태. 필드가 추가되기 전 서버면 null 이고, 그때는 isEnded·opensAt·expiresAt 으로
+   * FE 가 파생한다(deriveRoomState).
+   */
+  status: ChatRoomServerStatus | null;
+  /** 평가 상태. 서버가 아직 내려주지 않으면 null — 평가 목록(/member-reviews)으로 판단한다. */
+  reviewStatus: ChatRoomReviewStatus | null;
+  /** 열린 평가 ID. 없으면 null. */
+  reviewId: number | null;
+  /** 이 방의 채팅 푸시를 껐는지(§5). 알림 센터 적재는 막지 않는다. */
+  isMuted: boolean;
 };
 
 /** 상대 프로필을 붙인 목록 아이템. 방 목록 응답에는 닉네임/이미지가 없어 별도 조회한다. */

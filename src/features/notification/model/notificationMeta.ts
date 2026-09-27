@@ -15,6 +15,7 @@ const NOTIFICATION_ICON: Record<string, IconName> = {
   GROUP_FORMED: "notification.people",
   REMATCH_MATCHED: "notification.rematch",
   REVIEW_REQUEST: "notification.star",
+  REVIEW_REMINDER: "notification.star",
   CHAT_MESSAGE: "notification.message",
   CHAT_ENDING_SOON: "notification.clock",
   SYSTEM_NOTICE: "notification.bell",
@@ -55,10 +56,15 @@ export function toNotificationTarget(
       return { kind: "path", path: "/matching" };
     case "GROUP_FORMED":
     case "REMATCH_MATCHED":
-    case "REVIEW_REQUEST":
-      // 그룹 구성·재매칭 성사·평가 요청의 targetId 의미가 확정되지 않았다.
-      // 대화방 목록에는 방별 진입점과 '평가하기'가 함께 붙어 있으므로 목록으로 보낸다.
+      // 그룹 구성·재매칭 성사의 targetId 의미가 확정되지 않았다. 대화방 목록으로 보낸다.
       return { kind: "path", path: "/chat" };
+    case "REVIEW_REQUEST":
+    case "REVIEW_REMINDER":
+      // 평가 요청의 targetId 는 방 ID다(BE 위키 Frontend-QA-Fixes-Guide §3). 방으로 보내면 종료된
+      // 방 하단 버튼이 reviewStatus 로 평가하기/이어서/완료를 가른다 — 완료한 평가로 다시 가지 않는다.
+      return item.targetId === null
+        ? { kind: "path", path: "/chat" }
+        : { kind: "chatRoom", roomId: item.targetId };
     case "CHAT_MESSAGE":
     case "CHAT_ENDING_SOON":
       // 채팅 계열의 targetId는 방 ID다. 1:1인지 그룹인지는 방 목록에서 판별한다.

@@ -10,12 +10,18 @@ interface ChatMenuBottomSheetProps {
   /** 생략하면 '대화방 나가기'를 숨긴다(이미 종료된 방, 그룹 방). */
   onLeave?: () => void;
   onReport: () => void;
+  /** 이 방의 채팅 푸시를 껐는지. */
+  isMuted?: boolean;
+  /** 생략하면 알림 토글을 숨긴다(종료된 방 — 더 올 채팅 알림이 없다). */
+  onToggleMute?: () => void;
 }
 
 export function ChatMenuBottomSheet({
   onClose,
   onLeave,
   onReport,
+  isMuted = false,
+  onToggleMute,
 }: ChatMenuBottomSheetProps) {
   // 열려 있는 동안만 마운트된다 — OS 뒤로가기로도 닫히게 한다.
   useBackClose(true, onClose);
@@ -34,6 +40,16 @@ export function ChatMenuBottomSheet({
           <Handle />
         </Navigation>
         <Contents>
+          {onToggleMute && (
+            <MenuItem
+              onClick={() => {
+                onClose();
+                onToggleMute();
+              }}
+            >
+              <MenuText>{isMuted ? "대화방 알림 켜기" : "대화방 알림 끄기"}</MenuText>
+            </MenuItem>
+          )}
           <MenuItem
             onClick={() => {
               onClose();

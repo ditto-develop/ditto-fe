@@ -34,11 +34,26 @@ const SCHEDULER_LAG_MS = 60 * 1000;
  *   모르면(null) 클라이언트 시계만으로 판정한다.
  */
 export function deriveRoomState(
-  room: Pick<ChatRoom, "isEnded" | "opensAt" | "expiresAt">,
+  room: Pick<ChatRoom, "isEnded" | "opensAt" | "expiresAt"> & Partial<Pick<ChatRoom, "status">>,
   now: number = Date.now(),
   serverPeriod: SystemPeriod | null = null,
 ): ChatRoomState {
   if (room.isEnded) return "ENDED";
+
+  /*
+   * 서버가 status 를 주면 그것을 따른다(BE 위키 Frontend-QA-Fixes-Guide §권장). 서버 시각 기준이라
+   * 어드민 시각 오버라이드에서도 맞다 — 기기 시계로 expiresAt 을 먼저 보던 판정이 개방 전 방을
+   * "종료"로 그리던 원인이었다(2026-09-27 QA).
+   *
+   * status 는 조회 시점의 값이다. ACTIVE 인 방이 화면을 연 채 만료 시각을 넘기는 경우만
+   * 기기 시계로 이어 받는다(남은 시간 0분 → 종료). SCHEDULED 는 다음 조회가 ACTIVE 로 바꿔 준다.
+   */
+  if (room.status === "ENDED") return "ENDED";
+  if (room.status === "SCHEDULED") return "BEFORE_OPEN";
+  if (room.status === "ACTIVE") {
+    const activeExpiresAt = parseServerDateTime(room.expiresAt);
+    return activeExpiresAt && activeExpiresAt.getTime() <= now ? "ENDED" : "OPEN";
+  }
 
   // 서버가 아직 마감을 돌리지 않았어도 만료 시각이 지났으면 종료로 본다.
   const expiresAt = parseServerDateTime(room.expiresAt);
@@ -57,7 +72,7 @@ export function deriveRoomState(
 }
 
 export function isRoomEnded(
-  room: Pick<ChatRoom, "isEnded" | "opensAt" | "expiresAt">,
+  room: Pick<ChatRoom, "isEnded" | "opensAt" | "expiresAt"> & Partial<Pick<ChatRoom, "status">>,
   now?: number,
 ): boolean {
   return deriveRoomState(room, now) === "ENDED";

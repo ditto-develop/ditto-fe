@@ -109,6 +109,47 @@ describe("deriveRoomState", () => {
   it("시각 정보가 없으면 OPEN으로 둔다(입력을 막지 않는다)", () => {
     expect(deriveRoomState({ isEnded: false, opensAt: null, expiresAt: null })).toBe("OPEN");
   });
+
+  describe("서버 status가 있으면 그것을 따른다", () => {
+    const afterExpiry = new Date("2026-06-09T00:00:00").getTime();
+
+    it("SCHEDULED면 기기 시계로 만료가 지나 보여도 BEFORE_OPEN이다(2026-09-27 QA)", () => {
+      expect(
+        deriveRoomState(
+          { isEnded: false, opensAt: OPENS_AT, expiresAt: EXPIRES_AT, status: "SCHEDULED" },
+          afterExpiry,
+        ),
+      ).toBe("BEFORE_OPEN");
+    });
+
+    it("ACTIVE면 기기 시계가 개방 전이어도 OPEN이다(시각 오버라이드)", () => {
+      const wednesday = new Date("2026-06-03T12:00:00").getTime();
+      expect(
+        deriveRoomState(
+          { isEnded: false, opensAt: OPENS_AT, expiresAt: EXPIRES_AT, status: "ACTIVE" },
+          wednesday,
+        ),
+      ).toBe("OPEN");
+    });
+
+    it("ACTIVE여도 화면을 연 채 만료 시각을 넘기면 ENDED다", () => {
+      expect(
+        deriveRoomState(
+          { isEnded: false, opensAt: OPENS_AT, expiresAt: EXPIRES_AT, status: "ACTIVE" },
+          afterExpiry,
+        ),
+      ).toBe("ENDED");
+    });
+
+    it("ENDED면 만료 전이어도 ENDED다", () => {
+      expect(
+        deriveRoomState(
+          { isEnded: false, opensAt: OPENS_AT, expiresAt: EXPIRES_AT, status: "ENDED" },
+          SATURDAY_NOON,
+        ),
+      ).toBe("ENDED");
+    });
+  });
 });
 
 describe("getRoomEndedMessage", () => {

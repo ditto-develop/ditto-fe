@@ -2,6 +2,7 @@
 
 import styled from "styled-components";
 import { useRouter } from "next/navigation";
+import { BellOff } from "lucide-react";
 import type { ChatRoomState } from "@/features/chat";
 import { formatChatMessagePreview } from "@/app/chat/_utils/messagePreview";
 
@@ -18,6 +19,10 @@ export interface ChatRoomListItemData {
   coParticipantAvatarUrl?: string | null;
   /** 이 방의 평가가 열려 있으면 평가 화면 경로. 없으면 진입점을 띄우지 않는다. */
   reviewHref?: string;
+  /** 평가 진입 버튼 문구. 일부만 제출한 평가는 "이어서 평가하기". */
+  reviewLabel?: string;
+  /** 이 방의 채팅 알림을 껐는지. */
+  isMuted?: boolean;
 }
 
 const STATE_BADGE_LABEL: Record<ChatRoomState, string> = {
@@ -75,6 +80,7 @@ export function ChatRoomListItem({ room }: ChatRoomListItemProps) {
         <TopRow>
           <NameRow>
             <Name>{room.partnerNickname}</Name>
+            {room.isMuted && <MutedIcon aria-label="알림 꺼짐" role="img" />}
             {room.state === "ENDED" ? (
               <EndedBadge>{STATE_BADGE_LABEL.ENDED}</EndedBadge>
             ) : room.state === "BEFORE_OPEN" ? (
@@ -103,7 +109,7 @@ export function ChatRoomListItem({ room }: ChatRoomListItemProps) {
                 router.push(room.reviewHref as string);
               }}
             >
-              평가하기
+              {room.reviewLabel ?? "평가하기"}
             </ReviewButton>
           )}
           {showUnread && (
@@ -187,6 +193,13 @@ const NameRow = styled.div`
   gap: 8px;
   min-width: 0;
   flex: 1;
+`;
+
+const MutedIcon = styled(BellOff)`
+  width: var(--space-4);
+  height: var(--space-4);
+  flex: 0 0 auto;
+  color: var(--color-semantic-label-assistive);
 `;
 
 /* Headline 2/Bold: SemiBold 17px, lineHeight 1.412 */

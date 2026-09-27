@@ -16,6 +16,10 @@ interface GroupChatMenuBottomSheetProps {
   onCreateVote?: () => void;
   /** 나가기. 이미 나간 방·종료된 방에서는 넘기지 않아 진입점이 사라진다. */
   onLeave?: () => void;
+  /** 이 방의 채팅 푸시를 껐는지. */
+  isMuted?: boolean;
+  /** 생략하면 알림 토글을 숨긴다(종료된 방·나간 방). */
+  onToggleMute?: () => void;
 }
 
 export function GroupChatMenuBottomSheet({
@@ -24,6 +28,8 @@ export function GroupChatMenuBottomSheet({
   onMemberList,
   onCreateVote,
   onLeave,
+  isMuted = false,
+  onToggleMute,
 }: GroupChatMenuBottomSheetProps) {
   // 열려 있는 동안만 마운트된다 — OS 뒤로가기로도 닫히게 한다.
   useBackClose(true, onClose);
@@ -62,6 +68,16 @@ export function GroupChatMenuBottomSheet({
             </MenuItem>
           )}
 
+          {onToggleMute && (
+            <MenuItem
+              onClick={() => {
+                onClose();
+                onToggleMute();
+              }}
+            >
+              <MenuText>{isMuted ? "대화방 알림 켜기" : "대화방 알림 끄기"}</MenuText>
+            </MenuItem>
+          )}
           <MenuItem onClick={() => { onMemberList(); onClose(); }}>
             <MenuText>신고하기</MenuText>
           </MenuItem>

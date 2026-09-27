@@ -18,6 +18,7 @@ import {
 } from "@/features/chat/hooks/useChatKeyboardInset";
 import { useSystemPeriod } from "@/features/system/hooks/useSystemPeriod";
 import { useToast } from "@/context/ToastContext";
+import { useChatRoomMuteToggle } from "@/features/chat/hooks/useChatRoomMuteToggle";
 import { getMyMemberId } from "@/shared/lib/auth";
 import { parseServerDateTime } from "@/shared/lib/serverDateTime";
 import { resolveStaticRouteParam } from "@/shared/lib/staticRouteParam";
@@ -93,6 +94,7 @@ export function GroupChatRoomPageClient() {
   // 개방 판정의 기준. 어드민 시각 오버라이드가 반영된 서버 기간이다.
   const serverPeriod = useSystemPeriod();
   const { showToast } = useToast();
+  const toggleMute = useChatRoomMuteToggle(roomId, room?.isMuted ?? false, refreshRoom);
 
   useEffect(() => {
     setMyUserId(getMyMemberId());
@@ -270,7 +272,7 @@ export function GroupChatRoomPageClient() {
       )}
 
       {isEnded && !hasLeft && (
-        <ChatRateAction roomId={roomId} matchType="GROUP" />
+        <ChatRateAction roomId={roomId} matchType="GROUP" reviewStatus={room?.reviewStatus ?? null} />
       )}
 
       {isMenuOpen && (
@@ -281,6 +283,9 @@ export function GroupChatRoomPageClient() {
           onClose={() => setIsMenuOpen(false)}
           onMemberList={() => setIsMemberListOpen(true)}
           onLeave={isEnded || hasLeft ? undefined : () => setIsLeaveModalOpen(true)}
+          // 끝났거나 나간 방에는 더 올 채팅 알림이 없다(나간 방은 서버도 7001/7002 로 거절).
+          isMuted={room?.isMuted ?? false}
+          onToggleMute={isEnded || hasLeft || !room ? undefined : toggleMute}
         />
       )}
 

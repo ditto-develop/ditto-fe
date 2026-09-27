@@ -22,10 +22,28 @@ import { AlertModal, Button, SwipeToDelete } from "@/shared/ui";
 type FilterType = "전체" | "진행중" | "종료";
 const FILTERS: FilterType[] = ["전체", "진행중", "종료"];
 
+/**
+ * 목록의 평가 진입점. 서버가 reviewStatus 를 주면 그것으로 가른다 — 평가할 수 있는 상태
+ * (NOT_STARTED·IN_PROGRESS)에만 버튼을 띄운다(BE 위키 Frontend-QA-Fixes-Guide §3).
+ * 없으면 평가 목록(/member-reviews)에 이 방이 있는지로 판단하던 기존 방식을 쓴다.
+ */
+function toReviewEntry(
+  room: ChatRoomWithCounterpart,
+  pendingReviewHref: string | undefined,
+): Pick<ChatRoomListItemData, "reviewHref" | "reviewLabel"> {
+  if (room.reviewStatus === null) return { reviewHref: pendingReviewHref };
+  if (room.reviewStatus !== "NOT_STARTED" && room.reviewStatus !== "IN_PROGRESS") return {};
+  const segment = room.sourceType === "GROUP" ? "group" : "one-on-one";
+  return {
+    reviewHref: `/chat/${segment}/${room.roomId}/rate`,
+    reviewLabel: room.reviewStatus === "IN_PROGRESS" ? "이어서 평가하기" : "평가하기",
+  };
+}
+
 function toListItem(
   room: ChatRoomWithCounterpart,
   serverPeriod: SystemPeriod | null,
-  reviewHref?: string,
+  pendingReviewHref?: string,
 ): ChatRoomListItemData {
   return {
     roomId: room.roomId,
@@ -40,7 +58,8 @@ function toListItem(
     state: deriveRoomState(room, undefined, serverPeriod),
     // 재매칭 방은 1:1이다. 그룹만 별도 화면으로 보낸다.
     isGroup: room.sourceType === "GROUP",
-    reviewHref,
+    ...toReviewEntry(room, pendingReviewHref),
+    isMuted: room.isMuted,
   };
 }
 

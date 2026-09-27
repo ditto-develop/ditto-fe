@@ -74,6 +74,64 @@ describe("1:1 chat room", () => {
     cy.contains("button", "평가하기").should("not.exist");
   });
 
+  /** 방 목록 항목에 새 필드(status·reviewStatus·isMuted)를 덮어 쓴다(BE 위키 Frontend-QA-Fixes-Guide). */
+  function mockRoomsWith(roomId: number, patch: Record<string, unknown>, alias: string) {
+    cy.fixture("chat-rooms.json").then((rooms: Record<string, unknown>[]) => {
+      cy.intercept("GET", "**/api/**/chat/rooms", {
+        statusCode: 200,
+        body: {
+          success: true,
+          data: rooms.map((room) => (room.roomId === roomId ? { ...room, ...patch } : room)),
+        },
+      }).as(alias);
+    });
+  }
+
+  it("splits the rating action by the room's reviewStatus", () => {
+    mockRoomsWith(2, { status: "ENDED", reviewStatus: "IN_PROGRESS", reviewId: 31 }, "roomsInProgress");
+    cy.visit("/chat/one-on-one/2");
+    cy.wait("@roomsInProgress");
+    cy.contains("button", "이어서 평가하기", { timeout: 8000 }).should("be.enabled");
+  });
+
+  it("locks the rating action once the review is completed", () => {
+    mockRoomsWith(2, { status: "ENDED", reviewStatus: "COMPLETED", reviewId: null }, "roomsCompleted");
+    cy.visit("/chat/one-on-one/2");
+    cy.wait("@roomsCompleted");
+    cy.contains("button", "평가 완료", { timeout: 8000 }).should("be.disabled");
+  });
+
+  it("shows the review as opening soon while the server is still creating it", () => {
+    mockRoomsWith(2, { status: "ENDED", reviewStatus: "NOT_OPENED", reviewId: null }, "roomsNotOpened");
+    cy.visit("/chat/one-on-one/2");
+    cy.wait("@roomsNotOpened");
+    cy.contains("button", "평가가 곧 열려요", { timeout: 8000 }).should("be.disabled");
+  });
+
+  it("trusts the server status over the device clock for a room before opening", () => {
+    // 기기 시계로는 만료가 지난 값이지만 서버는 개방 전(SCHEDULED)이라고 한다 — 종료로 그리면 안 된다.
+    mockRoomsWith(1, { status: "SCHEDULED", expiresAt: "2026-06-01 00:00:00" }, "roomsScheduled");
+    cy.visit("/chat/one-on-one/1");
+    cy.wait("@roomsScheduled");
+    cy.contains("대화 기간이 끝나 메시지를 보낼 수 없어요.").should("not.exist");
+    cy.contains("button", "평가하기").should("not.exist");
+  });
+
+  it("turns the room's notifications off from the menu", () => {
+    mockRoomsWith(1, { status: "ACTIVE", isMuted: false }, "roomsUnmuted");
+    cy.intercept("PUT", "**/api/v1/chat/rooms/1/mute", { statusCode: 200, body: { success: true, data: null } }).as(
+      "muteRoom",
+    );
+
+    cy.visit("/chat/one-on-one/1");
+    cy.wait("@roomsUnmuted");
+    cy.get('[data-cy="chat-menu-button"]', { timeout: 8000 }).click();
+    cy.contains("대화방 알림 끄기").click();
+
+    cy.wait("@muteRoom");
+    cy.contains("이 대화방 알림을 껐어요.").should("be.visible");
+  });
+
   it("dismisses the urgent notice for the room during the session", () => {
     cy.fixture("chat-rooms.json").then((rooms) => {
       const urgentRooms = (rooms as { roomId: number; expiresAt: string | null }[]).map((room) =>

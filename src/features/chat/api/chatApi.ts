@@ -8,6 +8,16 @@ import type {
 } from "@/features/chat/model/types";
 import { externalApiFetch } from "@/shared/lib/api/externalClient";
 
+/**
+ * 이 방의 채팅 알림 푸시를 끄거나(PUT) 켠다(DELETE). 둘 다 멱등이고 data 는 없다.
+ * 막는 것은 이 방의 채팅 푸시 6종뿐 — 알림 센터 적재와 평가 요청 같은 매칭 알림은 그대로다.
+ */
+export function setChatRoomMuted(roomId: number, muted: boolean): Promise<null> {
+  return externalApiFetch<null>(`/api/v1/chat/rooms/${roomId}/mute`, {
+    method: muted ? "PUT" : "DELETE",
+  });
+}
+
 /** 내 채팅방 목록. 최근 대화순 정렬로 내려온다. */
 export async function getChatRooms(): Promise<ChatRoom[]> {
   const rooms = await externalApiFetch<ChatRoom[]>("/api/v1/chat/rooms");
@@ -159,5 +169,9 @@ function normalizeRoom(room: ChatRoom): ChatRoom {
     endedAt: room.endedAt ?? null,
     endedReason: room.endedReason ?? null,
     hasLeft: room.hasLeft ?? false,
+    status: room.status ?? null,
+    reviewStatus: room.reviewStatus ?? null,
+    reviewId: room.reviewId ?? null,
+    isMuted: room.isMuted ?? false,
   };
 }

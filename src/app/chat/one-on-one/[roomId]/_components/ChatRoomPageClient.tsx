@@ -17,6 +17,7 @@ import {
   CHAT_KEYBOARD_ANIMATION_MS,
   useChatKeyboardInset,
 } from "@/features/chat/hooks/useChatKeyboardInset";
+import { useChatRoomMuteToggle } from "@/features/chat/hooks/useChatRoomMuteToggle";
 import { useSystemPeriod } from "@/features/system/hooks/useSystemPeriod";
 import { useToast } from "@/context/ToastContext";
 import { getMyMemberId } from "@/shared/lib/auth";
@@ -71,6 +72,7 @@ export function ChatRoomPageClient() {
   const keyboardInset = useChatKeyboardInset();
 
   const counterpart = members[0] ?? null;
+  const toggleMute = useChatRoomMuteToggle(roomId, room?.isMuted ?? false, refreshRoom);
 
   // 에코가 오지 않은 전송은 실패다. 원인을 알린 뒤 방 상태도 다시 읽어 화면을 맞춘다.
   useEffect(() => {
@@ -202,7 +204,7 @@ export function ChatRoomPageClient() {
       )}
 
       {isEnded && (
-        <ChatRateAction roomId={roomId} matchType="PERSONAL" />
+        <ChatRateAction roomId={roomId} matchType="PERSONAL" reviewStatus={room?.reviewStatus ?? null} />
       )}
 
       {isMenuOpen && (
@@ -210,6 +212,9 @@ export function ChatRoomPageClient() {
           onClose={() => setIsMenuOpen(false)}
           // 이미 끝난 방은 종료할 게 없다. 신고는 종료 후에도 열어 둔다.
           onLeave={isEnded ? undefined : () => setIsLeaveModalOpen(true)}
+          // 끝난 방에는 더 올 채팅 알림이 없다.
+          isMuted={room?.isMuted ?? false}
+          onToggleMute={isEnded || !room ? undefined : toggleMute}
           onReport={() =>
             counterpart &&
             router.push(`/report?userId=${counterpart.userId}&source=chat-room`)
