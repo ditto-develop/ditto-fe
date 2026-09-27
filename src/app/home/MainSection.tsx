@@ -99,7 +99,7 @@ export function MainSection() {
     // MatchingDay의 매칭 완료 알림과 같은 내용이므로, 본 것으로 마킹해 중복 toast를 막는다
     const storedQuizSetId = sessionStorage.getItem("currentQuizSetId");
     if (storedQuizSetId) localStorage.setItem(matchAcceptedNotifKey(storedQuizSetId), "1");
-    showToast("상대방이 대화를 수락했어요! 대화는 금요일에 시작돼요.", "success");
+    showToast("대화를 수락했어요! 대화는 금요일에 시작돼요.", "success");
     router.replace("/home");
   }, [searchParams, showToast, router]);
 

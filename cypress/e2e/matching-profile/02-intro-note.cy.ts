@@ -164,7 +164,7 @@ describe("3.2 소개노트", () => {
 
       cy.wait("@acceptMatchRequest");
       cy.location("pathname", { timeout: 6000 }).should("match", /^\/home\/?$/);
-      cy.contains("상대방이 대화를 수락했어요! 대화는 금요일에 시작돼요.").should("be.visible");
+      cy.contains("대화를 수락했어요! 대화는 금요일에 시작돼요.").should("be.visible");
     });
 
     it("거절 → 확인 모달 → 홈으로 이동한다", () => {
