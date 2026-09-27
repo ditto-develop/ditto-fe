@@ -22,6 +22,10 @@ export const ColumnViewCardContainer = styled(ViewCardContainer)`
   gap: 8px;
 `;
 
+export const ClickableViewCardContainer = styled(ViewCardContainer)<{ $clickable: boolean }>`
+  cursor: ${({ $clickable }) => ($clickable ? "pointer" : "default")};
+`;
+
 export const AcceptedViewCardContainer = styled(ViewCardContainer)<{ $clickable: boolean }>`
   flex-direction: column;
   gap: 8px;

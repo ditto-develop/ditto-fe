@@ -13,6 +13,7 @@ import { useTargetDayCountdown } from "@/lib/hooks/useKstCountdown";
 import {
   AcceptedProfileRow,
   AcceptedViewCardContainer,
+  ClickableViewCardContainer,
   ActionContainer,
   AvatarCollage,
   BSBadgeRowContainer,
@@ -151,12 +152,15 @@ export const MatchingCandidateCard = ({ timeLeft, candidates }: { timeLeft: stri
 export const ChattingView = ({
   cardType,
   openProfileSelector,
+  onProfileClick,
   candidates,
   acceptedCandidate,
   chatRoom,
 }: {
   cardType: MatchingCardType;
   openProfileSelector: () => void;
+  /** 1:1 대화 기간 카드를 누르면 상대 프로필(소개노트 전체)을 연다. */
+  onProfileClick?: (candidate: MatchCandidateDto) => void;
   candidates: MatchCandidateDto[];
   acceptedCandidate?: MatchCandidateDto;
   chatRoom?: ChatRoom;
@@ -170,8 +174,9 @@ export const ChattingView = ({
 
   if (cardType === "one") {
     const c = acceptedCandidate ?? candidates[0];
+    const openProfile = c && onProfileClick ? () => onProfileClick(c) : undefined;
     return (
-      <ViewCardContainer>
+      <ClickableViewCardContainer $clickable={!!openProfile} onClick={openProfile}>
         <ChatMainContainer>
           <RelativeProfileSlot>
             <ProfileWrapper>
@@ -217,7 +222,7 @@ export const ChattingView = ({
             </ChatContainer>
           </ChatRightContainer>
         </ChatMainContainer>
-      </ViewCardContainer>
+      </ClickableViewCardContainer>
     );
   }
 

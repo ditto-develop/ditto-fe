@@ -112,6 +112,22 @@ export function MatchingDay({
   useCardImpression("matching", cardState);
   const trackClick = (action: string) => trackCardClick("matching", cardState, action);
 
+  /**
+   * 매칭이 성사된 상대의 상세 모달용 프로필. 소개노트 전체를 읽어 오려면 id 가 있어야 한다.
+   * 매칭 기간(그룹 참여 완료)과 대화 기간이 같은 모양을 쓴다.
+   */
+  const toProfileDetail = (c: MatchCandidateDto, i?: number) => ({
+    id: c.userId,
+    name: c.nickname,
+    age: c.age,
+    gender: formatGender(c.gender),
+    location: c.location ? toLocationLabel(c.location) : "",
+    bio: c.introduction ?? "",
+    avatarUrl: c.profileImageUrl || getAvatarUrl(c.gender, i),
+    matchCount: c.scoreBreakdown?.matchedQuestions,
+    totalQuestions: c.scoreBreakdown?.totalQuestions,
+  });
+
   const openProfileSelector = () => setProfileSelect(true);
   const closeProfileSelector = () => setProfileSelect(false);
 
@@ -169,18 +185,7 @@ export function MatchingDay({
             detail={
               <SelectImgDiv>
                 {candidates.map((c, i) => {
-                  const detail = {
-                    // 매칭이 성사됐으니 소개노트 전체를 읽어 온다(id 가 있어야 상세 조회가 돈다).
-                    id: c.userId,
-                    name: c.nickname,
-                    age: c.age,
-                    gender: formatGender(c.gender),
-                    location: c.location ? toLocationLabel(c.location) : "",
-                    bio: c.introduction ?? "",
-                    avatarUrl: c.profileImageUrl || getAvatarUrl(c.gender, i),
-                    matchCount: c.scoreBreakdown?.matchedQuestions,
-                    totalQuestions: c.scoreBreakdown?.totalQuestions,
-                  };
+                  const detail = toProfileDetail(c, i);
                   return (
                     <SelectableListItemContainer
                       key={c.userId}
@@ -328,7 +333,14 @@ export function MatchingDay({
           isChatTime ? (
             <ChattingView
               cardType={matchType}
-              openProfileSelector={openProfileSelector}
+              openProfileSelector={() => {
+                trackClick("open_group_profiles");
+                openProfileSelector();
+              }}
+              onProfileClick={(c) => {
+                trackClick("open_matched_profile");
+                setSelectedProfile(toProfileDetail(c));
+              }}
               candidates={candidates}
               acceptedCandidate={acceptedCandidate}
               chatRoom={chatRoom}
@@ -366,20 +378,17 @@ export function MatchingDay({
           title="프로필 선택"
           detail={
             <SelectImgDiv>
-              {candidates.map((c, i) => (
-                <BottomSheetProfile
-                  key={c.userId}
-                  profile={{
-                    name: c.nickname,
-                    age: c.age,
-                    gender: formatGender(c.gender),
-                    location: c.location ? toLocationLabel(c.location) : "",
-                    bio: c.introduction ?? "",
-                    avatarUrl: c.profileImageUrl || getAvatarUrl(c.gender, i),
-                    matchCount: c.scoreBreakdown?.matchedQuestions,
-                  }}
-                />
-              ))}
+              {candidates.map((c, i) => {
+                const detail = toProfileDetail(c, i);
+                return (
+                  <SelectableListItemContainer
+                    key={c.userId}
+                    onClick={() => { closeProfileSelector(); setSelectedProfile(detail); }}
+                  >
+                    <BottomSheetProfile profile={detail} />
+                  </SelectableListItemContainer>
+                );
+              })}
             </SelectImgDiv>
           }
           closer={closeProfileSelector}
@@ -396,6 +405,14 @@ export function MatchingDay({
           onStale={() => onGroupStale?.()}
         />
       )}
+
+      <ProfileDetailModal
+        isOpen={!!selectedProfile}
+        onClose={() => setSelectedProfile(null)}
+        profile={selectedProfile}
+        hideCta
+        showAllNotes
+      />
     </>
   );
 }
