@@ -31,7 +31,7 @@ type RowConfig = {
 
 const notificationRows: Array<{ key: NotificationSettingKey; label: string }> = [
   { key: "matching", label: "매칭 알림" },
-  { key: "chat", label: "채팅 알림" },
+  { key: "chat", label: "대화 알림" },
   { key: "marketing", label: "마케팅 정보 수신" },
 ];
 

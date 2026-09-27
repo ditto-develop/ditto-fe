@@ -124,10 +124,10 @@ describe("settings", () => {
     cy.contains("위치기반 서비스 이용약관").should("not.exist");
     cy.contains("사업자 정보").should("not.exist");
     cy.get('[role="switch"][aria-label="매칭 알림"]').should("have.attr", "aria-checked", "true");
-    cy.get('[role="switch"][aria-label="채팅 알림"]').click();
+    cy.get('[role="switch"][aria-label="대화 알림"]').click();
     cy.wait("@patchNotificationSettings");
-    cy.get('[role="switch"][aria-label="채팅 알림"]').should("have.attr", "aria-checked", "true");
-    cy.contains("채팅 알림이 설정되었어요.").should("be.visible");
+    cy.get('[role="switch"][aria-label="대화 알림"]').should("have.attr", "aria-checked", "true");
+    cy.contains("대화 알림이 설정되었어요.").should("be.visible");
     cy.get('[role="switch"][aria-label="마케팅 정보 수신"]').click();
     cy.wait("@patchNotificationSettings");
     cy.contains(/마케팅 정보 수신 동의 완료!.*\(\d{4}\.\d{2}\.\d{2}\)/).should("be.visible");
