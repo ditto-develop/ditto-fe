@@ -32,7 +32,7 @@ const Field = styled.div`
   min-height: var(--space-20);
   padding: var(--space-3) var(--space-4);
   box-sizing: border-box;
-  border: var(--space-\[1px\]) solid var(--color-semantic-line-normal-normal);
+  border: var(--spacing-1px) solid var(--color-semantic-line-normal-normal);
   border-radius: var(--space-3);
   background-color: var(--color-semantic-background-normal-normal);
   display: flex;
@@ -53,10 +53,11 @@ const TextArea = styled.textarea`
   outline: 0;
   background: transparent;
   font-family: var(--typography-font-family);
-  font-size: var(--typography-body-2-normal-font-size);
-  font-weight: var(--typography-body-2-normal-font-weight);
-  line-height: var(--typography-body-2-normal-line-height);
-  letter-spacing: var(--typography-body-2-normal-letter-spacing);
+  /* iOS는 16px 미만 입력창에 포커스하면 화면을 확대하고 되돌리지 않는다 — body-1(16px)을 쓴다. */
+  font-size: var(--typography-body-1-normal-font-size);
+  font-weight: var(--typography-body-1-normal-font-weight);
+  line-height: var(--typography-body-1-normal-line-height);
+  letter-spacing: var(--typography-body-1-normal-letter-spacing);
   color: var(--color-semantic-label-normal);
 
   &::placeholder {

@@ -99,7 +99,7 @@ const MemberHeader = styled.div`
 const MemberText = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-\[2px\]);
+  gap: var(--spacing-2px);
 `;
 
 const Nickname = styled.h2`
@@ -133,7 +133,7 @@ const RematchLabel = styled.span`
 const HelpButton = styled.button`
   width: var(--space-4);
   height: var(--space-4);
-  border: var(--space-\[1px\]) solid var(--color-semantic-line-normal-strong);
+  border: var(--spacing-1px) solid var(--color-semantic-line-normal-strong);
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
