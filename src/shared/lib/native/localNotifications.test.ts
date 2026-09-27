@@ -28,7 +28,7 @@ describe("initLocalNotifications 게이팅", () => {
     isNativeApp.mockReturnValue(false);
 
     const { initLocalNotifications } = await import("@/shared/lib/native/localNotifications");
-    await initLocalNotifications({ navigate: () => {} });
+    await initLocalNotifications({ onOpen: () => {} });
 
     expect(addListener).not.toHaveBeenCalled();
     expect(schedule).not.toHaveBeenCalled();
@@ -38,7 +38,7 @@ describe("initLocalNotifications 게이팅", () => {
     isNativeApp.mockReturnValue(true);
 
     const { initLocalNotifications } = await import("@/shared/lib/native/localNotifications");
-    await initLocalNotifications({ navigate: () => {} });
+    await initLocalNotifications({ onOpen: () => {} });
 
     expect(addListener).toHaveBeenCalledWith(
       "localNotificationActionPerformed",

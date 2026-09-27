@@ -314,6 +314,17 @@ describe("네이티브 초기화 이후 동작", () => {
     expect(markNotificationRead).toHaveBeenCalledWith(8821);
   });
 
+  it("포그라운드 로컬 배너 탭도 원격 푸시 탭처럼 읽음 처리 후 이동한다", async () => {
+    const { openNotification } = await import("@/shared/lib/native/pushNotifications");
+    const navigate = vi.fn();
+
+    // 로컬 배너 extra 에는 이미 파싱된 값(숫자 id·내부 경로)이 실린다.
+    openNotification({ deepLink: "/chat/one-on-one/305/", notificationId: 8821 }, navigate);
+
+    expect(navigate).toHaveBeenCalledWith("/chat/one-on-one/305/");
+    expect(markNotificationRead).toHaveBeenCalledWith(8821);
+  });
+
   it("포그라운드 수신은 읽음 처리 없이 재조회 이벤트만 쏜다", async () => {
     const { listenerFor } = await initOnNative();
     const onPush = vi.fn();

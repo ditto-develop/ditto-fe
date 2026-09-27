@@ -234,7 +234,30 @@ function presentInForeground(notification: { title?: string; body?: string; data
         title: title ?? "Ditto",
         body: body ?? "",
         deepLink,
+        notificationId: extractNotificationId(data),
     });
+}
+
+/**
+ * 알림을 탭했을 때. 원격 푸시 배너와 포그라운드 로컬 배너(`presentInForeground`) 모두 여기로 온다.
+ * 탭은 곧 확인이므로 알림 센터의 행도 읽음으로 넘긴다(BE 위키 §앱 구현 노트).
+ */
+export function openNotification(data: unknown, navigate: (path: string) => void): void {
+    const notificationId = extractNotificationId(data);
+    // 읽음 처리는 화면 이동을 막을 만한 작업이 아니므로 실패해도 조용히 넘어간다.
+    if (notificationId !== null) {
+        void markNotificationRead(notificationId)
+            // 알림 센터가 떠 있다면(딥링크가 없어 이동하지 않는 경우 등)
+            // 방금 바뀐 읽음 상태를 반영해야 한다.
+            .then(() => notifyPushReceived())
+            .catch(() => undefined);
+    }
+
+    // `deepLink` 키가 아예 없을 수 있다(BE 위키 §3) — 그때는 앱만 열고 끝낸다.
+    const path = extractDeepLink(data);
+    // 딥링크 경로 자체는 싣지 않는다 — 방 번호가 그대로 들어 있다. 유무만 본다.
+    trackEvent("notification_open", { has_deep_link: path !== null });
+    if (path) navigate(path);
 }
 
 type PushOptions = {
@@ -286,29 +309,10 @@ export async function initPushNotifications({ navigate }: PushOptions): Promise<
         }),
     );
 
-    /**
-     * 알림을 탭해서 앱이 열렸을 때.
-     * 탭은 곧 확인이므로 알림 센터의 행도 읽음으로 넘긴다(BE 위키 §앱 구현 노트).
-     */
+    /** 알림을 탭해서 앱이 열렸을 때. */
     handles.push(
         await FirebaseMessaging.addListener("notificationActionPerformed", (event) => {
-            const { data } = event.notification;
-
-            const notificationId = extractNotificationId(data);
-            // 읽음 처리는 화면 이동을 막을 만한 작업이 아니므로 실패해도 조용히 넘어간다.
-            if (notificationId !== null) {
-                void markNotificationRead(notificationId)
-                    // 알림 센터가 떠 있다면(딥링크가 없어 이동하지 않는 경우 등)
-                    // 방금 바뀐 읽음 상태를 반영해야 한다.
-                    .then(() => notifyPushReceived())
-                    .catch(() => undefined);
-            }
-
-            // `deepLink` 키가 아예 없을 수 있다(BE 위키 §3) — 그때는 앱만 열고 끝낸다.
-            const path = extractDeepLink(data);
-            // 딥링크 경로 자체는 싣지 않는다 — 방 번호가 그대로 들어 있다. 유무만 본다.
-            trackEvent("notification_open", { has_deep_link: path !== null });
-            if (path) navigate(path);
+            openNotification(event.notification.data, navigate);
         }),
     );
 

@@ -152,11 +152,13 @@ const config: CapacitorConfig = {
          * 디바이스 토큰을 주는데 BE 는 FCM 등록 토큰만 받기 때문이다
          * (BE 위키 Frontend-Push-Guide 경고).
          *
-         * `presentationOptions` 는 **앱이 떠 있는 동안** 알림을 어떻게 보여줄지다.
-         * 비워 두면 포그라운드에서 아무것도 안 뜬다.
+         * `presentationOptions` 는 **앱이 떠 있는 동안** 알림을 어떻게 보여줄지다(iOS 전용).
+         * `alert`·`sound` 를 넣지 않는다 — 포그라운드 배너와 소리는 `pushNotifications.ts` 가
+         * 로컬 알림으로 직접 그린다(두 플랫폼 공통). 여기서 OS 배너까지 켜면 iOS 에서만
+         * 같은 알림이 두 번 뜨고(2026-09-27), 보고 있는 채팅방의 알림도 걸러지지 않는다.
          */
         FirebaseMessaging: {
-            presentationOptions: ["badge", "sound", "alert"],
+            presentationOptions: ["badge"],
         },
     },
 };

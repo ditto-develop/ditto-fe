@@ -1,7 +1,6 @@
 import type { PluginListenerHandle } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 
-import { toInternalPath } from "@/shared/lib/native/appShell";
 import { isNativeApp } from "@/shared/lib/native/platform";
 
 /**
@@ -23,7 +22,11 @@ const LEGACY_SCHEDULED_NOTIFICATION_IDS = [
 ];
 
 type LocalNotificationOptions = {
-    navigate: (path: string) => void;
+    /**
+     * 로컬 배너를 탭했을 때. 배너에 실어 둔 원격 푸시 payload(`deepLink`·`notificationId`)를
+     * 그대로 넘긴다 — 원격 푸시 탭과 똑같이 읽음 처리·이동하도록 호출부가 처리한다.
+     */
+    onOpen: (data: unknown) => void;
 };
 
 /**
@@ -33,7 +36,7 @@ type LocalNotificationOptions = {
  * 반환값은 리스너 정리 함수다.
  */
 export async function initLocalNotifications({
-    navigate,
+    onOpen,
 }: LocalNotificationOptions): Promise<() => void> {
     if (!isNativeApp()) return () => {};
 
@@ -41,9 +44,7 @@ export async function initLocalNotifications({
 
     handles.push(
         await LocalNotifications.addListener("localNotificationActionPerformed", (action) => {
-            const deepLink = action.notification.extra?.deepLink;
-            const path = typeof deepLink === "string" ? toInternalPath(deepLink) : null;
-            if (path) navigate(path);
+            onOpen(action.notification.extra);
         }),
     );
 
@@ -72,11 +73,12 @@ export async function clearLegacyScheduledNotifications(): Promise<void> {
 /**
  * 앱이 떠 있는 동안 도착한 원격 푸시를 눈에 보이게 띄운다.
  *
- * FCM 은 포그라운드 메시지를 **OS 가 대신 그려 주지 않는다.** iOS 는
- * `presentationOptions`(capacitor.config.ts)로 배너가 뜨지만 그 옵션은 플러그인 문서상
- * iOS 전용이라, **안드로이드에서는 앱을 켜 둔 채 채팅 메시지를 받으면 아무것도 뜨지 않았다**
- * (2026-09-15 QA "채팅 알림이 안 감"). 받은 내용을 그대로 로컬 알림으로 한 번 더 그려
- * 두 플랫폼을 같게 만든다.
+ * FCM 은 포그라운드 메시지를 **OS 가 대신 그려 주지 않는다.** 안드로이드에서는 앱을 켜 둔 채
+ * 채팅 메시지를 받으면 아무것도 뜨지 않았다(2026-09-15 QA "채팅 알림이 안 감"). 받은 내용을
+ * 그대로 로컬 알림으로 그려 두 플랫폼을 같게 만든다.
+ *
+ * iOS 는 `presentationOptions`(capacitor.config.ts)로 OS 배너를 켤 수 있지만 켜지 않는다 —
+ * 켜면 이 배너와 합쳐 같은 알림이 두 번 뜬다(2026-09-27).
  *
  * 이전 버전의 예약 알림 id와 겹치지 않게 3000번대를 쓴다.
  */
@@ -88,10 +90,13 @@ export async function showForegroundNotification({
     title,
     body,
     deepLink,
+    notificationId,
 }: {
     title: string;
     body: string;
     deepLink: string | null;
+    /** 탭했을 때 알림 센터 행을 읽음으로 넘기기 위해 싣는다. */
+    notificationId: number | null;
 }): Promise<void> {
     if (!isNativeApp()) return;
 
@@ -103,7 +108,11 @@ export async function showForegroundNotification({
                     id: FOREGROUND_ID_BASE + (foregroundCounter++ % FOREGROUND_ID_SPAN),
                     title,
                     body,
-                    extra: deepLink ? { deepLink } : undefined,
+                    // 없는 값은 싣지 않는다 — 네이티브 브리지로 null 을 넘길 이유가 없다.
+                    extra: {
+                        ...(deepLink ? { deepLink } : {}),
+                        ...(notificationId !== null ? { notificationId } : {}),
+                    },
                 },
             ],
         });

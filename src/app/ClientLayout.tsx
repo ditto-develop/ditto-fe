@@ -17,7 +17,7 @@ import { getGtagScriptSrc, useAnalytics } from "@/shared/lib/analytics";
 import { initChunkReloadGuard } from "@/shared/lib/chunkReload";
 import { isBootSplashPath, normalizePathname } from "@/shared/lib/routePath";
 import { initAppShell } from "@/shared/lib/native/appShell";
-import { initPushNotifications } from "@/shared/lib/native/pushNotifications";
+import { initPushNotifications, openNotification } from "@/shared/lib/native/pushNotifications";
 import {
   clearLegacyScheduledNotifications,
   initLocalNotifications,
@@ -171,7 +171,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
     void (async () => {
       try {
-        track(await initLocalNotifications({ navigate }));
+        track(await initLocalNotifications({ onOpen: (data) => openNotification(data, navigate) }));
       } catch (err: unknown) {
         console.error("[native] 포그라운드 알림 표시 초기화 실패:", err);
       }
