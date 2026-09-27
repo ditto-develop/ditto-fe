@@ -48,7 +48,7 @@ export type CreateUserReportRequest = {
   source: ReportSource;
   detail?: string;
   imageKeys: string[];
-  /** '이 사용자 차단하기' 체크박스. BE 필수 필드이며 false면 차단하지 않는다. */
+  /** BE 필수 필드. 신고는 항상 차단을 동반하므로 FE는 true로 보낸다(2026-09-27 정책). */
   block: boolean;
 };
 
@@ -60,11 +60,6 @@ export type CreateUserReportResponse = {
 export type ReportResult = {
   reportId: number;
   targetNickname: string;
-  /**
-   * 사용자가 '이 사용자 차단하기'를 선택했는지.
-   * 접수 요청의 block 필드로 함께 전송되어 서버가 차단까지 처리한 상태다.
-   */
-  blockRequested: boolean;
 };
 
 export type ReportTarget = {

@@ -27,15 +27,14 @@ export function ReportCompleteView({ result, onConfirm }: ReportCompleteViewProp
           </Description>
         </Center>
 
-        {result.blockRequested && (
-          <BlockNotice>
-            <SectionMessage
-              tone="negative"
-              title="차단이 적용됐어요"
-              description={`${result.targetNickname}님은 매칭 및 채팅에서 제외되며, 차단 해제는 설정 > 차단 목록에서 가능해요.`}
-            />
-          </BlockNotice>
-        )}
+        {/* 신고는 항상 차단을 동반한다(2026-09-27 정책) — 안내도 항상 보인다. */}
+        <BlockNotice>
+          <SectionMessage
+            tone="negative"
+            title="차단이 적용됐어요"
+            description={`${result.targetNickname}님은 매칭 및 채팅에서 제외되며, 차단 해제는 설정 > 차단 목록에서 가능해요.`}
+          />
+        </BlockNotice>
       </Body>
 
       <Actions>

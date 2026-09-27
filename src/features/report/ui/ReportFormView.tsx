@@ -9,7 +9,7 @@ import type { ReportTarget } from "@/features/report/model/types";
 import { EvidenceAttachField } from "@/features/report/ui/EvidenceAttachField";
 import { ReportDetailField } from "@/features/report/ui/ReportDetailField";
 import { ReportReasonCard } from "@/features/report/ui/ReportReasonCard";
-import { Avatar, Button, Checkbox, TopNavigation } from "@/shared/ui";
+import { Avatar, Button, TopNavigation } from "@/shared/ui";
 
 interface ReportFormViewProps {
   target: ReportTarget | null;
@@ -34,6 +34,8 @@ export function ReportFormView({ target, form, onCancel, onSubmit }: ReportFormV
             신고 내용은 관리자만 확인 가능하며,
             <br />
             허위 신고 시 이용이 제한될 수 있어요.
+            <br />
+            신고하면 이 사용자는 자동으로 차단돼요.
           </IntroDescription>
         </Intro>
 
@@ -67,13 +69,6 @@ export function ReportFormView({ target, form, onCancel, onSubmit }: ReportFormV
             onRemove={form.removeEvidence}
             tooltipVisible={tooltipVisible}
             onDismissTooltip={() => setTooltipVisible(false)}
-          />
-
-          <Checkbox
-            checked={form.blockTarget}
-            onChange={form.setBlockTarget}
-            label="이 사용자 차단하기"
-            helperText="앞으로 이 사용자와 매칭되지 않습니다"
           />
         </Body>
       </Content>

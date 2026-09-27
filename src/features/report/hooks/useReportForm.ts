@@ -61,8 +61,6 @@ type UseReportFormResult = {
   evidence: ReportEvidence[];
   addEvidence: (files: FileList | File[]) => void;
   removeEvidence: (id: string) => void;
-  blockTarget: boolean;
-  setBlockTarget: (checked: boolean) => void;
   canSubmit: boolean;
   submitting: boolean;
   submit: () => Promise<ReportResult | null>;
@@ -77,7 +75,6 @@ export function useReportForm(
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [detail, setDetail] = useState("");
   const [evidence, setEvidence] = useState<ReportEvidence[]>([]);
-  const [blockTarget, setBlockTarget] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // 언마운트 시 objectURL 해제. evidence를 의존성에 넣으면 파일을 지울 때마다
@@ -169,11 +166,11 @@ export function useReportForm(
         source,
         detail: trimmedDetail ? trimmedDetail : undefined,
         imageKeys,
-        // 체크박스를 켜면 접수와 동시에 서버가 차단까지 처리한다(별도 차단 API 호출 없음).
-        block: blockTarget,
+        // 신고하면 항상 차단한다(2026-09-27 정책). 서버가 접수와 함께 차단까지 처리한다.
+        block: true,
       });
 
-      return { reportId: id, targetNickname, blockRequested: blockTarget };
+      return { reportId: id, targetNickname };
     } catch (err: unknown) {
       showToast(toSubmitMessage(err), "error");
       return null;
@@ -181,7 +178,6 @@ export function useReportForm(
       setSubmitting(false);
     }
   }, [
-    blockTarget,
     detail,
     detailRequired,
     evidence,
@@ -202,8 +198,6 @@ export function useReportForm(
     evidence,
     addEvidence,
     removeEvidence,
-    blockTarget,
-    setBlockTarget,
     canSubmit: reason !== null && !submitting && (!detailRequired || detail.trim().length > 0),
     submitting,
     submit,

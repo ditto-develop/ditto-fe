@@ -94,7 +94,9 @@ describe("report a user", () => {
 
     cy.get("#report-detail").type("대화 중에 불쾌한 발언을 반복했어요.");
     cy.contains("20/500").should("be.visible");
-    cy.contains("이 사용자 차단하기").click();
+    // 신고는 항상 차단을 동반한다(2026-09-27 정책) — 차단 체크박스는 없다.
+    cy.contains("이 사용자 차단하기").should("not.exist");
+    cy.contains("신고하면 이 사용자는 자동으로 차단돼요.").should("be.visible");
 
     cy.contains("button", "신고하기").click();
     cy.wait("@createReport");
@@ -104,7 +106,7 @@ describe("report a user", () => {
 
     cy.then(() => {
       // BE 계약: reason/source는 kebab code, imageKeys는 비어 있어도 배열로 보낸다.
-      // block은 필수 필드이며, 체크박스를 켜면 접수와 동시에 서버가 차단까지 처리한다.
+      // block은 필수 필드이며, 신고는 항상 차단을 동반해 true로 고정이다.
       expect(lastReport).to.deep.equal({
         reportedMemberId: TARGET_MEMBER_ID,
         reason: "inappropriate-behavior",
@@ -187,7 +189,7 @@ describe("report a user", () => {
     cy.contains("본인은 신고할 수 없어요.").should("be.visible");
   });
 
-  it("hides the block notice when 차단하기 is not checked", () => {
+  it("always blocks and shows the block notice", () => {
     mockReportApi();
     cy.visit(`/report?userId=${TARGET_MEMBER_ID}`);
     cy.wait("@getTargetProfile");
@@ -197,10 +199,10 @@ describe("report a user", () => {
     cy.wait("@createReport");
 
     cy.contains("신고가 접수됐어요").should("be.visible");
-    cy.contains("차단이 적용됐어요").should("not.exist");
+    cy.contains("차단이 적용됐어요").should("be.visible");
 
     cy.then(() => {
-      expect(lastReport?.block).to.equal(false);
+      expect(lastReport?.block).to.equal(true);
     });
   });
 
