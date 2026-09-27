@@ -82,7 +82,7 @@ describe("home card CTR analytics", () => {
     });
   });
 
-  it("매칭 기간: 결과 확인 클릭을 매칭 카드로 기록한다", () => {
+  it("매칭 기간: 대화 신청하기 클릭을 매칭 카드로 기록한다", () => {
     cy.clockPeriod("MATCHING");
     cy.mockApi({ matchesFixture: "matches-1on1-populated.json" });
     cy.login();
@@ -91,7 +91,11 @@ describe("home card CTR analytics", () => {
     cy.contains("이번주 매칭", { timeout: 6000 }).should("be.visible");
     waitForEvent("card_impression");
 
+    // "결과 확인" 뱃지는 상태 표시일 뿐 눌러도 이동하지 않는다.
     cy.contains("결과 확인").click();
+    cy.location("pathname").should("include", "/home");
+
+    cy.contains("button", "대화 신청하기").click();
     waitForEvent("card_click");
 
     readEvents().then((events) => {
@@ -101,7 +105,7 @@ describe("home card CTR analytics", () => {
       expect(impression.params).to.deep.include({ card_name: "matching" });
       expect(click.params).to.deep.include({
         card_name: "matching",
-        action: "alert_view_result",
+        action: "view_result",
       });
       expect(click.params.card_state).to.equal(impression.params.card_state);
     });

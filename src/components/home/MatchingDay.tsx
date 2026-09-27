@@ -275,10 +275,6 @@ export function MatchingDay({
         title="이번주 매칭"
         alert={!isChatTime ? "결과 확인" : undefined}
         alertType={!isChatTime ? "destructive" : undefined}
-        onAlertClick={!isChatTime ? () => {
-          trackClick("alert_view_result");
-          router.push("/matching");
-        } : undefined}
         subTitle={
           <>
             나와 같이 생각하는 사람들을 만나볼까요?<br />소개 노트를 확인하고 대화를 신청해보세요.
@@ -310,10 +306,6 @@ export function MatchingDay({
         title={isChatTime ? "이번주 만남" : "이번주 매칭"}
         alert={!isChatTime ? "결과 확인" : undefined}
         alertType={!isChatTime ? "destructive" : undefined}
-        onAlertClick={!isChatTime ? () => {
-          trackClick("alert_view_result");
-          router.push("/matching");
-        } : undefined}
         subTitle={
           isChatTime ? (
             <>
