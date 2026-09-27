@@ -54,7 +54,6 @@ import {
   TimeLabelRow,
   TimerBox,
   TimerIcon,
-  TimerIconWithPadding,
   TimerText,
   TopImgContainer,
   ViewCardContainer,
@@ -257,13 +256,13 @@ export const ChattingView = ({
                   {firstName}님 외 {othersCount}명
                 </Label2>
               </ChatTitleSlot>
-                <TimerBox>
+              <TimerBox>
                 <TimerText
                   $color="var(--color-semantic-status-cautionary)"
                 >
                   {timeMondayLeft}
                 </TimerText>
-                <TimerIconWithPadding
+                <TimerIcon
                   src="/icons/status/clock-yellow.svg"
                   alt="clock"
                 />

@@ -206,29 +206,33 @@ export const NotificationBadge = styled.div`
 `;
 
 export const TimerBox = styled.div`
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   border: 1.5px solid var(--color-semantic-accent-foreground-orange); /* 오렌지 브라운 톤 */
   border-radius: 8px; /* 둥근 사각형 */
-  width: 79px;
+  /* 고정 폭이면 "08:12:12"처럼 자릿수가 차는 순간 텍스트가 테두리 밖으로 밀린다 — 내용에 맞춰 늘린다 */
+  min-width: 79px;
   height: 24px;
+  padding: 0 6px 0 8px;
   flex: 0 0 auto;
   box-sizing: border-box;
 `;
 
 export const TimerText = styled(Body1Bold)`
   font-size: var(--typography-caption-1-font-size);
-  padding-left: 9px;
+  line-height: var(--typography-caption-1-line-height);
+  letter-spacing: var(--typography-caption-1-letter-spacing);
+  /* 초마다 숫자 폭이 달라져 박스가 흔들리지 않도록 고정폭 숫자를 쓴다 */
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 `;
 
 export const TimerIcon = styled.img`
   width: 14px;
   height: 14px;
-`;
-
-export const TimerIconWithPadding = styled(TimerIcon)`
-  padding-right: 2px;
+  flex: 0 0 auto;
 `;
 
 // 피그마 1203:10081 — 아바타 콜라주 컨테이너 (150×150, 절대좌표 배치)
