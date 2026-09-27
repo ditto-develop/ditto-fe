@@ -190,8 +190,11 @@ Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
     gender: null,
     email: null,
     birthDate: null,
+    nicknameChangeRemaining: 2,
+    nicknameChangeLockedUntil: null,
   }, "getCurrentUser");
-  mockStatic("GET", ["**/api/v1/users/nickname/*/availability", "**/api/users/nickname/*/availability"], { available: true }, "checkNickname");
+  // v2(쿼리 파라미터 + 10분 예약)를 먼저 둔다 — 기본 별칭 checkNickname 은 첫 URL 에 붙는다.
+  mockStatic("GET", ["**/api/v2/users/nickname/availability*", "**/api/v1/users/nickname/*/availability"], { available: true, reservedUntil: "2099-01-01T00:00:00" }, "checkNickname");
   mockFixture("POST", ["**/api/v1/users", "**/api/users"], "user.json", "createUser");
   mockFixture("GET", ["**/api/users/*/profile", "**/api/v1/users/*/profile"], "public-profile.json", "getUserProfile");
   mockFixture("GET", ["**/api/users/*/intro-notes", "**/api/v1/users/*/intro-notes"], "intro-notes.json", "getUserIntroNotes");

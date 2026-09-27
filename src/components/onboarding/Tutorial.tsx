@@ -11,6 +11,7 @@ import {
 import { SIGNUP_STEP_NAMES, trackEvent } from "@/shared/lib/analytics";
 import { createExternalUser, saveExternalIntroNote } from "@/shared/lib/api/externalApi";
 import { clearTokens } from "@/shared/lib/auth";
+import { API_ERROR_CODE, describeError, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { useBackClose } from "@/shared/hooks/useBackClose";
 import { calculateAge, toAgeBucket } from "@/shared/lib/age";
 import type { CreateExternalUserBody } from "@/shared/lib/api/externalApi";
@@ -70,6 +71,7 @@ import type {
 } from "./step/Step_2";
 import {
 
+  NICKNAME_TAKEN_MESSAGE,
   Step2Profile
 
 } from "./step/Step_2";
@@ -142,6 +144,9 @@ export function Tutorial({ initialData }: TutorialProps) {
     introduce: Array.from({ length: 10 }, () => ""),
     kakaoId: initialData?.kakaoId || undefined,
   });
+
+  // 가입 버튼에서 3003(닉네임을 남이 가져감)을 받아 1단계로 되돌렸을 때 인풋 아래에 띄울 오류.
+  const [nicknameConflictErrors, setNicknameConflictErrors] = useState<string[] | undefined>(undefined);
 
   // 소셜 로그인이 준 이메일. 있으면 가입 화면에서 수정할 수 없게 잠근다.
   const [providerEmail, setProviderEmail] = useState(initialData?.email || "");
@@ -324,8 +329,24 @@ export function Tutorial({ initialData }: TutorialProps) {
         );
 
         router.push("/onboarding/complete");
-      } catch (error) {
-        console.error("Signup failed:", error);
+      } catch (error: unknown) {
+        console.error("Signup failed:", describeError(error));
+        /*
+         * 3003: 확인할 때 잡아 둔 10분 예약이 만료된 사이 남이 그 닉네임을 가져갔다.
+         * 닉네임 단계로 돌려보내 다시 고르게 한다. 작성한 소개 노트(formData)는 그대로 남는다.
+         */
+        if (hasApiErrorCode(error, API_ERROR_CODE.NICKNAME_ALREADY_EXISTS)) {
+          trackEvent("signup_fail", {
+            step_index: step,
+            step_name: SIGNUP_STEP_NAMES[step],
+            reason: "nickname_taken",
+          });
+          setNicknameConflictErrors([NICKNAME_TAKEN_MESSAGE]);
+          setControlButton("disabled");
+          setStep(1);
+          showToast("다른 분이 먼저 이 닉네임을 사용했어요. 닉네임을 다시 정해 주세요.", "error");
+          return;
+        }
         trackEvent("signup_fail", {
           step_index: step,
           step_name: SIGNUP_STEP_NAMES[step],
@@ -444,6 +465,7 @@ export function Tutorial({ initialData }: TutorialProps) {
               onChange={handleInputChange}
               setControlButton={setControlButton}
               emailLocked={providerEmail.length > 0}
+              initialNicknameErrors={nicknameConflictErrors}
             />
           </OnboardingLayout>
         );

@@ -25,6 +25,7 @@ import {
 import {
   TextField
 } from "@/shared/ui";
+import { API_ERROR_CODE, describeError, getApiErrorCode } from "@/shared/lib/api/apiError";
 import { checkExternalNicknameAvailability } from "@/shared/lib/api/externalApi";
 import { MIN_SIGNUP_AGE, isEligibleAge } from "@/shared/lib/age";
 import { getNicknameRuleErrors } from "@/shared/lib/nicknameSafety";
@@ -67,17 +68,25 @@ interface Step2Props {
   setControlButton: React.Dispatch<React.SetStateAction<ControlButtonVariant>>;
   /** 소셜 로그인(카카오·애플)이 이메일을 내려줬으면 true — 그 값으로 고정하고 수정을 막는다. */
   emailLocked?: boolean;
+  /**
+   * 처음부터 띄울 닉네임 오류. 가입 버튼에서 3003(예약이 만료된 사이 남이 가져감)을 받아
+   * 이 단계로 되돌아왔을 때 이유를 인풋 아래에 보여 준다.
+   */
+  initialNicknameErrors?: string[];
 }
+
+/** 이미 쓰이는 닉네임 — 확인(available=false)·가입(3003) 모두 같은 문구다. */
+export const NICKNAME_TAKEN_MESSAGE = "· 이미 사용 중인 닉네임이에요.";
 
 export interface Step2Ref {
   handleSubmit: () => boolean;
 }
 
-export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, setControlButton, emailLocked = false }, ref) => {
+export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, setControlButton, emailLocked = false, initialNicknameErrors }, ref) => {
   const { showToast } = useToast();
   
   const [profile, setProfile] = useState(data.pic);
-  const [nickerr, setNickerr] = useState<string[]>([]);
+  const [nickerr, setNickerr] = useState<string[]>(initialNicknameErrors ?? []);
   const [emailerr, setEmailerr] = useState<string[]>([]);
   const [nickset, setNickset] = useState<boolean>(false);
   const [profileModal, setProfileModal] = useState<boolean>(false);
@@ -166,15 +175,27 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
 
     if (validateNickname(data.nickname)) {
       try {
+        // v2 는 available=true 면 이 닉네임을 10분 예약한다 — 동시 가입 선점을 막는 장치다.
         const availability = await checkExternalNicknameAvailability(data.nickname);
         if (availability.available === false) {
-          setNickerr(["이미 사용 중인 닉네임입니다."]);
+          setNickerr([NICKNAME_TAKEN_MESSAGE]);
           return;
         }
         setNickset(true); // 저장 완료 상태로 전환
         showToast("닉네임이 저장되었어요.", "success");
-      } catch (error) {
-        console.error("Nickname check failed:", error);
+      } catch (error: unknown) {
+        const code = getApiErrorCode(error);
+        if (code === API_ERROR_CODE.NICKNAME_ALREADY_EXISTS) {
+          setNickerr([NICKNAME_TAKEN_MESSAGE]);
+          return;
+        }
+        // 형식 위반(0001)은 FE 규칙과 같다 — 규칙 문구를 다시 띄우고, 규칙상 문제가 없으면 일반 형식 안내.
+        if (code === API_ERROR_CODE.INVALID_REQUEST) {
+          const ruleErrors = getNicknameRuleErrors(data.nickname);
+          setNickerr(ruleErrors.length > 0 ? ruleErrors : ["· 사용할 수 없는 닉네임입니다."]);
+          return;
+        }
+        console.error("Nickname check failed:", describeError(error));
         showToast("닉네임 확인 중 오류가 발생했습니다.", "error");
       }
     }

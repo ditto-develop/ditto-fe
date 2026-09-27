@@ -104,7 +104,8 @@ describe("edit my profile", () => {
     cy.visit("/profile/edit");
     cy.wait("@getMyProfile");
 
-    cy.contains("닉네임은 14일 동안 최대 2번 바꿀 수 있어요. 대화 중에는 바꿀 수 없어요.").should("be.visible");
+    // 남은 횟수는 GET /users/me 에서 온다(기본 목업: 2회).
+    cy.contains("남은 변경 2회 · 닉네임은 14일 동안 최대 2번 바꿀 수 있어요.").should("be.visible");
     cy.get('input[placeholder="사용할 닉네임을 입력해주세요"]').clear().type("새닉네임");
     selectFromBottomSheet("사는 곳", "부산");
     selectFromBottomSheet("직업", "디자인");
@@ -122,7 +123,7 @@ describe("edit my profile", () => {
   });
 
   it("keeps the screen and shows an inline error when the nickname is taken", () => {
-    cy.intercept("GET", "**/api/v1/users/nickname/*/availability", {
+    cy.intercept("GET", "**/api/v2/users/nickname/availability*", {
       success: true,
       data: { available: false },
     }).as("nicknameTaken");
@@ -139,5 +140,45 @@ describe("edit my profile", () => {
     cy.then(() => {
       expect(lastProfilePatch).to.equal(null);
     });
+  });
+
+  it("locks the nickname input when both changes are used up", () => {
+    cy.intercept("GET", "**/api/v1/users/me", {
+      success: true,
+      data: {
+        email: null,
+        birthDate: null,
+        gender: "MALE",
+        nicknameChangeRemaining: 0,
+        nicknameChangeLockedUntil: "2026-10-11T12:00:00",
+      },
+    }).as("getLockedMe");
+
+    cy.visit("/profile/edit");
+    cy.wait(["@getMyProfile", "@getLockedMe"]);
+
+    cy.get('input[placeholder="사용할 닉네임을 입력해주세요"]').should("be.disabled");
+    cy.contains("10월 11일부터 다시 바꿀 수 있어요.").should("be.visible");
+  });
+
+  it("shows the in-chat message when the server rejects the change with 3005", () => {
+    cy.intercept("PATCH", "**/api/v1/users/me/profile", {
+      statusCode: 200,
+      body: {
+        success: false,
+        data: null,
+        error: { statusCode: 409, code: "3005", message: "진행 중인 채팅방이 있습니다." },
+      },
+    }).as("patchInChat");
+
+    cy.visit("/profile/edit");
+    cy.wait("@getMyProfile");
+
+    cy.get('input[placeholder="사용할 닉네임을 입력해주세요"]').clear().type("새닉네임");
+    cy.contains("저장").click();
+    cy.wait("@patchInChat");
+
+    cy.contains("대화 중에는 닉네임을 바꿀 수 없어요.").should("be.visible");
+    cy.location("pathname").should("include", "/profile/edit");
   });
 });

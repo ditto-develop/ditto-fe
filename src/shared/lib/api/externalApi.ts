@@ -102,6 +102,8 @@ type ExternalMatchingStatus = {
 
 type NicknameAvailability = {
     available?: boolean;
+    /** available=true 면 이 시각까지 내가 이 닉네임을 쥔다(10분). 아니면 null. */
+    reservedUntil?: string | null;
 };
 
 type IntroNoteItem = {
@@ -267,6 +269,13 @@ export type CurrentUserInfo = {
     gender: string | null;
     email: string | null;
     birthDate: string | null;
+    /**
+     * 닉네임 변경 가능 횟수. 2회 바꾸면 14일 잠금 → 풀리면 다시 2회(BE 위키 Frontend-QA-Fixes-Guide §2).
+     * 0이면 잠김. 서버가 아직 내려주지 않으면 null 이다 — 그때는 안내만 하고 막지 않는다.
+     */
+    nicknameChangeRemaining: number | null;
+    /** 잠겨 있으면 해제 시각("2026-10-11T12:00:00"), 아니면 null. */
+    nicknameChangeLockedUntil: string | null;
 };
 
 export async function getExternalCurrentUser(): Promise<CurrentUserInfo> {
@@ -275,6 +284,8 @@ export async function getExternalCurrentUser(): Promise<CurrentUserInfo> {
         gender: data?.gender ?? null,
         email: data?.email ?? null,
         birthDate: data?.birthDate ?? null,
+        nicknameChangeRemaining: data?.nicknameChangeRemaining ?? null,
+        nicknameChangeLockedUntil: data?.nicknameChangeLockedUntil ?? null,
     };
 }
 
@@ -316,8 +327,14 @@ export async function logoutExternal(): Promise<null> {
     }
 }
 
+/**
+ * 닉네임 확인 v2. available=true 면 서버가 그 닉네임을 **10분 예약**해 준다 — 그동안 다른 사람은
+ * 확인에서 false, 가입에서 3003 을 받는다. v1 과 달리 JWT 필수(가입 중 PENDING 토큰도 된다)이고
+ * 닉네임은 경로가 아니라 쿼리로 보낸다. 형식 위반은 0001(BE 위키 Frontend-QA-Fixes-Guide §1).
+ */
 export function checkExternalNicknameAvailability(nickname: string): Promise<NicknameAvailability> {
-    return externalApiFetch<NicknameAvailability>(`/api/v1/users/nickname/${encodeURIComponent(nickname)}/availability`);
+    const query = new URLSearchParams({ nickname });
+    return externalApiFetch<NicknameAvailability>(`/api/v2/users/nickname/availability?${query.toString()}`);
 }
 
 export function saveExternalIntroNote(questionCode: string, answer: string): Promise<IntroNotesData> {

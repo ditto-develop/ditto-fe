@@ -15,8 +15,9 @@ import { interestOptions } from "@/components/onboarding/step/Step_2";
 import { useToast } from "@/context/ToastContext";
 import { getMyProfile, updateMyProfile } from "@/features/profile/api/profileApi";
 import type { PublicProfileDto, UpdateMyProfileRequest } from "@/features/profile/api/profileApi";
-import { describeError, isApiError } from "@/shared/lib/api/apiError";
-import { checkExternalNicknameAvailability } from "@/shared/lib/api/externalApi";
+import { API_ERROR_CODE, describeError, getApiErrorCode } from "@/shared/lib/api/apiError";
+import { checkExternalNicknameAvailability, getExternalCurrentUser } from "@/shared/lib/api/externalApi";
+import { parseServerDateTime } from "@/shared/lib/serverDateTime";
 import { getNicknameRuleErrors } from "@/shared/lib/nicknameSafety";
 import { LOCATION_LABELS, OCCUPATION_LABELS } from "@/shared/lib/profileLabels";
 import { BottomActionArea, Button, Select, TextField, TopNavigation } from "@/shared/ui";
@@ -26,8 +27,33 @@ const MAX_INTEREST_COUNT = 5;
 const LOCATION_OPTIONS = Object.entries(LOCATION_LABELS).map(([value, label]) => ({ value, label }));
 const OCCUPATION_OPTIONS = Object.entries(OCCUPATION_LABELS).map(([value, label]) => ({ value, label }));
 
-/** 닉네임 변경 정책(2026-09-27). 서버가 검증하고, 화면은 미리 알려 주기만 한다. */
+/**
+ * 닉네임 변경 정책: 2회 바꾸면 14일 잠금, 끝나지 않은 채팅방이 있으면 불가.
+ * 서버가 검증한다(3004·3005). 화면은 남은 횟수와 잠금 해제일을 미리 알려 준다
+ * (BE 위키 Frontend-QA-Fixes-Guide §2).
+ */
 const NICKNAME_POLICY_MESSAGE = "닉네임은 14일 동안 최대 2번 바꿀 수 있어요. 대화 중에는 바꿀 수 없어요.";
+const NICKNAME_TAKEN_MESSAGE = "· 이미 사용 중인 닉네임이에요.";
+const NICKNAME_IN_CHAT_MESSAGE = "· 대화 중에는 닉네임을 바꿀 수 없어요.";
+
+type NicknameChangeQuota = {
+    /** null 이면 서버가 아직 내려주지 않음 — 막지 않고 안내만 한다. */
+    remaining: number | null;
+    lockedUntil: string | null;
+};
+
+/** "10월 11일부터 다시 바꿀 수 있어요." 해제 시각을 모르면 날짜 없이 안내한다. */
+function toLockedMessage(lockedUntil: string | null): string {
+    const date = parseServerDateTime(lockedUntil);
+    if (!date) return "닉네임 변경 횟수를 모두 사용했어요. 14일 뒤에 다시 바꿀 수 있어요.";
+    return `${date.getMonth() + 1}월 ${date.getDate()}일부터 다시 바꿀 수 있어요.`;
+}
+
+function toNicknameHelper(quota: NicknameChangeQuota): string {
+    if (quota.remaining === null) return NICKNAME_POLICY_MESSAGE;
+    if (quota.remaining <= 0) return toLockedMessage(quota.lockedUntil);
+    return `남은 변경 ${quota.remaining}회 · ${NICKNAME_POLICY_MESSAGE}`;
+}
 
 /**
  * 프로필 수정 — Figma 6.1.1 프로필 수정.
@@ -48,6 +74,7 @@ export function EditProfileContainer() {
     const [nicknameErrors, setNicknameErrors] = useState<string[]>([]);
     const [location, setLocation] = useState<string | null>(null);
     const [occupation, setOccupation] = useState<string | null>(null);
+    const [nicknameQuota, setNicknameQuota] = useState<NicknameChangeQuota>({ remaining: null, lockedUntil: null });
     const [isProfileSelectOpen, setIsProfileSelectOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
@@ -60,7 +87,16 @@ export function EditProfileContainer() {
             setOccupation(dto.occupation ?? null);
             setProfileId(toAvatarId(dto.profileImageUrl, dto.gender));
         });
+        // 남은 변경 횟수는 프로필이 아니라 내 정보에 있다. 실패해도 편집은 막지 않는다 — 서버가 최종 판정한다.
+        getExternalCurrentUser()
+            .then((me) => setNicknameQuota({
+                remaining: me.nicknameChangeRemaining,
+                lockedUntil: me.nicknameChangeLockedUntil,
+            }))
+            .catch(() => undefined);
     }, []);
+
+    const nicknameLocked = nicknameQuota.remaining !== null && nicknameQuota.remaining <= 0;
 
     const avatarUrl = useMemo(() => `/assets/avatar/${profileId}.png`, [profileId]);
     const trimmedNickname = nickname.trim();
@@ -114,7 +150,7 @@ export function EditProfileContainer() {
             if (nicknameChanged) {
                 const availability = await checkExternalNicknameAvailability(trimmedNickname);
                 if (availability.available === false) {
-                    setNicknameErrors(["· 이미 사용 중인 닉네임이에요."]);
+                    setNicknameErrors([NICKNAME_TAKEN_MESSAGE]);
                     return;
                 }
             }
@@ -132,14 +168,26 @@ export function EditProfileContainer() {
             router.push("/profile");
         } catch (err: unknown) {
             console.error("Profile update failed:", describeError(err));
-            // 닉네임 변경 제한(14일 2회·대화 중)은 서버가 거절한다. 전용 코드가 정해지기 전까지는
-            // 서버 문구를 그대로 보여 준다(docs/be-request-qa-2026-09-27.md §3).
-            showToast(
-                isApiError(err) && err.code && err.message
-                    ? err.message
-                    : "프로필을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.",
-                "error",
-            );
+            switch (getApiErrorCode(err)) {
+                case API_ERROR_CODE.NICKNAME_ALREADY_EXISTS:
+                    setNicknameErrors([NICKNAME_TAKEN_MESSAGE]);
+                    break;
+                case API_ERROR_CODE.NICKNAME_CHANGE_IN_ACTIVE_CHAT:
+                    setNicknameErrors([NICKNAME_IN_CHAT_MESSAGE]);
+                    break;
+                case API_ERROR_CODE.NICKNAME_CHANGE_LOCKED:
+                    // 다른 기기에서 먼저 소진한 경우다. 해제 시각을 다시 읽어 입력을 잠근다.
+                    setNicknameErrors([`· ${toLockedMessage(nicknameQuota.lockedUntil)}`]);
+                    getExternalCurrentUser()
+                        .then((me) => setNicknameQuota({
+                            remaining: me.nicknameChangeRemaining ?? 0,
+                            lockedUntil: me.nicknameChangeLockedUntil,
+                        }))
+                        .catch(() => setNicknameQuota((prev) => ({ ...prev, remaining: 0 })));
+                    break;
+                default:
+                    showToast("프로필을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.", "error");
+            }
         } finally {
             setSubmitting(false);
         }
@@ -179,9 +227,11 @@ export function EditProfileContainer() {
                     isessential
                     placeholder="사용할 닉네임을 입력해주세요"
                     maxLength={10}
-                    status={nicknameErrors.length > 0 ? "error" : "default"}
+                    // 2회를 다 쓰면 잠긴다.
+                    disabled={nicknameLocked}
+                    status={nicknameErrors.length > 0 ? "error" : nicknameLocked ? "disabled" : "default"}
                     errmessage={nicknameErrors}
-                    message={nicknameErrors.length > 0 ? undefined : NICKNAME_POLICY_MESSAGE}
+                    message={nicknameErrors.length > 0 ? undefined : toNicknameHelper(nicknameQuota)}
                     value={nickname}
                     onChange={(event) => {
                         setNickname(event.target.value);

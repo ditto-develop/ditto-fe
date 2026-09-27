@@ -331,6 +331,12 @@ export const handlers = [
 
   http.post(apiPath("/users/[^/]+/leave"), () => HttpResponse.json(success(user))),
   http.get(apiPath("/users/nickname/[^/]+/availability"), () => HttpResponse.json(success({ available: true }))),
+  // v2 는 쿼리 파라미터 + 10분 예약(BE 위키 Frontend-QA-Fixes-Guide §1).
+  http.get(/\/api\/v2\/users\/nickname\/availability(?:\?.*)?$/, () =>
+    HttpResponse.json(
+      success({ available: true, reservedUntil: new Date(Date.now() + 10 * 60 * 1000).toISOString() }),
+    ),
+  ),
   http.get(apiPath("/users/me/profile"), () => HttpResponse.json(success(myProfile))),
   http.patch(apiPath("/users/me/profile"), async ({ request }) => {
     const body = await request.json().catch(() => ({}));

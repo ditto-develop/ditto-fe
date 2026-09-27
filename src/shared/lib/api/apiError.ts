@@ -113,6 +113,15 @@ export const API_ERROR_CODE = {
    * 이후 모든 보호 API가 이 코드로 거부해 홈이 카드 없이 빈 화면으로 보였다.
    */
   SIGNUP_INCOMPLETE: "3001",
+  /**
+   * 이미 쓰이는 닉네임. 남이 v2 확인으로 10분 예약해 둔 닉네임에도, 동시 가입 충돌에도 온다
+   * (BE 위키 Frontend-QA-Fixes-Guide §1).
+   */
+  NICKNAME_ALREADY_EXISTS: "3003",
+  /** 닉네임 변경 2회 소진 — 14일 잠금 중. 해제 시각은 GET /users/me 의 nicknameChangeLockedUntil. */
+  NICKNAME_CHANGE_LOCKED: "3004",
+  /** 끝나지 않은 채팅방(예약·진행 중)이 있어 닉네임을 바꿀 수 없음. */
+  NICKNAME_CHANGE_IN_ACTIVE_CHAT: "3005",
 } as const;
 
 /** 세션 전체를 막는 제재 코드(전역 인터셉트 대상). 6008은 퀴즈 인라인이라 제외한다. */

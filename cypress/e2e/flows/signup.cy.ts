@@ -234,6 +234,46 @@ describe("signup flow", () => {
     cy.contains("회원가입 중 문제가 발생했어요.", { timeout: 6000 }).should("be.visible");
   });
 
+  it("returns to the nickname step when someone else took the nickname at signup (3003)", () => {
+    cy.intercept("POST", "**/api/v1/users", {
+      statusCode: 200,
+      body: {
+        success: false,
+        data: null,
+        error: { statusCode: 409, code: "3003", message: "이미 사용 중인 닉네임입니다." },
+      },
+    }).as("createUserNicknameTaken");
+
+    cy.visit(OAUTH_ENTRY);
+    cy.contains("프로필 작성하기", { timeout: 6000 });
+    fillProfile();
+    cy.contains("button", "다음").click();
+
+    cy.contains("소개 노트 작성하기", { timeout: 6000 });
+    cy.contains("button", "다음에 할래요").click();
+    cy.contains("확인", { timeout: 4000 }).click();
+
+    cy.wait("@createUserNicknameTaken");
+    // 10분 예약이 만료된 사이 남이 가져갔다 — 닉네임 단계로 돌아가 다시 고르게 한다.
+    cy.contains("프로필 작성하기", { timeout: 6000 }).should("be.visible");
+    cy.contains("이미 사용 중인 닉네임이에요.").should("be.visible");
+  });
+
+  it("shows the taken message under the input when the v2 check says unavailable", () => {
+    cy.intercept("GET", "**/api/v2/users/nickname/availability*", {
+      success: true,
+      data: { available: false, reservedUntil: null },
+    }).as("nicknameUnavailable");
+
+    cy.visit(OAUTH_ENTRY);
+    cy.get('input[placeholder="사용할 닉네임을 입력해주세요"]', { timeout: 6000 }).type("테스트닉");
+    cy.contains("button", "저장").click();
+    cy.wait("@nicknameUnavailable").its("request.url").should("include", "nickname=");
+
+    cy.contains("이미 사용 중인 닉네임이에요.").should("be.visible");
+    cy.contains("닉네임 확인 중 오류가 발생했습니다.").should("not.exist");
+  });
+
   it("locks the email field when the social login provides one", () => {
     cy.intercept("GET", "**/api/v1/users/me", {
       success: true,
