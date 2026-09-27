@@ -312,13 +312,11 @@ const LastMessage = styled.span`
   min-width: 0;
 `;
 
-/* 평가 진입점: 평가가 열린 방에만 뜬다 */
+/* 평가 진입점: 평가가 열린 방에만 뜬다. 테두리 없이 글자만 — 좁은 폭에서 알약 테두리가 잘렸다 */
 const ReviewButton = styled.button`
   flex-shrink: 0;
-  height: 26px;
-  padding: 0 10px;
-  border: 1px solid var(--color-semantic-primary-normal);
-  border-radius: 13px;
+  padding: 0;
+  border: none;
   background-color: transparent;
   cursor: pointer;
   font-family: "Pretendard JP", sans-serif;

@@ -13,7 +13,7 @@ export function RatingSkipModal({ isOpen, onClose, onConfirm }: RatingSkipModalP
     <AlertModal
       isOpen={isOpen}
       title="평가를 건너뛸까요?"
-      message="지금 나가면 이번 매칭에 대한 평가를 다시 할 수 없어요"
+      message="남겨주신 평가는 다음 매칭과 만남에 도움이 돼요."
       cancelParams={{
         text: "취소",
         onClick: onClose,
