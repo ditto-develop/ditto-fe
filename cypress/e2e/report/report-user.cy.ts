@@ -11,6 +11,7 @@ const targetProfile = {
 
 type ReportPayload = {
   reportedMemberId: number;
+  reasons: string[];
   reason: string;
   source: string;
   detail?: string;
@@ -105,10 +106,12 @@ describe("report a user", () => {
     cy.contains("차단이 적용됐어요").should("be.visible");
 
     cy.then(() => {
-      // BE 계약: reason/source는 kebab code, imageKeys는 비어 있어도 배열로 보낸다.
+      // BE 계약: reasons/source는 kebab code, imageKeys는 비어 있어도 배열로 보낸다.
+      // reason(단일)은 reasons 를 모르는 서버용으로 첫 사유를 함께 싣는다.
       // block은 필수 필드이며, 신고는 항상 차단을 동반해 true로 고정이다.
       expect(lastReport).to.deep.equal({
         reportedMemberId: TARGET_MEMBER_ID,
+        reasons: ["inappropriate-behavior"],
         reason: "inappropriate-behavior",
         source: "profile",
         detail: "대화 중에 불쾌한 발언을 반복했어요.",
@@ -147,6 +150,41 @@ describe("report a user", () => {
       expect(s3PutCount).to.equal(1);
       expect(lastReport?.imageKeys).to.deep.equal(["pending/user-reports/1/key-0"]);
     });
+  });
+
+  it("selects several reasons and sends them all as reasons[]", () => {
+    mockReportApi();
+    cy.visit(`/report?userId=${TARGET_MEMBER_ID}`);
+    cy.wait("@getTargetProfile");
+
+    cy.contains("신고 사유 선택 (중복 선택 가능)").should("be.visible");
+    cy.contains("부적절한 행동").click();
+    cy.contains("허위 정보").click();
+    cy.contains("금전 요구").click();
+    // 다시 누르면 해제된다.
+    cy.contains("금전 요구").click();
+    cy.get('input[aria-label="부적절한 행동"]').should("be.checked");
+    cy.get('input[aria-label="허위 정보"]').should("be.checked");
+    cy.get('input[aria-label="금전 요구"]').should("not.be.checked");
+
+    cy.contains("button", "신고하기").click();
+    cy.wait("@createReport");
+
+    cy.then(() => {
+      expect(lastReport?.reasons).to.deep.equal(["inappropriate-behavior", "false-information"]);
+      expect(lastReport?.reason).to.equal("inappropriate-behavior");
+    });
+  });
+
+  it("requires detail when 기타 is among several reasons (BE 6003)", () => {
+    mockReportApi();
+    cy.visit(`/report?userId=${TARGET_MEMBER_ID}`);
+    cy.wait("@getTargetProfile");
+
+    cy.contains("부적절한 행동").click();
+    cy.contains("기타").click();
+    cy.contains("상세 설명 (필수)").should("be.visible");
+    cy.contains("button", "신고하기").should("be.disabled");
   });
 
   it("requires detail when 기타 is selected (BE 6003)", () => {

@@ -44,6 +44,12 @@ export type ImageUploadUrlsResponse = {
 /** POST /api/v1/user-reports */
 export type CreateUserReportRequest = {
   reportedMemberId: number;
+  /** 1개 이상, 중복 없이(BE 위키 Frontend-QA-Fixes-Guide §4). 있으면 서버는 reason 을 무시한다. */
+  reasons: ReportReason[];
+  /**
+   * 단일 사유(구 계약). reasons 를 모르는 서버에 대비해 첫 사유를 함께 싣는다 — BE 가 당분간
+   * 계속 받는다고 명시했다. 서버 배포가 끝나면 뺀다.
+   */
   reason: ReportReason;
   source: ReportSource;
   detail?: string;

@@ -52,11 +52,12 @@ function toSubmitMessage(error: unknown): string {
 }
 
 type UseReportFormResult = {
-  reason: ReportReason | null;
-  selectReason: (reason: ReportReason) => void;
+  /** 고른 순서대로. 여러 개를 고를 수 있다. */
+  reasons: ReportReason[];
+  toggleReason: (reason: ReportReason) => void;
   detail: string;
   changeDetail: (value: string) => void;
-  /** reason=etc처럼 detail이 필수인 사유가 선택됐는지. */
+  /** etc처럼 detail이 필수인 사유가 하나라도 선택됐는지. */
   detailRequired: boolean;
   evidence: ReportEvidence[];
   addEvidence: (files: FileList | File[]) => void;
@@ -72,7 +73,7 @@ export function useReportForm(
   source: ReportSource = "profile",
 ): UseReportFormResult {
   const { showToast } = useToast();
-  const [reason, setReason] = useState<ReportReason | null>(null);
+  const [reasons, setReasons] = useState<ReportReason[]>([]);
   const [detail, setDetail] = useState("");
   const [evidence, setEvidence] = useState<ReportEvidence[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -89,9 +90,16 @@ export function useReportForm(
   );
 
   const detailRequired = useMemo(
-    () => Boolean(REPORT_REASONS.find((option) => option.value === reason)?.detailRequired),
-    [reason],
+    () =>
+      REPORT_REASONS.some((option) => option.detailRequired && reasons.includes(option.value)),
+    [reasons],
   );
+
+  const toggleReason = useCallback((reason: ReportReason) => {
+    setReasons((previous) =>
+      previous.includes(reason) ? previous.filter((item) => item !== reason) : [...previous, reason],
+    );
+  }, []);
 
   const addEvidence = useCallback(
     (files: FileList | File[]) => {
@@ -139,7 +147,7 @@ export function useReportForm(
     if (submitting) return null;
 
     const trimmedDetail = detail.trim();
-    if (!reason) {
+    if (reasons.length === 0) {
       showToast(MESSAGE.reasonRequired, "error");
       return null;
     }
@@ -162,7 +170,8 @@ export function useReportForm(
 
       const { id } = await createUserReport({
         reportedMemberId,
-        reason,
+        reasons,
+        reason: reasons[0],
         source,
         detail: trimmedDetail ? trimmedDetail : undefined,
         imageKeys,
@@ -181,7 +190,7 @@ export function useReportForm(
     detail,
     detailRequired,
     evidence,
-    reason,
+    reasons,
     reportedMemberId,
     showToast,
     source,
@@ -190,15 +199,15 @@ export function useReportForm(
   ]);
 
   return {
-    reason,
-    selectReason: setReason,
+    reasons,
+    toggleReason,
     detail,
     changeDetail,
     detailRequired,
     evidence,
     addEvidence,
     removeEvidence,
-    canSubmit: reason !== null && !submitting && (!detailRequired || detail.trim().length > 0),
+    canSubmit: reasons.length > 0 && !submitting && (!detailRequired || detail.trim().length > 0),
     submitting,
     submit,
   };

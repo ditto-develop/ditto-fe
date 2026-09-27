@@ -42,16 +42,16 @@ export function ReportFormView({ target, form, onCancel, onSubmit }: ReportFormV
         <Body>
           <Field>
             <FieldHeading>
-              신고 사유 선택
+              신고 사유 선택 (중복 선택 가능)
               <Required aria-hidden="true">*</Required>
             </FieldHeading>
-            <ReasonList role="radiogroup" aria-label="신고 사유 선택">
+            <ReasonList role="group" aria-label="신고 사유 선택">
               {REPORT_REASONS.map((option) => (
                 <ReportReasonCard
                   key={option.value}
                   option={option}
-                  selected={form.reason === option.value}
-                  onSelect={form.selectReason}
+                  selected={form.reasons.includes(option.value)}
+                  onToggle={form.toggleReason}
                 />
               ))}
             </ReasonList>
