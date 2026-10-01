@@ -112,7 +112,7 @@ export function GroupMemberProfilePage({
                 {profile?.rating != null && (
                   <RatingBadge>
                     <RatingStar>★</RatingStar>
-                    <RatingText>{profile.rating}</RatingText>
+                    <RatingText>{profile.rating.toFixed(1)}</RatingText>
                   </RatingBadge>
                 )}
               </NameRow>

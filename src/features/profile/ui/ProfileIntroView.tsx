@@ -69,7 +69,7 @@ export function ProfileIntroView({
                     {rating && (
                         <RatingBadge>
                             <RatingStar>★</RatingStar>
-                            <RatingText>{rating}</RatingText>
+                            <RatingText>{Number(rating).toFixed(1)}</RatingText>
                         </RatingBadge>
                     )}
                 </NameRow>
@@ -191,11 +191,15 @@ const ProfileSection = styled.div`
   width: 100%;
   box-sizing: border-box;
   overflow: hidden;
+  /* overflow: hidden 이라 min-height 가 0 이 된다. 스크롤 영역(flex column) 안에서 내용이 넘치면
+     이 섹션이 세로로 눌리고 프사가 타원이 되므로 줄어들지 않게 막는다. */
+  flex-shrink: 0;
 `;
 
 const AvatarWrapper = styled.div`
   width: 100px;
   height: 100px;
+  flex-shrink: 0;
   border-radius: 50%;
   overflow: hidden;
   background-color: var(--color-semantic-background-normal-normal);
