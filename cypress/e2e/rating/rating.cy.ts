@@ -206,17 +206,36 @@ describe("미평가 유도 (홈 첫 진입)", () => {
     Cypress.env("reviewPrompt", false);
   });
 
-  it("열린 평가가 있으면 가장 오래된 평가 화면으로 보내고, 홈에 돌아오면 다시 보내지 않는다", () => {
+  it("열린 평가가 있으면 가장 오래된 평가를 모달로 안내하고, 평가하기로 평가 화면에 들어간다", () => {
     cy.visit("/home");
     cy.wait("@getMemberReviews");
 
-    // 픽스처 첫 평가(availableAt 가장 이른)는 1:1 방 1이다.
+    // 픽스처 첫 평가(availableAt 가장 이른)는 1:1 방 1(수민)이다.
+    cy.contains("지난 채팅은 어떠셨나요?").should("be.visible");
+    cy.contains("수민님과의 채팅 평가가 아직 남아 있어요.").should("be.visible");
+    cy.location("pathname").should("match", /^\/home\/?$/);
+
+    cy.contains("button", "평가하기").click();
     cy.location("pathname", { timeout: 8000 }).should("include", "/chat/one-on-one/1/rate");
 
     cy.go("back");
     cy.location("pathname").should("match", /^\/home\/?$/);
     cy.wait(1000);
+    cy.contains("지난 채팅은 어떠셨나요?").should("not.exist");
+  });
+
+  it("건너뛰기를 누르면 홈에 머물고 이번 세션에서는 다시 묻지 않는다", () => {
+    cy.visit("/home");
+    cy.wait("@getMemberReviews");
+
+    cy.contains("button", "건너뛰기").click();
+    cy.contains("지난 채팅은 어떠셨나요?").should("not.exist");
     cy.location("pathname").should("match", /^\/home\/?$/);
+
+    cy.reload();
+    cy.location("pathname").should("match", /^\/home\/?$/);
+    cy.wait(1000);
+    cy.contains("지난 채팅은 어떠셨나요?").should("not.exist");
   });
 
   it("열린 평가가 없으면 홈에 머문다", () => {
@@ -226,5 +245,6 @@ describe("미평가 유도 (홈 첫 진입)", () => {
     cy.visit("/home");
     cy.wait("@noReviews");
     cy.location("pathname").should("match", /^\/home\/?$/);
+    cy.contains("지난 채팅은 어떠셨나요?").should("not.exist");
   });
 });

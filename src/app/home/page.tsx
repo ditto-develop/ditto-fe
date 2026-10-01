@@ -6,6 +6,7 @@ import { MainSection } from "./MainSection";
 import { MainBottomNav } from "./MainBottomNav";
 import { Suspense } from "react";
 import { usePendingReviewPrompt } from "@/features/rating/hooks/usePendingReviewPrompt";
+import { PendingReviewPromptModal } from "@/features/rating/ui/PendingReviewPromptModal";
 
 const MainContainer = styled.div`
   width: 100%;
@@ -18,7 +19,7 @@ const MainContainer = styled.div`
 `;
 
 export default function Main() {
-  usePendingReviewPrompt();
+  const reviewPrompt = usePendingReviewPrompt();
 
   return (
     <MainContainer>
@@ -27,6 +28,11 @@ export default function Main() {
         <MainSection />
       </Suspense>
       <MainBottomNav />
+      <PendingReviewPromptModal
+        review={reviewPrompt.review}
+        onStart={reviewPrompt.start}
+        onSkip={reviewPrompt.skip}
+      />
     </MainContainer>
   );
 }
