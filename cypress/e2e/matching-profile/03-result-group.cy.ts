@@ -146,8 +146,9 @@ describe("3.1 매칭 결과 - 그룹 매칭 (WF-07)", () => {
       cy.contains("그룹 참여를 신청했어요. 3명 이상이 참여하면 금요일에 대화가 시작돼요.", { timeout: 6000 })
         .should("be.visible");
       cy.contains("그룹 참여를 신청했어요").should("be.visible");
-      // 응답을 끝냈으므로 버튼이 잠긴다(좌측 거절하기 버튼은 dev 오버레이에 가려 검증하지 않는다).
-      cy.contains("button", "참여하기").should("have.css", "cursor", "not-allowed");
+      // 응답을 끝냈으므로 하단 CTA 가 사라진다.
+      cy.contains("button", "참여하기").should("not.exist");
+      cy.contains("button", "거절하기").should("not.exist");
     });
 
     it("이미 수락한 그룹으로 다시 들어오면 인원 대기 상태로 열린다", () => {
@@ -156,6 +157,7 @@ describe("3.1 매칭 결과 - 그룹 매칭 (WF-07)", () => {
       openGroupModal();
 
       cy.contains("그룹 참여를 신청했어요").should("be.visible");
+      cy.contains("button", "참여하기").should("not.exist");
     });
   });
 

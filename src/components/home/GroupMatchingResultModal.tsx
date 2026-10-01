@@ -285,20 +285,21 @@ export function GroupMatchingResultModal({
           )}
         </ContentBody>
 
-        {candidates.length > 0 && (
+        {/* 응답을 마쳤으면(참여·거절) 더 할 행동이 없으니 CTA 를 내린다. */}
+        {candidates.length > 0 && !hasResponded && (
           <BottomActions>
             <ActionRow>
               <EqualActionButton
-                variant={hasResponded ? "disabled" : "secondary"}
-                disabled={hasResponded || accepting}
-                onClick={!awaitingFormation ? () => setRejectAlertOpen(true) : undefined}
+                variant="secondary"
+                disabled={accepting}
+                onClick={() => setRejectAlertOpen(true)}
               >
                 거절하기
               </EqualActionButton>
               <EqualActionButton
-                variant={hasResponded ? "disabled" : "primary"}
-                disabled={hasResponded || accepting}
-                onClick={!awaitingFormation && !accepting ? () => setJoinConfirmOpen(true) : undefined}
+                variant="primary"
+                disabled={accepting}
+                onClick={!accepting ? () => setJoinConfirmOpen(true) : undefined}
               >
                 {accepting ? "참여 중..." : "참여하기"}
               </EqualActionButton>
