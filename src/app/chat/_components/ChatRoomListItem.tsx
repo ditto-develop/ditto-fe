@@ -176,7 +176,9 @@ const Content = styled.div`
   display: flex;
   flex-direction: column;
   gap: 2px;
-  height: 50px;
+  /* 이름 줄(24) + gap(2) + 배지 줄(26) = 52px. 높이를 50으로 고정하면 SwipeToDelete 의
+     overflow: hidden 에 안 읽은 수 배지 아래가 잘린다 — 최소값으로만 둔다. */
+  min-height: 50px;
   justify-content: center;
 `;
 
