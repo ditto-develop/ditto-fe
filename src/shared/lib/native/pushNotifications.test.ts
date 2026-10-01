@@ -25,6 +25,12 @@ const requestPermissions = vi.fn(async () => ({ receive: "granted" }));
 const getToken = vi.fn(async () => ({ token: "fcm-token" }));
 const deleteToken = vi.fn(async () => {});
 const addListener = vi.fn(async () => ({ remove: async () => {} }));
+const getDeliveredNotifications = vi.fn(
+  async (): Promise<{ notifications: Array<{ id: string; data?: unknown }> }> => ({
+    notifications: [],
+  }),
+);
+const removeDeliveredNotifications = vi.fn(async () => {});
 vi.mock("@capacitor-firebase/messaging", () => ({
   // Capacitor 플러그인은 모든 프로퍼티 접근을 가상 메서드로 만드는 Proxy다.
   // async 함수의 반환값으로 직접 쓰면 Promise가 then을 읽는 회귀를 잡는다.
@@ -34,6 +40,8 @@ vi.mock("@capacitor-firebase/messaging", () => ({
     getToken: (...a: unknown[]) => getToken(...(a as [])),
     deleteToken: (...a: unknown[]) => deleteToken(...(a as [])),
     addListener: (...a: unknown[]) => addListener(...(a as [])),
+    getDeliveredNotifications: () => getDeliveredNotifications(),
+    removeDeliveredNotifications: (...a: unknown[]) => removeDeliveredNotifications(...(a as [])),
   }, {
     get(target, property, receiver) {
       if (property === "then") throw new Error("Capacitor plugin must not be awaited directly");
@@ -49,6 +57,15 @@ vi.mock("@capacitor/core", () => ({
     isNativePlatform: () => isNativePlatform(),
     getPlatform: () => getPlatform(),
   },
+}));
+
+const clearForegroundNotifications = vi.fn<(matches: (deepLink: string) => boolean) => Promise<void>>(
+  async () => {},
+);
+vi.mock("@/shared/lib/native/localNotifications", () => ({
+  clearForegroundNotifications: (matches: (deepLink: string) => boolean) =>
+    clearForegroundNotifications(matches),
+  showForegroundNotification: async () => {},
 }));
 
 const markNotificationRead = vi.fn(async () => undefined);
@@ -301,6 +318,8 @@ describe("네이티브 초기화 이후 동작", () => {
 
     expect(navigate).toHaveBeenCalledWith("/chat/one-on-one/305/");
     expect(markNotificationRead).toHaveBeenCalledWith(8821);
+    // 탭이 띄운 같은 방 알림 정리가 다음 테스트로 새지 않게 끝까지 돌린다.
+    await vi.waitFor(() => expect(getDeliveredNotifications).toHaveBeenCalled());
   });
 
   it("알림 탭: deepLink 키가 없으면 이동 없이 읽음 처리만 한다", async () => {
@@ -323,6 +342,8 @@ describe("네이티브 초기화 이후 동작", () => {
 
     expect(navigate).toHaveBeenCalledWith("/chat/one-on-one/305/");
     expect(markNotificationRead).toHaveBeenCalledWith(8821);
+    // 탭이 띄운 같은 방 알림 정리가 다음 테스트로 새지 않게 끝까지 돌린다.
+    await vi.waitFor(() => expect(getDeliveredNotifications).toHaveBeenCalled());
   });
 
   it("포그라운드 수신은 읽음 처리 없이 재조회 이벤트만 쏜다", async () => {
@@ -336,6 +357,80 @@ describe("네이티브 초기화 이후 동작", () => {
     expect(onPush).toHaveBeenCalled();
     expect(markNotificationRead).not.toHaveBeenCalled();
     window.removeEventListener(PUSH_RECEIVED_EVENT, onPush);
+  });
+});
+
+describe("toChatRoomKey", () => {
+  it("1:1·그룹 채팅방이면 끝 슬래시·쿼리를 뗀 경로를 돌려준다", async () => {
+    const { toChatRoomKey } = await import("@/shared/lib/native/pushNotifications");
+    expect(toChatRoomKey("/chat/one-on-one/305/")).toBe("/chat/one-on-one/305");
+    expect(toChatRoomKey("/chat/group/7/?from=push")).toBe("/chat/group/7");
+  });
+
+  it("채팅방이 아니면 null", async () => {
+    const { toChatRoomKey } = await import("@/shared/lib/native/pushNotifications");
+    expect(toChatRoomKey("/chat/")).toBeNull();
+    expect(toChatRoomKey("/home/")).toBeNull();
+    expect(toChatRoomKey(null)).toBeNull();
+  });
+});
+
+describe("알림 탭 시 같은 채팅방 알림 정리", () => {
+  /** fire-and-forget 정리는 플러그인을 지연 import 하므로 끝날 때까지 기다린다. */
+  const settled = async () => {
+    await vi.waitFor(() => expect(getDeliveredNotifications).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  };
+
+  it("남은 원격 푸시 중 같은 방 것만 지우고, 포그라운드 배너도 같은 방 기준으로 지운다", async () => {
+    const { listenerFor } = await initOnNative();
+    const sameRoom = { id: "a", data: { deepLink: "https://ditto.pics/chat/one-on-one/305/" } };
+    const sameRoomNoSlash = { id: "b", data: { deepLink: "/chat/one-on-one/305" } };
+    getDeliveredNotifications.mockResolvedValueOnce({
+      notifications: [
+        sameRoom,
+        { id: "c", data: { deepLink: "/chat/one-on-one/306/" } },
+        sameRoomNoSlash,
+        { id: "d", data: { deepLink: "/home/" } },
+        { id: "e" },
+      ],
+    });
+
+    listenerFor("notificationActionPerformed")({
+      notification: { data: { notificationId: "1", deepLink: "/chat/one-on-one/305/" } },
+    });
+    await settled();
+
+    expect(removeDeliveredNotifications).toHaveBeenCalledWith({
+      notifications: [sameRoom, sameRoomNoSlash],
+    });
+    const matches = clearForegroundNotifications.mock.calls[0][0];
+    expect(matches("/chat/one-on-one/305/")).toBe(true);
+    expect(matches("/chat/one-on-one/306/")).toBe(false);
+  });
+
+  it("채팅방이 아닌 알림을 탭하면 아무것도 지우지 않는다", async () => {
+    const { listenerFor } = await initOnNative();
+
+    listenerFor("notificationActionPerformed")({
+      notification: { data: { notificationId: "1", deepLink: "/home/" } },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(getDeliveredNotifications).not.toHaveBeenCalled();
+    expect(clearForegroundNotifications).not.toHaveBeenCalled();
+  });
+
+  it("같은 방 원격 푸시가 없으면 remove 를 부르지 않는다", async () => {
+    const { listenerFor } = await initOnNative();
+
+    listenerFor("notificationActionPerformed")({
+      notification: { data: { notificationId: "1", deepLink: "/chat/group/7/" } },
+    });
+    await settled();
+
+    expect(getDeliveredNotifications).toHaveBeenCalled();
+    expect(removeDeliveredNotifications).not.toHaveBeenCalled();
   });
 });
 

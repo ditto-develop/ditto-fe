@@ -5,7 +5,10 @@ import { API_ERROR_CODE, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { externalApiFetch } from "@/shared/lib/api/externalClient";
 import { trackEvent } from "@/shared/lib/analytics";
 import { toInternalPath } from "@/shared/lib/native/appShell";
-import { showForegroundNotification } from "@/shared/lib/native/localNotifications";
+import {
+    clearForegroundNotifications,
+    showForegroundNotification,
+} from "@/shared/lib/native/localNotifications";
 import type { NativePlatform } from "@/shared/lib/native/platform";
 import { getNativePlatform, isNativeApp } from "@/shared/lib/native/platform";
 
@@ -211,8 +214,58 @@ export function extractNotificationId(data: unknown): number | null {
  */
 export function isViewingDeepLink(deepLink: string | null, currentPath: string): boolean {
     if (!deepLink) return false;
-    const strip = (value: string) => (value.split(/[?#]/)[0] || "/").replace(/\/+$/, "") || "/";
-    return strip(deepLink) === strip(currentPath);
+    return normalizePath(deepLink) === normalizePath(currentPath);
+}
+
+/** 쿼리·해시와 끝 슬래시를 떼어 경로끼리 비교할 수 있게 한다. */
+function normalizePath(value: string): string {
+    return (value.split(/[?#]/)[0] || "/").replace(/\/+$/, "") || "/";
+}
+
+const CHAT_ROOM_PATH = /^\/chat\/(one-on-one|group)\/[^/]+$/;
+
+/**
+ * 채팅방 딥링크면 방을 가리키는 비교 키(정규화한 경로)를, 아니면 null 을 돌려준다.
+ * 끝 슬래시·쿼리가 달라도 같은 방이면 같은 키다.
+ */
+export function toChatRoomKey(deepLink: string | null): string | null {
+    if (!deepLink) return null;
+    const path = normalizePath(deepLink);
+    return CHAT_ROOM_PATH.test(path) ? path : null;
+}
+
+/**
+ * 알림 센터에 남은 같은 채팅방 알림을 모두 지운다. 한 건을 탭해 방에 들어가면
+ * 나머지는 이미 본 메시지라 남겨 둘 이유가 없다.
+ *
+ * - 원격 푸시: delivered 목록의 `data.deepLink` 로 고른다. iOS 만 payload 를
+ *   돌려주고, Android 는 FCM SDK 가 그린 알림의 payload 를 읽을 수 없어 아무것도
+ *   고르지 못한다(BE 가 `android.notification.tag` 를 실어 줘야 한다).
+ * - 포그라운드 로컬 배너: 두 플랫폼 모두 `clearForegroundNotifications` 가 지운다.
+ *
+ * 화면 이동과 무관한 정리라 실패해도 조용히 넘어간다.
+ */
+async function clearChatRoomNotifications(roomKey: string): Promise<void> {
+    if (!isNativeApp()) return;
+    const isSameRoom = (deepLink: string) => toChatRoomKey(toInternalPath(deepLink)) === roomKey;
+
+    await Promise.all([
+        clearForegroundNotifications(isSameRoom),
+        (async () => {
+            try {
+                const { FirebaseMessaging } = await loadMessaging();
+                const { notifications } = await FirebaseMessaging.getDeliveredNotifications();
+                const sameRoom = notifications.filter(
+                    ({ data }) => toChatRoomKey(extractDeepLink(data)) === roomKey,
+                );
+                if (sameRoom.length > 0) {
+                    await FirebaseMessaging.removeDeliveredNotifications({ notifications: sameRoom });
+                }
+            } catch (err: unknown) {
+                console.error("[push] 같은 방 알림 정리 실패:", err);
+            }
+        })(),
+    ]);
 }
 
 /**
@@ -258,6 +311,8 @@ export function openNotification(data: unknown, navigate: (path: string) => void
 
     // `deepLink` 키가 아예 없을 수 있다(BE 위키 §3) — 그때는 앱만 열고 끝낸다.
     const path = extractDeepLink(data);
+    const roomKey = toChatRoomKey(path);
+    if (roomKey) void clearChatRoomNotifications(roomKey);
     // 딥링크 경로 자체는 싣지 않는다 — 방 번호가 그대로 들어 있다. 유무만 본다.
     trackEvent("notification_open", { has_deep_link: path !== null });
     if (path) navigate(path);

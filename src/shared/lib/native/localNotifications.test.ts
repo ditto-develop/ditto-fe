@@ -6,6 +6,12 @@ const getPending = vi.fn(
 );
 const cancel = vi.fn(async () => {});
 const addListener = vi.fn(async () => ({ remove: async () => {} }));
+const getDeliveredNotifications = vi.fn(
+  async (): Promise<{ notifications: Array<{ id: number; extra?: unknown }> }> => ({
+    notifications: [],
+  }),
+);
+const removeDeliveredNotificationsById = vi.fn(async () => {});
 
 vi.mock("@capacitor/local-notifications", () => ({
   LocalNotifications: {
@@ -13,6 +19,9 @@ vi.mock("@capacitor/local-notifications", () => ({
     getPending: () => getPending(),
     cancel: (...a: unknown[]) => cancel(...(a as [])),
     addListener: (...a: unknown[]) => addListener(...(a as [])),
+    getDeliveredNotifications: () => getDeliveredNotifications(),
+    removeDeliveredNotificationsById: (...a: unknown[]) =>
+      removeDeliveredNotificationsById(...(a as [])),
   },
 }));
 
@@ -75,5 +84,65 @@ describe("clearLegacyScheduledNotifications", () => {
     expect(cancel).toHaveBeenCalledWith({
       notifications: [{ id: 1000 }, { id: 1007 }, { id: 2000 }, { id: 2007 }],
     });
+  });
+});
+
+describe("clearForegroundNotifications", () => {
+  const isRoom305 = (deepLink: string) => deepLink.startsWith("/chat/one-on-one/305");
+
+  it("웹에서는 아무것도 하지 않는다", async () => {
+    isNativeApp.mockReturnValue(false);
+
+    const { clearForegroundNotifications } = await import(
+      "@/shared/lib/native/localNotifications"
+    );
+    await clearForegroundNotifications(isRoom305);
+
+    expect(getDeliveredNotifications).not.toHaveBeenCalled();
+    expect(removeDeliveredNotificationsById).not.toHaveBeenCalled();
+  });
+
+  it("이번 실행에서 띄운 같은 방 배너만 지운다 — Android 는 delivered 에 extra 가 없다", async () => {
+    isNativeApp.mockReturnValue(true);
+    const { clearForegroundNotifications, showForegroundNotification } = await import(
+      "@/shared/lib/native/localNotifications"
+    );
+    const show = (deepLink: string | null) =>
+      showForegroundNotification({ title: "t", body: "b", deepLink, notificationId: null });
+
+    await show("/chat/one-on-one/305/");
+    await show("/chat/one-on-one/306/");
+    await show("/chat/one-on-one/305/");
+    await show(null);
+    const ids = schedule.mock.calls.map(
+      (call) => (call as unknown as [{ notifications: Array<{ id: number }> }])[0].notifications[0].id,
+    );
+
+    await clearForegroundNotifications(isRoom305);
+
+    expect(removeDeliveredNotificationsById).toHaveBeenCalledWith({ ids: [ids[0], ids[2]] });
+
+    // 한 번 지운 배너는 다시 고르지 않는다.
+    removeDeliveredNotificationsById.mockClear();
+    await clearForegroundNotifications(isRoom305);
+    expect(removeDeliveredNotificationsById).not.toHaveBeenCalled();
+  });
+
+  it("iOS 는 delivered 의 extra.deepLink 로 지난 실행의 배너도 찾는다", async () => {
+    isNativeApp.mockReturnValue(true);
+    getDeliveredNotifications.mockResolvedValueOnce({
+      notifications: [
+        { id: 3050, extra: { deepLink: "/chat/one-on-one/305/" } },
+        { id: 3051, extra: { deepLink: "/chat/one-on-one/306/" } },
+        { id: 3052 },
+      ],
+    });
+
+    const { clearForegroundNotifications } = await import(
+      "@/shared/lib/native/localNotifications"
+    );
+    await clearForegroundNotifications(isRoom305);
+
+    expect(removeDeliveredNotificationsById).toHaveBeenCalledWith({ ids: [3050] });
   });
 });

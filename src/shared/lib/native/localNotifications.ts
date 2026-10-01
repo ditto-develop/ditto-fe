@@ -86,6 +86,15 @@ const FOREGROUND_ID_BASE = 3000;
 const FOREGROUND_ID_SPAN = 100;
 let foregroundCounter = 0;
 
+/**
+ * 지금 떠 있을 수 있는 포그라운드 배너 id → 그 배너의 딥링크.
+ *
+ * `clearForegroundNotifications` 가 같은 채팅방 배너를 골라 지우는 데 쓴다. iOS 는
+ * delivered 목록에 `extra` 를 돌려주지만 Android 는 돌려주지 않아 직접 기억한다.
+ * id 가 100개 단위로 돌기 때문에 크기가 그 이상 자라지 않는다.
+ */
+const foregroundDeepLinks = new Map<number, string>();
+
 export async function showForegroundNotification({
     title,
     body,
@@ -100,12 +109,17 @@ export async function showForegroundNotification({
 }): Promise<void> {
     if (!isNativeApp()) return;
 
+    const id = FOREGROUND_ID_BASE + (foregroundCounter++ % FOREGROUND_ID_SPAN);
+    // id 를 재사용하면 이전 배너의 딥링크가 남지 않게 덮어쓰거나 지운다.
+    if (deepLink) foregroundDeepLinks.set(id, deepLink);
+    else foregroundDeepLinks.delete(id);
+
     try {
         // schedule 을 빼면 즉시 발송이다.
         await LocalNotifications.schedule({
             notifications: [
                 {
-                    id: FOREGROUND_ID_BASE + (foregroundCounter++ % FOREGROUND_ID_SPAN),
+                    id,
                     title,
                     body,
                     // 없는 값은 싣지 않는다 — 네이티브 브리지로 null 을 넘길 이유가 없다.
@@ -119,5 +133,40 @@ export async function showForegroundNotification({
     } catch (err: unknown) {
         // 알림이 안 떠도 화면은 이미 PUSH_RECEIVED_EVENT 로 갱신된다 — 조용히 넘어간다.
         console.error("[localNotifications] 포그라운드 알림 표시 실패:", err);
+    }
+}
+
+/**
+ * 알림 센터에 남은 포그라운드 배너 중 `matches` 가 참인 딥링크의 것을 지운다.
+ *
+ * iOS 는 delivered 목록의 `extra.deepLink` 도 함께 본다 — 앱이 재시작돼 위 기억이
+ * 비었어도 지난 실행에서 띄운 배너를 찾을 수 있다. 실패해도 조용히 넘어간다.
+ */
+export async function clearForegroundNotifications(
+    matches: (deepLink: string) => boolean,
+): Promise<void> {
+    if (!isNativeApp()) return;
+
+    const ids = new Set<number>();
+    foregroundDeepLinks.forEach((deepLink, id) => {
+        if (matches(deepLink)) ids.add(id);
+    });
+
+    try {
+        const { notifications } = await LocalNotifications.getDeliveredNotifications();
+        notifications.forEach(({ id, extra }) => {
+            const deepLink: unknown = extra?.deepLink;
+            if (typeof deepLink === "string" && matches(deepLink)) ids.add(id);
+        });
+    } catch (err: unknown) {
+        console.error("[localNotifications] 표시된 알림 조회 실패:", err);
+    }
+
+    if (ids.size === 0) return;
+    ids.forEach((id) => foregroundDeepLinks.delete(id));
+    try {
+        await LocalNotifications.removeDeliveredNotificationsById({ ids: [...ids] });
+    } catch (err: unknown) {
+        console.error("[localNotifications] 포그라운드 알림 정리 실패:", err);
     }
 }
