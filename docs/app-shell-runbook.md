@@ -1079,6 +1079,7 @@ Organizer 를 열어 **Distribute App → App Store Connect → Upload**.
 |---|---|---|
 | 1.0 (1) | 2026-09-07 | 첫 업로드 |
 | 1.0 (2) | 2026-09-09 | iOS 스와이프 백 제스처(`MainViewController`) |
+| 1.0 (3) | 2026-10-01 | FCM `presentationOptions` 를 `["badge"]` 로 — 보고 있는 채팅방 푸시 차단, 포그라운드 중복 배너 제거 |
 
 #### 처리 상태를 CLI 로 보는 법
 
