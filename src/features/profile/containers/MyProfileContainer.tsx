@@ -219,7 +219,8 @@ const TicketDeco = styled.img`
   position: absolute;
   top: 0;
   left: 50%;
-  width: calc(100% - var(--space-12));
+  width: auto;
+  max-width: calc(100% - var(--space-12));
   transform: translate(-50%, -50%);
 `;
 

@@ -283,7 +283,8 @@ const QnACard = styled.div<{ $compact?: boolean }>`
 `;
 
 const TicketDeco = styled.img`
-  width: 80%;
+  width: auto;
+  max-width: calc(100% - var(--space-12));
   height: auto;
   display: block;
   margin: 0 auto;

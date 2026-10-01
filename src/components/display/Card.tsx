@@ -122,13 +122,15 @@ const ButtonSectionWrapper = styled.div`
   align-items: center;
 `;
 
+/* Figma 1033:8099 — 315×14 원본 크기로 카드 가로 중앙(361 카드 기준 좌우 23), 세로 중심은 카드 상단 경계. */
 export const DecoImg = styled.img`
     position: absolute;
     top: 0;
-    left: 0;
-    width: 100%;
-    transform: translateY(-50%);
-    pointer-events: none; 
+    left: 50%;
+    width: auto;
+    max-width: calc(100% - var(--space-12));
+    transform: translate(-50%, -50%);
+    pointer-events: none;
 `;
 
 // --- Interface ---
