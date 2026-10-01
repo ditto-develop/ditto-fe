@@ -11,6 +11,7 @@ import {
   scrollListToBottom,
   useStayAtBottom,
 } from "@/features/chat/hooks/useStayAtBottom";
+import { useKeepScrollOnPrepend } from "@/features/chat/hooks/useKeepScrollOnPrepend";
 import { useVisibleMessageRead } from "@/features/chat/hooks/useVisibleMessageRead";
 import { MessageBubble } from "./MessageBubble";
 import { RoomNoticeCard } from "./RoomNoticeCard";
@@ -107,6 +108,12 @@ export function MessageList({
    */
   const userHasScrolled = useRef(false);
 
+  const { beginPrepend, isPending: isPrependPending } = useKeepScrollOnPrepend(
+    listRef,
+    messages[0]?.id ?? null,
+    loadingOlder,
+  );
+
   useEffect(() => {
     const latest: ChatMessage | ChatOptimisticMessage | undefined =
       optimisticMessages.length > 0
@@ -129,8 +136,8 @@ export function MessageList({
     renderedLatestKey.current = latestKey;
 
     if (skipNextAutoScroll.current) {
-      // 위로 올려 과거를 읽는 중이면 바닥으로 끌어내리지 않는다. 위치는 브라우저가
-      // 유지하므로 scrollTop 을 직접 만지지 않는다(그룹 목록과 같은 처리).
+      // 위로 올려 과거를 읽는 중이면 바닥으로 끌어내리지 않는다. 위치 보정은
+      // useKeepScrollOnPrepend 가 맡는다(그룹 목록과 같은 처리).
       skipNextAutoScroll.current = false;
       return;
     }
@@ -162,13 +169,14 @@ export function MessageList({
     const el = listRef.current;
     if (!el) return;
     wasPinnedToBottom.current = isPinnedToBottom(el);
-    if (!hasMore || loadingOlder) return;
+    if (!hasMore || loadingOlder || isPrependPending()) return;
     if (!userHasScrolled.current) return;
     if (el.scrollTop > 60) return;
 
     skipNextAutoScroll.current = true;
+    beginPrepend();
     onLoadOlder();
-  }, [hasMore, loadingOlder, onLoadOlder]);
+  }, [beginPrepend, hasMore, isPrependPending, loadingOlder, onLoadOlder]);
 
   // 목록을 직접 만진 순간부터 과거 로드를 연다. 프로그램 스크롤은 이 이벤트를 내지 않는다.
   useEffect(() => {

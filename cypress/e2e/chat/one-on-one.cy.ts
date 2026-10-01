@@ -326,6 +326,10 @@ describe("1:1 chat room", () => {
 
     // 과거를 붙인 뒤에는 스크롤 위치를 유지하므로 화면 밖(위)에 있다. 존재만 확인한다.
     cy.contains("아주 오래된 메시지", { timeout: 8000 }).should("exist");
+    // 붙은 높이만큼 내려가 있어야 한다. 0 이면 방 맨 위로 튄 것이다(anchoring 미지원 브라우저).
+    cy.get('[data-cy="message-list"]').should((list) => {
+      expect(list[0].scrollTop, "과거를 붙인 뒤 스크롤 위치").to.be.greaterThan(20);
+    });
 
     // dev StrictMode가 최초 조회를 두 번 호출하므로 순서 대신 전체 호출을 확인한다.
     cy.get("@pagedMessages.all").then((calls) => {

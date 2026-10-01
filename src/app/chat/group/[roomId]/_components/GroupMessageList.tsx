@@ -16,6 +16,7 @@ import {
   scrollListToBottom,
   useStayAtBottom,
 } from "@/features/chat/hooks/useStayAtBottom";
+import { useKeepScrollOnPrepend } from "@/features/chat/hooks/useKeepScrollOnPrepend";
 import { useVisibleMessageRead } from "@/features/chat/hooks/useVisibleMessageRead";
 import { GroupMessageBubble } from "./GroupMessageBubble";
 import { VoteCreatedMessageBubble } from "./VoteCreatedMessageBubble";
@@ -98,7 +99,11 @@ export function GroupMessageList({
    */
   const userHasScrolled = useRef(false);
 
-  const previousScrollHeight = useRef(0);
+  const { beginPrepend, isPending: isPrependPending } = useKeepScrollOnPrepend(
+    listRef,
+    messages[0]?.id ?? null,
+    loadingOlder,
+  );
 
   // 새 메시지에서만 바닥으로 붙는다. 위로 스크롤해 과거를 불러온 직후에는 붙지 않는다.
   useEffect(() => {
@@ -142,14 +147,14 @@ export function GroupMessageList({
     const el = listRef.current;
     if (!el) return;
     wasPinnedToBottom.current = isPinnedToBottom(el);
-    if (!hasMore || loadingOlder) return;
+    if (!hasMore || loadingOlder || isPrependPending()) return;
     if (!userHasScrolled.current) return;
     if (el.scrollTop > 60) return;
 
     skipNextAutoScroll.current = true;
-    previousScrollHeight.current = el.scrollHeight;
+    beginPrepend();
     onLoadOlder();
-  }, [hasMore, loadingOlder, onLoadOlder]);
+  }, [beginPrepend, hasMore, isPrependPending, loadingOlder, onLoadOlder]);
 
   // 목록을 직접 만진 순간부터 과거 로드를 연다. 프로그램 스크롤은 이 이벤트를 내지 않는다.
   useEffect(() => {
