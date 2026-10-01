@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   isPinnedToBottom,
+  nextPinnedState,
   scrollListToBottom,
 } from "@/features/chat/hooks/useStayAtBottom";
 
@@ -56,5 +57,32 @@ describe("scrollListToBottom", () => {
     scrollListToBottom(list, "smooth");
 
     expect(options).toEqual({ top: 1200, behavior: "smooth" });
+  });
+});
+
+describe("nextPinnedState", () => {
+  it("바닥 정렬 직후 아래 안내 카드가 자라 모자라게 재도 붙은 상태를 유지한다", () => {
+    // 1450 높이에서 바닥(772)으로 맞춘 뒤 82px 카드가 붙어 1532 가 된 채 이벤트가 온다.
+    expect(
+      nextPinnedState(true, 0, { scrollHeight: 1532, scrollTop: 772, clientHeight: 678 }),
+    ).toBe(true);
+  });
+
+  it("붙어 있다가 위로 올리면 떨어진 것으로 본다", () => {
+    expect(
+      nextPinnedState(true, 854, { scrollHeight: 1532, scrollTop: 700, clientHeight: 678 }),
+    ).toBe(false);
+  });
+
+  it("떨어져 있던 목록은 아래로 내려도 바닥에 닿기 전까지 떨어진 상태다", () => {
+    expect(
+      nextPinnedState(false, 100, { scrollHeight: 1532, scrollTop: 500, clientHeight: 678 }),
+    ).toBe(false);
+  });
+
+  it("떨어져 있어도 바닥에 닿으면 다시 붙는다", () => {
+    expect(
+      nextPinnedState(false, 500, { scrollHeight: 1532, scrollTop: 854, clientHeight: 678 }),
+    ).toBe(true);
   });
 });

@@ -16,6 +16,26 @@ export function isPinnedToBottom(
   return el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
 }
 
+/**
+ * 스크롤 이벤트를 받았을 때 여전히 바닥에 붙어 있다고 볼 것인가.
+ *
+ * scroll 이벤트는 다음 프레임에 몰아서 오므로, 그 사이 아래쪽 콘텐츠가 자라면 바닥에서 떨어진
+ * 것처럼 잰다. 진입 직후 "연결이 끊겼어요" 안내 카드가 바닥에 붙는 경우가 그렇다 — 바닥 정렬의
+ * scroll 이벤트가 카드 높이만큼(약 80px) 모자란 채로 도착해, 사용자가 위로 올린 것으로 오해하고
+ * 이후의 바닥 보정을 전부 건너뛰었다.
+ *
+ * 콘텐츠가 자라는 것으로는 `scrollTop` 이 줄지 않는다. 그래서 붙어 있던 목록은 **실제로 위로
+ * 움직였을 때만** 떨어진 것으로 본다.
+ */
+export function nextPinnedState(
+  wasPinned: boolean,
+  previousScrollTop: number,
+  el: Pick<HTMLElement, "scrollHeight" | "scrollTop" | "clientHeight">,
+): boolean {
+  if (isPinnedToBottom(el)) return true;
+  return wasPinned && el.scrollTop >= previousScrollTop;
+}
+
 /** 채팅 목록만 바닥으로 내린다. scrollIntoView처럼 바깥 문서까지 움직이지 않는다. */
 export function scrollListToBottom(
   el: Pick<HTMLElement, "scrollHeight" | "scrollTop" | "scrollTo">,
@@ -52,8 +72,10 @@ export function useStayAtBottom(listRef: RefObject<HTMLElement | null>): void {
     const el = listRef.current;
     if (!el) return;
 
+    let lastScrollTop = el.scrollTop;
     const remember = () => {
-      pinnedRef.current = isPinnedToBottom(el);
+      pinnedRef.current = nextPinnedState(pinnedRef.current, lastScrollTop, el);
+      lastScrollTop = el.scrollTop;
     };
     remember();
     el.addEventListener("scroll", remember, { passive: true });

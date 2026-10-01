@@ -196,21 +196,25 @@ describe("chat QA regressions", () => {
     cy.intercept("GET", "**/chat/rooms/*/messages*", {
       success: true,
       data: {
+        /*
+         * 응답은 최신 먼저다. 예전엔 오래된 순으로 줘서 "마지막 메시지"가 목록 맨 위에 그려졌고,
+         * 아래의 visible 검사는 바닥 정렬 전 한순간에만 통과하던 것이었다.
+         */
         messages: [
-          ...Array.from({ length: 20 }, (_, index) => ({
-            id: index + 1, roomId: 1, senderId: 2, messageType: "TEXT",
-            content: `이전 메시지 ${index + 1}`, imageUrl: null,
-            unreadCount: 0, createdAt: "2026-06-06 10:10:00",
-          })),
+          {
+            id: 22, roomId: 1, senderId: 2, messageType: "TEXT", content: "마지막 메시지",
+            imageUrl: null, unreadCount: 0, createdAt: "2026-06-06 10:12:00",
+          },
           {
             id: 21, roomId: 1, senderId: 2, messageType: "IMAGE", content: "chat/late.png",
             imageUrl: "https://example.com/late.png",
             unreadCount: 0, createdAt: "2026-06-06 10:11:00",
           },
-          {
-            id: 22, roomId: 1, senderId: 2, messageType: "TEXT", content: "마지막 메시지",
-            imageUrl: null, unreadCount: 0, createdAt: "2026-06-06 10:12:00",
-          },
+          ...Array.from({ length: 20 }, (_, index) => ({
+            id: 20 - index, roomId: 1, senderId: 2, messageType: "TEXT",
+            content: `이전 메시지 ${20 - index}`, imageUrl: null,
+            unreadCount: 0, createdAt: "2026-06-06 10:10:00",
+          })),
         ],
         nextCursor: null,
       },
