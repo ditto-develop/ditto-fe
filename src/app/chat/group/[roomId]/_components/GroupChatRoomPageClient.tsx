@@ -314,6 +314,7 @@ export function GroupChatRoomPageClient() {
           onClose={() => setVoteView(null)}
           onRevote={() => setVoteView({ mode: "submission", voteId: activeVote.voteId })}
           onCloseVote={handleCloseVote}
+          canCloseVote={myUserId !== null && activeVote.createdBy === myUserId}
         />
       )}
 

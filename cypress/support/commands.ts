@@ -9,6 +9,8 @@ type MockApiOptions = {
   groupMatchesFixture?: string;
   matchingStatusFixture?: string;
   memberReviewsFixture?: string;
+  /** 진행 중 투표(group-votes.json 의 OPEN)의 필드를 덮어쓴다. 만든 사람·참여 수 분기용. */
+  openVoteOverrides?: { createdBy?: number; votedCount?: number };
 };
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -224,6 +226,8 @@ Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
   // 테스트마다 새로 만드는 인메모리 상태를 실제로 갱신한다.
   cy.fixture("group-votes.json").then((seed: GroupVoteLike[]) => {
     const votes: GroupVoteLike[] = JSON.parse(JSON.stringify(seed));
+    const openVote = votes.find((vote) => vote.status === "OPEN");
+    if (openVote) Object.assign(openVote, options.openVoteOverrides);
     const findVote = (url: string) => {
       const voteId = Number(new URL(url).pathname.match(/\/votes\/([^/]+)/)?.[1]);
       return votes.find((vote) => vote.voteId === voteId);

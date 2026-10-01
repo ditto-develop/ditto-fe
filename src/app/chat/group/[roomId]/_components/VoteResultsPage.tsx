@@ -42,8 +42,10 @@ interface VoteResultsPageProps {
   memberNameById: Map<number, string>;
   onClose: () => void;
   onRevote: () => void;
-  /** 마감. 방 멤버 누구나 가능하고 멱등이라 중복 호출을 막을 필요가 없다. */
+  /** 마감. 멱등이라 중복 호출을 막을 필요가 없다. */
   onCloseVote: () => Promise<void>;
+  /** 중간 마감은 투표를 만든 사람만 한다. 전원이 투표하면 자동 마감된다(useGroupVote). */
+  canCloseVote: boolean;
 }
 
 function hasPlaceCoordinates(option: VotePlaceOption) {
@@ -67,6 +69,7 @@ export function VoteResultsPage({
   onClose,
   onRevote,
   onCloseVote,
+  canCloseVote,
 }: VoteResultsPageProps) {
   /**
    * 라우트가 아니라 화면 안의 상태로 떠 있는 전체화면이라 OS 뒤로가기에 직접 등록한다.
@@ -210,16 +213,18 @@ export function VoteResultsPage({
         <BottomSpacer />
       </Body>
 
-      {isOpen && (
+      {isOpen && (showRevote || canCloseVote) && (
         <ActionArea>
           {showRevote && (
             <ActionButton type="button" onClick={onRevote}>
               다시 투표하기
             </ActionButton>
           )}
-          <ActionButton type="button" onClick={handleCloseVote} disabled={closing}>
-            {closing ? "마감하는 중..." : "투표 마감하기"}
-          </ActionButton>
+          {canCloseVote && (
+            <ActionButton type="button" onClick={handleCloseVote} disabled={closing}>
+              {closing ? "마감하는 중..." : "투표 마감하기"}
+            </ActionButton>
+          )}
         </ActionArea>
       )}
 

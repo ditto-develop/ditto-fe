@@ -73,10 +73,8 @@ describe("group meeting vote", () => {
     });
   });
 
-  it("closes the vote from the results screen", () => {
-    cy.visit("/chat/group/3");
-    cy.wait("@getRoomVotes");
-
+  /** 제출 화면에서 한 표를 던지고 결과 화면이 뜰 때까지 기다린다. */
+  function castOneVote() {
     openSubmission();
     cy.get(SUBMISSION).within(() => {
       cy.contains("홍대 카페거리").click();
@@ -84,8 +82,18 @@ describe("group meeting vote", () => {
       cy.contains("button", "투표하기").click();
     });
     cy.wait("@castVote");
+  }
 
-    // 마감은 방 멤버 누구나 할 수 있고 멱등이다.
+  it("lets the vote creator close the vote early", () => {
+    cy.mockApi({ openVoteOverrides: { createdBy: 1 } });
+    // 기본 테스트 토큰엔 숫자 회원 ID 가 없어 '내가 만든 투표'를 판정할 수 없다. 1번으로 로그인한다.
+    cy.login({ accessToken: `e30.${btoa(JSON.stringify({ sub: "1", exp: 4102444800 }))}.test` });
+    cy.visit("/chat/group/3");
+    cy.wait("@getRoomVotes");
+
+    castOneVote();
+
+    // 전원이 투표하기 전 중간 마감은 투표를 만든 사람만 한다.
     cy.get(RESULTS, { timeout: 8000 }).contains("button", "투표 마감하기").click();
     cy.wait("@closeVote");
     cy.get(RESULTS).find('[aria-label="뒤로가기"]').click();
@@ -96,6 +104,33 @@ describe("group meeting vote", () => {
       cy.contains("button", "투표 마감하기").should("not.exist");
       cy.contains("button", "다시 투표하기").should("not.exist");
     });
+  });
+
+  it("hides the close button from members who did not create the vote", () => {
+    cy.visit("/chat/group/3");
+    cy.wait("@getRoomVotes");
+
+    castOneVote();
+
+    cy.get(RESULTS, { timeout: 8000 }).within(() => {
+      cy.contains("3/4 투표").should("be.visible");
+      cy.contains("button", "다시 투표하기").should("be.visible");
+      cy.contains("button", "투표 마감하기").should("not.exist");
+    });
+  });
+
+  it("closes the vote automatically once every member has voted", () => {
+    // 나만 남은 상태 — 내 표가 마지막 표다. 만든 사람이 아니어도 자동 마감된다.
+    cy.mockApi({ openVoteOverrides: { votedCount: 3 } });
+    cy.visit("/chat/group/3");
+    cy.wait("@getRoomVotes");
+
+    castOneVote();
+
+    cy.wait("@closeVote");
+    cy.get(RESULTS).find('[aria-label="뒤로가기"]').click();
+    cy.contains("만남 투표가 마감됐어요 · 결과 보기", { timeout: 8000 }).should("be.visible");
+    cy.contains("만남 투표 진행 중").should("not.exist");
   });
 
   /*

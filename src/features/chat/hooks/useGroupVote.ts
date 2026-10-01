@@ -63,6 +63,11 @@ function upsertVote(votes: GroupVote[], updated: GroupVote): GroupVote[] {
   return next;
 }
 
+/** 이탈하지 않은 멤버가 전원 표를 던졌는데 아직 열려 있는 투표인가. 자동 마감 대상이다. */
+export function shouldAutoClose(vote: GroupVote): boolean {
+  return vote.status === "OPEN" && vote.totalMembers > 0 && vote.votedCount >= vote.totalMembers;
+}
+
 /**
  * 그룹 만남 투표 상태.
  *
@@ -83,6 +88,8 @@ export function useGroupVote(
   const activeRef = useRef(true);
   /** 이미 반영한 투표 SYSTEM 메시지 id. 같은 프레임으로 재조회가 반복되지 않게 막는다. */
   const handledMessageIdsRef = useRef<Set<number>>(new Set());
+  /** 자동 마감을 이미 요청한 투표 id. 같은 투표로 close 가 반복되지 않게 막는다. */
+  const autoClosedVoteIdsRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     activeRef.current = true;
@@ -90,6 +97,29 @@ export function useGroupVote(
       activeRef.current = false;
     };
   }, []);
+
+  /**
+   * 전원이 투표하면 자동 마감한다. 서버에 자동 마감이 없어 FE 가 대신 close 를 부른다.
+   *
+   * cast 는 브로드캐스트되지 않아 남의 표는 재조회 때만 보이므로, 마지막 표를 던진 사람의
+   * cast 응답(또는 그 뒤 누군가의 재조회)에서 판정한다. close 는 멱등이라 여러 기기가 동시에
+   * 불러도 SYSTEM 메시지는 한 번만 나간다. 실패하면 다음 재조회에서 다시 시도된다.
+   */
+  const autoCloseIfEveryoneVoted = useCallback(
+    (vote: GroupVote) => {
+      if (!shouldAutoClose(vote) || autoClosedVoteIdsRef.current.has(vote.voteId)) return;
+      autoClosedVoteIdsRef.current.add(vote.voteId);
+
+      void closeVoteRequest(roomId, vote.voteId)
+        .then((closed) => {
+          if (activeRef.current) setVotes((previous) => upsertVote(previous, closed));
+        })
+        .catch(() => {
+          autoClosedVoteIdsRef.current.delete(vote.voteId);
+        });
+    },
+    [roomId],
+  );
 
   const refresh = useCallback(async () => {
     if (!enabled || !Number.isFinite(roomId)) return;
@@ -99,13 +129,14 @@ export function useGroupVote(
       if (!activeRef.current) return;
       setVotes(list);
       setError(null);
+      list.forEach((vote) => autoCloseIfEveryoneVoted(vote));
     } catch {
       if (!activeRef.current) return;
       setError("투표를 불러오지 못했어요.");
     } finally {
       if (activeRef.current) setLoading(false);
     }
-  }, [enabled, roomId]);
+  }, [autoCloseIfEveryoneVoted, enabled, roomId]);
 
   // 진입 시 1회. 이후 갱신은 SYSTEM 메시지가 끈다.
   useEffect(() => {
@@ -156,9 +187,10 @@ export function useGroupVote(
       const updated = await castVoteRequest(roomId, voteId, body);
       trackEvent("vote_submit", {});
       if (activeRef.current) setVotes((previous) => upsertVote(previous, updated));
+      autoCloseIfEveryoneVoted(updated);
       return updated;
     },
-    [roomId],
+    [autoCloseIfEveryoneVoted, roomId],
   );
 
   /**
