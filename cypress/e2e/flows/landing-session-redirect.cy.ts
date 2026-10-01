@@ -79,4 +79,64 @@ describe("landing session redirect", () => {
       expect(win.localStorage.getItem("accessToken")).to.eq(null);
     });
   });
+
+  /**
+   * 푸시 탭 후 로그아웃 회귀(BE 위키 Frontend-App-Push-Login-Fix-Request §2).
+   *
+   * refresh 가 서버에 닿지 못한 것(네트워크 오류·취소·타임아웃)은 세션이 끝났다는 뜻이
+   * 아니다. 예전에는 이때도 토큰을 지워 쿠키가 멀쩡한 사용자를 로그아웃시켰다.
+   */
+  it("keeps the stored token and continues to /home when refresh cannot reach the server", () => {
+    cy.mockApi();
+    cy.intercept("POST", "**/auth/refresh", { forceNetworkError: true }).as("refreshUnreachable");
+
+    cy.visit("/", {
+      onBeforeLoad(win) {
+        win.localStorage.setItem("accessToken", STORED_ACCESS_TOKEN);
+      },
+    });
+
+    cy.location("pathname", { timeout: 8000 }).should("match", /^\/home\/?$/);
+    cy.window().should((win) => {
+      expect(win.localStorage.getItem("accessToken")).to.eq(STORED_ACCESS_TOKEN);
+    });
+  });
+
+  /**
+   * accessToken 이 비어도 HttpOnly refresh 쿠키는 살아 있을 수 있다. 보호 경로는
+   * 로그인 화면으로 보내기 전에 refresh 를 한 번 시도한다.
+   */
+  it("restores the session from the refresh cookie when a protected route opens without a token", () => {
+    cy.mockApi();
+
+    cy.visit("/home");
+
+    cy.wait("@refreshToken");
+    cy.location("pathname", { timeout: 8000 }).should("match", /^\/home\/?$/);
+    cy.fixture("local-login.json").then((data: { accessToken: string }) => {
+      cy.window().should((win) => {
+        expect(win.localStorage.getItem("accessToken")).to.eq(data.accessToken);
+      });
+    });
+  });
+
+  it("sends a protected route without a token to the landing when the server rejects refresh", () => {
+    cy.mockApi();
+    cy.intercept("POST", "**/auth/refresh", (req) => {
+      req.reply({
+        statusCode: 200,
+        headers: {
+          "access-control-allow-origin": req.headers.origin ?? "*",
+          "access-control-allow-credentials": "true",
+        },
+        body: { success: false, error: { code: "2001", message: "토큰이 없습니다." } },
+      });
+    }).as("refreshRejected");
+
+    cy.visit("/home");
+
+    cy.wait("@refreshRejected");
+    cy.location("pathname", { timeout: 8000 }).should("eq", "/");
+    cy.contains("퀴즈로 만나는 새로운 인연", { timeout: 6000 }).should("be.visible");
+  });
 });

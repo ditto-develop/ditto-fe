@@ -10,7 +10,7 @@ import {
   clearTokens,
   hasValidSession,
 } from "@/shared/lib/auth";
-import { tryRefreshToken } from "@/shared/lib/api/client";
+import { isSessionEnded, refreshSession } from "@/shared/lib/api/externalClient";
 import { getExternalSystemState } from "@/shared/lib/api/externalApi";
 import { API_ERROR_CODE, describeError, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { getGtagScriptSrc, useAnalytics } from "@/shared/lib/analytics";
@@ -68,6 +68,17 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const [initialSplashDone, setInitialSplashDone] = useState(false);
   const sessionVerified = useRef(false);
   const sessionVerifyInFlight = useRef(false);
+  /**
+   * 보호 경로에서 accessToken 없이 refresh 를 시도 중인지(`guardRefreshInFlight`),
+   * 그 시도가 서버에 닿지 못해 루트로 보냈는지(`rootRefreshRetryPending`).
+   *
+   * accessToken 이 비어도 HttpOnly refresh 쿠키는 살아 있을 수 있다(웹뷰 저장소 정리,
+   * 푸시 탭 콜드 스타트 등 — BE 위키 Frontend-App-Push-Login-Fix-Request §2). 쿠키는 JS 가
+   * 볼 수 없으니 로그인 화면으로 보내기 전에 한 번 물어본다. 닿지 못해 루트로 보냈으면
+   * 루트에서 한 번 더 묻는다.
+   */
+  const guardRefreshInFlight = useRef(false);
+  const rootRefreshRetryPending = useRef(false);
   const router = useRouter();
   const pathname = usePathname();
   const { isHomeReady } = useHomeReady();
@@ -211,12 +222,19 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
     sessionVerifyInFlight.current = true;
     setIsVerifyingSession(true);
-    tryRefreshToken().then((token) => {
+    refreshSession().then((result) => {
       sessionVerifyInFlight.current = false;
       setIsVerifyingSession(false);
-      if (token) {
+      if (result.kind === "ok") {
         sessionVerified.current = true;
-      } else {
+        return;
+      }
+      /*
+       * 서버에 닿지 못했으면(unreachable) 세션이 죽었는지 알 수 없다. 기존 토큰으로 홈을
+       * 그대로 두고 — 만료됐으면 홈 API 의 401 이 다시 refresh 한다 — 검증 완료로 표시하지
+       * 않아 다음 진입에서 다시 확인한다. 제재 거부는 SanctionGate 가 제재 화면으로 보낸다.
+       */
+      if (isSessionEnded(result)) {
         clearTokens();
         setIsLoggedIn(false);
         // replace 다 — push 면 로그인 화면에서 뒤로가기를 누른 사용자가 방금 세션이
@@ -252,15 +270,47 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     const loggedIn = hasValidSession();
     if (!loggedIn) {
       if (isPublicPath) {
+        /*
+         * 보호 경로의 refresh 가 서버에 닿지 못해 여기로 왔다면 한 번 더 묻는다.
+         * 성공하면 로그인 상태로 바뀌어 아래 루트 검증 → 홈으로 이어진다.
+         */
+        if (isHomeRedirectCandidate && rootRefreshRetryPending.current) {
+          rootRefreshRetryPending.current = false;
+          void refreshSession().then((result) => {
+            if (result.kind === "ok") setIsLoggedIn(true);
+          });
+        }
         // 비로그인 + 공개 경로: 3초 후 스플래시 숨김
         const timer = setTimeout(() => setSplashDone(true), 3000);
         return () => clearTimeout(timer);
-      } else {
-        // 비로그인 + 보호 경로: 로그인 페이지로 리다이렉트.
-        // 가드 리다이렉트는 전부 replace 다 — 히스토리에 남기면 뒤로가기가
-        // 되돌아왔다가 다시 밀려나는 루프가 된다.
-        router.replace("/");
       }
+      /*
+       * 비로그인 + 보호 경로: 로그인 화면으로 보내기 전에 refresh 를 한 번 시도한다
+       * (`guardRefreshInFlight` 주석). 그동안 화면은 그대로 두는데, 그 화면의 API 가
+       * 먼저 401 을 받아도 refresh 는 single-flight 라 요청은 한 번만 나간다.
+       *
+       * 로그인 화면 리다이렉트는 전부 replace 다 — 히스토리에 남기면 뒤로가기가
+       * 되돌아왔다가 다시 밀려나는 루프가 된다.
+       */
+      if (guardRefreshInFlight.current) return;
+      guardRefreshInFlight.current = true;
+      void refreshSession().then((result) => {
+        guardRefreshInFlight.current = false;
+        if (result.kind === "ok") {
+          sessionVerified.current = true;
+          setIsLoggedIn(true);
+          return;
+        }
+        // 제재 거부는 SanctionGate 가 제재 화면으로 보낸다.
+        if (result.kind === "rejected" && !isSessionEnded(result)) return;
+        // 기다리는 사이 다른 경로(화면 API 의 재시도 등)로 토큰이 생겼으면 그대로 둔다.
+        if (hasValidSession()) {
+          setIsLoggedIn(true);
+          return;
+        }
+        if (result.kind === "unreachable") rootRefreshRetryPending.current = true;
+        router.replace("/");
+      });
       return;
     }
     // 로그인 상태: 루트(/) → refresh 검증 성공 후 홈으로 리다이렉트.
@@ -282,15 +332,24 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
     sessionVerifyInFlight.current = true;
     setIsVerifyingSession(true);
-    tryRefreshToken().then(async (token) => {
+    refreshSession().then(async (result) => {
       sessionVerifyInFlight.current = false;
       setIsVerifyingSession(false);
-      if (!token) {
+      if (result.kind === "rejected") {
         setRootAuthResolved(true);
-        clearTokens();
-        setIsLoggedIn(false);
+        // 제재 거부는 토큰을 둔 채 SanctionGate 가 제재 화면으로 보낸다.
+        if (isSessionEnded(result)) {
+          clearTokens();
+          setIsLoggedIn(false);
+        }
         return;
       }
+      /*
+       * 서버에 닿지 못했으면(unreachable) 토큰을 지우지 않고 기존 토큰으로 홈으로 간다.
+       * 예전에는 여기서 지워서, 푸시를 탭해 문서가 바뀌는 사이 refresh 가 끊기면 쿠키가
+       * 멀쩡한데도 로그아웃됐다. 검증 완료로 표시하지 않으므로 홈 진입 검증이 한 번 더 묻는다.
+       */
+      const verified = result.kind === "ok";
 
       /**
        * refresh 성공은 "토큰이 유효하다"만 보장하지, "계정이 실제로 앱을 쓸 수 있다"는
@@ -313,7 +372,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         // 그 외 에러(네트워크 등)는 기존처럼 홈으로 보내 MainSection이 처리하게 둔다.
       }
 
-      sessionVerified.current = true;
+      if (verified) sessionVerified.current = true;
       router.replace("/home");
     });
   }, [

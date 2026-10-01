@@ -218,8 +218,11 @@ export function isViewingDeepLink(deepLink: string | null, currentPath: string):
 /**
  * 앱이 떠 있는 동안 도착한 푸시를 눈에 보이게 그린다.
  *
- * FCM 은 포그라운드 메시지를 OS 배너로 그려 주지 않는다(안드로이드는 아예, iOS 는
- * presentationOptions 가 있어야). 여기서 로컬 알림으로 한 번 더 그려 두 플랫폼을 맞춘다.
+ * 포그라운드 배너·소리는 **두 플랫폼 모두 여기 한 곳만** 담당한다. 안드로이드는 OS 가
+ * 포그라운드 푸시를 그려 주지 않고, iOS 는 `capacitor.config.ts` 의 `presentationOptions`
+ * 에서 `alert`·`sound` 를 일부러 뺐다 — 넣으면 iOS 가 네이티브에서 바로 배너를 띄워
+ * 아래 `isViewingDeepLink` 검사를 건너뛰므로, 보고 있는 채팅방의 메시지도 배너·소리가
+ * 나고 다른 방 메시지는 두 번 뜬다(BE 위키 Frontend-App-Push-Login-Fix-Request §1).
  * 제목·본문이 아예 없는 data-only 푸시는 그릴 게 없어 건너뛴다.
  */
 function presentInForeground(notification: { title?: string; body?: string; data?: unknown }): void {

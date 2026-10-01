@@ -149,6 +149,14 @@ export interface AnalyticsEventMap {
    */
   api_error: { endpoint: string; status: number; code: string };
 
+  /**
+   * 토큰 refresh 결과. 성공·서버 거부·서버에 닿지 못함을 나눠 센다.
+   *
+   * `unreachable` 은 예전에 로그아웃으로 처리하던 경우다(네트워크 오류·취소·타임아웃).
+   * 이 비율로 "푸시 탭 후 로그아웃" 수정의 효과를 본다. `code` 는 `rejected` 일 때만 채운다.
+   */
+  auth_refresh: { result: "ok" | "rejected" | "unreachable"; code: string };
+
   /** 메시지를 보냈다. 대화가 실제로 일어났는지 보는 핵심 참여 지표다. */
   chat_message_send: { room_type: ChatRoomType; message_type: "TEXT" | "IMAGE" };
 

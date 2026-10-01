@@ -1,4 +1,9 @@
-import { ApiError, notifySanctionedIfBlocked, notifySignupIncompleteIfBlocked } from "@/shared/lib/api/apiError";
+import {
+    ApiError,
+    BLOCKING_SANCTION_CODES,
+    notifySanctionedIfBlocked,
+    notifySignupIncompleteIfBlocked,
+} from "@/shared/lib/api/apiError";
 import { clearTokens, getAccessToken, setTokens } from "@/shared/lib/auth";
 /*
  * ⚠️ 배럴(`@/shared/lib/analytics`)이 아니라 leaf 모듈을 직접 가져간다.
@@ -83,14 +88,50 @@ async function fetchWithTimeout(url: string, init: RequestInit): Promise<Respons
     }
 }
 
+/**
+ * refresh 결과.
+ *
+ * "서버가 이 세션은 끝났다고 답했다"(`rejected`)와 "요청이 서버에 닿지 못했다"
+ * (`unreachable`)를 반드시 구분한다. 예전에는 둘 다 `null` 하나로 뭉개서, 네트워크
+ * 오류·요청 취소·타임아웃에도 토큰을 지웠다 — 앱이 백그라운드에서 돌아온 직후나
+ * 푸시를 탭해 문서가 바뀌는 순간 refresh가 끊기면 쿠키가 멀쩡한데도 로그아웃됐다
+ * (BE 위키 Frontend-App-Push-Login-Fix-Request §2).
+ *
+ * 토큰을 지워도 되는 건 `rejected`뿐이다.
+ */
+export type RefreshResult =
+    | { kind: "ok"; accessToken: string }
+    /** 서버가 success:false로 답함. 코드는 0001·0002·2001·2002·6006·6007·6012 등. */
+    | { kind: "rejected"; code: string }
+    /** 네트워크 오류·취소·타임아웃·5xx — 세션 상태를 알 수 없다. */
+    | { kind: "unreachable" };
+
+/**
+ * 세션 자체가 끝났다는 거부인가.
+ *
+ * 제재(6006/6007)는 제외한다 — 세션을 지우고 로그인 화면으로 보내는 대신
+ * SanctionGate가 제재 안내 화면으로 보낸다(`notifySanctionedIfBlocked`).
+ */
+export function isSessionEnded(result: RefreshResult): boolean {
+    return result.kind === "rejected" && !BLOCKING_SANCTION_CODES.includes(result.code);
+}
+
+function reportRefresh(result: RefreshResult): void {
+    trackEvent("auth_refresh", {
+        result: result.kind,
+        code: result.kind === "rejected" ? result.code : "",
+    });
+}
+
 // 토큰 refresh 정본: 동시에 여러 401이 발생해도 refresh 요청은 1회만 발생(single-flight).
 // generated client(client.ts)의 tryRefreshToken도 이 함수로 위임된다.
-let refreshPromise: Promise<string | null> | null = null;
+let refreshPromise: Promise<RefreshResult> | null = null;
 
-export async function refreshAccessToken(): Promise<string | null> {
+export function refreshSession(): Promise<RefreshResult> {
     if (refreshPromise) return refreshPromise;
 
-    refreshPromise = (async () => {
+    refreshPromise = (async (): Promise<RefreshResult> => {
+        let result: RefreshResult;
         try {
             const refreshUrl = `${getExternalApiBase()}${REFRESH_PATH}`;
             console.log(`[externalApiFetch] → POST ${refreshUrl} (token refresh)`);
@@ -108,17 +149,33 @@ export async function refreshAccessToken(): Promise<string | null> {
             const json = (await res.json().catch(() => null)) as ExternalResponse<RefreshData> | null;
             console.log(`[externalApiFetch] ← ${res.status} POST ${refreshUrl} (token refresh)`, json);
             const newToken = json?.data?.accessToken;
-            if (!res.ok || !json?.success || !newToken) return null;
-            setTokens(newToken);
-            return newToken;
+            if (res.ok && json?.success && newToken) {
+                setTokens(newToken);
+                result = { kind: "ok", accessToken: newToken };
+            } else if (res.status >= 500 || !json) {
+                // 서버가 세션을 판정한 응답이 아니다(게이트웨이 오류·본문 없음).
+                result = { kind: "unreachable" };
+            } else {
+                const code = getErrorCode(json.error);
+                notifySanctionedIfBlocked(code);
+                result = { kind: "rejected", code };
+            }
         } catch {
-            return null;
+            result = { kind: "unreachable" };
         } finally {
             refreshPromise = null;
         }
+        reportRefresh(result);
+        return result;
     })();
 
     return refreshPromise;
+}
+
+/** 새 accessToken만 필요한 호출부용. 실패 사유를 구분해야 하면 `refreshSession`을 쓴다. */
+export async function refreshAccessToken(): Promise<string | null> {
+    const result = await refreshSession();
+    return result.kind === "ok" ? result.accessToken : null;
 }
 
 async function doFetch<T>(path: string, options: ExternalRequestOptions, token: string): Promise<T> {
@@ -209,8 +266,9 @@ export async function externalApiFetch<T>(
             throw err;
         }
         if (status === 401) {
-            const newToken = await refreshAccessToken();
-            if (newToken) {
+            const refreshed = await refreshSession();
+            if (refreshed.kind === "ok") {
+                const newToken = refreshed.accessToken;
                 /*
                  * refresh 후 재시도가 성공하면 실패로 세지 않는다 — 만료된 토큰을
                  * 갈아 끼우는 건 정상 동작이라, 세면 api_error 가 401 로 뒤덮여
@@ -223,7 +281,9 @@ export async function externalApiFetch<T>(
                     throw retryErr;
                 }
             }
-            clearTokens();
+            // 서버가 세션을 끝냈을 때만 지운다. 닿지 못했으면(unreachable) 쿠키가 살아 있을
+            // 수 있으니 로그인 상태는 두고 에러만 올린다 — 다음 요청이 다시 refresh 한다.
+            if (isSessionEnded(refreshed)) clearTokens();
         }
         reportApiError(path, err);
         throw err;
