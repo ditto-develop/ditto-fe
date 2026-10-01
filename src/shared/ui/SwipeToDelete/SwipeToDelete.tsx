@@ -3,8 +3,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
-/** 완전히 열렸을 때 드러나는 삭제 버튼의 폭. */
-const ACTION_WIDTH = 80;
+/** 완전히 열렸을 때 드러나는 삭제 영역의 폭. 버튼은 이 안에서 작은 알약 모양으로 가운데 놓인다. */
+const ACTION_WIDTH = 72;
 
 /** 이만큼 넘게 밀면 손을 떼도 열린 상태로 남는다. */
 const OPEN_THRESHOLD = ACTION_WIDTH / 2;
@@ -178,19 +178,22 @@ const ActionSlot = styled.div`
   bottom: 0;
   width: ${ACTION_WIDTH}px;
   display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const DeleteButton = styled.button`
-  flex: 1;
   border: none;
+  border-radius: var(--space-10);
+  padding: var(--space-2) var(--space-3);
   cursor: pointer;
   background-color: var(--color-semantic-status-negative);
   color: var(--color-semantic-static-white);
   font-family: inherit;
-  font-size: var(--typography-label-1-normal-font-size);
+  font-size: var(--typography-caption-1-font-size);
   font-weight: 600;
-  line-height: var(--typography-label-1-normal-line-height);
-  letter-spacing: var(--typography-label-1-normal-letter-spacing);
+  line-height: var(--typography-caption-1-line-height);
+  letter-spacing: var(--typography-caption-1-letter-spacing);
 
   &:disabled {
     cursor: default;
