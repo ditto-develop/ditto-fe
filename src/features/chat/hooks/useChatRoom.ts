@@ -85,16 +85,17 @@ export function mergeAscending(current: ChatMessage[], incoming: ChatMessage[]):
   return [...byId.values()].sort((left, right) => left.id - right.id);
 }
 
-/** READ는 직전 커서보다 큰 구간만 줄인다. 내 읽음은 내 메시지 수에 영향을 주지 않는다. */
-export function applyReadEvent(
-  messages: ChatMessage[],
-  event: ChatReadEvent,
-  myMemberId: number | null,
-): ChatMessage[] {
-  if (myMemberId === null || event.memberId === myMemberId) return messages;
+/**
+ * READ는 읽은 사람의 직전 커서보다 큰 구간만 줄인다.
+ *
+ * 읽은 사람이 보낸 메시지를 뺀 모든 메시지가 대상이다 — 상대가 읽으면 내 버블이, 내가 읽으면
+ * (서버가 내 READ도 방 토픽으로 돌려준다) 상대 버블이 줄어든다. 직전 커서로 구간을 자르므로
+ * 같은 사람의 읽음이 두 번 빠지지 않는다.
+ */
+export function applyReadEvent(messages: ChatMessage[], event: ChatReadEvent): ChatMessage[] {
   return messages.map((message) =>
     message.roomId === event.roomId &&
-    message.senderId === myMemberId &&
+    message.senderId !== event.memberId &&
     message.messageType !== "SYSTEM" &&
     message.id > (event.previousLastReadMessageId ?? 0) &&
     message.id <= event.lastReadMessageId &&
@@ -364,7 +365,7 @@ export function useChatRoom(
     const socket = createChatSocket(roomId, {
       onMessage: (message) => applyIncoming([message]),
       onRead: (event) => {
-        setMessages((previous) => applyReadEvent(previous, event, myMemberIdRef.current));
+        setMessages((previous) => applyReadEvent(previous, event));
       },
       onConnect: () => {
         setStatus("connected");

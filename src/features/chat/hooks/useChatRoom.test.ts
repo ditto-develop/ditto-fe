@@ -46,27 +46,33 @@ describe("applyReadEvent", () => {
     previousLastReadMessageId: 40, lastReadMessageId: 42,
   };
 
-  it("only decrements my messages inside the new read interval", () => {
-    const result = applyReadEvent([message(40), message(41), message(42), message(43)], read, 2);
+  it("decrements messages inside the reader's new read interval", () => {
+    const result = applyReadEvent([message(40), message(41), message(42), message(43)], read);
     expect(result.map((item) => item.unreadCount)).toEqual([2, 1, 1, 2]);
+  });
+
+  it("decrements the partner's messages when I am the reader", () => {
+    // 내 READ도 방 토픽으로 돌아온다. 상대(senderId 2)의 버블 숫자가 줄어야 한다.
+    const result = applyReadEvent([message(41), { ...message(42), senderId: 1 }], {
+      ...read, memberId: 1,
+    });
+    expect(result.map((item) => item.unreadCount)).toEqual([1, 2]);
   });
 
   it("does not decrement the earlier interval again on the next read", () => {
     const first = applyReadEvent([message(40), message(41), message(42)], {
       ...read, previousLastReadMessageId: null, lastReadMessageId: 40,
-    }, 2);
-    expect(applyReadEvent(first, read, 2).map((item) => item.unreadCount)).toEqual([1, 1, 1]);
+    });
+    expect(applyReadEvent(first, read).map((item) => item.unreadCount)).toEqual([1, 1, 1]);
   });
 
-  it("ignores self reads, other rooms, other senders, SYSTEM and zero counts", () => {
+  it("ignores other rooms, the reader's own messages, SYSTEM and zero counts", () => {
     const messages = [
       { ...message(41), roomId: 2 },
       { ...message(41), senderId: 3 },
       { ...message(41), messageType: "SYSTEM" as const },
       { ...message(41), unreadCount: 0 },
     ];
-    expect(applyReadEvent(messages, read, 2)).toEqual(messages);
-    expect(applyReadEvent(messages, { ...read, memberId: 2 }, 2)).toBe(messages);
-    expect(applyReadEvent(messages, read, null)).toBe(messages);
+    expect(applyReadEvent(messages, read)).toEqual(messages);
   });
 });

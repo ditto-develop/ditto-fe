@@ -84,4 +84,68 @@ describe("chat read receipts", () => {
       cy.wait("@markChatAsRead").its("request.body").should("deep.equal", { lastReadMessageId: 43 });
     });
   });
+
+  it("one-on-one: my own READ lowers the partner's bubbles too", () => {
+    let deliver: (payload: object) => void = () => { throw new Error("socket not subscribed"); };
+    let subscribed = false;
+    cy.fixture("chat-messages.json").then((page) => {
+      const partnerMessage = page.messages.find((message: { senderId: number }) => message.senderId !== 1);
+      cy.intercept("GET", "**/api/**/chat/rooms/1/messages*", {
+        body: {
+          success: true,
+          data: {
+            messages: [41, 40].map((id) => ({
+              ...partnerMessage, id, roomId: 1, messageType: "TEXT",
+              content: `상대 메시지 ${id}`, imageUrl: null, unreadCount: 1,
+            })),
+            nextCursor: null,
+          },
+        },
+      }).as("partnerMessages");
+    });
+    cy.visit("/chat/one-on-one/1", {
+      onBeforeLoad(win) {
+        const OriginalWebSocket = win.WebSocket;
+        class ChatSocket {
+          readyState = 1;
+          binaryType = "arraybuffer";
+          onopen: (() => void) | null = null;
+          onmessage: ((event: { data: string }) => void) | null = null;
+          onclose: (() => void) | null = null;
+          constructor() { setTimeout(() => this.onopen?.(), 0); }
+          send(frame: string) {
+            if (frame.startsWith("CONNECT")) {
+              setTimeout(() => this.onmessage?.({
+                data: "CONNECTED\nversion:1.2\nheart-beat:0,0\n\n\0",
+              }), 0);
+            }
+            if (frame.startsWith("SUBSCRIBE")) {
+              const subscription = frame.match(/\nid:([^\n]+)/)?.[1];
+              deliver = (payload) => this.onmessage?.({
+                data: `MESSAGE\nsubscription:${subscription}\nmessage-id:read\ndestination:/sub/chat/rooms/1\n\n${JSON.stringify(payload)}\0`,
+              });
+              subscribed = true;
+            }
+          }
+          close() { this.readyState = 3; }
+        }
+        win.WebSocket = new Proxy(OriginalWebSocket, {
+          construct(target, args) {
+            return String(args[0]).endsWith("/ws")
+              ? new ChatSocket()
+              : Reflect.construct(target, args);
+          },
+        });
+      },
+    });
+    cy.wait("@partnerMessages");
+    cy.get('[aria-label="안 읽은 사람 1명"]').should("have.length", 2);
+    cy.wrap(null).should(() => expect(subscribed).to.equal(true));
+    // 서버는 내 READ 도 방 토픽으로 돌려준다(memberId 1 = 나).
+    cy.then(() => deliver({
+      type: "READ", roomId: 1, memberId: 1,
+      previousLastReadMessageId: null, lastReadMessageId: 41,
+    }));
+    cy.get('[aria-label="안 읽은 사람 1명"]').should("not.exist");
+  });
 });
