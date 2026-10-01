@@ -29,10 +29,10 @@ describe("진입 — 홈 매칭 카드", () => {
       cy.contains("남은 시간").should("be.visible");
     });
 
-    it("결과 확인을 누르면 1:1 매칭 결과 페이지로 이동한다", () => {
+    it("대화 신청하기를 누르면 1:1 매칭 결과 페이지로 이동한다", () => {
       cy.visit("/home");
 
-      cy.contains("결과 확인", { timeout: 6000 }).click();
+      cy.contains("button", "대화 신청하기", { timeout: 6000 }).click();
       cy.location("pathname", { timeout: 6000 }).should("match", /^\/matching\/?$/);
       cy.contains("이번 주 매칭 결과").should("be.visible");
     });

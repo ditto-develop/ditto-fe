@@ -20,7 +20,7 @@ describe("뒤로가기", () => {
     cy.login();
 
     cy.visit("/home");
-    cy.contains("결과 확인", { timeout: 6000 }).click();
+    cy.contains("button", "대화 신청하기", { timeout: 6000 }).click();
     cy.location("pathname", { timeout: 6000 }).should("match", /^\/matching\/?$/);
 
     cy.get('img[alt="back"]').click();
