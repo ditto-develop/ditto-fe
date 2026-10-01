@@ -17,7 +17,11 @@ import { getGtagScriptSrc, useAnalytics } from "@/shared/lib/analytics";
 import { initChunkReloadGuard } from "@/shared/lib/chunkReload";
 import { isBootSplashPath, normalizePathname } from "@/shared/lib/routePath";
 import { initAppShell } from "@/shared/lib/native/appShell";
-import { initPushNotifications, openNotification } from "@/shared/lib/native/pushNotifications";
+import {
+  clearChatRoomNotifications,
+  initPushNotifications,
+  openNotification,
+} from "@/shared/lib/native/pushNotifications";
 import {
   clearLegacyScheduledNotifications,
   initLocalNotifications,
@@ -198,6 +202,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       cleanups.forEach((dispose) => dispose());
     };
   }, [isLoggedIn, router]);
+
+  // 채팅방에 들어오면 알림 센터에 남은 그 방 알림을 지운다. 웹·채팅방 밖에서는 no-op 이다.
+  useEffect(() => {
+    void clearChatRoomNotifications(pathname);
+  }, [pathname]);
 
   // 쓰레기 토큰 감시: 주기적 + 탭 간 storage 변경 시 제거·동기화
   useEffect(() => {

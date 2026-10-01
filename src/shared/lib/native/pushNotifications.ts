@@ -235,8 +235,12 @@ export function toChatRoomKey(deepLink: string | null): string | null {
 }
 
 /**
- * 알림 센터에 남은 같은 채팅방 알림을 모두 지운다. 한 건을 탭해 방에 들어가면
- * 나머지는 이미 본 메시지라 남겨 둘 이유가 없다.
+ * `path` 가 채팅방이면 알림 센터에 남은 그 방 알림을 모두 지운다. 채팅방이 아니면
+ * 아무것도 하지 않는다. 방에 들어갔다면(알림 탭이든 목록에서든) 남은 알림은 이미 본
+ * 메시지라 남겨 둘 이유가 없다.
+ *
+ * 부르는 곳: 알림 탭(`openNotification`), 경로 변경(`ClientLayout`), 앱 복귀(채팅방을
+ * 열어 둔 채 백그라운드에 있는 동안 쌓인 알림).
  *
  * - 원격 푸시: delivered 목록의 `data.deepLink` 로 고른다. iOS 만 payload 를
  *   돌려주고, Android 는 FCM SDK 가 그린 알림의 payload 를 읽을 수 없어 아무것도
@@ -245,8 +249,9 @@ export function toChatRoomKey(deepLink: string | null): string | null {
  *
  * 화면 이동과 무관한 정리라 실패해도 조용히 넘어간다.
  */
-async function clearChatRoomNotifications(roomKey: string): Promise<void> {
-    if (!isNativeApp()) return;
+export async function clearChatRoomNotifications(path: string | null): Promise<void> {
+    const roomKey = toChatRoomKey(path);
+    if (!roomKey || !isNativeApp()) return;
     const isSameRoom = (deepLink: string) => toChatRoomKey(toInternalPath(deepLink)) === roomKey;
 
     await Promise.all([
@@ -311,8 +316,8 @@ export function openNotification(data: unknown, navigate: (path: string) => void
 
     // `deepLink` 키가 아예 없을 수 있다(BE 위키 §3) — 그때는 앱만 열고 끝낸다.
     const path = extractDeepLink(data);
-    const roomKey = toChatRoomKey(path);
-    if (roomKey) void clearChatRoomNotifications(roomKey);
+    // 이미 그 방을 보고 있으면 이동해도 경로가 그대로라 경로 변경 쪽 정리가 돌지 않는다.
+    void clearChatRoomNotifications(path);
     // 딥링크 경로 자체는 싣지 않는다 — 방 번호가 그대로 들어 있다. 유무만 본다.
     trackEvent("notification_open", { has_deep_link: path !== null });
     if (path) navigate(path);
@@ -418,7 +423,9 @@ export async function initPushNotifications({ navigate }: PushOptions): Promise<
     const { App } = await import("@capacitor/app");
     handles.push(
         await App.addListener("appStateChange", ({ isActive }) => {
-            if (isActive) void retryRegistration();
+            if (!isActive) return;
+            void retryRegistration();
+            void clearChatRoomNotifications(window.location.pathname);
         }),
     );
     window.addEventListener("online", onOnline);

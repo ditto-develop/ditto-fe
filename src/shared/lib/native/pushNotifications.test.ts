@@ -80,7 +80,9 @@ vi.mock("@/features/notification/api/notificationApi", () => ({
  * jsdom 을 devDependency 로 끌어오지 않는다.
  */
 beforeAll(() => {
-  Object.assign(globalThis, { window: new EventTarget() });
+  Object.assign(globalThis, {
+    window: Object.assign(new EventTarget(), { location: { pathname: "/home/" } }),
+  });
 });
 
 afterAll(() => {
@@ -407,6 +409,37 @@ describe("알림 탭 시 같은 채팅방 알림 정리", () => {
     const matches = clearForegroundNotifications.mock.calls[0][0];
     expect(matches("/chat/one-on-one/305/")).toBe(true);
     expect(matches("/chat/one-on-one/306/")).toBe(false);
+  });
+
+  it("앱 복귀 시 지금 보고 있는 채팅방의 알림을 지운다", async () => {
+    const { dispose } = await initOnNative();
+    const notification = { id: "a", data: { deepLink: "/chat/group/7/" } };
+    getDeliveredNotifications.mockResolvedValueOnce({ notifications: [notification] });
+    window.location.pathname = "/chat/group/7/";
+
+    const onAppState = appAddListener.mock.calls.at(-1)?.[1] as unknown as (
+      state: { isActive: boolean },
+    ) => void;
+    onAppState({ isActive: true });
+
+    await vi.waitFor(() =>
+      expect(removeDeliveredNotifications).toHaveBeenCalledWith({ notifications: [notification] }),
+    );
+    window.location.pathname = "/home/";
+    dispose();
+  });
+
+  it("채팅방이 아닌 경로·웹에서는 아무것도 지우지 않는다", async () => {
+    const { clearChatRoomNotifications } = await import("@/shared/lib/native/pushNotifications");
+
+    isNativePlatform.mockReturnValue(true);
+    await clearChatRoomNotifications("/home/");
+    await clearChatRoomNotifications(null);
+    isNativePlatform.mockReturnValue(false);
+    await clearChatRoomNotifications("/chat/group/7/");
+
+    expect(getDeliveredNotifications).not.toHaveBeenCalled();
+    expect(clearForegroundNotifications).not.toHaveBeenCalled();
   });
 
   it("채팅방이 아닌 알림을 탭하면 아무것도 지우지 않는다", async () => {
