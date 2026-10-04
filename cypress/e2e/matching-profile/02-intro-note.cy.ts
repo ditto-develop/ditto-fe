@@ -134,6 +134,25 @@ describe("3.2 소개노트", () => {
       cy.contains("대화 신청 완료", { timeout: 6000 }).should("be.visible");
     });
 
+    // 상대가 이미 다른 사람과 성사됐으면 서버가 막는다(BE #235). 다시 시도하라고 하지 않는다.
+    it("상대가 이미 매칭됐으면(5010) 이유를 알리고 홈으로 돌아간다", () => {
+      cy.intercept("POST", "**/api/v1/matches/request*", {
+        statusCode: 409,
+        body: {
+          success: false,
+          error: { code: "5010", message: "상대가 이미 다른 사람과 매칭되었습니다." },
+        },
+      }).as("sendMatchRequestConflict");
+
+      cy.contains("대화 신청하기").click();
+      cy.contains("네, 신청할게요").click();
+
+      cy.wait("@sendMatchRequestConflict");
+      cy.contains("상대가 이미 다른 분과 대화가 성사됐어요.").should("be.visible");
+      cy.contains("잠시 후 다시 시도해주세요").should("not.exist");
+      cy.location("pathname", { timeout: 6000 }).should("match", /^\/home\/?$/);
+    });
+
     it("신청 모달에서 취소하면 모달만 닫힌다", () => {
       cy.contains("대화 신청하기").click();
       cy.contains("대화를 신청할까요?").should("be.visible");

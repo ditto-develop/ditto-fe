@@ -47,6 +47,20 @@ function isNotCurrentWeek(error: unknown): boolean {
 }
 
 /**
+ * 한쪽이 이번 주 1:1 매칭이 이미 성사돼 서버가 신청·수락을 막은 경우의 안내(BE #235).
+ * 다시 시도해도 같은 결과라 "잠시 후 다시 시도"로 뭉개지 않는다. 해당 없으면 null.
+ */
+function toAlreadyMatchedText(error: unknown): string | null {
+    if (hasApiErrorCode(error, API_ERROR_CODE.COUNTERPART_ALREADY_MATCHED)) {
+        return "상대가 이미 다른 분과 대화가 성사됐어요.";
+    }
+    if (hasApiErrorCode(error, API_ERROR_CODE.ALREADY_MATCHED)) {
+        return "이번 주 대화 상대가 이미 정해졌어요.";
+    }
+    return null;
+}
+
+/**
  * IntroNoteContainer — Figma: 3.2 소개노트
  * 실제 API 연결 + 상태별 버튼 (before_request / after_acceptance / completed / chat_started)
  * chat_started: 매칭 성사 후 프로필 조회 전용 (CTA 버튼 없음)
@@ -105,6 +119,12 @@ export function IntroNoteContainer({
                 router.replace("/home");
                 return;
             }
+            const alreadyMatchedText = toAlreadyMatchedText(err);
+            if (alreadyMatchedText) {
+                showToast(alreadyMatchedText, "error");
+                router.replace("/home");
+                return;
+            }
             showToast("대화 신청에 실패했어요. 잠시 후 다시 시도해주세요.", "error");
         } finally {
             setActing(false);
@@ -123,6 +143,12 @@ export function IntroNoteContainer({
             trackEvent("match_request_accept", { ok: false });
             if (isNotCurrentWeek(err)) {
                 showToast(NOT_CURRENT_WEEK_TEXT, "error");
+                router.replace("/home");
+                return;
+            }
+            const alreadyMatchedText = toAlreadyMatchedText(err);
+            if (alreadyMatchedText) {
+                showToast(alreadyMatchedText, "error");
                 router.replace("/home");
                 return;
             }

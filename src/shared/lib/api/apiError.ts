@@ -80,6 +80,10 @@ export const API_ERROR_CODE = {
    * 화면을 맞추는 편이 자연스럽다**(BE 위키 Frontend-Group-Matching-Guide §에러 코드).
    */
   GROUP_ALREADY_ACCEPTED: "5005",
+  /** 내가 이번 주 1:1 매칭이 이미 성사됨 — 다른 신청·수락은 서버가 막는다(BE #235). */
+  ALREADY_MATCHED: "5003",
+  /** 상대가 이번 주 다른 사람과 1:1 매칭이 성사됨(BE #235). 다시 시도해도 결과는 같다. */
+  COUNTERPART_ALREADY_MATCHED: "5010",
   /** 이미 거절한 그룹 초대. 한 그룹을 수락하면 같은 주의 나머지가 자동 거절되므로 흔하다. */
   GROUP_ALREADY_DECLINED: "5006",
   /**
