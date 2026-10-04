@@ -79,7 +79,7 @@ export const adminMatchCandidateList = {
       age: 29,
       introduction: "운동과 영화를 좋아해요.",
       location: "seoul",
-      profileImageUrl: "/assets/avatar/m1.png",
+      profileImageUrl: "/assets/avatar/m1.webp",
       matchRate: 83,
       scoreBreakdown: {
         quizMatchRate: 83,

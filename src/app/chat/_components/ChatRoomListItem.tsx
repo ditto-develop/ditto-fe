@@ -63,14 +63,14 @@ export function ChatRoomListItem({ room }: ChatRoomListItemProps) {
       <AvatarArea>
         {room.isGroup && room.coParticipantAvatarUrl ? (
           <GroupGrid>
-            <SmallAvatar src={room.partnerAvatarUrl ?? "/assets/avatar/f1.png"} alt="" />
+            <SmallAvatar src={room.partnerAvatarUrl ?? "/assets/avatar/f1.webp"} alt="" />
             <SmallAvatar src={room.coParticipantAvatarUrl} alt="" />
-            <SmallAvatar src={room.partnerAvatarUrl ?? "/assets/avatar/f1.png"} alt="" />
+            <SmallAvatar src={room.partnerAvatarUrl ?? "/assets/avatar/f1.webp"} alt="" />
             <SmallAvatar src={room.coParticipantAvatarUrl} alt="" />
           </GroupGrid>
         ) : (
           <SingleAvatar
-            src={room.partnerAvatarUrl ?? "/assets/avatar/f1.png"}
+            src={room.partnerAvatarUrl ?? "/assets/avatar/f1.webp"}
             alt={room.partnerNickname}
           />
         )}

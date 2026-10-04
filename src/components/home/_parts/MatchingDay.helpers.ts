@@ -76,9 +76,9 @@ export function matchAcceptedNotifKey(quizSetId: string): string {
 
 export function getAvatarUrl(gender: string, index: number = 0): string {
   if (gender === 'FEMALE') {
-    return `/assets/avatar/f${(index % 3) + 1}.png`;
+    return `/assets/avatar/f${(index % 3) + 1}.webp`;
   }
-  return `/assets/avatar/m${(index % 3) + 1}.png`;
+  return `/assets/avatar/m${(index % 3) + 1}.webp`;
 }
 
 export function formatGender(gender: string): string {

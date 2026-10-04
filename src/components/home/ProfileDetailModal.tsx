@@ -115,7 +115,7 @@ export function ProfileDetailModal({
 
         <ContentBody $hideCta={hideCta}>
           <ProfileIntroView
-            avatarUrl={profile.avatarUrl ?? '/assets/avatar/m1.png'}
+            avatarUrl={profile.avatarUrl ?? '/assets/avatar/m1.webp'}
             name={profile.name}
             rating={currentDetailData?.rating}
             metaText={metaText}

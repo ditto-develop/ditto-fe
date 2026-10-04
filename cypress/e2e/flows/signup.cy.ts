@@ -155,7 +155,7 @@ describe("signup flow", () => {
     cy.get('[aria-label="프로필 이미지 수정"]')
       .prev()
       .should("have.css", "background-image")
-      .and("include", "f1.png");
+      .and("include", "f1.webp");
 
     cy.get('[aria-label="프로필 이미지 수정"]').click();
     cy.contains("캐리커쳐 선택하기", { timeout: 4000 }).should("be.visible");

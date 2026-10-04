@@ -66,7 +66,7 @@ export function GroupMemberProfilePage({
   }, [userId]);
 
   const avatarSrc =
-    profile?.profileImageUrl || profileImageUrl || "/assets/avatar/m1.png";
+    profile?.profileImageUrl || profileImageUrl || "/assets/avatar/m1.webp";
 
   const metaText = profile
     ? [

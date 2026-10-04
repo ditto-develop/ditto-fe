@@ -179,25 +179,25 @@ interface CaricatureSelectProps {
 }
 
 const maleAvatars = [
-  { id: "m1", src: "/assets/avatar/m1.png" },
-  { id: "m2", src: "/assets/avatar/m2.png" },
-  { id: "m3", src: "/assets/avatar/m3.png" },
-  { id: "m4", src: "/assets/avatar/m4.png" },
-  { id: "m5", src: "/assets/avatar/m5.png" },
-  { id: "m6", src: "/assets/avatar/m6.png" },
-  { id: "m7", src: "/assets/avatar/m7.png" },
-  { id: "m8", src: "/assets/avatar/m8.png" },
+  { id: "m1", src: "/assets/avatar/m1.webp" },
+  { id: "m2", src: "/assets/avatar/m2.webp" },
+  { id: "m3", src: "/assets/avatar/m3.webp" },
+  { id: "m4", src: "/assets/avatar/m4.webp" },
+  { id: "m5", src: "/assets/avatar/m5.webp" },
+  { id: "m6", src: "/assets/avatar/m6.webp" },
+  { id: "m7", src: "/assets/avatar/m7.webp" },
+  { id: "m8", src: "/assets/avatar/m8.webp" },
 ];
 
 const femaleAvatars = [
-  { id: "f1", src: "/assets/avatar/f1.png" },
-  { id: "f2", src: "/assets/avatar/f2.png" },
-  { id: "f3", src: "/assets/avatar/f3.png" },
-  { id: "f4", src: "/assets/avatar/f4.png" },
-  { id: "f5", src: "/assets/avatar/f5.png" },
-  { id: "f6", src: "/assets/avatar/f6.png" },
-  { id: "f7", src: "/assets/avatar/f7.png" },
-  { id: "f8", src: "/assets/avatar/f8.png" },
+  { id: "f1", src: "/assets/avatar/f1.webp" },
+  { id: "f2", src: "/assets/avatar/f2.webp" },
+  { id: "f3", src: "/assets/avatar/f3.webp" },
+  { id: "f4", src: "/assets/avatar/f4.webp" },
+  { id: "f5", src: "/assets/avatar/f5.webp" },
+  { id: "f6", src: "/assets/avatar/f6.webp" },
+  { id: "f7", src: "/assets/avatar/f7.webp" },
+  { id: "f8", src: "/assets/avatar/f8.webp" },
 ];
 
 /**

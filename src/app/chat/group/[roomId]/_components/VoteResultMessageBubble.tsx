@@ -118,7 +118,7 @@ export function VoteResultMessageBubble({
     <ReceivedRow data-chat-message-id={messageId}>
       {isFirstInGroup ? (
         <AvatarSlot>
-          <Avatar src={senderAvatarUrl ?? "/assets/avatar/f1.png"} alt={senderNickname} />
+          <Avatar src={senderAvatarUrl ?? "/assets/avatar/f1.webp"} alt={senderNickname} />
         </AvatarSlot>
       ) : (
         <AvatarPlaceholder />

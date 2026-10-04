@@ -98,12 +98,15 @@ export function EditProfileContainer() {
 
     const nicknameLocked = nicknameQuota.remaining !== null && nicknameQuota.remaining <= 0;
 
-    const avatarUrl = useMemo(() => `/assets/avatar/${profileId}.png`, [profileId]);
+    const avatarUrl = useMemo(() => `/assets/avatar/${profileId}.webp`, [profileId]);
     const trimmedNickname = nickname.trim();
     const nicknameChanged = Boolean(profile) && trimmedNickname !== profile?.nickname;
     const isValid = interests.length > 0 && trimmedNickname.length > 0 && Boolean(location) && Boolean(occupation);
+    // URL 이 아니라 아바타 ID 로 비교한다. 저장된 URL 은 확장자가 섞여 있어(toAvatarId) 문자열로
+    // 비교하면 아무것도 안 바꿔도 저장 버튼이 켜졌다.
+    const avatarChanged = Boolean(profile) && profileId !== toAvatarId(profile?.profileImageUrl, profile?.gender ?? "");
     const isDirty = Boolean(profile) && (
-        avatarUrl !== (profile?.profileImageUrl ?? "") ||
+        avatarChanged ||
         interests.join("|") !== (profile?.interests ?? []).join("|") ||
         nicknameChanged ||
         location !== (profile?.location ?? null) ||
@@ -314,8 +317,14 @@ function ReadOnlyField({ label, value, hasChevron = false }: { label: string; va
     );
 }
 
+/**
+ * 저장된 프로필 사진 URL에서 아바타 ID(m1~m8, f1~f8)를 읽는다. 세 형태가 섞여 있다 —
+ * 가입은 `/onboarding/profileimg/avatar/m1.svg`, 예전 프로필 수정은 `/assets/avatar/m1.png`,
+ * 지금 프로필 수정은 `/assets/avatar/m1.webp`. 예전에는 `.png` 만 읽어 가입 그대로인 회원은
+ * 수정 화면에서 자기 아바타 대신 기본값이 골라져 있었다.
+ */
 function toAvatarId(profileImageUrl: string | undefined, gender: string): string {
-    const match = profileImageUrl?.match(/\/([^/.]+)\.png$/);
+    const match = profileImageUrl?.match(/\/([mf]\d)\.(?:png|svg|webp)$/);
     if (match?.[1]) return match[1];
     return gender === "FEMALE" ? "f1" : "m1";
 }

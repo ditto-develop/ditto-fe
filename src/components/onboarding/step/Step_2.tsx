@@ -275,7 +275,7 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
   return (
     <ProfileContainer>
       <ProfileWrapper>
-        <ProfileImg imageUrl={"/assets/avatar/" + profile + ".png"} />
+        <ProfileImg imageUrl={"/assets/avatar/" + profile + ".webp"} />
         <ProfileEdit
           role="button"
           tabIndex={0}

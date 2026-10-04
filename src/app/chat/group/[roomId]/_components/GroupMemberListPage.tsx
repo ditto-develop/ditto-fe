@@ -118,7 +118,7 @@ export function GroupMemberListPage({
               <MemberCard as="div">
                 <CardRow>
                   <AvatarImg
-                    src={myProfile.profileImageUrl || "/assets/avatar/m1.png"}
+                    src={myProfile.profileImageUrl || "/assets/avatar/m1.webp"}
                     alt={myProfile.nickname}
                   />
                   <MemberInfo>
@@ -161,7 +161,7 @@ export function GroupMemberListPage({
                           src={
                             profile?.profileImageUrl ||
                             member.profileImageUrl ||
-                            "/assets/avatar/m1.png"
+                            "/assets/avatar/m1.webp"
                           }
                           alt={member.nickname}
                         />

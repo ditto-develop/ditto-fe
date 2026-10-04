@@ -114,7 +114,7 @@ export function MessageBubble({
           disabled={!onPartnerClick}
           aria-label={`${partnerNickname} 프로필 보기`}
         >
-          <Avatar src={partnerAvatarUrl ?? "/assets/avatar/f1.png"} alt="" />
+          <Avatar src={partnerAvatarUrl ?? "/assets/avatar/f1.webp"} alt="" />
         </AvatarSlot>
       )}
       <ReceivedContainer>

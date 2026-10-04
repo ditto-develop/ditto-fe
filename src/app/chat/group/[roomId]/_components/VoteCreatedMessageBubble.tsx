@@ -90,7 +90,7 @@ export function VoteCreatedMessageBubble({
       {isFirstInGroup ? (
         <AvatarSlot>
           <Avatar
-            src={senderAvatarUrl ?? "/assets/avatar/f1.png"}
+            src={senderAvatarUrl ?? "/assets/avatar/f1.webp"}
             alt={senderNickname}
           />
         </AvatarSlot>

@@ -73,7 +73,7 @@ describe("edit my profile", () => {
       expect(lastProfilePatch).to.have.keys(["profileImageUrl", "interests", "location", "occupation"]);
       expect(lastProfilePatch?.location).to.equal("seoul");
       expect(lastProfilePatch?.occupation).to.equal("it-tech");
-      expect(lastProfilePatch?.profileImageUrl).to.equal("/assets/avatar/m5.png");
+      expect(lastProfilePatch?.profileImageUrl).to.equal("/assets/avatar/m5.webp");
       expect(lastProfilePatch?.interests).to.include("music");
     });
   });

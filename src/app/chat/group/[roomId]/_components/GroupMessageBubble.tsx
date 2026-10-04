@@ -72,7 +72,7 @@ export function GroupMessageBubble({
     <ReceivedRow $isFirstInGroup={isFirstInGroup} data-chat-message-id={message.id}>
       {isFirstInGroup ? (
         <AvatarSlot>
-          <Avatar src={senderAvatarUrl ?? "/assets/avatar/f1.png"} alt={senderNickname} />
+          <Avatar src={senderAvatarUrl ?? "/assets/avatar/f1.webp"} alt={senderNickname} />
         </AvatarSlot>
       ) : (
         <AvatarPlaceholder />
