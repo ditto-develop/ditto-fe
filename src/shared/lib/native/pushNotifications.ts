@@ -292,7 +292,7 @@ function presentInForeground(notification: { title?: string; body?: string; data
     if (isViewingDeepLink(deepLink, currentPath)) return;
 
     void showForegroundNotification({
-        title: title ?? "Ditto",
+        title: title ?? "ditto",
         body: body ?? "",
         deepLink,
         notificationId: extractNotificationId(data),

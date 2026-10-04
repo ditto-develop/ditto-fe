@@ -67,7 +67,7 @@ function readKakaoNativeAppKey(): string {
 
 const config: CapacitorConfig = {
     appId: "pics.ditto.app",
-    appName: "Ditto",
+    appName: "ditto",
     webDir: "out",
     /**
      * 웹뷰가 그려지기 전·그리는 사이에 드러나는 네이티브 배경색.
