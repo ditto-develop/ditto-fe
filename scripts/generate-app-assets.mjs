@@ -1,7 +1,7 @@
 /**
  * 네이티브 앱 아이콘 · 스플래시 생성기.
  *
- * 소스는 웹이 쓰는 브랜드 에셋 두 개뿐이고, 나머지는 전부 여기서 파생된다.
+ * 소스는 웹이 쓰는 브랜드 에셋 세 개뿐이고, 나머지는 전부 여기서 파생된다.
  * 손으로 만든 PNG 를 커밋하지 않는 이유는 브랜드가 바뀌었을 때 어느 파일이
  * 낡았는지 알 방법이 없어지기 때문이다. 다시 만들려면:
  *
@@ -35,35 +35,47 @@ try {
  */
 const BG = "#E9E6E2";
 
-/** 디자인된 앱 아이콘. 둥근 타일 + 워드마크가 이미 합쳐져 있다. */
+/**
+ * 디자인된 앱 아이콘(Figma 2238:24936, 베타). 둥근 타일 + 워드마크 + 하단 BETA 띠.
+ *
+ * 타일 모양은 `clip-path="url(#tile)"` **하나로만** 깎는다. 하단 띠는 각진 사각형이라
+ * 클립을 떼면 그대로 각진 원본(아래 두 모서리까지 검은색)이 된다. 시스템이 모서리를
+ * 직접 깎는 대상(iOS · 원형 · 어댑티브)은 그 각진 원본을 써야 한다 — 둥근 타일을
+ * 배경색으로 메우면 아래 두 모서리만 띠 대신 배경색이 비친다.
+ */
 const ICON_SVG = path.join(ROOT, "public/logo/icon.svg");
+const ICON_CLIP_ATTR = ' clip-path="url(#tile)"';
 /** 워드마크 단독. 웹 스플래시(`components/splash/Splash.tsx`)가 쓰는 바로 그 파일. */
 const WORDMARK_SVG = path.join(ROOT, "public/assets/logo/ditto.svg");
+/** 베타 배지. 웹 스플래시가 워드마크 우상단에 얹는 바로 그 파일. */
+const BADGE_SVG = path.join(ROOT, "public/assets/logo/beta-badge.svg");
 
 /**
- * 워드마크를 캔버스 폭의 몇 %로 놓을지. 대상마다 마스크가 달라 값이 다르다.
+ * 워드마크를 캔버스 폭의 몇 %로 놓을지.
  *
- * - TILE:  icon.svg 원본 그대로(202/256). 둥근 사각형이라 여유가 있다.
- * - ROUND: 원형 마스크. 대각선이 원 안에 들어와야 해서 더 줄인다.
- * - ADAPTIVE_FG: Android 어댑티브 아이콘. 108dp 중 **가운데 72dp만 보장**되고
- *   런처가 원형 마스크를 씌울 수 있다. 워드마크 종횡비가 2.105 라
- *   √(0.60² + (0.60/2.105)²) × 108 = 71.6dp ≤ 72dp 로 딱 들어간다.
- *   이 값을 올리면 런처에 따라 워드마크 양끝이 잘린다.
  * - SPLASH: 웹 스플래시가 393px 뷰포트에서 160px 로그를 쓴다(= 40.7%). 같은 비율.
  * - PUSH: 안드로이드 상태바 아이콘(24dp). 콘텐츠 영역이 사실상 22dp 라 폭의 90%를 쓴다.
  *   워드마크 종횡비가 2.105 라 높이는 24dp 중 10.3dp 뿐이지만, 상태바 아이콘은
  *   가로로 긴 편이 오히려 읽힌다(세로를 채우려고 키우면 양옆이 잘린다).
+ *
+ * 런처 아이콘은 워드마크를 따로 놓지 않는다 — 디자인된 타일(ICON_SVG)을 통째로 쓴다.
  */
 const MARK_RATIO = {
-    TILE: 0.79,
-    ROUND: 0.7,
-    ADAPTIVE_FG: 0.6,
     SPLASH: 0.4,
     PUSH: 0.9,
 };
 
-/** 워드마크 종횡비(ditto.svg 는 여백이 0이라 viewBox 가 곧 잉크 박스다). */
-const MARK_ASPECT = 160 / 76;
+/** 워드마크 원본 크기(ditto.svg 는 여백이 0이라 viewBox 가 곧 잉크 박스다). */
+const MARK_W = 160;
+const MARK_H = 76;
+const MARK_ASPECT = MARK_W / MARK_H;
+
+/**
+ * 배지 위치·크기. 워드마크(160×76) 좌상단 기준 단위다. Figma 3171:35348 의 값이고
+ * 웹 스플래시의 `.splash-beta-badge`(globals.css) 와 같은 숫자다 — 한쪽을 바꾸면 같이 바꾼다.
+ */
+const BADGE_OFFSET = { left: 114.5, top: -14.5 };
+const BADGE_W = 47.9734;
 
 async function renderMark(widthPx) {
     return sharp(WORDMARK_SVG)
@@ -72,27 +84,47 @@ async function renderMark(widthPx) {
         .toBuffer();
 }
 
-/** 단색 배경 위에 워드마크를 가운데 놓는다. `radius` 를 주면 모서리를 깎는다. */
-async function compose(width, height, markWidth, { radius = 0, flatten = false } = {}) {
-    const mark = await renderMark(markWidth);
-    const layers = [{ input: mark, gravity: "center" }];
-
-    if (radius > 0) {
-        // dest-in 은 마스크의 알파가 있는 곳만 남긴다.
-        const mask = Buffer.from(
-            `<svg width="${width}" height="${height}"><rect width="${width}" height="${height}" rx="${radius}" ry="${radius}" fill="#fff"/></svg>`,
-        );
-        layers.push({ input: mask, blend: "dest-in" });
+/** 클립을 뗀 각진 아이콘. 둥근 BG 사각형이 남긴 위쪽 모서리 투명은 BG 로 메운다. */
+let squareIconSvg;
+async function renderSquareIcon(size) {
+    if (!squareIconSvg) {
+        const svg = await fs.readFile(ICON_SVG, "utf8");
+        if (!svg.includes(ICON_CLIP_ATTR)) {
+            throw new Error(`${ICON_SVG} 에 ${ICON_CLIP_ATTR.trim()} 가 없다. 타일 클립 구조가 바뀌었다.`);
+        }
+        squareIconSvg = Buffer.from(svg.replace(ICON_CLIP_ATTR, ""));
     }
+    return sharp(squareIconSvg).resize(size, size).flatten({ background: BG }).png().toBuffer();
+}
 
-    let img = sharp({
-        create: { width, height, channels: 4, background: BG },
-    }).composite(layers);
+/**
+ * 워드마크 + 베타 배지를 캔버스에 놓는다. 가운데 정렬 기준은 **워드마크**다 —
+ * 배지는 워드마크 위·오른쪽으로 삐져나가는 장식이라 웹 스플래시처럼 정렬에 끼지 않는다.
+ * `background` 를 생략하면 투명 캔버스다.
+ */
+async function composeSplash(width, height, markWidth, { background = BG } = {}) {
+    const scale = markWidth / MARK_W;
+    const mark = await renderMark(markWidth);
+    const { width: mw, height: mh } = await sharp(mark).metadata();
+    const markLeft = Math.round((width - mw) / 2);
+    const markTop = Math.round((height - mh) / 2);
 
-    // iOS 아이콘은 알파가 있으면 심사에서 거절된다.
-    if (flatten) img = img.flatten({ background: BG });
+    const badge = await sharp(BADGE_SVG)
+        .resize({ width: Math.round(BADGE_W * scale) })
+        .png()
+        .toBuffer();
 
-    return img.png().toBuffer();
+    return sharp({ create: { width, height, channels: 4, background } })
+        .composite([
+            { input: mark, left: markLeft, top: markTop },
+            {
+                input: badge,
+                left: Math.round(markLeft + BADGE_OFFSET.left * scale),
+                top: Math.round(markTop + BADGE_OFFSET.top * scale),
+            },
+        ])
+        .png()
+        .toBuffer();
 }
 
 async function write(relPath, buffer) {
@@ -115,21 +147,28 @@ const LAUNCHER_DENSITIES = {
     xxxhdpi: 192,
 };
 
-/** 어댑티브 아이콘 포그라운드는 108dp 캔버스다. */
+/**
+ * 어댑티브 아이콘 포그라운드는 108dp 캔버스이고, 마스크가 씌워지는 뷰포트는 가운데 72dp 다.
+ * 타일을 그 72dp 에 꼭 맞게 놓는다 — 타일 디자인이 곧 "마스크 안에 보일 그림"이기 때문이다.
+ *
+ * 원형 마스크(가장 빡빡한 경우)에서도 내용이 안 잘리는지: 보장 영역은 지름 66dp 원이다.
+ * 렌더링해 재 보면 BETA 글자의 가장 먼 점(타일 x 37%, y 93%)이 중심에서 32.0dp, 워드마크가
+ * 28.9dp 라 둘 다 33dp 안에 든다. 원 밖으로 나가는 건 배경과 띠의 모서리뿐이다.
+ * 아이콘 디자인이 바뀌면 이 여유(1dp)부터 다시 잴 것.
+ */
 const ADAPTIVE_SCALE = 108 / 48;
+const ADAPTIVE_VIEWPORT = 72 / 108;
 
 async function generateIcons() {
     console.log("\n아이콘");
 
     // iOS: 단일 1024 슬롯. 시스템이 알아서 모서리를 깎으므로 **각진 정사각형**을
     // 넣어야 한다. 둥근 소스를 그대로 넣으면 이중으로 깎여 모서리가 비어 보인다.
-    const iosIcon = await sharp(ICON_SVG)
-        .resize(1024, 1024)
-        .flatten({ background: BG })
-        .png()
-        .toBuffer();
-    // icon.svg 는 rx=64 라 모서리가 투명하다. flatten 이 BG 로 메워 각진 정사각형이 된다.
-    await write("ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png", iosIcon);
+    // 알파가 있으면 심사에서 거절되는데, renderSquareIcon 이 flatten 까지 한다.
+    await write(
+        "ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png",
+        await renderSquareIcon(1024),
+    );
 
     for (const [density, size] of Object.entries(LAUNCHER_DENSITIES)) {
         // 레거시 런처 아이콘(API 24~25). 디자인된 둥근 타일을 그대로 쓴다.
@@ -138,27 +177,29 @@ async function generateIcons() {
             await sharp(ICON_SVG).resize(size, size).png().toBuffer(),
         );
 
-        // 원형 변형.
+        // 원형 변형. 각진 타일을 원으로 깎는다(dest-in 은 마스크의 알파가 있는 곳만 남긴다).
+        const circle = Buffer.from(
+            `<svg width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="#fff"/></svg>`,
+        );
         await write(
             `android/app/src/main/res/mipmap-${density}/ic_launcher_round.png`,
-            await compose(size, size, size * MARK_RATIO.ROUND, { radius: size / 2 }),
+            await sharp(await renderSquareIcon(size))
+                .composite([{ input: circle, blend: "dest-in" }])
+                .png()
+                .toBuffer(),
         );
 
-        // 어댑티브 포그라운드(API 26+). 배경은 ic_launcher_background 색이 깔리므로
-        // 여기는 워드마크만 투명 배경에 올린다.
+        // 어댑티브 포그라운드(API 26+). 각진 타일을 가운데 72dp 에 놓고, 바깥 18dp 는
+        // 가장자리 픽셀을 복사해 채운다 — 위·옆은 배경색, 아래는 BETA 띠가 그대로 이어진다.
+        // 마스크 모양·패럴랙스로 뷰포트 밖이 비쳐도 이음새가 없다.
         const fgSize = Math.round(size * ADAPTIVE_SCALE);
-        const mark = await renderMark(fgSize * MARK_RATIO.ADAPTIVE_FG);
+        const tileSize = Math.round(fgSize * ADAPTIVE_VIEWPORT);
+        const before = Math.floor((fgSize - tileSize) / 2);
+        const after = fgSize - tileSize - before;
         await write(
             `android/app/src/main/res/mipmap-${density}/ic_launcher_foreground.png`,
-            await sharp({
-                create: {
-                    width: fgSize,
-                    height: fgSize,
-                    channels: 4,
-                    background: { r: 0, g: 0, b: 0, alpha: 0 },
-                },
-            })
-                .composite([{ input: mark, gravity: "center" }])
+            await sharp(await renderSquareIcon(tileSize))
+                .extend({ top: before, bottom: after, left: before, right: after, extendWith: "copy" })
                 .png()
                 .toBuffer(),
         );
@@ -223,13 +264,28 @@ async function generatePushIcons() {
 // 스플래시
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * Android 12+ 시스템 스플래시 아이콘(`values-v31/styles.xml` 의 windowSplashScreenAnimatedIcon).
+ * 배경 없는 아이콘 규격은 288dp 캔버스 · 지름 192dp 원 안이다.
+ *
+ * 워드마크를 웹과 같은 160dp 로 둔다. 배지까지 합친 묶음의 가장 먼 점은 배지 우상단
+ * 둥근 모서리로 중심에서 93.6dp — 96dp 반지름 안에 든다.
+ */
+const SPLASH_ICON_DENSITIES = {
+    mdpi: 1,
+    hdpi: 1.5,
+    xhdpi: 2,
+    xxhdpi: 3,
+    xxxhdpi: 4,
+};
+
 async function generateSplashes() {
     console.log("\n스플래시");
 
     // iOS: LaunchScreen.storyboard 가 2732 정사각 이미지를 scaleAspectFill 로 깐다.
     // 폰(예: 1179×2556)에서는 가운데 폭 1260 단위만 보이므로, 웹과 같은
     // "화면 폭의 40.7%" 를 맞추려면 2732 기준 19% 여야 한다.
-    const iosSplash = await compose(2732, 2732, 2732 * 0.19);
+    const iosSplash = await composeSplash(2732, 2732, 2732 * 0.19);
     for (const name of [
         "splash-2732x2732.png",
         "splash-2732x2732-1.png",
@@ -257,12 +313,25 @@ async function generateSplashes() {
     for (const [dir, [w, h]] of Object.entries(androidSplashes)) {
         await write(
             `android/app/src/main/res/${dir}/splash.png`,
-            await compose(w, h, Math.min(w, h) * MARK_RATIO.SPLASH),
+            await composeSplash(w, h, Math.min(w, h) * MARK_RATIO.SPLASH),
+        );
+    }
+
+    // Android 12+: 배경은 windowSplashScreenBackground 가 깔므로 투명 캔버스에 올린다.
+    for (const [density, scale] of Object.entries(SPLASH_ICON_DENSITIES)) {
+        const size = Math.round(288 * scale);
+        await write(
+            `android/app/src/main/res/drawable-${density}/splash_icon.png`,
+            await composeSplash(size, size, MARK_W * scale, {
+                background: { r: 0, g: 0, b: 0, alpha: 0 },
+            }),
         );
     }
 }
 
-console.log(`소스: public/logo/icon.svg · public/assets/logo/ditto.svg (배경 ${BG})`);
+console.log(
+    `소스: public/logo/icon.svg · public/assets/logo/ditto.svg · public/assets/logo/beta-badge.svg (배경 ${BG})`,
+);
 await generateIcons();
 await generatePushIcons();
 await generateSplashes();

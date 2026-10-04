@@ -274,32 +274,34 @@ grep -c "GoogleService-Info" ios/App/App.xcodeproj/project.pbxproj
 
 ## 2.4 앱 아이콘 · 스플래시 (생성물이다 — 손으로 만들지 말 것)
 
-네이티브 아이콘/스플래시 PNG 는 **전부 생성물**이고 소스는 웹이 쓰는 브랜드 에셋 둘뿐이다.
+네이티브 아이콘/스플래시 PNG 는 **전부 생성물**이고 소스는 웹이 쓰는 브랜드 에셋 셋뿐이다.
 
 | 소스 | 무엇 |
 |---|---|
-| `public/logo/icon.svg` | 디자인된 앱 아이콘. 둥근 `#E9E6E2` 타일 + ditto 워드마크 |
+| `public/logo/icon.svg` | 디자인된 앱 아이콘(베타, Figma 2238:24936). 둥근 `#E9E6E2` 타일 + ditto 워드마크 + 하단 검은 BETA 띠. 타일 모양은 `clip-path="url(#tile)"` 하나로만 깎는다 — 생성기가 이걸 떼서 각진 원본을 얻으므로 구조를 바꾸면 생성기가 멈춘다. 웹 파비콘 `public/assets/app/icon.svg` 는 같은 파일의 복사본 |
 | `public/assets/logo/ditto.svg` | 워드마크 단독. 웹 스플래시(`components/splash/Splash.tsx`)가 쓰는 바로 그 파일 |
+| `public/assets/logo/beta-badge.svg` | 베타 배지. 웹 스플래시가 워드마크 우상단에 얹는 바로 그 파일. 위치는 `globals.css` 의 `.splash-beta-badge` 와 생성기의 `BADGE_OFFSET` 이 같은 숫자다 |
 
 ```bash
 npm run assets:app     # scripts/generate-app-assets.mjs
 ```
 
 `cap sync` 는 필요 없다 — 네이티브 리소스 디렉터리를 직접 쓴다.
-브랜드가 바뀌면 위 SVG 두 개만 갈고 이 명령을 다시 돌린다.
+브랜드가 바뀌면 위 SVG 만 갈고 이 명령을 다시 돌린다.
 **생성된 PNG 를 직접 편집하면 다음 실행에서 조용히 덮인다.**
 
-### 대상마다 마스크가 달라서 배율이 다르다
+### 대상마다 마스크가 달라서 만드는 법이 다르다
 
-한 장을 그대로 리사이즈하면 안 되는 이유다. 각 값의 근거는 스크립트 상단 `MARK_RATIO` 주석에 있다.
+한 장을 그대로 리사이즈하면 안 되는 이유다. 근거는 스크립트 주석에 있다.
 
-| 대상 | 워드마크 폭 | 왜 |
+| 대상 | 무엇을 | 왜 |
 |---|---|---|
-| iOS `AppIcon-512@2x.png` | 79% (원본 그대로) | 시스템이 모서리를 깎으므로 **각진 정사각형·알파 없음**으로 넣는다. 둥근 소스를 그대로 넣으면 이중으로 깎여 모서리가 빈다 |
-| Android `ic_launcher.png` | 79% (원본 그대로) | 레거시 런처(API 24~25). 둥근 타일을 그대로 쓴다 |
-| Android `ic_launcher_round.png` | 70% | 원형 마스크. 대각선이 원 안에 들어와야 한다 |
-| Android `ic_launcher_foreground.png` | 60% | 어댑티브 아이콘. 108dp 중 **가운데 72dp만 보장**된다. 워드마크 종횡비 2.105 기준 √(0.60² + (0.60/2.105)²) × 108 = 71.6dp — 딱 맞는다. **올리면 런처에 따라 양끝이 잘린다** |
-| 스플래시 | 짧은 변의 40% | 웹 스플래시가 393px 뷰포트에서 160px 로고를 쓴다(= 40.7%). 같은 비율 |
+| iOS `AppIcon-512@2x.png` | 각진 타일 | 시스템이 모서리를 깎으므로 **각진 정사각형·알파 없음**으로 넣는다. 둥근 소스를 배경색으로 메워 넣으면 아래 두 모서리만 BETA 띠 대신 배경색이 비친다 |
+| Android `ic_launcher.png` | 둥근 타일 그대로 | 레거시 런처(API 24~25) |
+| Android `ic_launcher_round.png` | 각진 타일을 원으로 | 원형 마스크. BETA 글자·워드마크 모두 원 안에 든다 |
+| Android `ic_launcher_foreground.png` | 각진 타일을 가운데 72dp 에, 바깥 18dp 는 가장자리 복사 | 어댑티브 아이콘. 108dp 중 **가운데 72dp가 마스크 뷰포트**다. 위·옆은 배경색, 아래는 BETA 띠가 이어져 마스크·패럴랙스에 이음새가 없다. 원형 마스크 보장 영역(지름 66dp) 안에 BETA 글자가 **1dp 여유로** 든다 — 디자인이 바뀌면 다시 잴 것 |
+| 스플래시 | 워드마크 짧은 변의 40% + 배지 | 웹 스플래시가 393px 뷰포트에서 160px 로고를 쓴다(= 40.7%). 같은 비율. 가운데 정렬 기준은 워드마크다 |
+| Android 12+ `splash_icon.png` | 워드마크 160dp + 배지, 288dp 투명 캔버스 | 시스템 스플래시 아이콘 규격(배경 없음: 288dp · 지름 192dp 원). 묶음의 가장 먼 점이 93.6dp 라 96dp 안에 든다 |
 
 iOS 스플래시만 2732 정사각 기준 19% 다. `LaunchScreen.storyboard` 가 `scaleAspectFill`
 로 깔아서 폰에서는 가운데 폭 1260 단위만 보이기 때문이다 — 그 크롭을 거치면 화면 폭의 40.7% 가 된다.
@@ -309,8 +311,9 @@ iOS 스플래시만 2732 정사각 기준 19% 다. `LaunchScreen.storyboard` 가
 - **API 31+ (Android 12 이상)** — 시스템이 직접 그린다. `values/styles.xml` 의
   `android:background="@drawable/splash"` 는 View 속성이라 **여기서는 무시된다.**
   그래서 `values-v31/styles.xml` 에 `windowSplashScreenBackground` 를 따로 뒀다.
-  아이콘은 일부러 지정하지 않았다 — 비우면 런처 아이콘(어댑티브 = `brand_background`
-  + 워드마크)을 쓰는데 배경색이 같아 워드마크만 떠 보인다. 웹 스플래시와 같은 그림이다.
+  아이콘은 `windowSplashScreenAnimatedIcon` 으로 전용 `@drawable/splash_icon`(워드마크 +
+  배지)을 가리킨다. 비우면 런처 아이콘을 쓰는데, 베타 런처 아이콘은 하단 검은 BETA 띠가
+  원형으로 잘려 스플래시에 뜬다. `splash_icon` 은 웹 스플래시와 같은 그림이다.
 - **API 24~30** — 기존대로 `@drawable/splash` PNG 다. 이 경로는 PNG 가 화면 비율로
   **늘어난다**(가로 스케일과 세로 스케일이 다르다). 1280×1920 자산이 1080×2400 기기에
   깔리면 워드마크가 세로로 약 1.5배 늘어난다. 실측상 알아볼 수 있는 수준이라 두었다.
