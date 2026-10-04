@@ -25,11 +25,20 @@ const Container = styled.div`
   position: relative;
 `;
 
-// 전체 수직선 (배경에 깔림)
-const VerticalTrack = styled.div`
+/**
+ * 단계 사이를 잇는 선. 원과 원 **사이 구간만** 그린다.
+ *
+ * 예전에는 1번부터 3번 원 안쪽까지 한 줄로 깔았는데, 지금 단계가 아닌 행은 opacity 0.4라
+ * 숫자 원도 반투명해져 그 밑을 지나는 선이 원을 뚫고 위아래로 튀어나와 보였다(2026-10-04 QA).
+ *
+ * 위치는 행 높이(IconWrapper 28px = --space-7)·행 간격(--space-3)·원 지름(20px)에서 나온다.
+ * 원은 행 안에서 위아래 4px 여백을 두고 가운데 놓이므로 `index` 번째 원의 아래끝은
+ * `index * (행 높이 + 간격) + 24px`, 다음 원의 위끝까지는 `간격 + 8px` 이다.
+ */
+const StepConnector = styled.div<{ $index: number }>`
   position: absolute;
-  top: 12px;
-  bottom: 12px;
+  top: calc(${({ $index }) => $index} * (var(--space-7) + var(--space-3)) + var(--space-6));
+  height: calc(var(--space-3) + var(--space-2));
   left: 16px; /* Circle의 중심점(20px + padding 10px)과 일치 */
   width: 1px;
   background-color: rgba(26, 24, 21, 0.2); /* 은은한 선 색상 */
@@ -102,8 +111,10 @@ function Timeline({ currentStep }: TimelineProps) {
 
   return (
     <Container>
-      {/* 배경 수직선 */}
-      <VerticalTrack />
+      {/* 원 사이를 잇는 선 */}
+      {steps.slice(1).map((step, index) => (
+        <StepConnector key={step.id} $index={index} />
+      ))}
 
       {steps.map((step) => {
         const isActive = currentStep === step.id;
