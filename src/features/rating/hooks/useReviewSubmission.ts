@@ -2,8 +2,10 @@
 
 import { useCallback, useState } from "react";
 import { useToast } from "@/context/ToastContext";
+import { containsForbiddenWord } from "@/features/chat";
 import { submitMemberReview, toSubmitReviewBody } from "@/features/rating/api/reviewApi";
 import { toReviewError } from "@/features/rating/lib/reviewError";
+import { FORBIDDEN_COMMENT_MESSAGE } from "@/features/rating/model/labels";
 import {
   isRematchAnnounced,
   markRematchAnnounced,
@@ -44,6 +46,11 @@ export function useReviewSubmission(
   const submitTarget = useCallback(
     async (memberId: number, form: ReviewFormValue, wantsOneToOneRematch?: boolean) => {
       if (submitting || form.meetingStatus === null) return null;
+      // 비속어가 든 코멘트는 보내지 않는다. 입력란 아래 안내가 이미 떠 있다.
+      if (containsForbiddenWord(form.comment)) {
+        showToast(FORBIDDEN_COMMENT_MESSAGE, "error");
+        return null;
+      }
 
       const body = toSubmitReviewBody(
         { ...form, meetingStatus: form.meetingStatus as MeetingStatus },

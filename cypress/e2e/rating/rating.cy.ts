@@ -49,6 +49,31 @@ describe("rating system", () => {
     cy.location("pathname").should("match", /^\/home\/?$/);
   });
 
+  // 비속어가 든 코멘트는 보내지 않는다(2026-10-04 QA). 금칙어 목록은 채팅과 같다.
+  it("비속어가 든 한줄 코멘트는 제출하지 않는다", () => {
+    let submitted = false;
+    cy.intercept("PUT", "**/api/v1/member-reviews/*/targets/*", (req) => {
+      submitted = true;
+      req.reply({ statusCode: 500, body: {} });
+    });
+    cy.visit("/chat/one-on-one/1/rate");
+    cy.wait("@getMemberReviews");
+
+    cy.contains("button", "채팅만 했어요", { timeout: 8000 }).click();
+    cy.get('button[aria-label="5점"]').click();
+    cy.get('textarea[aria-label="한줄 코멘트"]').type("시발 재밌어요");
+    cy.contains("코멘트에 사용할 수 없는 표현이 있어요.").should("be.visible");
+    cy.get('textarea[aria-label="한줄 코멘트"]').blur();
+    cy.contains("button", "평가 제출하기").click();
+
+    cy.location("pathname").should("include", "/rate");
+    cy.then(() => expect(submitted, "제출 요청").to.equal(false));
+
+    // 고치면 다시 보낼 수 있다.
+    cy.get('textarea[aria-label="한줄 코멘트"]').clear().type("재밌어요").blur();
+    cy.get('textarea[aria-label="한줄 코멘트"]').should("not.have.attr", "aria-invalid");
+  });
+
   it("1:1 평가를 건너뛸 때 확인을 요청한다", () => {
     cy.visit("/chat/one-on-one/1/rate");
     cy.wait("@getMemberReviews");

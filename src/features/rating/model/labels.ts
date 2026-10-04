@@ -25,3 +25,6 @@ export function toTargetMetadata(target: ReviewTarget): string {
     target.location ? toLocationLabel(target.location) : "지역 미공개",
   ].join(" · ");
 }
+
+/** 비속어가 든 한줄 코멘트 안내. 입력란 아래 경고와 제출 차단 토스트가 같이 쓴다. */
+export const FORBIDDEN_COMMENT_MESSAGE = "코멘트에 사용할 수 없는 표현이 있어요.";
