@@ -220,7 +220,13 @@ export function Tutorial({ initialData }: TutorialProps) {
   };
 
   // --- 페이지 이동 로직 ---
-  const goNextStep = async () => {
+  /**
+   * @param introduce 가입에 실을 소개 노트 답. "다 작성했어요"는 입력창에 떠 있는 값(질문별
+   *   저장을 아직 누르지 않은 답 포함)을 넘긴다 — 검증을 그 값으로 통과시켰으니 보내는 것도
+   *   같아야 한다. 저장된 값(`formData`)만 보내면 Q10 을 쓰고 질문 저장을 누르지 않은 채
+   *   완료했을 때 검증은 통과하고 Q10 은 빈 채로 가입됐다. "다음에 할래요"는 넘기지 않는다.
+   */
+  const goNextStep = async (introduce: string[] = formData.introduce) => {
     // 1단계(프로필) → 2단계(소개 노트): 단순 페이지 이동
     if (step < 2) {
       trackEvent("signup_step_complete", {
@@ -304,7 +310,7 @@ export function Tutorial({ initialData }: TutorialProps) {
           caricature: `/onboarding/profileimg/avatar/${formData.pic}.svg`,
 
           // 한 줄 소개. 소개노트 마지막 문항(Q10)의 답변이 그대로 여기로 간다.
-          introduction: formData.introduce[LAST_INTRO_NOTE_INDEX]?.trim() || null,
+          introduction: introduce[LAST_INTRO_NOTE_INDEX]?.trim() || null,
         };
 
         await createExternalUser(createUserDto);
@@ -323,7 +329,7 @@ export function Tutorial({ initialData }: TutorialProps) {
         // 소개노트 저장이 실패해도 가입 자체는 끝난 상태라 되돌리지 않고 넘어간다.
         await Promise.allSettled(
           INTRO_NOTE_FIELDS
-            .map((field, index) => ({ code: field.code, answer: formData.introduce[index]?.trim() ?? "" }))
+            .map((field, index) => ({ code: field.code, answer: introduce[index]?.trim() ?? "" }))
             .filter(({ answer }) => answer.length > 0)
             .map(({ code, answer }) => saveExternalIntroNote(code, answer)),
         );
@@ -402,9 +408,13 @@ export function Tutorial({ initialData }: TutorialProps) {
     if (step === 1) {
       if (step2Ref.current && !step2Ref.current.handleSubmit()) return;
     } else if (step === 2) {
-      if (step3Ref.current && !step3Ref.current.handleSubmit()) return;
+      // 등록은 Q10 필수다. 참조가 비었다고 검증을 건너뛰지 않는다.
+      const step3 = step3Ref.current;
+      if (!step3 || !step3.handleSubmit()) return;
+      void goNextStep(step3.getCurrentValues());
+      return;
     }
-    goNextStep();
+    void goNextStep();
   };
 
   const handleSkip = () => {

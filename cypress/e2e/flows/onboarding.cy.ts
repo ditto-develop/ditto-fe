@@ -128,6 +128,37 @@ describe("onboarding flow", () => {
   });
 
   /**
+   * 완료 검증은 입력창에 떠 있는 값으로 통과한다. 그렇다면 그 값도 저장돼야 한다 —
+   * Q10 을 쓰고 질문별 "저장"을 누르지 않은 채 완료하면 검증만 통과하고 Q10 은 빈 채로
+   * 남았다(2026-10-04 QA "자기소개노트 10번 필수인데 넘어가짐").
+   */
+  it("saves an unsaved Q10 answer when completing", () => {
+    cy.clockPeriod("QUIZ");
+    cy.mockApi();
+    cy.fixture("intro-notes.json").then((notes: { answers: unknown[] }) => {
+      cy.intercept("GET", "**/api/v1/users/me/intro-notes", {
+        statusCode: 200,
+        body: { success: true, data: { answers: notes.answers.slice(0, 9), completedCount: 9 } },
+      }).as("getMyIntroNotesWithoutRequired");
+    });
+    cy.intercept("PUT", "**/api/v1/users/me/intro-notes/one-word", {
+      statusCode: 200,
+      body: { success: true, data: { answers: [], completedCount: 10 } },
+    }).as("putRequiredAnswer");
+    cy.login();
+    cy.visit("/onboarding/intro");
+
+    cy.wait("@getMyIntroNotesWithoutRequired");
+    cy.get("textarea").last().click().type("호기심 많은");
+    // 질문 저장 없이 포커스만 거둔다(키보드를 내린 상태). 하단 CTA 가 돌아온다.
+    cy.contains("소개 노트 작성하기").click();
+    cy.contains("button", "다 작성했어요").click();
+
+    cy.wait("@putRequiredAnswer").its("request.body").should("deep.include", { answer: "호기심 많은" });
+    cy.location("pathname", { timeout: 6000 }).should("match", /^\/onboarding\/complete\/?$/);
+  });
+
+  /**
    * 하단 질문(Q10)을 눌렀을 때 키보드에 가리지 않아야 한다.
    *
    * 온보딩은 페이지가 아니라 안쪽 목록(BodyContainer)만 스크롤되는 구조라, 키보드가

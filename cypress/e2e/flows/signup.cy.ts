@@ -217,6 +217,32 @@ describe("signup flow", () => {
     cy.location("pathname", { timeout: 6000 }).should("match", /^\/home\/?$/);
   });
 
+  /**
+   * "다 작성했어요"는 Q10 필수다. 검증은 입력창에 떠 있는 값으로 하므로 가입 요청도 그 값을
+   * 실어야 한다 — 저장된 값만 보내던 때는 Q10 을 쓰고 질문 저장을 누르지 않은 채 완료하면
+   * 검증은 통과하고 introduction 이 null 로 나갔다(2026-10-04 QA).
+   */
+  it("sends an unsaved Q10 answer when completing intro notes", () => {
+    cy.visit(OAUTH_ENTRY);
+
+    cy.contains("프로필 작성하기", { timeout: 6000 });
+    fillProfile();
+    cy.contains("button", "다음").click();
+
+    cy.contains("소개 노트 작성하기", { timeout: 6000 });
+    ["짐은 단출하게", "산책해요"].forEach((answer, index) => {
+      cy.get("textarea").eq(index).click().type(answer);
+      cy.contains("button", "저장").click();
+    });
+    cy.get("textarea").last().click().type("호기심 많은");
+    // 질문 저장 없이 포커스만 거둔다. 하단 CTA 가 돌아온다.
+    cy.contains("소개 노트 작성하기").click();
+    clickNavigationButton("다 작성했어요");
+
+    cy.wait("@createUser").its("request.body.introduction").should("equal", "호기심 많은");
+    cy.location("pathname", { timeout: 6000 }).should("match", /^\/onboarding\/complete\/?$/);
+  });
+
   it("shows error toast when signup API fails", () => {
     cy.intercept("POST", "**/api/**/users", { statusCode: 500, body: {} }).as("createUserFail");
 

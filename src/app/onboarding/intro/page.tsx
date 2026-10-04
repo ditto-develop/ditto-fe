@@ -8,6 +8,7 @@ import type { Step3Ref } from "@/components/onboarding/step/Step_3";
 import { Step3Intro } from "@/components/onboarding/step/Step_3";
 import { useToast } from "@/context/ToastContext";
 import { getMyIntroNoteAnswersByIndex } from "@/features/profile/api/profileApi";
+import { INTRO_NOTE_FIELDS } from "@/features/profile/model/introNotes";
 import type { IntroNoteCode } from "@/features/profile/model/introNotes";
 import { saveExternalIntroNote } from "@/shared/lib/api/externalApi";
 import { goBackOr } from "@/shared/lib/navigation";
@@ -69,11 +70,27 @@ export default function IntroNotePage() {
     }
   };
 
+  /**
+   * 검증은 입력창에 떠 있는 값(질문별 저장을 아직 누르지 않은 답 포함)으로 통과시키므로,
+   * 그 값 중 서버에 아직 없는 답을 여기서 마저 저장한다. 안 하면 Q10 을 쓰고 질문 저장을
+   * 누르지 않은 채 완료했을 때 Q10 이 빈 채로 남는다.
+   */
   const handleSave = async () => {
-    if (!step3Ref.current?.handleSubmit()) return;
+    const step3 = step3Ref.current;
+    if (saving || !step3?.handleSubmit()) return;
     setSaving(true);
     try {
+      const values = step3.getCurrentValues();
+      await Promise.all(
+        INTRO_NOTE_FIELDS.map((field, index) => {
+          const value = values[index]?.trim() ?? "";
+          if (value === (formData.introduce[index]?.trim() ?? "")) return undefined;
+          return saveExternalIntroNote(field.code, value);
+        }),
+      );
       router.push("/onboarding/complete");
+    } catch {
+      showToast("저장에 실패했어요. 다시 시도해 주세요.", "error");
     } finally {
       setSaving(false);
     }
