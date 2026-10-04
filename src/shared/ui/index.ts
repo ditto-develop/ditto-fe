@@ -20,6 +20,7 @@ export { FullScreenModal } from "./FullScreenModal/FullScreenModal";
 export { Icon, ICON_PATHS } from "./Icon/Icon";
 export type { IconName, IconProps } from "./Icon/Icon";
 export { Nav } from "./Nav/Nav";
+export { PullToRefresh } from "./PullToRefresh/PullToRefresh";
 export { Radio } from "./Radio/Radio";
 export { RatingStarInput } from "./RatingStarInput/RatingStarInput";
 export { SectionMessage } from "./SectionMessage/SectionMessage";

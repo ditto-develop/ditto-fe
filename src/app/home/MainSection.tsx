@@ -6,10 +6,10 @@ import { matchAcceptedNotifKey } from "@/components/home/_parts/MatchingDay.help
 import { ThisWeekQuiz } from "@/components/home/ThisWeekQuiz";
 import { TimeLine } from "@/components/home/Timeline";
 import type { MatchingCardType } from "@/components/home/MatchingDay";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
-import { usePolling } from "@/shared/lib/hooks/usePolling";
-import { POLLING_INTERVAL_MS } from "@/shared/lib/constants/polling";
+import { useOnAppResume } from "@/shared/lib/hooks/useOnAppResume";
+import { PullToRefresh } from "@/shared/ui";
 import { QuizProgressDto } from "@/shared/lib/api/generated";
 import type { SystemStateDto } from "@/shared/lib/api/generated";
 import { getChatRooms } from "@/features/chat";
@@ -39,14 +39,6 @@ const MainSectionContainer = styled.div`
   gap: 24px;
 `;
 
-
-/**
- * "참여한 사람" 수를 다시 당기는 주기.
- *
- * 아래 채팅방 갱신(3초)보다 훨씬 느슨하다. 그쪽은 "상대가 수락하면 방이 바로 떠야
- * 한다"는 요구지만 이건 카운터 하나라, 20초면 체감상 실시간이면서 서버 부담은 1/7 이다.
- */
-const QUIZ_PARTICIPANT_POLL_INTERVAL_MS = 20_000;
 
 type Period = "QUIZ" | "MATCHING" | "CHATTING";
 
@@ -106,8 +98,7 @@ export function MainSection() {
 
 
   /**
-   * 마운트 시 1회 호출되고, MATCHING 기간에는 아래 폴링 effect에서도 재호출된다
-   * (QUIZ/CHATTING은 각자 더 가벼운 전용 폴링이 있어 여기서 다시 돌리지 않는다).
+   * 마운트 시 1회, 그리고 당겨서 새로고침·앱 복귀 때 다시 호출된다(아래 `refresh`).
    * setter만 참조하므로 의존성 없이 고정된 참조를 유지한다.
    */
   const load = useCallback(async () => {
@@ -223,34 +214,20 @@ export function MainSection() {
   }, [load, setHomeReady]);
 
   /**
-   * MATCHING 기간에는 후보 수락/거절·그룹 성사 여부가 상대방 행동에 따라 바뀔 수 있어
-   * 화면을 열어 둔 동안 전체 로딩을 다시 돈다. QUIZ/CHATTING은 각자 더 가벼운 전용
-   * 폴링(아래)이 있으므로 여기서 중복으로 돌리지 않는다.
+   * 홈은 폴링하지 않는다(2026-10-04). 상대 수락·그룹 성사·참여 인원·최신 대화방은
+   * 사용자가 당겨서 새로고침하거나 앱으로 돌아올 때 다시 읽는다. 둘이 겹치면(복귀 신호가
+   * 둘 오거나 복귀 직후 당기면) 진행 중인 로딩을 같이 기다린다.
    */
-  usePolling(load, POLLING_INTERVAL_MS, { enabled: period === "MATCHING" });
+  const inFlightRef = useRef<Promise<void> | null>(null);
+  const refresh = useCallback(() => {
+    inFlightRef.current ??= load().finally(() => {
+      inFlightRef.current = null;
+    });
+    return inFlightRef.current;
+  }, [load]);
 
-  const refreshLatestChatRoom = useCallback(async () => {
-    const latestChatRoom = await getLatestChatRoom();
-    if (latestChatRoom) setChatRoom(latestChatRoom);
-  }, []);
-
-  usePolling(refreshLatestChatRoom, 3000, { enabled: period === "CHATTING" });
-
-  /**
-   * 퀴즈 기간 동안 "참여한 사람" 수를 따라 올린다. 서버가 이 값을 밀어 주는 채널이
-   * 없어서 폴링이다(BE 에 브로드캐스트 토픽이 생기면 STOMP 구독으로 갈아탈 자리).
-   *
-   * `participantCount` 만 갱신하고 `isQuizComplete` 는 건드리지 않는다. 폴링 도중
-   * 카드 상태가 open → completed 로 뒤집히면 `ThisWeekQuiz` 의 `useCardImpression` 이
-   * 노출 이벤트를 다시 쏘고, 퀴즈 카드 클릭률의 분모가 통째로 틀어진다.
-   */
-  const refreshParticipantCount = useCallback(async () => {
-    const progress = await getExternalQuizProgress();
-    setParticipantCount(progress.participantCount ?? 0);
-  }, []);
-
-  usePolling(refreshParticipantCount, QUIZ_PARTICIPANT_POLL_INTERVAL_MS, {
-    enabled: period === "QUIZ",
+  useOnAppResume(() => {
+    void refresh();
   });
 
   // 그룹 카드·모달의 그룹 이름. 훅이라 아래 조기 반환보다 위에 둔다.
@@ -268,8 +245,13 @@ export function MainSection() {
   }
 
   // 기간 조회 자체가 실패한 경우: 무한 스켈레톤 대신 타임라인만 남긴다.
+  // 당겨서 새로고침으로 다시 시도할 수 있다.
   if (period === null) {
-    return <MainSectionContainer><TimeLine /></MainSectionContainer>;
+    return (
+      <PullToRefresh onRefresh={refresh}>
+        <MainSectionContainer><TimeLine /></MainSectionContainer>
+      </PullToRefresh>
+    );
   }
 
   /**
@@ -378,11 +360,13 @@ export function MainSection() {
   };
 
   return (
-    <MainSectionContainer>
-      <TimeLine />
-      {/* 카드를 래퍼로 감싸지 않는다. animation/transform이 걸린 래퍼는 position:fixed
-          자식(그룹 매칭 결과 모달 등)의 컨테이닝 블록이 돼서 모달이 어긋난다. */}
-      {ControlSection()}
-    </MainSectionContainer>
+    <PullToRefresh onRefresh={refresh}>
+      <MainSectionContainer>
+        <TimeLine />
+        {/* 카드를 래퍼로 감싸지 않는다. animation/transform이 걸린 래퍼는 position:fixed
+            자식(그룹 매칭 결과 모달 등)의 컨테이닝 블록이 돼서 모달이 어긋난다. */}
+        {ControlSection()}
+      </MainSectionContainer>
+    </PullToRefresh>
   );
 }
