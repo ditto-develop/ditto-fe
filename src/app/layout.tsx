@@ -47,6 +47,7 @@ export default function RootLayout({
     <html lang="ko" className={pretendardJP.variable}>
       <head>
         <link rel="preload" as="image" href="/assets/logo/ditto.svg" />
+        <link rel="preload" as="image" href="/assets/logo/beta-badge.svg" />
       </head>
       <body>
         <HomeReadyProvider>
