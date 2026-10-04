@@ -83,6 +83,7 @@
   }
 
   button:active { opacity: 0.85; }
+  button:disabled { opacity: 0.6; cursor: default; }
 </style>
 </head>
 <body>
@@ -91,11 +92,135 @@
   <button type="button" id="retry">다시 시도</button>
 
   <script>
+    /*
+     * 언제 이 화면이 뜨나 — 실제 오프라인만이 아니다.
+     * Capacitor 는 메인 문서 로드가 실패하면 **에러 종류를 가리지 않고** 이 화면으로 바꾼다.
+     * iOS 는 취소(NSURLErrorCancelled, -999)까지 실패로 친다. 백그라운드에서 돌아와
+     * 웹뷰가 reload 하는데 네트워크가 아직 안 붙었거나, 문서 로드 도중 다른 이동이
+     * 끼어들면 멀쩡한 망에서도 여기로 온다. 그래서 사용자가 버튼을 누르기 전에
+     * 연결이 돌아오면 스스로 원래 화면으로 돌아간다.
+     */
+
     // 앱이 원래 열어야 할 주소. capacitor.config.ts 의 server.url 과 같아야 한다.
     var HOME = "https://ditto.pics/";
-    document.getElementById("retry").addEventListener("click", function () {
+
+    // HOME 으로 직접 갔다가 다시 여기로 떨어졌는지 표시한다. 그 경우 바로 앞 기록이
+    // 이 화면 자신이라 history.back() 이 같은 화면만 되풀이하므로 HOME 을 다시 연다.
+    var VIA_HOME_KEY = "ditto:offline-via-home";
+    var VIA_HOME_TTL_MS = 60 * 1000;
+
+    // 자동 재시도 간격. 단일 인스턴스 서버에 재접속이 몰리지 않게 점점 늘린다.
+    var RETRY_DELAYS_MS = [2000, 4000, 8000, 15000, 30000];
+    var PROBE_TIMEOUT_MS = 5000;
+    // 이동을 시작했는데 이만큼 지나도 이 화면에 남아 있으면 버튼을 되살린다.
+    var LEAVE_STUCK_MS = 15000;
+
+    var button = document.getElementById("retry");
+    var leaving = false;
+    var attempt = 0;
+    var timer = null;
+    var stuckTimer = null;
+
+    /* 다시 시도할 수 있는 상태로 되돌린다. 이동이 시작되지 않았거나 bfcache 로 돌아온 경우. */
+    function reset() {
+      clearTimeout(stuckTimer);
+      leaving = false;
+      button.disabled = false;
+      button.textContent = "다시 시도";
+      attempt = 0;
+      scheduleProbe(RETRY_DELAYS_MS[0]);
+    }
+
+    function cameViaHome() {
+      try {
+        var at = Number(window.sessionStorage.getItem(VIA_HOME_KEY));
+        return Number.isFinite(at) && Date.now() - at < VIA_HOME_TTL_MS;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    /*
+     * 원래 보던 화면으로 돌아간다.
+     * 에러 화면은 실패한 이동 **뒤에** 새 기록으로 쌓이므로, 앞 기록이 있으면 그게
+     * 사용자가 보던(또는 열려던) 화면이다. 앱을 처음 켜다 실패한 경우처럼 앞 기록이
+     * 없으면 HOME 으로 간다.
+     */
+    function leave() {
+      if (leaving) return;
+      leaving = true;
+      clearTimeout(timer);
+      button.disabled = true;
+      button.textContent = "연결하는 중…";
+      stuckTimer = setTimeout(reset, LEAVE_STUCK_MS);
+
+      if (window.history.length > 1 && !cameViaHome()) {
+        try { window.sessionStorage.removeItem(VIA_HOME_KEY); } catch (e) {}
+        window.history.back();
+        return;
+      }
+      try { window.sessionStorage.setItem(VIA_HOME_KEY, String(Date.now())); } catch (e) {}
       window.location.replace(HOME);
+    }
+
+    /*
+     * 서버에 닿는지 먼저 확인한다. 닿지 않는데 이동하면 같은 실패로 이 화면이
+     * 다시 그려지며 깜빡이기만 한다. no-cors 라 응답 내용은 못 보지만, 네트워크
+     * 오류가 아니면 resolve 되므로 "닿는다"를 판단하기에 충분하다.
+     */
+    function probe() {
+      if (navigator.onLine === false) return Promise.resolve(false);
+      var controller = typeof AbortController === "function" ? new AbortController() : null;
+      var abortTimer = setTimeout(function () {
+        if (controller) controller.abort();
+      }, PROBE_TIMEOUT_MS);
+      return fetch(HOME + "?offline-probe=" + Date.now(), {
+        mode: "no-cors",
+        cache: "no-store",
+        signal: controller ? controller.signal : undefined,
+      })
+        .then(function () { return true; })
+        .catch(function () { return false; })
+        .then(function (ok) {
+          clearTimeout(abortTimer);
+          return ok;
+        });
+    }
+
+    function scheduleProbe(delay) {
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        if (leaving || document.visibilityState === "hidden") return;
+        probe().then(function (ok) {
+          if (ok) {
+            leave();
+            return;
+          }
+          attempt = Math.min(attempt + 1, RETRY_DELAYS_MS.length - 1);
+          scheduleProbe(RETRY_DELAYS_MS[attempt]);
+        });
+      }, delay);
+    }
+
+    // 버튼은 확인 없이 바로 간다 — 사용자가 직접 누른 시도까지 막지 않는다.
+    button.addEventListener("click", leave);
+
+    // 망이 돌아오거나 앱이 다시 앞으로 오면 기다리지 않고 바로 확인한다.
+    window.addEventListener("online", function () {
+      attempt = 0;
+      scheduleProbe(0);
     });
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState !== "visible") return;
+      attempt = 0;
+      scheduleProbe(0);
+    });
+
+    window.addEventListener("pageshow", function (event) {
+      if (event.persisted) reset();
+    });
+
+    scheduleProbe(RETRY_DELAYS_MS[0]);
   </script>
 </body>
 </html>
