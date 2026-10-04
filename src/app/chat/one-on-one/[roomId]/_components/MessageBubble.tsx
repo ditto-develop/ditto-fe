@@ -17,6 +17,8 @@ interface MessageBubbleProps {
   partnerAvatarUrl: string | null;
   partnerNickname: string;
   onImageClick?: (imageUrl: string) => void;
+  /** 상대 아바타를 누르면 상대 프로필을 연다. */
+  onPartnerClick?: () => void;
   onRetry?: () => void;
 }
 
@@ -34,6 +36,7 @@ export function MessageBubble({
   partnerAvatarUrl,
   partnerNickname,
   onImageClick,
+  onPartnerClick,
   onRetry,
 }: MessageBubbleProps) {
   const messageId = "id" in message ? message.id : undefined;
@@ -105,8 +108,13 @@ export function MessageBubble({
   return (
     <ReceivedRow $isFirstInGroup={isFirstInGroup} data-chat-message-id={messageId}>
       {isFirstInGroup && (
-        <AvatarSlot>
-          <Avatar src={partnerAvatarUrl ?? "/assets/avatar/f1.png"} alt={partnerNickname} />
+        <AvatarSlot
+          type="button"
+          onClick={onPartnerClick}
+          disabled={!onPartnerClick}
+          aria-label={`${partnerNickname} 프로필 보기`}
+        >
+          <Avatar src={partnerAvatarUrl ?? "/assets/avatar/f1.png"} alt="" />
         </AvatarSlot>
       )}
       <ReceivedContainer>
@@ -154,9 +162,17 @@ const SentContent = styled.div`
   gap: var(--spacing-2px);
 `;
 
-const AvatarSlot = styled.div`
+const AvatarSlot = styled.button`
   width: 40px;
   flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+  }
 `;
 
 const Avatar = styled.img`

@@ -156,7 +156,8 @@ describe("1:1 chat room", () => {
     cy.contains("대화가 1시간 후 종료돼요.").should("not.exist");
   });
 
-  it("ends the chat through the live end endpoint", () => {
+  // 나가면 바로 평가할 수 있어야 한다 — 서버가 종료 요청 안에서 평가를 연다(2026-10-04 QA).
+  it("ends the chat through the live end endpoint and opens the review", () => {
     cy.visit("/chat/one-on-one/1");
     cy.wait("@getChatMessages");
 
@@ -166,7 +167,18 @@ describe("1:1 chat room", () => {
     cy.contains("나가기").click();
 
     cy.wait("@endChatRoom");
-    cy.location("pathname", { timeout: 6000 }).should("match", /^\/chat\/?$/);
+    cy.location("pathname", { timeout: 6000 }).should("match", /^\/chat\/one-on-one\/1\/rate\/?$/);
+  });
+
+  // 1:1 방에서도 상대 프로필을 볼 수 있어야 한다(2026-10-04 QA).
+  it("opens the partner profile from the partner avatar", () => {
+    cy.visit("/chat/one-on-one/1");
+    cy.wait("@getChatMessages");
+
+    cy.get('button[aria-label="수민 프로필 보기"]', { timeout: 8000 }).first().click();
+    cy.get('img[alt="더보기"]').should("be.visible");
+    // 소개노트 전체가 보인다(intro-notes.json 의 Q1 답).
+    cy.contains("짐은 단출하게 챙기는 편이에요.").should("exist");
   });
 
   it("marks the room read with the newest message id", () => {

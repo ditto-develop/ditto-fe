@@ -29,6 +29,7 @@ interface MessageListProps {
   /** 연결이 끊겼을 때 상단에 띄우는 안내. */
   notice?: string | null;
   onImageClick?: (imageUrl: string) => void;
+  onPartnerClick?: () => void;
   onRetrySend?: (localId: string) => void;
 }
 
@@ -82,6 +83,7 @@ export function MessageList({
   onVisibleMessage,
   notice,
   onImageClick,
+  onPartnerClick,
   onRetrySend,
 }: MessageListProps) {
   const listRef = useRef<HTMLDivElement>(null);
@@ -253,6 +255,7 @@ export function MessageList({
           partnerAvatarUrl={partnerAvatarUrl}
           partnerNickname={partnerNickname}
           onImageClick={onImageClick}
+          onPartnerClick={onPartnerClick}
           onRetry={
             isOptimisticMessage(message) ? () => onRetrySend?.(message.localId) : undefined
           }

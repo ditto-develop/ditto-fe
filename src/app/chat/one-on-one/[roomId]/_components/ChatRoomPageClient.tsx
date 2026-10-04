@@ -33,6 +33,7 @@ import { ChatMenuBottomSheet } from "./ChatMenuBottomSheet";
 import { ChatStatusBanner } from "./ChatStatusBanner";
 import { useTimer } from "./useTimer";
 import { ChatRateAction } from "@/app/chat/_components/ChatRateAction";
+import { GroupMemberProfilePage } from "@/app/chat/group/[roomId]/_components/GroupMemberProfilePage";
 
 const URGENT_NOTICE_MESSAGE =
   "대화가 1시간 후 종료돼요. 아직 하고 싶은 말이 있다면 지금 전해보세요!";
@@ -50,6 +51,7 @@ export function ChatRoomPageClient() {
   const [viewerImageUrl, setViewerImageUrl] = useState<string | null>(null);
   const [ending, setEnding] = useState(false);
   const [isUrgentNoticeDismissed, setIsUrgentNoticeDismissed] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const {
     messages,
@@ -74,6 +76,12 @@ export function ChatRoomPageClient() {
   const keyboardInset = useChatKeyboardInset();
 
   const counterpart = members[0] ?? null;
+
+  // 신고 화면에서 돌아오면(`?member=`) 보던 상대 프로필을 다시 연다. 그룹 방과 같은 규칙이다.
+  useEffect(() => {
+    const memberId = Number(new URLSearchParams(window.location.search).get("member"));
+    if (counterpart && counterpart.userId === memberId) setIsProfileOpen(true);
+  }, [counterpart]);
   const toggleMute = useChatRoomMuteToggle(roomId, room?.isMuted ?? false, refreshRoom);
 
   // 에코가 오지 않은 전송은 실패다. 원인을 알린 뒤 방 상태도 다시 읽어 화면을 맞춘다.
@@ -123,8 +131,9 @@ export function ChatRoomPageClient() {
     setEnding(true);
     try {
       await endChatRoom(roomId);
-      // 응답 data가 비어 있어 서버 응답만으로는 알 수 있는 게 없다. 목록으로 돌아가 다시 읽는다.
-      router.replace("/chat");
+      // 서버는 종료 요청 안에서 이 방의 평가를 연다. 나가자마자 평가할 수 있게 평가 화면으로
+      // 바로 보낸다(2026-10-04 QA). 평가 화면의 뒤로가기는 방 대신 목록으로 간다 — replace 다.
+      router.replace(`/chat/one-on-one/${roomId}/rate`);
     } catch {
       showToast("대화를 종료하지 못했어요. 잠시 후 다시 시도해주세요.", "error");
       setEnding(false);
@@ -188,6 +197,7 @@ export function ChatRoomPageClient() {
         notice={notice}
         onRetrySend={retrySend}
         onImageClick={setViewerImageUrl}
+        onPartnerClick={counterpart ? () => setIsProfileOpen(true) : undefined}
       />
 
       {!isEnded && (
@@ -226,6 +236,20 @@ export function ChatRoomPageClient() {
       )}
 
       <ChatImageViewer imageUrl={viewerImageUrl} onClose={() => setViewerImageUrl(null)} />
+
+      {isProfileOpen && counterpart && (
+        <GroupMemberProfilePage
+          userId={String(counterpart.userId)}
+          nickname={counterpart.nickname}
+          profileImageUrl={counterpart.profileImageUrl}
+          onClose={() => {
+            setIsProfileOpen(false);
+            if (new URLSearchParams(window.location.search).has("member")) {
+              router.replace(window.location.pathname, { scroll: false });
+            }
+          }}
+        />
+      )}
 
       <ChatLeaveModal
         isOpen={isLeaveModalOpen}
