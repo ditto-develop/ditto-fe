@@ -14,12 +14,11 @@ import {
   submitExternalQuizAnswer,
 } from "@/shared/lib/api/externalApi";
 import { getQuizSanctionMessage } from "@/features/sanction";
-import { updateNotificationSettings } from "@/features/settings/api/settingsApi";
+import { useMatchingNotifyPrompt } from "@/features/settings/hooks/useMatchingNotifyPrompt";
 import { useToast } from "@/context/ToastContext";
 import { trackEvent } from "@/shared/lib/analytics";
 import { useBackClose } from "@/shared/hooks/useBackClose";
 import { goBackOr } from "@/shared/lib/navigation";
-import { registerDeviceToken } from "@/shared/lib/native/pushNotifications";
 import type { CurrentWeekQuizSetDto, CurrentWeekQuizSetsResponseDto, QuizDto } from "@/shared/lib/api/generated";
 
 // --- Types ---
@@ -514,30 +513,9 @@ const getRandomImage = () => {
 
 function FinishView({ matchingLabel }: { matchingLabel: string }) {
   const router = useRouter();
-  const { showToast } = useToast();
   const [imgSrc] = useState(getRandomImage);
-  const [notifying, setNotifying] = useState(false);
+  const { needsPrompt, notifying, enableMatchingNotify } = useMatchingNotifyPrompt();
   const isGroup = matchingLabel === "그룹 매칭";
-
-  /**
-   * "알림받기": 매칭 알림을 켜고(설정 화면의 토글과 같은 값) 홈으로 돌아간다.
-   * 앱이면 이 기기의 푸시 토큰도 함께 등록해 둔다 — 웹에서는 아무 일도 하지 않는다.
-   * 예전에는 아무 동작도 없는 버튼이었다(QA 2026-09-09).
-   */
-  const handleNotify = async () => {
-    if (notifying) return;
-    setNotifying(true);
-    try {
-      await updateNotificationSettings({ matching: true });
-      void registerDeviceToken();
-      showToast("매칭 결과가 나오면 알려드릴게요.", "success");
-      router.push("/home");
-    } catch {
-      showToast("알림 설정에 실패했어요. 잠시 후 다시 시도해 주세요.", "error");
-    } finally {
-      setNotifying(false);
-    }
-  };
 
     return(
         <PageContainer>
@@ -576,21 +554,24 @@ function FinishView({ matchingLabel }: { matchingLabel: string }) {
               <RandomImg src={imgSrc} />
             </MiddleContainer>
 
-            <ActionSheet
-                caption="결과를 놓치지 않도록 알려드릴게요"
-                layout="column"
-            >
-                <ActionButton
-                  variant={notifying ? "disabled" : "primary"}
-                  disabled={notifying}
-                  onClick={handleNotify}
-                >
-                  알림받기
-                </ActionButton>
-                <ActionButton
-                  onClick={()=>{router.push('/home')}}
-                  variant="tertiary">다음에 하기</ActionButton>
-            </ActionSheet>
+            {/* 매칭 알림이 꺼져 있을 때만 묻는다(useMatchingNotifyPrompt). */}
+            {needsPrompt && (
+              <ActionSheet
+                  caption="결과를 놓치지 않도록 알려드릴게요"
+                  layout="column"
+              >
+                  <ActionButton
+                    variant={notifying ? "disabled" : "primary"}
+                    disabled={notifying}
+                    onClick={enableMatchingNotify}
+                  >
+                    알림받기
+                  </ActionButton>
+                  <ActionButton
+                    onClick={()=>{router.push('/home')}}
+                    variant="tertiary">다음에 하기</ActionButton>
+              </ActionSheet>
+            )}
         </PageContainer>
     )
 }

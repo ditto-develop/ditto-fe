@@ -5,7 +5,7 @@
  * - 이어서/새로 풀기 안내는 답한 문항이 남아 있는 채로 다시 들어왔을 때만 뜬다(Figma 1112:8841).
  * - "새로 풀기"는 답변을 지우고 같은 퀴즈의 1번 문항부터 다시 푼다 — 화면을 벗어나지 않는다.
  * - 홈에서 고른 종류의 세트가 이번 주에 없으면 다른 종류로 대체하지 않는다.
- * - 참여 완료 화면의 "알림받기"는 매칭 알림을 켜고 홈으로 돌아간다.
+ * - 참여 완료 화면의 "알림받기"는 매칭 알림을 켜고 홈으로 돌아간다. 이미 켜져 있으면 묻지 않는다.
  */
 
 const FIRST_QUESTION = "처음 만난 사람과 가장 편한 대화 주제는?";
@@ -130,17 +130,39 @@ describe("quiz navigation", () => {
     cy.contains("쓰이지 않는 제목").should("not.exist");
   });
 
-  it("turns on matching notifications from the finish screen", () => {
-    cy.intercept("PATCH", "**/api/**/users/me/notification-settings", (req) => {
-      req.reply({ success: true, data: { matching: true, chat: true, marketing: false } });
-    }).as("patchNotificationSettings");
-
+  function finishOneToOneQuiz() {
     cy.visit("/quiz/current?type=ONE_TO_ONE");
     cy.contains("button", "가볍게 취미 이야기", { timeout: 6000 }).click();
     cy.wait("@submitAnswer");
     cy.contains("button", "미리 계획 세우기", { timeout: 6000 }).click();
     cy.wait("@submitAnswer");
     cy.contains("퀴즈 참여 완료", { timeout: 6000 }).should("be.visible");
+  }
+
+  // 매칭 알림을 이미 켜 둔 사람에게는 묻지 않는다(2026-10-04 QA "매번 알림 설정 팝업").
+  it("does not ask for notifications when matching notifications are already on", () => {
+    cy.intercept("GET", "**/api/**/users/me/notification-settings", {
+      success: true,
+      data: { matching: true, chat: true, marketing: false },
+    }).as("getNotificationSettings");
+
+    finishOneToOneQuiz();
+    cy.wait("@getNotificationSettings");
+
+    cy.contains("결과를 놓치지 않도록 알려드릴게요").should("not.exist");
+    cy.contains("button", "알림받기").should("not.exist");
+  });
+
+  it("turns on matching notifications from the finish screen", () => {
+    cy.intercept("GET", "**/api/**/users/me/notification-settings", {
+      success: true,
+      data: { matching: false, chat: true, marketing: false },
+    }).as("getNotificationSettings");
+    cy.intercept("PATCH", "**/api/**/users/me/notification-settings", (req) => {
+      req.reply({ success: true, data: { matching: true, chat: true, marketing: false } });
+    }).as("patchNotificationSettings");
+
+    finishOneToOneQuiz();
 
     cy.contains("button", "알림받기").click();
 
