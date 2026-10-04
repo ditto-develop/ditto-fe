@@ -2,6 +2,7 @@
 
 import styled from "styled-components";
 import type { RatingSummary } from "@/features/profile/model/types";
+import { StarIcon } from "@/shared/ui";
 
 interface ReceivedRatingsCardProps {
     ratingSummary: RatingSummary | null;
@@ -57,7 +58,7 @@ function StarRating({ filledCount }: { filledCount: number }) {
     return (
         <Stars aria-label={`별점 ${filledCount}점`}>
             {Array.from({ length: 5 }).map((_, index) => (
-                <Star key={index} $filled={index < filledCount}>★</Star>
+                <Star key={index} $filled={index < filledCount} />
             ))}
         </Stars>
     );
@@ -102,10 +103,11 @@ const Stars = styled.div`
   margin-right: var(--space-2);
 `;
 
-const Star = styled.span<{ $filled: boolean }>`
-  font-size: var(--typography-title-3-font-size);
-  font-weight: var(--typography-title-3-font-weight);
-  line-height: var(--typography-title-3-line-height);
+/* Figma 별 Shape 24×24. 빈 별은 같은 모양을 바탕색으로 채운다(예전 글리프와 같은 규칙). */
+const Star = styled(StarIcon)<{ $filled: boolean }>`
+  flex-shrink: 0;
+  width: var(--space-6);
+  height: var(--space-6);
   color: ${({ $filled }) =>
     $filled
       ? "var(--color-semantic-status-positive)"

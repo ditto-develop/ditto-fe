@@ -16,7 +16,7 @@ import {
   toInterestLabel,
 } from "@/shared/lib/profileLabels";
 import { useBackClose } from "@/shared/hooks/useBackClose";
-import { TopNavigation } from "@/shared/ui";
+import { StarIcon, TopNavigation } from "@/shared/ui";
 import { GroupMemberMoreModal } from "./GroupMemberMoreModal";
 
 interface GroupMemberProfilePageProps {
@@ -111,7 +111,7 @@ export function GroupMemberProfilePage({
                 <ProfileName>{nickname}</ProfileName>
                 {profile?.rating != null && (
                   <RatingBadge>
-                    <RatingStar>★</RatingStar>
+                    <RatingStar />
                     <RatingText>{profile.rating.toFixed(1)}</RatingText>
                   </RatingBadge>
                 )}
@@ -261,8 +261,11 @@ const RatingBadge = styled.div`
   gap: 4px;
 `;
 
-const RatingStar = styled.span`
-  font-size: var(--typography-label-1-normal-font-size);
+/* 이름 옆 별. 숫자(label-1, 14px)와 같은 높이로 보이게 16px 상자에 넣는다(ProfileIntroView 와 같다). */
+const RatingStar = styled(StarIcon)`
+  flex-shrink: 0;
+  width: var(--space-4);
+  height: var(--space-4);
   color: var(--color-semantic-status-positive);
 `;
 

@@ -5,6 +5,7 @@ import styled from "styled-components";
 
 import { INTRO_NOTE_FIELDS } from "@/features/profile/model/introNotes";
 import type { RatingSummary } from "@/features/profile/model/types";
+import { StarIcon } from "@/shared/ui";
 
 type IntroNotePreviewItem = {
     questionCode?: string;
@@ -68,7 +69,7 @@ export function ProfileIntroView({
                     <ProfileName>{name}</ProfileName>
                     {rating && (
                         <RatingBadge>
-                            <RatingStar>★</RatingStar>
+                            <RatingStar />
                             <RatingText>{Number(rating).toFixed(1)}</RatingText>
                         </RatingBadge>
                     )}
@@ -117,7 +118,7 @@ export function ProfileIntroView({
                     <RatingScoreRow>
                         <RatingStars aria-hidden="true">
                             {Array.from({ length: 5 }).map((_, index) => (
-                                <RatingStarIcon key={index}>★</RatingStarIcon>
+                                <RatingStarIcon key={index} />
                             ))}
                         </RatingStars>
                         <RatingScoreText>{publicRatingSummary.averageScore.toFixed(1)}</RatingScoreText>
@@ -231,8 +232,11 @@ const RatingBadge = styled.div`
   gap: 4px;
 `;
 
-const RatingStar = styled.span`
-  font-size: var(--typography-label-1-normal-font-size);
+/* 이름 옆 별. 숫자(label-1, 14px)와 같은 높이로 보이게 16px 상자에 넣는다(별 모양은 상자의 약 88%). */
+const RatingStar = styled(StarIcon)`
+  flex-shrink: 0;
+  width: var(--space-4);
+  height: var(--space-4);
   color: var(--color-semantic-status-positive);
 `;
 
@@ -395,9 +399,11 @@ const RatingStars = styled.div`
   margin-right: var(--space-2);
 `;
 
-const RatingStarIcon = styled.span`
-  font-size: var(--typography-heading-1-font-size);
-  line-height: var(--typography-heading-1-line-height);
+/* Figma 별 Shape 24×24 */
+const RatingStarIcon = styled(StarIcon)`
+  flex-shrink: 0;
+  width: var(--space-6);
+  height: var(--space-6);
   color: var(--color-semantic-status-positive);
 `;
 
