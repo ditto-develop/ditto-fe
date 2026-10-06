@@ -90,6 +90,17 @@ export function initGtagQueue(): void {
      * 켜 두면 `ClientLayout` 의 리다이렉트마다 유령 조회가 쌓인다.
      */
     send_page_view: false,
+    /**
+     * Google 신호 데이터·광고 개인화를 끈다(2026-10-06, App Store 심사 준비).
+     *
+     * 켜져 있으면 GA 가 우리 이벤트를 Google 계정의 광고 데이터와 결합한다. 애플은 이걸
+     * "추적(tracking)"으로 보고, 그러면 ATT 동의 창과 NSUserTrackingUsageDescription 이
+     * 필요해지며 영양성분표에도 추적으로 신고해야 한다. 우리는 광고를 하지 않으므로 끄고
+     * `PrivacyInfo.xcprivacy` 의 `NSPrivacyTracking = false` 를 사실로 유지한다.
+     * GA 속성 관리 화면의 같은 설정과 별개로 코드에서도 막아 둔다(속성 설정은 누가 켤 수 있다).
+     */
+    allow_google_signals: false,
+    allow_ad_personalization_signals: false,
   });
 }
 
