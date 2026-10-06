@@ -106,21 +106,58 @@ NATIVE FUNCTIONALITY (Guideline 4.2)
 The app renders our web app (ditto.pics) inside WKWebView and adds: Firebase Cloud Messaging push notifications for chat and match events, local notifications for in-app alerts, native Sign in with Apple, native Kakao login (KakaoTalk app switch), Universal Links (ditto.pics/auth/callback), location for the nearby-place map, photo/camera attachment in chat and reports, swipe-back navigation, and a bundled offline screen that recovers automatically when the connection returns.
 ```
 
-### 3-4. Sign in with Apple 서버 알림 URL (BE)
+### 3-4. Sign in with Apple 서버 알림 (BE 구현 + 포털 등록)
 
-2026-01-01부터 **한국 개발자**는 Services ID 를 등록·수정할 때 서버 간 알림 URL 이 필수다
-(이메일 전달 변경 · 앱 계정 삭제 · Apple 계정 영구 삭제). `pics.ditto.web` 은 2026-09-08 등록이라
-대상이다. 개발자 포털 → Identifiers → Sign in with Apple 설정에서 BE 가 처리하는 URL 이 들어가
-있는지, BE 가 `account-delete` 를 받아 회원을 정리하는지 확인한다.
+**무엇인가.** 사용자가 애플 쪽에서 계정 상태를 바꾸면 애플이 우리 서버로 POST 를 보낸다.
+2026-01-01부터 **한국 개발자**는 Sign in with Apple 설정을 등록·수정할 때 이 URL 이 필수다.
 
-같이 볼 것: 탈퇴 시 애플 토큰 폐기(TN3194) — 런북 §6 "탈퇴 시 애플 토큰 폐기 — 확인 필요".
-새 릴레이 도메인 `private.icloud.com`(2026-08~)을 BE 가 이메일 검증에서 거르지 않는지.
+| 이벤트 | 언제 오나 | 우리가 할 일 |
+|---|---|---|
+| `consent-revoked` | 설정 > Apple 계정 > Apple로 로그인 에서 디토 사용 중단 | 해당 회원 로그아웃·연결 해제(재로그인 시 새 인가) |
+| `account-delete` | 사용자가 Apple 계정 자체를 영구 삭제 | 해당 회원 탈퇴 처리(앱 내 탈퇴와 같은 정리) |
+| `email-disabled` / `email-enabled` | 릴레이 이메일 전달을 끄거나 켬 | 이메일 발송 가능 여부 플래그 갱신 |
+
+본문은 `{"payload": "<JWS>"}` 이고, JWS 를 애플 공개키(`https://appleid.apple.com/auth/keys`)로
+검증한 뒤 `iss = https://appleid.apple.com`, `aud = pics.ditto.app`(또는 `pics.ditto.web`)을 확인한다.
+`events.sub` 가 우리 DB 의 애플 `providerUserId` 다. 인증 없는 공개 엔드포인트이고, 같은 이벤트가
+다시 와도 안전해야 하며(멱등), 빨리 200 을 돌려준다.
+
+**현재 상태 (2026-10-06, ditto-server 소스 기준)** — **구현이 없다.** 위 이벤트 이름도, 애플 토큰
+폐기(`/auth/revoke`)도 코드에 없다. FE 는 할 일이 없다.
+
+**할 일**
+1. BE: 엔드포인트 구현(예: `POST /api/v1/users/social-login/apple/notifications`) 후 배포.
+2. 포털: Certificates, Identifiers & Profiles → Identifiers → App ID `pics.ditto.app`(주 App ID) →
+   Sign In with Apple → Edit → **Server-to-Server Notification Endpoint** 에 위 URL(https, TLS 1.2+).
+   Account Holder/Admin 권한이 필요하다. 9/8 Services ID 등록 때 이미 뭔가 입력돼 있다면 그 URL 이
+   실제로 존재하는지부터 본다.
+3. (함께) 앱 내 탈퇴 시 애플 토큰 폐기(TN3194): BE 가 인가 코드를 교환해 refresh token 을 보관하고
+   탈퇴 때 `POST https://appleid.apple.com/auth/revoke` 를 부른다. FE 플러그인은 `authorizationCode`
+   를 이미 돌려주고 있어 JS 한 줄로 실어 보낼 수 있다(런북 §6).
+
+**심사 영향.** 리뷰어가 이 엔드포인트를 직접 시험하지는 않는다 — 제출을 막는 항목은 아니지만
+애플 정책상 필수이고, 없으면 사용자가 애플 쪽에서 연결을 끊어도 우리 계정이 그대로 남는다.
 
 ### 3-5. 심사용 계정 데이터
 
-심사는 요일을 가리지 않는다. 제출 시점에 그 계정에 **매칭 결과·진행 중인 1:1 방·그룹 방**이
-있어야 한다(대화방은 일요일 23:59 마감). admin 의 시간 재정의(`/admin/time-override`)·매칭
-관리로 만들어 두고, 심사 기간에는 방이 닫히지 않게 관리한다.
+리뷰어가 언제 들어오든 핵심 화면(대화방 · 신고 · 차단)이 보여야 한다. 대화방은 금 00:00 ~ 일 23:59
+에만 열려 있다.
+
+**운영 서버에서 쓰면 안 되는 도구** (BE QA 콘솔 `/admin/qa/...` 소스 확인)
+- **서버 시각 오버라이드**는 전역 단일 값이다 — 켜면 실회원 전체의 요일이 바뀐다.
+- **더미 생성 + 매칭 재생성**: 매칭은 더미를 걸러내지 않는다(더미 구분은 닉네임 접두어뿐).
+  이번 주 퀴즈셋에 더미를 넣으면 실회원 후보에 더미가 섞이고, 재생성은 기존 후보를 지운다.
+
+**권장 절차 — 실제 주간 사이클에 팀 테스트 계정으로 태운다**
+1. 심사용 카카오 계정 1개 + 상대역 팀 계정(1:1 용 1개, 그룹 용 2개 이상)을 만든다.
+2. 월~수: 모두 같은 퀴즈를 고르고 **같은 답**을 낸다(일치율이 높아야 서로 후보에 뜬다).
+3. 목: 심사용 계정과 상대역이 서로 신청·수락한다(그룹은 3명 이상 수락).
+4. 금: 대화방이 열리면 몇 마디 주고받아 둔다. **이 시점(금~토 오전)에 제출**한다 — 일요일 23:59에
+   방이 닫히므로, 심사가 주말을 넘기면 다음 주에 같은 과정을 반복해야 한다.
+5. 심사 노트의 DEMO ACCOUNT 단락에 "대화방은 금~일에만 열린다"는 문장이 이미 있다.
+
+1:1 과 그룹 방을 한 계정에서 동시에 보여 줄 수 없으면(주 1회 1개 퀴즈) 1:1 을 우선한다 — 신고·차단·
+프로필 신고 진입점이 모두 1:1 방에 있다.
 
 ### 3-6. 심사 기간 중 프로덕션 배포 동결
 
