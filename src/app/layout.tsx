@@ -44,21 +44,8 @@ export default function RootLayout({
 }>) {
   
   return (
-    // suppressHydrationWarning: 아래 head 스크립트가 하이드레이션 전에 data-native-app 을 단다.
-    <html lang="ko" className={pretendardJP.variable} suppressHydrationWarning>
+    <html lang="ko" className={pretendardJP.variable}>
       <head>
-        {/*
-          앱(Capacitor 웹뷰)이면 첫 페인트 전에 <html data-native-app> 을 단다. 앱에서만 달라야
-          하는 정적 화면(스플래시 베타 배지 등)을 CSS 로 가르는 표식이다(globals.css).
-          Capacitor 네이티브 브릿지는 문서 시작 시점에 주입되므로 여기서 이미 읽을 수 있다.
-          일반 브라우저에는 window.Capacitor 가 없어 아무 일도 하지 않는다.
-        */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "try{if(window.Capacitor&&window.Capacitor.isNativePlatform())document.documentElement.setAttribute('data-native-app','')}catch(e){}",
-          }}
-        />
         <link rel="preload" as="image" href="/assets/logo/ditto.svg" />
         <link rel="preload" as="image" href="/assets/logo/beta-badge.svg" />
       </head>
