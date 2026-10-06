@@ -36,19 +36,20 @@ try {
 const BG = "#E9E6E2";
 
 /**
- * 디자인된 앱 아이콘(Figma 2238:24936, 베타). 둥근 타일 + 워드마크 + 하단 BETA 띠.
+ * 앱 아이콘. 둥근 타일 + 가운데 워드마크.
  *
- * 타일 모양은 `clip-path="url(#tile)"` **하나로만** 깎는다. 하단 띠는 각진 사각형이라
- * 클립을 떼면 그대로 각진 원본(아래 두 모서리까지 검은색)이 된다. 시스템이 모서리를
- * 직접 깎는 대상(iOS · 원형 · 어댑티브)은 그 각진 원본을 써야 한다 — 둥근 타일을
- * 배경색으로 메우면 아래 두 모서리만 띠 대신 배경색이 비친다.
+ * **앱에는 BETA 표기를 넣지 않는다**(2026-10-06). App Store 가이드라인 2.2 가 베타를
+ * 스토어에 올리지 말라고 해서 심사에서 걸린다. 베타 디자인(Figma 2238:24936)의 하단
+ * BETA 띠를 걷고 워드마크를 가운데로 되돌렸다. 웹은 배지를 그대로 쓴다(globals.css).
+ *
+ * 타일 모양은 `clip-path="url(#tile)"` **하나로만** 깎는다. 시스템이 모서리를 직접 깎는
+ * 대상(iOS · 원형 · 어댑티브)은 클립을 뗀 각진 원본을 써야 한다 — 하단 띠 같은 각진
+ * 장식이 다시 들어와도 모서리까지 이어지게 하려는 구조라 띠를 걷은 지금도 유지한다.
  */
 const ICON_SVG = path.join(ROOT, "public/logo/icon.svg");
 const ICON_CLIP_ATTR = ' clip-path="url(#tile)"';
 /** 워드마크 단독. 웹 스플래시(`components/splash/Splash.tsx`)가 쓰는 바로 그 파일. */
 const WORDMARK_SVG = path.join(ROOT, "public/assets/logo/ditto.svg");
-/** 베타 배지. 웹 스플래시가 워드마크 우상단에 얹는 바로 그 파일. */
-const BADGE_SVG = path.join(ROOT, "public/assets/logo/beta-badge.svg");
 
 /**
  * 워드마크를 캔버스 폭의 몇 %로 놓을지.
@@ -70,13 +71,6 @@ const MARK_W = 160;
 const MARK_H = 76;
 const MARK_ASPECT = MARK_W / MARK_H;
 
-/**
- * 배지 위치·크기. 워드마크(160×76) 좌상단 기준 단위다. Figma 3171:35348 의 값이고
- * 웹 스플래시의 `.splash-beta-badge`(globals.css) 와 같은 숫자다 — 한쪽을 바꾸면 같이 바꾼다.
- */
-const BADGE_OFFSET = { left: 114.5, top: -14.5 };
-const BADGE_W = 47.9734;
-
 async function renderMark(widthPx) {
     return sharp(WORDMARK_SVG)
         .resize({ width: Math.round(widthPx) })
@@ -84,7 +78,7 @@ async function renderMark(widthPx) {
         .toBuffer();
 }
 
-/** 클립을 뗀 각진 아이콘. 둥근 BG 사각형이 남긴 위쪽 모서리 투명은 BG 로 메운다. */
+/** 클립을 뗀 각진 아이콘. 둥근 BG 사각형이 남긴 모서리 투명은 BG 로 메운다. */
 let squareIconSvg;
 async function renderSquareIcon(size) {
     if (!squareIconSvg) {
@@ -98,29 +92,21 @@ async function renderSquareIcon(size) {
 }
 
 /**
- * 워드마크 + 베타 배지를 캔버스에 놓는다. 가운데 정렬 기준은 **워드마크**다 —
- * 배지는 워드마크 위·오른쪽으로 삐져나가는 장식이라 웹 스플래시처럼 정렬에 끼지 않는다.
- * `background` 를 생략하면 투명 캔버스다.
+ * 워드마크를 캔버스 가운데 놓는다. `background` 를 생략하면 투명 캔버스다.
+ *
+ * 웹 스플래시는 워드마크 우상단에 베타 배지를 얹지만 앱 스플래시에는 넣지 않는다 —
+ * ICON_SVG 의 가이드라인 2.2 설명과 같은 이유다. 웹 스플래시도 앱 안에서는 배지를 숨긴다.
  */
 async function composeSplash(width, height, markWidth, { background = BG } = {}) {
-    const scale = markWidth / MARK_W;
     const mark = await renderMark(markWidth);
     const { width: mw, height: mh } = await sharp(mark).metadata();
-    const markLeft = Math.round((width - mw) / 2);
-    const markTop = Math.round((height - mh) / 2);
-
-    const badge = await sharp(BADGE_SVG)
-        .resize({ width: Math.round(BADGE_W * scale) })
-        .png()
-        .toBuffer();
 
     return sharp({ create: { width, height, channels: 4, background } })
         .composite([
-            { input: mark, left: markLeft, top: markTop },
             {
-                input: badge,
-                left: Math.round(markLeft + BADGE_OFFSET.left * scale),
-                top: Math.round(markTop + BADGE_OFFSET.top * scale),
+                input: mark,
+                left: Math.round((width - mw) / 2),
+                top: Math.round((height - mh) / 2),
             },
         ])
         .png()
@@ -152,9 +138,9 @@ const LAUNCHER_DENSITIES = {
  * 타일을 그 72dp 에 꼭 맞게 놓는다 — 타일 디자인이 곧 "마스크 안에 보일 그림"이기 때문이다.
  *
  * 원형 마스크(가장 빡빡한 경우)에서도 내용이 안 잘리는지: 보장 영역은 지름 66dp 원이다.
- * 렌더링해 재 보면 BETA 글자의 가장 먼 점(타일 x 37%, y 93%)이 중심에서 32.0dp, 워드마크가
- * 28.9dp 라 둘 다 33dp 안에 든다. 원 밖으로 나가는 건 배경과 띠의 모서리뿐이다.
- * 아이콘 디자인이 바뀌면 이 여유(1dp)부터 다시 잴 것.
+ * 렌더링해 재 보면 워드마크의 가장 먼 점(타일 x 11%, y 65%)이 중심에서 30.3dp 라 33dp
+ * 안에 든다. 원 밖으로 나가는 건 배경뿐이다.
+ * 아이콘 디자인이 바뀌면 이 여유(2.7dp)부터 다시 잴 것.
  */
 const ADAPTIVE_SCALE = 108 / 48;
 const ADAPTIVE_VIEWPORT = 72 / 108;
@@ -190,7 +176,7 @@ async function generateIcons() {
         );
 
         // 어댑티브 포그라운드(API 26+). 각진 타일을 가운데 72dp 에 놓고, 바깥 18dp 는
-        // 가장자리 픽셀을 복사해 채운다 — 위·옆은 배경색, 아래는 BETA 띠가 그대로 이어진다.
+        // 가장자리 픽셀을 복사해 채운다 — 지금은 네 변 모두 배경색이 이어진다.
         // 마스크 모양·패럴랙스로 뷰포트 밖이 비쳐도 이음새가 없다.
         const fgSize = Math.round(size * ADAPTIVE_SCALE);
         const tileSize = Math.round(fgSize * ADAPTIVE_VIEWPORT);
@@ -268,8 +254,8 @@ async function generatePushIcons() {
  * Android 12+ 시스템 스플래시 아이콘(`values-v31/styles.xml` 의 windowSplashScreenAnimatedIcon).
  * 배경 없는 아이콘 규격은 288dp 캔버스 · 지름 192dp 원 안이다.
  *
- * 워드마크를 웹과 같은 160dp 로 둔다. 배지까지 합친 묶음의 가장 먼 점은 배지 우상단
- * 둥근 모서리로 중심에서 93.6dp — 96dp 반지름 안에 든다.
+ * 워드마크를 웹과 같은 160dp 로 둔다. 가장 먼 점은 워드마크(160×76) 모서리로 중심에서
+ * 88.6dp — 96dp 반지름 안에 든다.
  */
 const SPLASH_ICON_DENSITIES = {
     mdpi: 1,
@@ -330,7 +316,7 @@ async function generateSplashes() {
 }
 
 console.log(
-    `소스: public/logo/icon.svg · public/assets/logo/ditto.svg · public/assets/logo/beta-badge.svg (배경 ${BG})`,
+    `소스: public/logo/icon.svg · public/assets/logo/ditto.svg (배경 ${BG})`,
 );
 await generateIcons();
 await generatePushIcons();

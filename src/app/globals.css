@@ -29,12 +29,23 @@
 /*
  * 베타 배지. Figma 3171:35348 에서 로고(160×76) 좌상단 기준 위치다 — 로고 위로 14.5px,
  * 오른쪽 끝은 로고보다 2.5px 더 나간다. absolute 라 로고·문구의 가운데 정렬에 끼어들지 않는다.
- * 네이티브 스플래시도 같은 오프셋을 쓴다(scripts/generate-app-assets.mjs 의 BADGE_OFFSET).
  */
 .splash-beta-badge {
   position: absolute;
   top: -14.5px;
   left: 114.5px;
+}
+
+/*
+ * 앱 안에서는 베타 배지를 숨긴다 — App Store 가이드라인 2.2(베타는 스토어에 올리지 않는다).
+ * 네이티브 아이콘·스플래시도 배지 없이 만든다(scripts/generate-app-assets.mjs).
+ *
+ * JS 분기(isNativeApp)가 아니라 CSS 로 숨기는 이유: 스플래시는 정적 HTML 에 미리 그려져
+ * 있어서, 하이드레이션 뒤에 지우면 앱을 켤 때마다 배지가 한 번 스친다. `data-native-app` 은
+ * layout.tsx 의 head 스크립트가 첫 페인트 전에 단다.
+ */
+html[data-native-app] .splash-beta-badge {
+  display: none;
 }
 
 html, body {
