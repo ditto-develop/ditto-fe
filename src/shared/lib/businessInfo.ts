@@ -41,14 +41,26 @@ export const PRIVACY_OFFICER = {
 } as const;
 
 /**
- * 약관·방침 시행일. 세 문서가 같은 날짜를 쓰므로 여기 한 곳에서만 바꾼다.
- * 문서를 실제로 개정할 때만 갱신한다(자리표시자가 아니다).
+ * 약관·방침 **최초** 시행일. 세 문서가 함께 제정됐다.
+ * 위치기반서비스 이용약관은 개정 전이라 지금도 이 날짜가 시행일이다.
  */
 export const POLICY_EFFECTIVE_DATE = {
   /** 본문 표기: "2026년 8월 30일" */
   long: "2026년 8월 30일",
   /** 변경 이력 표 표기: "2026.08.30" */
   dotted: "2026.08.30",
+} as const;
+
+/**
+ * 이용약관·개인정보처리방침 개정(서비스 동작에 맞춘 현행화). 문서를 실제로 개정할 때만
+ * 갱신한다(자리표시자가 아니다).
+ *
+ * - noticed: 개정안을 게시한 날(공고일 · 최종 수정일)
+ * - effective: 개정안 시행일
+ */
+export const POLICY_REVISION = {
+  noticed: { long: "2026년 10월 6일", dotted: "2026.10.06" },
+  effective: { long: "2026년 10월 12일", dotted: "2026.10.12" },
 } as const;
 
 export type BusinessInfoRow = {

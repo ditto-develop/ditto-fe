@@ -2,6 +2,7 @@ import type { PolicyBlock } from "@/features/settings/model/types";
 import {
   BUSINESS_INFO,
   POLICY_EFFECTIVE_DATE,
+  POLICY_REVISION,
   PRIVACY_OFFICER,
 } from "@/shared/lib/businessInfo";
 
@@ -98,7 +99,7 @@ function parsePolicy(source: string): PolicyBlock[] {
 
 const termsOfServiceSource = `
 # Ditto 이용약관
-**시행일자**: ${POLICY_EFFECTIVE_DATE.long} / **최종 수정일**: ${POLICY_EFFECTIVE_DATE.long}
+**시행일자**: ${POLICY_REVISION.effective.long} / **최종 수정일**: ${POLICY_REVISION.noticed.long}
 
 ### 제1조 (목적)
 본 약관은 ${BUSINESS_INFO.companyName}가 운영하는 디토(Ditto)의 이용과 관련하여 회사와 이용자의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.
@@ -184,7 +185,7 @@ const termsOfServiceSource = `
 1. 회원은 매주 월요일부터 수요일까지 제공되는 퀴즈 중 1개의 카테고리를 선택하여 주 1회 참여할 수 있습니다.
 2. 매칭 결과는 매주 목요일에 공개되며, 목요일 00:00부터 23:59까지 24시간 동안 확인 및 매칭 요청이 가능합니다.
 3. 매칭 후보는 퀴즈 답변의 일치율을 기준으로 선정되며, 1:1 매칭은 최대 5명의 후보가 제공되고 그룹 매칭은 3~6명으로 구성됩니다.
-4. 회원은 주당 1명과만 매칭할 수 있습니다.
+4. 1:1 매칭은 주당 1명과만 성사되며, 그룹 매칭은 주당 1개 그룹에만 참여할 수 있습니다.
 5. 매칭이 성사된 경우, 금요일부터 일요일 23:59까지 72시간 동안 채팅방이 제공됩니다.
 6. 채팅방은 일요일 23:59에 일괄 마감됩니다.
 
@@ -196,12 +197,11 @@ const termsOfServiceSource = `
 ### 제13조 (신고 및 제재)
 1. 회원은 다른 회원의 부적절한 행위를 발견한 경우 신고할 수 있습니다.
 2. 신고 사유는 다음과 같습니다:
-- 성희롱 또는 성적 괴롭힘
-- 욕설 및 비방
-- 금전 요구
-- 사기 또는 허위 프로필
-- 노쇼 (약속 불이행)
-- 기타
+- 부적절한 행동 (성희롱, 폭언, 협박 등)
+- 금전 요구 (금전 요구 또는 상업적 홍보)
+- 허위 정보 (거짓 프로필 정보 또는 사진 도용)
+- 미성년자 (만 19세 미만으로 의심되는 경우)
+- 기타 (사유 직접 입력)
 3. 회사는 신고 접수 시 24시간 내에 조사를 시작하며, 위반이 확인되면 다음과 같이 제재합니다:
 - 1차: 경고 (다음 회차 퀴즈 참여 불가)
 - 2차: 2주간 이용 정지
@@ -212,7 +212,7 @@ const termsOfServiceSource = `
 
 ### 제14조 (평가 시스템)
 1. 회원은 매칭 상대에 대해 별점(1-5점)과 코멘트를 작성할 수 있습니다.
-2. 평가는 채팅방 마감 후 또는 강제 종료 후 필수로 작성해야 합니다.
+2. 평가는 채팅방이 마감되거나 종료된 뒤 작성할 수 있으며, 원하지 않으면 건너뛸 수 있습니다.
 3. 회원은 3회 이상의 평가를 받은 경우 평균 별점과 대표 코멘트가 프로필에 공개됩니다.
 4. 노쇼 평가 횟수는 제3항에 따라 평가가 공개될 때 프로필에 함께 표시됩니다. 노쇼 평가만으로 이용이 정지되지는 않으며, 운영자가 확인한 노쇼는 제13조에 따라 제재될 수 있습니다.
 
@@ -242,12 +242,12 @@ const termsOfServiceSource = `
 2. 회사와 회원 간 발생한 분쟁에 관한 소송은 제소 당시 회원의 주소에 의하고, 주소가 없는 경우 거소를 관할하는 지방법원의 전속관할로 합니다. 단, 제소 당시 회원의 주소 또는 거소가 명확하지 아니한 경우의 관할법원은 민사소송법에 따라 정합니다.
 3. 해외에 주소나 거소가 있는 회원의 경우 회사와 회원 간 발생한 분쟁에 관한 소송은 전항에도 불구하고 대한민국 서울중앙지방법원을 관할법원으로 합니다.
 
-**부칙** — 본 약관은 ${POLICY_EFFECTIVE_DATE.long}부터 시행합니다.
+**부칙** — 본 약관은 ${POLICY_REVISION.effective.long}부터 시행합니다. 종전 약관(${POLICY_EFFECTIVE_DATE.long} 시행)은 이 약관 시행 전날까지 적용됩니다.
 `;
 
 const privacyPolicySource = `
 # Ditto 개인정보처리방침
-**시행일자**: ${POLICY_EFFECTIVE_DATE.long} / **최종 수정일**: ${POLICY_EFFECTIVE_DATE.long}
+**시행일자**: ${POLICY_REVISION.effective.long} / **최종 수정일**: ${POLICY_REVISION.noticed.long}
 
 ### 1. 개인정보 처리방침의 의의
 ${BUSINESS_INFO.companyName}는 이용자의 개인정보를 중요시하며, "정보통신망 이용촉진 및 정보보호 등에 관한 법률", "개인정보 보호법" 등 관련 법령을 준수하고 있습니다.
@@ -335,12 +335,13 @@ Google Analytics 로는 화면 이용 기록·체류 시간·기기 정보와 �
 - 경찰청 사이버안전국: (국번없이) 182 / cyberbureau.police.go.kr
 
 ### 14. 부칙
-**14.1 시행일** — 이 개인정보 처리방침은 ${POLICY_EFFECTIVE_DATE.long}부터 시행됩니다.
+**14.1 시행일** — 이 개인정보 처리방침은 ${POLICY_REVISION.effective.long}부터 시행됩니다.
 **14.2 변경 이력**
 
 | 버전 | 공고일자 | 시행일자 | 변경 내용 |
 | --- | --- | --- | --- |
 | v1.0 | ${POLICY_EFFECTIVE_DATE.dotted} | ${POLICY_EFFECTIVE_DATE.dotted} | 최초 제정 |
+| v1.1 | ${POLICY_REVISION.noticed.dotted} | ${POLICY_REVISION.effective.dotted} | 소셜 로그인 수집 경로(구글 삭제)·채팅 수집 항목(연락처 교환 삭제)·관리적 보호 대책 현행화 |
 `;
 
 const locationTermsSource = `
