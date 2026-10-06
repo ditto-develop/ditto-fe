@@ -14,6 +14,7 @@
     "cypress:run": "env -u ELECTRON_RUN_AS_NODE cypress run",
     "cypress:run:e2e": "env -u ELECTRON_RUN_AS_NODE cypress run --config baseUrl=http://localhost:3100",
     "capture:kakao": "env -u ELECTRON_RUN_AS_NODE cypress run --config-file cypress.config.capture.ts",
+    "capture:appstore": "env -u ELECTRON_RUN_AS_NODE cypress run --config-file cypress.config.appstore.ts --browser chrome",
     "test:e2e:cypress": "start-server-and-test dev:e2e http://localhost:3100 cypress:run:e2e",
     "verify": "npm run lint && npm run typecheck && npm run test",
     "storybook": "storybook dev -p 6006",
