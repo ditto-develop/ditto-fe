@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { isAnswered } from "@/features/rating/api/reviewApi";
 import { useReviewSubmission } from "@/features/rating/hooks/useReviewSubmission";
+import { toMissingRequiredMessage } from "@/features/rating/model/labels";
 import type {
   GroupReviewFormValue,
   MemberReview,
@@ -35,6 +36,7 @@ export function useGroupRating(review: MemberReview, reload: () => Promise<void>
   const currentTarget = pendingTargets[currentIndex] ?? null;
   const isLast = currentIndex === pendingTargets.length - 1;
   const canContinue = form.meetingStatus !== null && form.rating > 0 && !submitting && currentTarget !== null;
+  const missingRequiredMessage = toMissingRequiredMessage(form);
 
   const setFormValue = (value: ReviewFormValue) => {
     setForm((previous) => ({ ...previous, ...value }));
@@ -69,6 +71,7 @@ export function useGroupRating(review: MemberReview, reload: () => Promise<void>
     setWantsOneToOneRematch,
     isLast,
     canContinue,
+    missingRequiredMessage,
     submitting,
     rematch,
     clearRematch,

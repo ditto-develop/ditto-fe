@@ -1,4 +1,4 @@
-import type { MeetingStatus, ReviewTarget } from "@/features/rating/model/types";
+import type { MeetingStatus, ReviewFormValue, ReviewTarget } from "@/features/rating/model/types";
 import { toLocationLabel } from "@/shared/lib/profileLabels";
 
 /** MeetingStatus 화면 문구는 응답에 없다. 선택지 순서도 여기가 정본이다. */
@@ -28,3 +28,14 @@ export function toTargetMetadata(target: ReviewTarget): string {
 
 /** 비속어가 든 한줄 코멘트 안내. 입력란 아래 경고와 제출 차단 토스트가 같이 쓴다. */
 export const FORBIDDEN_COMMENT_MESSAGE = "코멘트에 사용할 수 없는 표현이 있어요.";
+
+/** 비활성 CTA를 눌렀을 때 빠진 필수 항목을 알려준다. 다 채웠으면 null. */
+export function toMissingRequiredMessage(form: ReviewFormValue): string | null {
+  const missingMeetingStatus = form.meetingStatus === null;
+  const missingRating = form.rating <= 0;
+
+  if (missingMeetingStatus && missingRating) return "만남 성사 여부와 별점은 필수로 선택해야 해요.";
+  if (missingMeetingStatus) return "만남 성사 여부는 필수로 선택해야 해요.";
+  if (missingRating) return "별점은 필수로 선택해야 해요.";
+  return null;
+}

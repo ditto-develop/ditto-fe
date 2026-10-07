@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { trackEvent } from "@/shared/lib/analytics";
-import { BottomActionArea, Button, TopNavigation } from "@/shared/ui";
+import { BottomActionArea, TopNavigation } from "@/shared/ui";
 import { useToast } from "@/context/ToastContext";
 import { useGroupRating } from "@/features/rating/hooks/useGroupRating";
 import { useMemberReview } from "@/features/rating/hooks/useMemberReview";
 import { GroupMemberRatingCard } from "@/features/rating/ui/GroupMemberRatingCard";
 import { RatingSkipModal } from "@/features/rating/ui/RatingSkipModal";
+import { RatingSubmitButton } from "@/features/rating/ui/RatingSubmitButton";
+import { RatingStateScreen } from "@/features/rating/ui/RatingStateScreen";
 import { RematchHelpBottomSheet } from "@/features/rating/ui/RematchHelpBottomSheet";
 import { RematchSuccessModal } from "@/features/rating/ui/RematchSuccessModal";
 import { toTargetNickname } from "@/features/rating/model/labels";
@@ -22,9 +24,9 @@ interface GroupRatingContainerProps {
 export function GroupRatingContainer({ roomId }: GroupRatingContainerProps) {
   const { review, state, reload } = useMemberReview(roomId, "GROUP");
 
-  if (state === "loading") return <StateMessage>불러오는 중...</StateMessage>;
-  if (state === "error") return <StateMessage>그룹 평가 정보를 불러오지 못했어요.</StateMessage>;
-  if (state === "missing" || !review) return <StateMessage>완료했거나 아직 열리지 않은 평가예요.</StateMessage>;
+  if (state === "loading") return <RatingStateScreen message="불러오는 중..." />;
+  if (state === "error") return <RatingStateScreen message="그룹 평가 정보를 불러오지 못했어요." />;
+  if (state === "missing" || !review) return <RatingStateScreen message="완료했거나 아직 열리지 않은 평가예요." />;
 
   return <GroupRatingContent review={review} reload={reload} />;
 }
@@ -48,11 +50,17 @@ function GroupRatingContent({ review, reload }: GroupRatingContentProps) {
     if (completed && !rating.rematch) router.replace("/home");
   }, [completed, rating.rematch, router]);
 
-  if (!rating.currentTarget) return <StateMessage>평가할 그룹 멤버가 없어요.</StateMessage>;
+  if (!rating.currentTarget) return <RatingStateScreen message="평가할 그룹 멤버가 없어요." />;
 
   const nickname = toTargetNickname(rating.currentTarget);
 
   const handleAction = async () => {
+    if (rating.submitting) return;
+    if (rating.missingRequiredMessage) {
+      showToast(rating.missingRequiredMessage, "error");
+      return;
+    }
+
     const result = await rating.submitCurrent();
     if (!result) return;
 
@@ -92,18 +100,13 @@ function GroupRatingContent({ review, reload }: GroupRatingContentProps) {
 
       {!commentFocused && (
         <BottomActionArea>
-          <SubmitButton
-            type="button"
-            $size="large"
-            disabled={!rating.canContinue}
-            onClick={handleAction}
-          >
+          <RatingSubmitButton looksDisabled={!rating.canContinue} onClick={handleAction}>
             {rating.submitting
               ? "제출 중..."
               : rating.isLast
                 ? "평가 제출하기"
                 : "다음 멤버 평가하기"}
-          </SubmitButton>
+          </RatingSubmitButton>
         </BottomActionArea>
       )}
 
@@ -161,22 +164,6 @@ const Title = styled.h1`
 
 const Subtitle = styled.p`
   margin: 0;
-  font-size: var(--typography-label-1-normal-font-size);
-  font-weight: var(--typography-label-1-normal-font-weight);
-  line-height: var(--typography-label-1-normal-line-height);
-  letter-spacing: var(--typography-label-1-normal-letter-spacing);
-  color: var(--color-semantic-label-alternative);
-`;
-
-const SubmitButton = styled(Button)`
-  width: 100%;
-`;
-
-const StateMessage = styled.div`
-  min-height: 100dvh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   font-size: var(--typography-label-1-normal-font-size);
   font-weight: var(--typography-label-1-normal-font-weight);
   line-height: var(--typography-label-1-normal-line-height);

@@ -26,7 +26,7 @@ describe("rating system", () => {
     cy.wait("@getMemberReviews");
 
     cy.contains("수민님 평가", { timeout: 8000 }).should("be.visible");
-    cy.contains("button", "평가 제출하기").should("be.disabled");
+    cy.contains("button", "평가 제출하기").should("have.attr", "aria-disabled", "true");
 
     cy.contains("button", "채팅만 했어요").click();
     cy.get('button[aria-label="5점"]').click();
@@ -34,7 +34,7 @@ describe("rating system", () => {
     cy.contains("9/50").should("be.visible");
     cy.contains("button", "평가 제출하기").should("not.exist");
     cy.get('textarea[aria-label="한줄 코멘트"]').blur();
-    cy.contains("button", "평가 제출하기").should("be.enabled").click();
+    cy.contains("button", "평가 제출하기").should("have.attr", "aria-disabled", "false").click();
 
     // 1:1은 wantsOneToOneRematch를 보내면 8002라 바디에 실리면 안 된다.
     cy.wait("@submitMemberReview").then(({ request }) => {
@@ -47,6 +47,39 @@ describe("rating system", () => {
     });
 
     cy.location("pathname").should("match", /^\/home\/?$/);
+  });
+
+  // 필수 항목이 비면 CTA는 비활성 모양이지만, 눌러서 무엇이 빠졌는지 볼 수 있다.
+  // 토스트는 떠 있는 동안 새 호출을 무시하므로 경우마다 새로 진입한다.
+  it("필수 항목을 모두 비운 채 누르면 둘 다 필수라고 알려준다", () => {
+    cy.visit("/chat/one-on-one/1/rate");
+    cy.wait("@getMemberReviews");
+
+    cy.contains("button", "평가 제출하기", { timeout: 8000 }).click();
+    cy.contains("만남 성사 여부와 별점은 필수로 선택해야 해요.").should("be.visible");
+    cy.get("@submitMemberReview.all").should("have.length", 0);
+  });
+
+  it("만남 성사 여부만 비운 채 누르면 그 항목을 알려준다", () => {
+    cy.visit("/chat/one-on-one/1/rate");
+    cy.wait("@getMemberReviews");
+
+    cy.get('button[aria-label="5점"]', { timeout: 8000 }).click();
+    cy.contains("button", "평가 제출하기").click();
+    cy.contains("만남 성사 여부는 필수로 선택해야 해요.").should("be.visible");
+    cy.get("@submitMemberReview.all").should("have.length", 0);
+  });
+
+  it("그룹 평가에서 별점만 비운 채 누르면 다음 멤버로 넘어가지 않는다", () => {
+    cy.visit("/chat/group/2/rate");
+    cy.wait("@getMemberReviews");
+    cy.contains("민지", { timeout: 8000 }).should("be.visible");
+
+    cy.contains("button", "만났어요").click();
+    cy.contains("button", "다음 멤버 평가하기").should("have.attr", "aria-disabled", "true").click();
+    cy.contains("별점은 필수로 선택해야 해요.").should("be.visible");
+    cy.contains("민지").should("be.visible");
+    cy.get("@submitMemberReview.all").should("have.length", 0);
   });
 
   // 비속어가 든 코멘트는 보내지 않는다(2026-10-04 QA). 금칙어 목록은 채팅과 같다.
@@ -174,7 +207,7 @@ describe("rating system", () => {
     // 2번째 대상 — 폼이 초기화되고 다음 멤버로 넘어간다.
     cy.contains("수현").should("be.visible");
     cy.contains("2/2").should("be.visible");
-    cy.contains("button", "평가 제출하기").should("be.disabled");
+    cy.contains("button", "평가 제출하기").should("have.attr", "aria-disabled", "true");
 
     cy.contains("button", "약속 잡았어요").click();
     cy.get('button[aria-label="5점"]').click();

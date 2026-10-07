@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useReviewSubmission } from "@/features/rating/hooks/useReviewSubmission";
+import { toMissingRequiredMessage } from "@/features/rating/model/labels";
 import type { MemberReview, ReviewFormValue, ReviewSubmitResult } from "@/features/rating/model/types";
 
 const INITIAL_FORM: ReviewFormValue = {
@@ -20,11 +21,22 @@ export function useOneOnOneRating(review: MemberReview, reload: () => Promise<vo
     () => form.meetingStatus !== null && form.rating > 0 && !submitting && target !== null,
     [form.meetingStatus, form.rating, submitting, target],
   );
+  const missingRequiredMessage = toMissingRequiredMessage(form);
 
   const submit = async (): Promise<ReviewSubmitResult | null> => {
     if (!canSubmit || !target) return null;
     return submitTarget(target.memberId, form);
   };
 
-  return { target, form, setForm, submitting, canSubmit, rematch, clearRematch, submit };
+  return {
+    target,
+    form,
+    setForm,
+    submitting,
+    canSubmit,
+    missingRequiredMessage,
+    rematch,
+    clearRematch,
+    submit,
+  };
 }

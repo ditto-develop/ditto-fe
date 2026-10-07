@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { trackEvent } from "@/shared/lib/analytics";
-import { Avatar, BottomActionArea, Button, Checkbox, TopNavigation } from "@/shared/ui";
+import { Avatar, BottomActionArea, Checkbox, TopNavigation } from "@/shared/ui";
 import { useToast } from "@/context/ToastContext";
 import { useMemberReview } from "@/features/rating/hooks/useMemberReview";
 import { useOneOnOneRating } from "@/features/rating/hooks/useOneOnOneRating";
 import { RatingFormFields } from "@/features/rating/ui/RatingFormFields";
+import { RatingSubmitButton } from "@/features/rating/ui/RatingSubmitButton";
 import { RatingSkipModal } from "@/features/rating/ui/RatingSkipModal";
+import { RatingStateScreen } from "@/features/rating/ui/RatingStateScreen";
 import { RematchSuccessModal } from "@/features/rating/ui/RematchSuccessModal";
 import { toTargetNickname } from "@/features/rating/model/labels";
 import type { MemberReview } from "@/features/rating/model/types";
@@ -21,10 +23,10 @@ interface OneOnOneRatingContainerProps {
 export function OneOnOneRatingContainer({ roomId }: OneOnOneRatingContainerProps) {
   const { review, state, reload } = useMemberReview(roomId, "PERSONAL");
 
-  if (state === "loading") return <StateMessage>불러오는 중...</StateMessage>;
-  if (state === "error") return <StateMessage>평가 정보를 불러오지 못했어요.</StateMessage>;
+  if (state === "loading") return <RatingStateScreen message="불러오는 중..." />;
+  if (state === "error") return <RatingStateScreen message="평가 정보를 불러오지 못했어요." />;
   // 목록에는 미완료 평가만 담긴다. 없으면 이미 제출했거나 아직 열리지 않은 평가다.
-  if (state === "missing" || !review) return <StateMessage>완료했거나 아직 열리지 않은 평가예요.</StateMessage>;
+  if (state === "missing" || !review) return <RatingStateScreen message="완료했거나 아직 열리지 않은 평가예요." />;
 
   return <OneOnOneRatingContent review={review} reload={reload} />;
 }
@@ -54,11 +56,17 @@ function OneOnOneRatingContent({ review, reload }: OneOnOneRatingContentProps) {
     );
   }, [completed, rating.rematch, rating.target, router, shouldReport]);
 
-  if (!rating.target) return <StateMessage>평가할 사용자를 찾을 수 없어요.</StateMessage>;
+  if (!rating.target) return <RatingStateScreen message="평가할 사용자를 찾을 수 없어요." />;
 
   const nickname = toTargetNickname(rating.target);
 
   const handleSubmit = async () => {
+    if (rating.submitting) return;
+    if (rating.missingRequiredMessage) {
+      showToast(rating.missingRequiredMessage, "error");
+      return;
+    }
+
     const result = await rating.submit();
     if (!result) return;
     trackEvent("rating_submit", { room_type: "one_on_one" });
@@ -98,14 +106,9 @@ function OneOnOneRatingContent({ review, reload }: OneOnOneRatingContentProps) {
 
       {!commentFocused && (
         <BottomActionArea>
-          <SubmitButton
-            type="button"
-            $size="large"
-            disabled={!rating.canSubmit}
-            onClick={handleSubmit}
-          >
+          <RatingSubmitButton looksDisabled={!rating.canSubmit} onClick={handleSubmit}>
             {rating.submitting ? "제출 중..." : "평가 제출하기"}
-          </SubmitButton>
+          </RatingSubmitButton>
         </BottomActionArea>
       )}
 
@@ -166,21 +169,5 @@ const Subtitle = styled.p`
   font-weight: var(--typography-label-2-font-weight);
   line-height: var(--typography-label-2-line-height);
   letter-spacing: var(--typography-label-2-letter-spacing);
-  color: var(--color-semantic-label-alternative);
-`;
-
-const SubmitButton = styled(Button)`
-  width: 100%;
-`;
-
-const StateMessage = styled.div`
-  min-height: 100dvh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--typography-label-1-normal-font-size);
-  font-weight: var(--typography-label-1-normal-font-weight);
-  line-height: var(--typography-label-1-normal-line-height);
-  letter-spacing: var(--typography-label-1-normal-letter-spacing);
   color: var(--color-semantic-label-alternative);
 `;
