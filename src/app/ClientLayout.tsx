@@ -101,17 +101,16 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   // 제재 안내: OAuth 콜백으로 넘어온 제재 회원은 토큰이 아예 없으므로 공개 경로여야 한다.
   const isSanctionPath = path === '/sanction' || path.startsWith('/sanction/');
   /**
-   * 약관 3종과 사업자 정보는 **로그인 없이 열려야 한다.**
-   * 카카오 비즈앱 검수·앱스토어 심사에 이 URL 을 그대로 제출하는데, 보호 경로면
-   * 심사자가 링크를 눌렀을 때 로그인 화면으로 튕겨 내용 자체를 볼 수 없다.
-   * (카카오는 2026-08 심사에서 "사이트 내 사업자 정보가 확인되지 않는다"며 반려했다.)
+   * 약관 3종과 고객 지원은 **로그인 없이 열려야 한다.**
+   * 카카오 비즈앱 검수·앱스토어 심사(개인정보처리방침·지원 URL)에 이 URL 을 그대로 제출하는데,
+   * 보호 경로면 심사자가 링크를 눌렀을 때 로그인 화면으로 튕겨 내용 자체를 볼 수 없다.
    * 네 화면 모두 정적 텍스트라 API 호출이 없어 비로그인으로 열려도 문제가 없다.
    */
   const isPublicDocPath =
     path === '/settings/terms' ||
     path === '/settings/privacy' ||
     path === '/settings/location-terms' ||
-    path === '/settings/business';
+    path === '/support';
   const isPublicPath =
     path === "/" ||
     isOAuthFlowPath ||
@@ -326,7 +325,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     // OAuth 콜백 경로는 KakaoCallback이 라우팅을 담당하므로 제외하고,
     // /localogin도 제외한다(isHomeRedirectCandidate 참고).
     // 제재 화면은 토큰이 살아 있는 403(6006/6007) 진입도 있으므로 /home으로 되돌리지 않는다.
-    // 약관·사업자 정보 화면은 로그인 상태에서도 그대로 머물러야 한다 — 설정에서
+    // 약관·고객 지원 화면은 로그인 상태에서도 그대로 머물러야 한다 — 설정에서
     // 들어오는 정상 경로라 /home 으로 되돌리면 로그인 사용자는 이 화면을 아예 못 본다.
     if (!isHomeRedirectCandidate) return;
 
@@ -403,7 +402,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
      *   - OAuth 콜백: KakaoCallback이 자체 로딩 UI를 렌더한다. 토큰 세팅이 Suspense로
      *     지연되면 isLoggedIn이 stale(false)로 남아 Splash가 회원가입 폼을 영구히 덮는다.
      *   - 제재 안내: 자체 로딩 문구를 쓴다.
-     *   - 약관·사업자 정보: 링크로 바로 들어오는 사람(심사자 등)이 본다. 정적 텍스트라
+     *   - 약관·고객 지원: 링크로 바로 들어오는 사람(심사자 등)이 본다. 정적 텍스트라
      *     기다릴 것이 없는데 스플래시가 덮으면 그냥 안 뜨는 화면처럼 보인다.
      *   - 소개노트(`/profile/{id}`)·채팅방 같은 동적 라우트: 진입할 때마다 문서가 새로
      *     떠서(하드 내비게이션) 스플래시가 떴다 사라지는 번쩍임이 된다. 스켈레톤이 받는다.

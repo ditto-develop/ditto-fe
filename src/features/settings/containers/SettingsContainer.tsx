@@ -79,9 +79,6 @@ export function SettingsContainer() {
     ...(POLICY_VISIBILITY.locationTerms
       ? [{ label: "위치기반 서비스 이용약관", onClick: () => router.push("/settings/location-terms") }]
       : []),
-    ...(POLICY_VISIBILITY.businessInfo
-      ? [{ label: "사업자 정보", onClick: () => router.push("/settings/business") }]
-      : []),
   ];
 
   const handleToggle = async (key: NotificationSettingKey, checked: boolean) => {

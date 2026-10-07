@@ -14,15 +14,12 @@ import {
 } from "@/components/onboarding/OnboardingContainer";
 import {
   Caption1,
-  Caption2,
   Body1Normal,
   Headline1,
 } from "@/shared/ui";
 import { SplashCarousel } from "@/components/onboarding/Carousel";
 import { AppleLogin } from "@/components/auth/AppleLogin";
 import { KakaoLogin } from "@/components/auth/KakaoLogin";
-import { POLICY_VISIBILITY } from "@/features/settings/model/policyVisibility";
-import { BUSINESS_INFO } from "@/shared/lib/businessInfo";
 import type { KakaoLoginResult } from "@/types/kakao";
 import { useRouter } from "next/navigation";
 
@@ -44,9 +41,9 @@ const TmpContainer = styled.div`
 
 /**
  * 로그인 버튼 아래 영역. 공용 `ButtonContainer`는 높이가 160px로 고정이라
- * 약관·사업자 정보 문구가 붙으면 잘린다. 이 화면에서만 높이를 내용에 맡긴다.
+ * 약관 문구가 붙으면 잘린다. 이 화면에서만 높이를 내용에 맡긴다.
  *
- * 애플 버튼이 더해지며 버튼·약관·사업자 정보가 붙어 보였다(QA 2026-09-09). 버튼 묶음과
+ * 애플 버튼이 더해지며 버튼·약관 문구가 붙어 보였다(QA 2026-09-09). 버튼 묶음과
  * 문구 묶음 사이를 벌리고, 위쪽(단계 안내)과도 간격을 둔다.
  */
 const LoginFooter = styled(ButtonContainer)`
@@ -64,7 +61,7 @@ const LoginButtons = styled.div`
   gap: var(--space-3);
 `;
 
-/** 약관 안내와 선택적으로 노출하는 사업자 정보. 로그인 버튼보다 눈에 덜 띄어야 한다. */
+/** 약관 안내. 로그인 버튼보다 눈에 덜 띄어야 한다. */
 const LegalArea = styled.div`
   display: flex;
   flex-direction: column;
@@ -81,25 +78,6 @@ const PolicyLink = styled.button`
   font-weight: 700;
   text-decoration-line: underline;
   cursor: pointer;
-`;
-
-/**
- * 사업자 정보 한 줄. 심사 요건상 로그인 전 화면에 있어야 하지만 필수 항목만 작은 글씨로
- * 둔다 — 상호·사업자등록번호·문의처와 나머지 항목으로 가는 링크.
- */
-const BusinessLine = styled(Caption2)`
-  word-break: keep-all;
-  overflow-wrap: anywhere;
-`;
-
-const BusinessLink = styled(PolicyLink)`
-  font-weight: inherit;
-`;
-
-const ContactLink = styled.a`
-  color: inherit;
-  font: inherit;
-  text-decoration-line: underline;
 `;
 
 interface Step0Props {
@@ -194,18 +172,6 @@ export function Step0({ onLoginComplete }: Step0Props) {
                 </PolicyLink>
                 에 동의하는 것으로 간주됩니다.
               </Caption1>
-              {POLICY_VISIBILITY.businessInfo ? (
-                <BusinessLine $color="var(--color-semantic-label-assistive)" $align="center">
-                  {BUSINESS_INFO.companyName} · 사업자등록번호 {BUSINESS_INFO.registrationNumber} ·{" "}
-                  <ContactLink href={`mailto:${BUSINESS_INFO.contactEmail}`}>
-                    {BUSINESS_INFO.contactEmail}
-                  </ContactLink>{" "}
-                  ·{" "}
-                  <BusinessLink type="button" onClick={() => router.push("/settings/business")}>
-                    사업자 정보
-                  </BusinessLink>
-                </BusinessLine>
-              ) : null}
             </LegalArea>
           </LoginFooter>
         </MainContainer>

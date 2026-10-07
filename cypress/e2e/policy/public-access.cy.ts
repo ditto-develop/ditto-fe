@@ -1,5 +1,5 @@
 /**
- * 약관 3종과 사업자 정보는 **비로그인으로 열려야 한다.**
+ * 약관 3종과 고객 지원은 **비로그인으로 열려야 한다.**
  *
  * 카카오 비즈앱 검수와 앱스토어 심사에 이 URL 을 그대로 제출한다. 보호 경로로
  * 되돌아가면 심사자가 링크를 눌렀을 때 로그인 화면으로 튕겨 내용을 볼 수 없고,
@@ -9,7 +9,7 @@ const POLICY_ROUTES = [
   { path: "/settings/privacy", heading: "개인정보 처리방침" },
   { path: "/settings/terms", heading: "디토 이용 약관" },
   { path: "/settings/location-terms", heading: "위치기반 서비스 이용약관" },
-  { path: "/settings/business", heading: "사업자 정보" },
+  { path: "/support", heading: "고객 지원" },
 ] as const;
 
 /**
@@ -21,7 +21,19 @@ const POLICY_ROUTES = [
  */
 const PLACEHOLDER_PATTERN = /\[[^\]]+\]/;
 const PLACEHOLDER_WORDS = ["회사명", "서비스명"];
-describe("약관·사업자 정보 화면 비로그인 접근", () => {
+describe("약관·고객 지원 화면 비로그인 접근", () => {
+  it("첫 화면의 약관·개인정보처리방침 링크가 실제로 열린다", () => {
+    cy.clearLocalStorage();
+    cy.visit("/");
+
+    cy.contains("이용약관", { timeout: 10000 }).click();
+    cy.location("pathname", { timeout: 8000 }).should("include", "/settings/terms");
+
+    cy.visit("/");
+    cy.contains("개인정보처리방침", { timeout: 10000 }).click();
+    cy.location("pathname", { timeout: 8000 }).should("include", "/settings/privacy");
+  });
+
   POLICY_ROUTES.forEach(({ path, heading }) => {
     it(`${path} 는 로그인 없이 열린다`, () => {
       cy.clearLocalStorage();

@@ -53,13 +53,4 @@ describe("애플 로그인 진입", () => {
       timeout: 10000,
     }).should("be.visible");
   });
-
-  it("비활성화된 사업자 정보는 로그인 첫 화면에 노출하지 않는다", () => {
-    cy.visit("/");
-
-    cy.contains("button", APPLE_BUTTON, { timeout: 10000 }).should("be.visible");
-    cy.contains("카운트제로").should("not.exist");
-    cy.contains("291-39-01610").should("not.exist");
-    cy.contains("사업자 정보").should("not.exist");
-  });
 });

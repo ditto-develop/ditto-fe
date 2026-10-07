@@ -16,7 +16,7 @@
 | 이름·부제 | ✅ | `디토` / `퀴즈로 만나는 새로운 인연` |
 | 설명·키워드·프로모션 텍스트 | ✅ | 기획 원고 반영(2026-10-06). 키워드는 쉼표 뒤 공백을 빼야 100자 안에 든다(90자) |
 | 릴리즈 노트 | — | 첫 버전(1.0)에는 입력란이 없다(API 409). 원고는 §5 — 1.0.1 부터 쓴다 |
-| 지원 URL | ✅ | `https://ditto.pics/settings/business` (비로그인 공개, 문의 이메일 노출) |
+| **지원 URL** | ⬜ | `https://ditto.pics/support` 로 바꿀 것 — §3-0 |
 | 개인정보처리방침 URL | ✅ | `https://ditto.pics/settings/privacy` |
 | 저작권 · 출시 방식 | ✅ | `2026 카운트제로` · 수동 출시 |
 | 콘텐츠 권한 | ✅ | 제3자 콘텐츠 사용(카카오맵) — 권한 보유 |
@@ -43,6 +43,18 @@ Apple ID 는 2단계 인증이 필수라 코드가 계정 주인 기기로 간�
 ---
 
 ## 3. 남은 수작업
+
+### 3-0. 지원 URL — `/support` 로 교체
+
+사업자 정보 화면(`/settings/business`)을 2026-10-07 에 지웠다. 그 주소가 지원 URL 이었으므로
+그대로 두면 리뷰어가 404 를 본다(가이드라인 1.5).
+
+1. 프로덕션 배포로 `https://ditto.pics/support`(비로그인 공개, 문의 이메일)가 열리는지 확인한다.
+2. App Store Connect → 앱 정보(1.0 버전 페이지) → **지원 URL** 을 `https://ditto.pics/support` 로 바꾼다.
+
+사업자등록번호는 앱·사이트·스토어 어디에도 게시하지 않는다. 무료 앱이라 App Store 의
+Korea compliance(사업자등록번호 상품 페이지 표시)는 대상이 아니고, 유료 판매(Paid Applications
+Agreement)를 시작할 때 다시 본다.
 
 ### 3-1. 가격 — 무료
 
@@ -97,7 +109,7 @@ USER-GENERATED CONTENT SAFEGUARDS (Guideline 1.2)
 - Block list: Profile tab > Settings (gear) > "차단 목록" (unblock available).
 - Filtering: messages containing prohibited words require an extra confirmation before sending; rating comments and nicknames with prohibited words are rejected; messages with links or money requests show a safety warning.
 - Reports are reviewed by our operations team within 24 hours and sanctioned per Terms of Service Article 13 (warning and exclusion from the next quiz, then a 2-week suspension, then a permanent ban; severe violations such as sexual crimes or fraud are banned immediately).
-- Contact: ditto.apply@gmail.com (also shown in Settings > Business information).
+- Contact: ditto.apply@gmail.com (support page: https://ditto.pics/support; also in Settings > "개인정보 처리방침").
 
 ACCOUNT DELETION (Guideline 5.1.1(v))
 Profile tab > Settings (gear) > "회원탈퇴".

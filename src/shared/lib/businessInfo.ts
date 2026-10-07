@@ -1,28 +1,14 @@
 /**
- * 사업자 정보 — 사업자등록증 기재 내용 중 화면에 게시하는 항목만 담는다.
+ * 운영자 정보 — 지금은 문의 창구만 담는다.
  *
- * 대표자·사업장 소재지·전화번호는 값 자체를 지웠다(2026-09-08 화면 제거 → 2026-09-18 상수 제거).
- * 카카오 비즈앱 심사 대조·전자상거래법 게시 의무는 더 이상 고려하지 않는다.
- *
- * 등록증 / 카카오 콘솔 / 이 파일 표기가 다르면 카카오 심사가 다시 반려될 수 있으니
- * 남은 항목(상호·사업자등록번호 등)은 띄어쓰기·괄호까지 등록증 표기 그대로 둔다.
- *
- * 빈 문자열인 항목은 화면에서 행 자체가 빠진다 — 값이 정해지면 여기만 채우면 된다.
+ * 사업자 정보 화면과 상호·사업자등록번호·업태·종목·개업연월일은 값까지 지웠다(2026-10-07 사용자 요청).
+ * 무료 앱이라 App Store 는 사업자등록번호 게시를 요구하지 않고(Korea compliance 는 유료 판매용),
+ * 화면에서만 숨기고 상수로 남기면 정적 번들(JS)에 그대로 실려 나간다 — 대표자 성명을 지울 때와 같은 이유다.
+ * 대표자·사업장 소재지·전화번호는 그보다 먼저 지웠다(2026-09-18).
+ * 다시 게시해야 한다면(유료 판매 시작·카카오 비즈앱 재심사 등) 사용자 확인을 먼저 받는다.
  */
 export const BUSINESS_INFO = {
-  /** 상호. 카카오 콘솔 [내 애플리케이션] > [일반] > [기본 정보]의 회사명과 반드시 동일해야 한다. */
-  companyName: "카운트제로",
-  registrationNumber: "291-39-01610",
-  businessType: "도매 및 소매업",
-  businessItem: "전자상거래 소매업",
-  openedOn: "2026년 08월 08일",
-  /**
-   * 통신판매업 신고번호.
-   *
-   * 유료 판매를 하지 않아 **신고하지 않는다**(2026-08-30 확인). 빈 값이므로 화면에
-   * 행 자체가 나오지 않는다 — "미신고" 같은 문구를 대신 넣지 않는다.
-   */
-  mailOrderNumber: "",
+  /** 문의 이메일. `/support`(App Store 지원 URL)와 개인정보처리방침 보호책임자 연락처에 쓰인다. */
   contactEmail: "ditto.apply@gmail.com",
 } as const;
 
@@ -62,21 +48,3 @@ export const POLICY_REVISION = {
   noticed: { long: "2026년 10월 6일", dotted: "2026.10.06" },
   effective: { long: "2026년 10월 12일", dotted: "2026.10.12" },
 } as const;
-
-export type BusinessInfoRow = {
-  label: string;
-  value: string;
-};
-
-/** 값이 있는 항목만 순서대로 돌려준다. 미정 항목은 빈 행으로 남기지 않는다. */
-export function getBusinessInfoRows(): BusinessInfoRow[] {
-  return [
-    { label: "상호", value: BUSINESS_INFO.companyName },
-    { label: "사업자등록번호", value: BUSINESS_INFO.registrationNumber },
-    { label: "통신판매업 신고번호", value: BUSINESS_INFO.mailOrderNumber },
-    { label: "업태", value: BUSINESS_INFO.businessType },
-    { label: "종목", value: BUSINESS_INFO.businessItem },
-    { label: "개업연월일", value: BUSINESS_INFO.openedOn },
-    { label: "이메일", value: BUSINESS_INFO.contactEmail },
-  ].filter((row) => row.value.length > 0);
-}

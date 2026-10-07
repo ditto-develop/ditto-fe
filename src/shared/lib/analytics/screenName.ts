@@ -37,7 +37,6 @@ const STATIC_SCREENS: Record<string, string> = {
   "/onboarding/complete": "onboarding_complete",
   "/settings": "settings",
   "/settings/blocks": "settings_blocks",
-  "/settings/business": "settings_business",
   "/settings/location-terms": "settings_location_terms",
   "/settings/privacy": "settings_privacy",
   "/settings/terms": "settings_terms",
@@ -47,6 +46,7 @@ const STATIC_SCREENS: Record<string, string> = {
   "/localogin": "localogin",
   "/report": "report",
   "/sanction": "sanction",
+  "/support": "support",
   // 404. 정적 export + CloudFront 조합에서는 잘 도달하지 않지만, 찍히면 깨진 링크나
   // rewrite 함수 누락 신호라 이름을 붙여 둔다.
   "/_not-found": "not_found",

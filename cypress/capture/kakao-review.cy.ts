@@ -32,20 +32,20 @@ describe("카카오 심사 제출용 화면 캡처", () => {
   });
 
   context("1. 로그인 전 — 심사자가 바로 볼 수 있는 화면", () => {
-    it("01 첫 화면(서비스 소개 + 사업자 정보)", () => {
+    it("01 첫 화면(서비스 소개)", () => {
       cy.clearLocalStorage();
       visitScreen("/");
       waitForSplashToClear();
       cy.contains("카카오로 계속하기", { timeout: 10000 }).should("be.visible");
-      cy.contains("카운트제로").should("be.visible");
-      shoot("01-첫화면-서비스소개-사업자정보");
+      shoot("01-첫화면-서비스소개");
     });
 
-    it("02 사업자 정보", () => {
+    // 사업자 정보 화면은 2026-10-07 에 지웠다. 문의처는 고객 지원 화면이 보여 준다.
+    it("02 고객 지원", () => {
       cy.clearLocalStorage();
-      visitScreen("/settings/business");
-      cy.contains("사업자등록번호", { timeout: 10000 }).should("be.visible");
-      shoot("02-사업자정보", { capture: "fullPage" });
+      visitScreen("/support");
+      cy.contains("ditto.apply@gmail.com", { timeout: 10000 }).should("be.visible");
+      shoot("02-고객지원");
     });
 
     it("03 이용약관", () => {
@@ -253,9 +253,9 @@ describe("카카오 심사 제출용 화면 캡처", () => {
       shoot("19-알림");
     });
 
-    it("20 설정(사업자 정보 진입점 포함)", () => {
+    it("20 설정", () => {
       visitScreen("/settings");
-      cy.contains("사업자 정보", { timeout: 12000 }).should("be.visible");
+      cy.contains("개인정보 처리방침", { timeout: 12000 }).should("be.visible");
       shoot("20-설정", { capture: "fullPage" });
     });
 
