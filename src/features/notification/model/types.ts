@@ -6,8 +6,8 @@ export type NotificationFilter = "ALL" | NotificationCategory;
 
 /**
  * 알림 유형. 라이브 스펙이 나열한 값은 아래 7종이지만 **enum은 늘어난다**.
- * 그래서 union으로 좁히지 않고 문자열로 받는다. 모르는 값은 기본 아이콘 +
- * 이동 없음으로 폴백해야 하며(BE 위키 명시), 렌더 자체를 건너뛰면 안 된다.
+ * 그래서 union으로 좁히지 않고 문자열로 받는다. 모르는 값은 기본 아이콘으로 폴백해야 하며
+ * (BE 위키 명시), 렌더 자체를 건너뛰면 안 된다. 이동은 type이 아니라 `deepLink`가 정한다.
  *
  * MATCH_RESULT · GROUP_FORMED · REMATCH_MATCHED · REVIEW_REQUEST ·
  * CHAT_MESSAGE · CHAT_ENDING_SOON · SYSTEM_NOTICE
@@ -27,6 +27,11 @@ export type NotificationItem = {
    * 채팅 계열은 방 ID다.
    */
   targetId: number | null;
+  /**
+   * 눌렀을 때 갈 앱 내부 경로(`/`로 시작, 끝 슬래시 포함). 같은 알림의 푸시 `data.deepLink`와
+   * 같은 값이다. 갈 곳이 없으면(공지·신고 처리, 대상이 지워짐) null이다(BE 위키 Frontend-DeepLink-Guide).
+   */
+  deepLink: string | null;
   /** null이면 안 읽음. 서버 시각 문자열(`yyyy-MM-dd HH:mm:ss`). */
   readAt: string | null;
   /** 서버 시각 문자열. 상대 시간 표기와 오늘/지난 소식 분류의 기준. */

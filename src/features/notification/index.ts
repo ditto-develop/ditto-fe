@@ -6,7 +6,6 @@ export {
   isUnread,
   NOTIFICATION_FILTERS,
   toNotificationIcon,
-  toNotificationTarget,
 } from "./model/notificationMeta";
 export type {
   NotificationCategory,

@@ -7,9 +7,11 @@ type NotificationSeed = {
   minutesAgo: number;
   read: boolean;
   targetId: number | null;
+  /** 눌렀을 때 갈 경로. 같은 알림의 푸시 data.deepLink 와 같은 값이고, 갈 곳이 없으면 null 이다. */
+  deepLink: string | null;
 };
 
-/** 라이브 계약: `{ notifications, nextCursor }` 래퍼 + readAt(null이면 안읽음) + targetId. */
+/** 라이브 계약: `{ notifications, nextCursor }` 래퍼 + readAt(null이면 안읽음) + targetId + deepLink. */
 const NOTIFICATIONS: NotificationSeed[] = [
   {
     id: 1,
@@ -20,6 +22,8 @@ const NOTIFICATIONS: NotificationSeed[] = [
     minutesAgo: 0,
     read: false,
     targetId: 11,
+    // 그룹 주의 매칭 결과는 type 만으로는 1:1 과 구분되지 않는다 — 서버가 경로를 갈라 준다.
+    deepLink: "/matching/group/",
   },
   {
     id: 2,
@@ -30,6 +34,7 @@ const NOTIFICATIONS: NotificationSeed[] = [
     minutesAgo: 15,
     read: false,
     targetId: 22,
+    deepLink: "/chat/one-on-one/22/",
   },
   {
     id: 3,
@@ -39,7 +44,8 @@ const NOTIFICATIONS: NotificationSeed[] = [
     body: "같은 취미, 취향 그룹에 5명이 모였어요.",
     minutesAgo: 60,
     read: false,
-    targetId: null,
+    targetId: 3,
+    deepLink: "/chat/group/3/",
   },
   {
     id: 4,
@@ -49,7 +55,9 @@ const NOTIFICATIONS: NotificationSeed[] = [
     body: "댕이누나님과의 만남을 평가해주세요.",
     minutesAgo: 720,
     read: true,
-    targetId: null,
+    // 그룹 방을 나간 사람의 평가 요청. 나간 방은 내 방 목록에 없지만 평가 화면으로 간다.
+    targetId: 305,
+    deepLink: "/chat/group/305/rate/",
   },
   {
     id: 7,
@@ -60,6 +68,7 @@ const NOTIFICATIONS: NotificationSeed[] = [
     minutesAgo: 10080,
     read: true,
     targetId: 22,
+    deepLink: "/chat/one-on-one/22/",
   },
   {
     // 서버 enum은 늘어난다. 모르는 type도 기본 아이콘으로 반드시 그려야 한다.
@@ -71,6 +80,19 @@ const NOTIFICATIONS: NotificationSeed[] = [
     minutesAgo: 30,
     read: true,
     targetId: null,
+    deepLink: null,
+  },
+  {
+    // 예전 type 매핑에 없어 눌러도 움직이지 않던 유형. 이제는 deepLink 로 간다.
+    id: 9,
+    type: "MATCH_REQUESTED",
+    category: "MATCHING",
+    title: "새 대화 신청이 왔어요",
+    body: "소개 노트를 확인하고 대화를 수락해 보세요.",
+    minutesAgo: 45,
+    read: true,
+    targetId: 41,
+    deepLink: "/matching/",
   },
 ];
 
@@ -193,17 +215,36 @@ describe("notification center", () => {
     cy.contains("산책러버님의 새 메시지").should("be.visible");
   });
 
-  it("marks a single notification read (PUT) and navigates by type", () => {
+  // 이동은 type 이 아니라 서버가 준 deepLink 가 정한다(BE 위키 Frontend-DeepLink-Guide).
+  it("marks a single notification read (PUT) and follows its deepLink", () => {
     mockNotificationsApi();
     cy.visit("/notifications");
     cy.wait("@getNotifications");
 
     cy.contains("이번 주 매칭 결과가 나왔어요").click();
     cy.wait("@readNotification");
-    cy.location("pathname").should("include", "/matching");
+    cy.location("pathname").should("match", /^\/matching\/group\/?$/);
   });
 
-  it("does not navigate for an unknown type", () => {
+  it("opens the review of a group room I already left", () => {
+    mockNotificationsApi();
+    cy.visit("/notifications");
+    cy.wait("@getNotifications");
+
+    cy.contains("이번 만남은 어떠셨나요?").click();
+    cy.location("pathname").should("match", /^\/chat\/group\/305\/rate\/?$/);
+  });
+
+  it("follows the deepLink of a type the app does not map", () => {
+    mockNotificationsApi();
+    cy.visit("/notifications");
+    cy.wait("@getNotifications");
+
+    cy.contains("새 대화 신청이 왔어요").click();
+    cy.location("pathname").should("match", /^\/matching\/?$/);
+  });
+
+  it("stays when the notification has no deepLink", () => {
     mockNotificationsApi();
     cy.visit("/notifications");
     cy.wait("@getNotifications");

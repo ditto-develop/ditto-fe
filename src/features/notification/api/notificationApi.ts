@@ -51,7 +51,7 @@ const CHAT_ROOM_SEEN_TYPES = new Set(["CHAT_MESSAGE", "CHAT_ENDING_SOON"]);
  * 방에 들어가 메시지를 봤는데 알림 센터 행은 안 읽음으로 남아 있으면, 그 수가 그대로
  * 미읽음 수와 앱 아이콘 배지에 잡힌다(2026-10-07). 방 단위 읽음 API 가 없어서 최근 채팅
  * 알림 한 페이지(최대 100건)에서 골라 하나씩 읽는다. 채팅 계열의 `targetId` 는 방 ID 이고
- * 1:1·그룹 방이 같은 id 공간을 쓴다(`toNotificationTarget`).
+ * 1:1·그룹 방이 같은 id 공간을 쓴다.
  */
 export async function markChatRoomNotificationsRead(roomId: number): Promise<number> {
   const { notifications } = await getNotifications({ category: "CHAT" });

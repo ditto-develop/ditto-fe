@@ -7,7 +7,8 @@
     "body": "나와 답변이 비슷한 사람들을 찾았어요. 지금 확인해 보세요.",
     "minutesAgo": 0,
     "read": false,
-    "targetId": 11
+    "targetId": 11,
+    "deepLink": "/matching/"
   },
   {
     "id": 2,
@@ -17,7 +18,8 @@
     "body": "주말에 시간 괜찮으세요? 아직 우리가 알게 된 지 오래 되진 않았지만, 뭔가 님은 꼭 만나보고 싶어져요. 부담 갖지 마시고, 시간 맞춰서 주말에 볼까요?",
     "minutesAgo": 15,
     "read": false,
-    "targetId": 1
+    "targetId": 1,
+    "deepLink": "/chat/one-on-one/1/"
   },
   {
     "id": 3,
@@ -27,7 +29,8 @@
     "body": "같은 취미, 취향 그룹에 5명이 모였어요. 지금 바로 멤버를 확인해 보세요.",
     "minutesAgo": 60,
     "read": false,
-    "targetId": 2
+    "targetId": 3,
+    "deepLink": "/chat/group/3/"
   },
   {
     "id": 4,
@@ -37,7 +40,8 @@
     "body": "댕이누나님과의 만남을 평가해주세요.",
     "minutesAgo": 720,
     "read": true,
-    "targetId": 1
+    "targetId": 1,
+    "deepLink": "/chat/one-on-one/1/rate/"
   },
   {
     "id": 5,
@@ -47,7 +51,8 @@
     "body": "“디자이너산책” 님과의 채팅방이 다시 열렸어요.",
     "minutesAgo": 7200,
     "read": true,
-    "targetId": 2
+    "targetId": 2,
+    "deepLink": "/chat/one-on-one/2/"
   },
   {
     "id": 6,
@@ -57,7 +62,8 @@
     "body": "아직 나누고 싶은 이야기가 있다면 지금 해보는 건 어때요?",
     "minutesAgo": 10080,
     "read": true,
-    "targetId": 2
+    "targetId": 2,
+    "deepLink": "/chat/one-on-one/2/"
   },
   {
     "id": 7,
@@ -67,6 +73,7 @@
     "body": "더 나아진 ditto를 만나보세요.",
     "minutesAgo": 30240,
     "read": true,
-    "targetId": null
+    "targetId": null,
+    "deepLink": null
   }
 ]

@@ -191,6 +191,7 @@ function toNotification(item: NotificationFixture, now: number) {
     title: item.title,
     body: item.body,
     targetId: item.targetId,
+    deepLink: item.deepLink,
     createdAt: toServerDateTime(now - item.minutesAgo * 60 * 1000),
     // 안읽음 판정은 readAt이 null인지로 한다(라이브 계약).
     readAt: readNotificationIds.has(item.id) ? toServerDateTime(now) : null,

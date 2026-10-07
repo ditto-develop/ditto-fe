@@ -21,6 +21,7 @@ function item(overrides: Partial<NotificationItem>): NotificationItem {
     title: "새 메시지",
     body: null,
     targetId: 305,
+    deepLink: "/chat/one-on-one/305/",
     readAt: null,
     createdAt: "2026-10-07 12:00:00",
     ...overrides,
