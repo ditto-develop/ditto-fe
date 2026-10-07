@@ -35,6 +35,8 @@ const MainSectionContainer = styled.div`
    */
   padding: 16px 0 calc(64px + env(safe-area-inset-bottom, 0px));
   display: grid;
+  /* 열 폭을 화면에 묶는다. 기본(auto) 열은 카드 안 가장 긴 글자만큼 넓어져 가로 스크롤이 생긴다. */
+  grid-template-columns: minmax(0, 1fr);
   /* Figma 2.1 Home: 상단 내비→첫 카드 16px, 카드 사이 24px. */
   gap: 24px;
 `;

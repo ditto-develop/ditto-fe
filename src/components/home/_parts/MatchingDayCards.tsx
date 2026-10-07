@@ -33,12 +33,14 @@ import {
   ChevronIcon,
   CollageSlot,
   ColumnViewCardContainer,
+  EllipsisHeadline2,
   FCardContainer,
   FCardDivContainer,
   FailMatch,
   FullSizeProfileImg,
   GroupJoinedInner,
   GroupTextColumn,
+  IntroPreviewLabel,
   LabelContainer,
   ListItemContainer,
   MatchingBottomContainer,
@@ -219,9 +221,9 @@ export const ChattingView = ({
                 {c ? `${formatAgeRange(c.age)} · ${formatGender(c.gender)}${c.location ? ` · ${toLocationLabel(c.location)}` : ""}` : ""}
               </Label2>
               {c?.introduction && (
-                <Label2 $color="var(--color-semantic-label-alternative)">
+                <IntroPreviewLabel $color="var(--color-semantic-label-alternative)">
                   {c.introduction}
-                </Label2>
+                </IntroPreviewLabel>
               )}
             </ChatInfoColumn>
             <ChatContainer>
@@ -453,10 +455,10 @@ export const AcceptedMatchCard = ({ candidate, onClick }: { candidate: MatchCand
           <ProfileImg imageUrl={avatarUrl} />
         </ProfileWrapper>
         <LabelContainer>
-          <Headline2>{candidate.nickname}</Headline2>
+          <EllipsisHeadline2>{candidate.nickname}</EllipsisHeadline2>
           <Label2 $color="var(--color-semantic-label-alternative)">{meta}</Label2>
           {candidate.introduction && (
-            <Label2 $color="var(--color-semantic-label-alternative)">{candidate.introduction}</Label2>
+            <IntroPreviewLabel $color="var(--color-semantic-label-alternative)">{candidate.introduction}</IntroPreviewLabel>
           )}
         </LabelContainer>
       </AcceptedProfileRow>

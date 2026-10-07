@@ -197,6 +197,26 @@ export const ChatPreviewLabel = styled(Label2)`
   word-break: break-word;
 `;
 
+/** 한 줄로 자른다. 닉네임처럼 공백 없이 긴 글자가 카드 폭을 밀지 않게 한다. */
+export const EllipsisHeadline2 = styled(Headline2)`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+/**
+ * 한 줄 소개(최대 50자)는 두 줄까지만 보여 준다 — 전체는 카드를 눌러 여는 프로필에서 본다.
+ * 공백 없는 영문·숫자·기호 연속은 줄바꿈 지점이 없어 카드 밖으로 넘쳤으므로 아무 데서나 끊는다.
+ */
+export const IntroPreviewLabel = styled(Label2)`
+  display: -webkit-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  word-break: break-word;
+`;
+
 export const NotificationBadge = styled.div`
   position: absolute;
   top: -2px;
@@ -343,6 +363,7 @@ export const LabelContainer = styled.div`
   align-items: left;
   gap: 4px;
   flex: 1 0 0;
+  min-width: 0;
 `;
 
 export const ProfileNameRow = styled.div`
@@ -391,6 +412,7 @@ export const AcceptedProfileRow = styled.div`
   align-items: flex-start;
   gap: 16px;
   width: 100%;
+  min-width: 0;
 `;
 
 // ✅ Local Styled Components for BottomSheet Profile

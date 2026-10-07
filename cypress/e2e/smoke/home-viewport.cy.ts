@@ -39,6 +39,50 @@ describe("home fits one screen", () => {
 });
 
 /**
+ * 홈 카드의 닉네임(최대 10자)·한 줄 소개(최대 50자)는 사용자가 쓴 글자라 길이를 믿을 수 없다.
+ * 공백 없는 영문·기호 연속은 줄바꿈 지점이 없어 카드 폭을 밀어 홈 전체에 가로 스크롤이 생겼다.
+ * 가장 좁은 폰 폭(360px)에서 두 1:1 카드(매칭 완료 · 대화 기간) 모두 옆으로 넘치지 않아야 한다.
+ */
+describe("home cards never scroll sideways", () => {
+  const LONG_NICKNAME = "WWWWWWWWWW";
+  const LONG_INTRODUCTION = `${"a".repeat(25)}${"!".repeat(25)}`;
+
+  const mockLongTextCandidate = () => {
+    cy.fixture("matches-1on1-populated.json").then((matches) => {
+      const [first, ...rest] = matches.candidates;
+      cy.intercept("GET", "**/api/v1/matches/1on1*", {
+        success: true,
+        data: {
+          ...matches,
+          candidates: [{ ...first, nickname: LONG_NICKNAME, introduction: LONG_INTRODUCTION }, ...rest],
+        },
+      }).as("getLongTextMatches");
+    });
+  };
+
+  (["MATCHING", "CHATTING"] as const).forEach((period) => {
+    it(`keeps the 1:1 card within the screen during ${period}`, () => {
+      cy.viewport(360, 800);
+      cy.clockPeriod(period);
+      cy.mockApi({
+        matchesFixture: "matches-1on1-populated.json",
+        matchingStatusFixture: "matching-status-accepted.json",
+      });
+      mockLongTextCandidate();
+      cy.login();
+      cy.visit("/home");
+
+      cy.contains(LONG_NICKNAME, { timeout: 10000 }).should("exist");
+      cy.get('[data-cy="home-card-skeleton"]').should("not.exist");
+
+      cy.window().then((win) => {
+        expect(win.document.documentElement.scrollWidth, "문서 가로 폭").to.be.at.most(win.innerWidth);
+      });
+    });
+  });
+});
+
+/**
  * 앱 안에서 홈으로 다시 들어올 때 Splash가 다시 뜨면 화면이 한 번 깜빡인다.
  * (`isHomeReady`를 MainSection이 마운트마다 false로 되돌리기 때문)
  * 최초 로드 이후에는 홈 자체 스켈레톤이 그 자리를 받아야 한다.
