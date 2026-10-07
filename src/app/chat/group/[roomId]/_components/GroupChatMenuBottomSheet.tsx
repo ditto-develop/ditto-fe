@@ -78,9 +78,6 @@ export function GroupChatMenuBottomSheet({
               <MenuText>{isMuted ? "대화방 알림 켜기" : "대화방 알림 끄기"}</MenuText>
             </MenuItem>
           )}
-          <MenuItem onClick={() => { onMemberList(); onClose(); }}>
-            <MenuText>신고하기</MenuText>
-          </MenuItem>
 
           {onLeave && (
             <MenuItem
