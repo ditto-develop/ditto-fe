@@ -136,13 +136,15 @@ describe("settings", () => {
     cy.contains(/마케팅 정보 수신이 해제되었어요.*\(\d{4}\.\d{2}\.\d{2}\)/).should("be.visible");
   });
 
-  it("opens the official notice and FAQ documents", () => {
+  it("opens the official notice, FAQ, and guide documents", () => {
     cy.visit("/settings");
     cy.window().then((win) => cy.stub(win, "open").as("openDocument"));
     cy.contains("공지사항").click();
     cy.get("@openDocument").should("have.been.calledWith", "https://app.notion.com/p/3c712870078f809e8d5cfa5809bd18bf?source=copy_link");
     cy.contains("자주 묻는 질문").click();
     cy.get("@openDocument").should("have.been.calledWith", "https://app.notion.com/p/FAQ-89012870078f820a905901157d1450a8?source=copy_link");
+    cy.contains("button", "가이드").click();
+    cy.get("@openDocument").should("have.been.calledWith", "https://absorbed-platypus-f50.notion.site/ditto-3e86d9645e8b8071be49c47791bfed55?pvs=143");
   });
 
   it("hides withdrawal actions while typing and cancels without horizontal overflow", () => {

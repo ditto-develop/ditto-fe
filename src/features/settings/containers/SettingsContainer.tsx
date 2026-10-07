@@ -74,6 +74,7 @@ export function SettingsContainer() {
   const informationRows: RowConfig[] = [
     { label: "공지사항", onClick: () => openExternal(SETTINGS_EXTERNAL_LINKS.notice) },
     { label: "자주 묻는 질문", onClick: () => openExternal(SETTINGS_EXTERNAL_LINKS.faq) },
+    { label: "가이드", onClick: () => openExternal(SETTINGS_EXTERNAL_LINKS.guide) },
     { label: "서비스 이용약관", onClick: () => router.push("/settings/terms") },
     { label: "개인정보 처리방침", onClick: () => router.push("/settings/privacy") },
     ...(POLICY_VISIBILITY.locationTerms
