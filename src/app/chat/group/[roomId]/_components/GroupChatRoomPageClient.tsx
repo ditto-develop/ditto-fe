@@ -7,11 +7,12 @@ import {
   deriveRoomState,
   getRoomEndedMessage,
   leaveChatRoom,
+  summarizeVoteOutcome,
   useChatRoom,
   useChatRoomMeta,
   useGroupVote,
 } from "@/features/chat";
-import type { CastVoteRequest, CreateGroupVoteRequest } from "@/features/chat";
+import type { CastVoteRequest, CreateGroupVoteRequest, GroupVote } from "@/features/chat";
 import {
   CHAT_KEYBOARD_ANIMATION_MS,
   useChatKeyboardInset,
@@ -41,6 +42,17 @@ import type { AddOptionInput } from "@/features/chat/hooks/useGroupVote";
 
 /** 투표 화면은 방 위에 전체 화면으로 덮인다. 어떤 투표를 어느 모드로 볼지의 상태. */
 type VoteView = { mode: "submission" | "results"; voteId: number };
+
+/**
+ * 마감된 투표 배너 문구. Figma [2232:40174] 는 확정 상태만 그린다 — 동표·무표에서
+ * '확정'이라 하면 틀리므로 채팅방 결과 카드(VoteResultMessageBubble)와 같은 구분을 쓴다.
+ */
+function getClosedVoteLabel(vote: GroupVote): string {
+  const outcome = summarizeVoteOutcome(vote);
+  if (outcome?.kind === "decided") return "만남 투표 결과가 확정됐어요";
+  if (outcome?.kind === "tied") return "만남 투표가 동표로 마감됐어요";
+  return "만남 투표가 마감됐어요";
+}
 
 /**
  * 그룹 채팅방.
@@ -245,9 +257,11 @@ export function GroupChatRoomPageClient() {
       )}
 
       {!openVote && latestClosedVote && (
-        <ClosedVoteBanner type="button" onClick={() => openVoteView(latestClosedVote.voteId)}>
-          만남 투표가 마감됐어요 · 결과 보기
-        </ClosedVoteBanner>
+        <VoteBanner
+          label={getClosedVoteLabel(latestClosedVote)}
+          buttonLabel="확인하기"
+          onVoteClick={() => openVoteView(latestClosedVote.voteId)}
+        />
       )}
 
       <GroupMessageList
@@ -377,15 +391,3 @@ const EmptyMessage = styled.div`
   color: var(--color-semantic-label-alternative);
 `;
 
-
-const ClosedVoteBanner = styled.button`
-  flex-shrink: 0;
-  margin: 0 var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border: 0;
-  border-radius: var(--radius-radi-4);
-  background-color: var(--color-semantic-background-elevated-normal);
-  color: var(--color-semantic-label-normal);
-  font: inherit;
-  cursor: pointer;
-`;

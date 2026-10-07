@@ -1,15 +1,17 @@
 "use client";
 
-import type React from "react";
 import styled from "styled-components";
 
 interface VoteBannerProps {
   label?: string;
+  /** 진행 중이면 '투표하기', 마감 뒤에는 '확인하기'. Figma 4.2.4 [2232:40174]. */
+  buttonLabel?: string;
   onVoteClick: () => void;
 }
 
 export function VoteBanner({
   label = "만남 투표 진행 중",
+  buttonLabel = "투표하기",
   onVoteClick,
 }: VoteBannerProps) {
   return (
@@ -17,26 +19,12 @@ export function VoteBanner({
       <BannerBackground />
       <BannerContent>
         <IconWrapper>
-          <InboxIcon aria-hidden="true" />
+          <InboxIcon src="/icons/content/inbox.svg" alt="" />
         </IconWrapper>
         <BannerText>{label}</BannerText>
-        <VoteButton onClick={onVoteClick}>투표하기</VoteButton>
+        <VoteButton onClick={onVoteClick}>{buttonLabel}</VoteButton>
       </BannerContent>
     </BannerWrapper>
-  );
-}
-
-function InboxIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" {...props}>
-      <path
-        d="M3.333 10.833V15a1.667 1.667 0 0 0 1.667 1.667h10A1.667 1.667 0 0 0 16.667 15v-4.167M3.333 10.833l1.942-5.825A1.667 1.667 0 0 1 6.858 3.75h6.284a1.667 1.667 0 0 1 1.583 1.258l1.942 5.825M3.333 10.833h3.334l1.25 2.5h3.333l1.25-2.5h3.5"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
 
@@ -77,6 +65,12 @@ const IconWrapper = styled.div`
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+`;
+
+const InboxIcon = styled.img`
+  display: block;
+  width: 20px;
+  height: 20px;
 `;
 
 const BannerText = styled.p`

@@ -101,6 +101,12 @@ export function VoteSubmissionPage({ vote, onClose, onSubmit, onAddOption }: Vot
 
   // 선택지 추가. 장소는 검색 모달로, 시간은 행 안의 날짜·시간 피커로 받는다.
   const [placeSearchOpen, setPlaceSearchOpen] = useState(false);
+  /**
+   * 시간 피커는 '+ 새로운 시간 추가하기'를 눌러야 펼친다. Figma 2153:33126 은 장소와 같이
+   * 추가 행 하나만 그린다 — 처음부터 펼쳐 두면 투표하러 들어온 멤버에게 '날짜 선택'이
+   * 선택지처럼 보인다.
+   */
+  const [timeAdderOpen, setTimeAdderOpen] = useState(false);
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
   const [addingOption, setAddingOption] = useState(false);
@@ -108,25 +114,33 @@ export function VoteSubmissionPage({ vote, onClose, onSubmit, onAddOption }: Vot
   const canAddPlace = vote.placeOptions.length < MAX_OPTION_COUNT;
   const canAddTime = vote.timeOptions.length < MAX_OPTION_COUNT;
 
-  /** 추가 실패는 투표 제출 에러와 같은 자리에 보여 준다 — 화면에 에러 슬롯이 하나뿐이다. */
+  /**
+   * 추가 실패는 투표 제출 에러와 같은 자리에 보여 준다 — 화면에 에러 슬롯이 하나뿐이다.
+   * 성공 여부를 돌려준다.
+   */
   const runAddOption = async (option: AddOptionInput) => {
-    if (addingOption) return;
+    if (addingOption) return false;
     setAddingOption(true);
     setError(null);
     try {
       await onAddOption(option);
+      return true;
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "선택지를 추가하지 못했어요.");
+      return false;
     } finally {
       setAddingOption(false);
     }
   };
 
+  /** 실패하면(중복 8205 등) 고른 값을 남겨 둬 바로 고쳐 다시 보낼 수 있게 한다. */
   const handleAddTime = async () => {
     if (!newDate || !newTime) return;
-    await runAddOption({ type: "time", time: { meetAt: toMeetAt(newDate, newTime) } });
+    const added = await runAddOption({ type: "time", time: { meetAt: toMeetAt(newDate, newTime) } });
+    if (!added) return;
     setNewDate("");
     setNewTime("");
+    setTimeAdderOpen(false);
   };
 
   useEffect(() => {
@@ -258,7 +272,18 @@ export function VoteSubmissionPage({ vote, onClose, onSubmit, onAddOption }: Vot
               );
             })}
 
-            {canAddTime && (
+            {canAddTime && !timeAdderOpen && (
+              <AddOptionButton
+                type="button"
+                disabled={addingOption}
+                onClick={() => setTimeAdderOpen(true)}
+              >
+                <PlusIcon aria-hidden="true" />
+                새로운 시간 추가하기
+              </AddOptionButton>
+            )}
+
+            {canAddTime && timeAdderOpen && (
               <AddTimeRow>
                 <NativePickerField
                   type="date"

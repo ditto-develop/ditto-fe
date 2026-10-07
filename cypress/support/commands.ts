@@ -302,6 +302,22 @@ Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
       req.reply(successResponse(vote));
     }).as("castVote");
 
+    // 진행 중 시간 선택지 추가. 응답은 갱신된 상세다.
+    cy.intercept("POST", "**/api/**/chat/rooms/*/votes/*/time-options", (req) => {
+      const vote = findVote(req.url);
+      const body = req.body as { meetAt: string };
+      if (!vote) return;
+      const lastOptionId = Math.max(
+        ...vote.placeOptions.map((option) => option.optionId),
+        ...vote.timeOptions.map((option) => option.optionId),
+      );
+      vote.timeOptions = [
+        ...vote.timeOptions,
+        { optionId: lastOptionId + 1, meetAt: body.meetAt, voterIds: [] },
+      ];
+      req.reply(successResponse(vote));
+    }).as("addTimeOption");
+
     // 마감은 멱등이다.
     cy.intercept("POST", "**/api/**/chat/rooms/*/votes/*/close", (req) => {
       const vote = findVote(req.url);

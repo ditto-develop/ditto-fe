@@ -73,6 +73,42 @@ describe("group meeting vote", () => {
     });
   });
 
+  /*
+   * Figma 2153:33126 — 시간도 장소처럼 '+ 새로운 시간 추가하기' 행 하나만 보인다.
+   * 피커를 처음부터 펼쳐 두면 남의 투표에 들어온 멤버에게 '날짜 선택'이 선택지처럼 떠 있다.
+   */
+  it("keeps the time pickers folded until a member chooses to add a time", () => {
+    cy.visit("/chat/group/3");
+    cy.wait("@getRoomVotes");
+
+    openSubmission();
+
+    cy.get(SUBMISSION).within(() => {
+      cy.contains("날짜 선택").should("not.exist");
+      cy.contains("시간 선택").should("not.exist");
+
+      cy.contains("button", "새로운 시간 추가하기").click();
+      // 라벨 위를 투명한 네이티브 인풋이 덮고 있어 visible 이 아니라 존재로 본다.
+      cy.contains("날짜 선택").should("exist");
+      cy.contains("시간 선택").should("exist");
+
+      cy.get('input[aria-label="추가할 시간 옵션 날짜"]').type("2026-06-20", { force: true });
+      cy.get('input[aria-label="추가할 시간 옵션 시간"]').type("18:00", { force: true });
+      cy.contains("button", "새로운 시간 추가하기").click();
+    });
+
+    cy.wait("@addTimeOption").its("request.body").should("deep.equal", {
+      meetAt: "2026-06-20 18:00:00",
+    });
+
+    // 추가된 시간이 선택지로 붙고 피커는 다시 접힌다.
+    cy.get(SUBMISSION).within(() => {
+      cy.contains("6월 20일 토요일 오후 6시").should("be.visible");
+      cy.contains("날짜 선택").should("not.exist");
+      cy.contains("button", "새로운 시간 추가하기").should("be.visible");
+    });
+  });
+
   /** 제출 화면에서 한 표를 던지고 결과 화면이 뜰 때까지 기다린다. */
   function castOneVote() {
     openSubmission();
@@ -97,7 +133,9 @@ describe("group meeting vote", () => {
     cy.get(RESULTS, { timeout: 8000 }).contains("button", "투표 마감하기").click();
     cy.wait("@closeVote");
     cy.get(RESULTS).find('[aria-label="뒤로가기"]').click();
-    cy.contains("만남 투표가 마감됐어요 · 결과 보기").should("be.visible").click();
+    // 마감 배너는 진행 중 배너와 같은 카드다(Figma 4.2.4 [2232:40174]). 강남역·6/13 이 2:1 로 확정된다.
+    cy.contains("만남 투표 결과가 확정됐어요").should("be.visible");
+    cy.contains("button", "확인하기").click();
 
     // 마감되면 진행 중 액션이 사라진다.
     cy.get(RESULTS).within(() => {
@@ -129,7 +167,8 @@ describe("group meeting vote", () => {
 
     cy.wait("@closeVote");
     cy.get(RESULTS).find('[aria-label="뒤로가기"]').click();
-    cy.contains("만남 투표가 마감됐어요 · 결과 보기", { timeout: 8000 }).should("be.visible");
+    cy.contains("만남 투표 결과가 확정됐어요", { timeout: 8000 }).should("be.visible");
+    cy.contains("button", "확인하기").should("be.visible");
     cy.contains("만남 투표 진행 중").should("not.exist");
   });
 

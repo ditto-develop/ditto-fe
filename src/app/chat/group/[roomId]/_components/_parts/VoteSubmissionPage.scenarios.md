@@ -9,6 +9,11 @@
 장소는 `PlaceSearchModal`, 시간은 날짜·시간 피커로 받고 한 번에 하나씩 보낸다.
 상한(타입당 10개)과 중복은 서버가 판정한다(8204/8205).
 
+시간 피커는 처음엔 접혀 있다 — Figma 2153:33126 은 시간도 장소처럼 "+ 새로운 시간 추가하기"
+행 하나만 그린다. 행을 누르면 날짜·시간 피커가 펼쳐지고, 추가에 성공하면 다시 접힌다.
+실패하면 고른 값을 그대로 두어 바로 고쳐 보낼 수 있다(2026-10-07, 남의 투표에 들어가면
+'날짜 선택'이 선택지처럼 떠 있던 문제).
+
 ## Inputs
 
 - `vote`: current group vote with options and prior `myVote`.
@@ -32,4 +37,5 @@
 - Open submission and close with the back button.
 - Select/deselect place and time options, including single-select replacement behavior.
 - Confirm submit remains disabled until both sections have a selection.
+- Confirm the date/time pickers stay hidden until "+ 새로운 시간 추가하기" is tapped, and fold back after a time is added.
 - Submit a vote and confirm the parent switches to results view.
