@@ -160,6 +160,18 @@ const config: CapacitorConfig = {
         FirebaseMessaging: {
             presentationOptions: ["badge"],
         },
+        /**
+         * iOS 앱 아이콘 배지(`@capawesome/capacitor-badge`). 숫자는 웹이 알림 센터 미읽음 수로
+         * 맞춘다(`src/shared/lib/native/appBadge.ts`).
+         *
+         * `persist` 를 끈다 — 켜 두면(기본값) 플러그인이 앱을 켤 때마다 **마지막으로 저장한
+         * 숫자를 다시 박아서**, 앱이 꺼진 동안 푸시가 올려 둔 최신 숫자를 옛 숫자로 덮는다.
+         * `autoClear` 도 끈다 — 열기만 해도 0 이 되면 안 읽은 알림이 남아 있어도 숫자가 사라진다.
+         */
+        Badge: {
+            persist: false,
+            autoClear: false,
+        },
     },
 };
 

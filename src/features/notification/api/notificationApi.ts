@@ -42,6 +42,27 @@ export function markAllNotificationsRead(): Promise<{ readCount: number }> {
   });
 }
 
+/** 방에 들어가면 이미 본 것으로 치는 알림. 평가 요청(REVIEW_*)은 할 일이 남아 있어 빠진다. */
+const CHAT_ROOM_SEEN_TYPES = new Set(["CHAT_MESSAGE", "CHAT_ENDING_SOON"]);
+
+/**
+ * 그 대화방을 가리키는 안 읽은 채팅 알림을 모두 읽음으로 넘긴다. 넘긴 개수를 돌려준다.
+ *
+ * 방에 들어가 메시지를 봤는데 알림 센터 행은 안 읽음으로 남아 있으면, 그 수가 그대로
+ * 미읽음 수와 앱 아이콘 배지에 잡힌다(2026-10-07). 방 단위 읽음 API 가 없어서 최근 채팅
+ * 알림 한 페이지(최대 100건)에서 골라 하나씩 읽는다. 채팅 계열의 `targetId` 는 방 ID 이고
+ * 1:1·그룹 방이 같은 id 공간을 쓴다(`toNotificationTarget`).
+ */
+export async function markChatRoomNotificationsRead(roomId: number): Promise<number> {
+  const { notifications } = await getNotifications({ category: "CHAT" });
+  const unread = notifications.filter(
+    (item) =>
+      item.targetId === roomId && item.readAt === null && CHAT_ROOM_SEEN_TYPES.has(item.type),
+  );
+  await Promise.all(unread.map((item) => markNotificationRead(item.id)));
+  return unread.length;
+}
+
 /** 홈 헤더 벨 배지용 미읽음 수. 목록과 같은 창(최근 30일)을 센다. */
 export function getUnreadNotificationCount(): Promise<number> {
   return externalApiFetch<{ count: number }>("/api/v1/notifications/unread-count").then(

@@ -1,9 +1,13 @@
 import type { PluginListenerHandle } from "@capacitor/core";
 
-import { markNotificationRead } from "@/features/notification/api/notificationApi";
+import {
+    markChatRoomNotificationsRead,
+    markNotificationRead,
+} from "@/features/notification/api/notificationApi";
 import { API_ERROR_CODE, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { externalApiFetch } from "@/shared/lib/api/externalClient";
 import { trackEvent } from "@/shared/lib/analytics";
+import { clearAppBadge, syncAppBadge } from "@/shared/lib/native/appBadge";
 import { toInternalPath } from "@/shared/lib/native/appShell";
 import {
     clearForegroundNotifications,
@@ -234,6 +238,30 @@ export function toChatRoomKey(deepLink: string | null): string | null {
     return CHAT_ROOM_PATH.test(path) ? path : null;
 }
 
+/** 채팅방 비교 키(`toChatRoomKey`)에서 방 ID 를 꺼낸다. 숫자가 아니면 null. */
+function toChatRoomId(roomKey: string): number | null {
+    const id = Number(roomKey.slice(roomKey.lastIndexOf("/") + 1));
+    return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+/**
+ * 보고 있는 방의 알림 센터 행을 읽음으로 넘기고, 넘긴 게 있으면 아이콘 배지를 다시 맞춘다.
+ * 안 넘기면 방에서 메시지를 다 읽어도 그 수가 미읽음 수·아이콘 배지에 그대로 남는다.
+ */
+async function markChatRoomRead(roomKey: string): Promise<void> {
+    const roomId = toChatRoomId(roomKey);
+    if (roomId === null) return;
+    try {
+        const marked = await markChatRoomNotificationsRead(roomId);
+        if (marked > 0) {
+            notifyPushReceived();
+            await syncAppBadge();
+        }
+    } catch (err: unknown) {
+        console.error("[push] 같은 방 알림 읽음 처리 실패:", err);
+    }
+}
+
 /**
  * `path` 가 채팅방이면 알림 센터에 남은 그 방 알림을 모두 지운다. 채팅방이 아니면
  * 아무것도 하지 않는다. 방에 들어갔다면(알림 탭이든 목록에서든) 남은 알림은 이미 본
@@ -246,6 +274,7 @@ export function toChatRoomKey(deepLink: string | null): string | null {
  *   돌려주고, Android 는 FCM SDK 가 그린 알림의 payload 를 읽을 수 없어 아무것도
  *   고르지 못한다(BE 가 `android.notification.tag` 를 실어 줘야 한다).
  * - 포그라운드 로컬 배너: 두 플랫폼 모두 `clearForegroundNotifications` 가 지운다.
+ * - 앱 안 알림 센터: 그 방의 채팅 알림을 서버에서 읽음으로 넘긴다(`markChatRoomRead`).
  *
  * 화면 이동과 무관한 정리라 실패해도 조용히 넘어간다.
  */
@@ -256,6 +285,7 @@ export async function clearChatRoomNotifications(path: string | null): Promise<v
 
     await Promise.all([
         clearForegroundNotifications(isSameRoom),
+        markChatRoomRead(roomKey),
         (async () => {
             try {
                 const { FirebaseMessaging } = await loadMessaging();
@@ -300,6 +330,22 @@ function presentInForeground(notification: { title?: string; body?: string; data
 }
 
 /**
+ * 포그라운드로 받은 푸시가 **지금 보고 있는 화면**의 것이면 알림 센터 행을 읽음으로 넘긴다.
+ * 배너를 띄우지 않는 조건(`presentInForeground`)과 같은 판정이다. 실패해도 조용히 넘어간다.
+ */
+async function markReadIfViewing(data: unknown): Promise<void> {
+    const notificationId = extractNotificationId(data);
+    if (notificationId === null || typeof window === "undefined") return;
+    if (!isViewingDeepLink(extractDeepLink(data), window.location.pathname)) return;
+    try {
+        await markNotificationRead(notificationId);
+        notifyPushReceived();
+    } catch (err: unknown) {
+        console.error("[push] 보고 있는 화면의 알림 읽음 처리 실패:", err);
+    }
+}
+
+/**
  * 알림을 탭했을 때. 원격 푸시 배너와 포그라운드 로컬 배너(`presentInForeground`) 모두 여기로 온다.
  * 탭은 곧 확인이므로 알림 센터의 행도 읽음으로 넘긴다(BE 위키 §앱 구현 노트).
  */
@@ -310,7 +356,10 @@ export function openNotification(data: unknown, navigate: (path: string) => void
         void markNotificationRead(notificationId)
             // 알림 센터가 떠 있다면(딥링크가 없어 이동하지 않는 경우 등)
             // 방금 바뀐 읽음 상태를 반영해야 한다.
-            .then(() => notifyPushReceived())
+            .then(() => {
+                notifyPushReceived();
+                return syncAppBadge();
+            })
             .catch(() => undefined);
     }
 
@@ -358,17 +407,22 @@ export async function initPushNotifications({ navigate }: PushOptions): Promise<
     /**
      * 앱이 떠 있는 동안 도착한 푸시.
      *
-     * 두 가지를 한다:
+     * 세 가지를 한다:
      *  1. 화면이 목록·미읽음 수를 다시 읽도록 알린다. 읽음 처리는 하지 않는다 —
-     *     사용자가 본 게 아니다.
+     *     사용자가 본 게 아니다. **단, 지금 보고 있는 방의 메시지는 화면에 바로 떴으니
+     *     읽음으로 넘긴다** — 안 그러면 방에서 대화하는 동안 받은 메시지 수만큼 아이콘
+     *     배지가 쌓인다.
      *  2. **로컬 알림으로 직접 배너를 띄운다.** OS 가 포그라운드 푸시를 그려 주지 않아
      *     (안드로이드는 아예) 채팅 알림이 안 온다는 신고가 있었다(2026-09-15 QA).
      *     지금 그 방을 보고 있으면 띄우지 않는다.
+     *  3. 아이콘 배지를 서버 미읽음 수에 다시 맞춘다. iOS 는 `presentationOptions` 의
+     *     `badge` 로 payload 숫자를 먼저 박는다.
      */
     handles.push(
         await FirebaseMessaging.addListener("notificationReceived", (event) => {
             notifyPushReceived();
             presentInForeground(event.notification);
+            void markReadIfViewing(event.notification.data).then(() => syncAppBadge());
         }),
     );
 
@@ -402,6 +456,10 @@ export async function initPushNotifications({ navigate }: PushOptions): Promise<
         console.error("[push] 토큰 발급 실패:", err);
     }
 
+    // 로그인 직후 — 앱을 끈 동안 푸시가 박아 둔 숫자를 지금의 미읽음 수로 맞춘다.
+    // 권한 요청이 끝난 뒤여야 한다(appBadge.ts `isBadgeGranted`).
+    void syncAppBadge();
+
     // 설정에서 권한을 허용했거나 최초 등록 때 네트워크가 끊겼다면 복귀 시 복구한다.
     const retryRegistration = async () => {
         if (!active || retrying) return;
@@ -425,7 +483,8 @@ export async function initPushNotifications({ navigate }: PushOptions): Promise<
         await App.addListener("appStateChange", ({ isActive }) => {
             if (!isActive) return;
             void retryRegistration();
-            void clearChatRoomNotifications(window.location.pathname);
+            // 방 알림을 먼저 읽음으로 넘기고 나서 배지를 맞춰야 그 수가 빠진다.
+            void clearChatRoomNotifications(window.location.pathname).then(() => syncAppBadge());
         }),
     );
     window.addEventListener("online", onOnline);
@@ -455,6 +514,8 @@ export async function initPushNotifications({ navigate }: PushOptions): Promise<
  */
 export async function releasePushToken(): Promise<void> {
     if (!isNativeApp()) return;
+    // 이전 계정의 미읽음 수가 아이콘에 남지 않게 한다. 세션과 무관해 기다리지 않는다.
+    void clearAppBadge();
     await waitAtMost(unlinkThenDiscardToken(), RELEASE_TIMEOUT_MS);
 }
 

@@ -18,6 +18,7 @@ import type {
   NotificationSection,
 } from "@/features/notification/model/types";
 import { EMPTY_HIDDEN_IDS } from "@/shared/lib/hiddenItemStore";
+import { syncAppBadge } from "@/shared/lib/native/appBadge";
 import { PUSH_RECEIVED_EVENT } from "@/shared/lib/native/pushNotifications";
 import { parseServerDateTime } from "@/shared/lib/serverDateTime";
 
@@ -169,7 +170,10 @@ export function useNotifications(): UseNotificationsResult {
     );
     setUnreadCount((previous) => Math.max(previous - 1, 0));
     // 읽음 표시는 화면 이동을 막을 만한 작업이 아니므로 실패해도 조용히 넘어간다.
-    void markNotificationRead(id).catch(() => undefined);
+    // 앱 아이콘 배지는 서버에 반영된 뒤에 맞춘다(웹에서는 no-op).
+    void markNotificationRead(id)
+      .then(() => syncAppBadge())
+      .catch(() => undefined);
   }, []);
 
   const markAllRead = useCallback(() => {
@@ -178,7 +182,9 @@ export function useNotifications(): UseNotificationsResult {
       previous.map((item) => (isUnread(item) ? { ...item, readAt } : item)),
     );
     setUnreadCount(0);
-    void markAllNotificationsRead().catch(() => undefined);
+    void markAllNotificationsRead()
+      .then(() => syncAppBadge())
+      .catch(() => undefined);
   }, []);
 
   /**

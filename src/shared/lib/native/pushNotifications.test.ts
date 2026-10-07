@@ -69,8 +69,17 @@ vi.mock("@/shared/lib/native/localNotifications", () => ({
 }));
 
 const markNotificationRead = vi.fn(async () => undefined);
+const markChatRoomNotificationsRead = vi.fn(async (): Promise<number> => 0);
 vi.mock("@/features/notification/api/notificationApi", () => ({
   markNotificationRead: (...a: unknown[]) => markNotificationRead(...(a as [])),
+  markChatRoomNotificationsRead: (...a: unknown[]) => markChatRoomNotificationsRead(...(a as [])),
+}));
+
+const syncAppBadge = vi.fn(async () => {});
+const clearAppBadge = vi.fn(async () => {});
+vi.mock("@/shared/lib/native/appBadge", () => ({
+  syncAppBadge: () => syncAppBadge(),
+  clearAppBadge: () => clearAppBadge(),
 }));
 
 /**
@@ -360,6 +369,66 @@ describe("네이티브 초기화 이후 동작", () => {
     expect(markNotificationRead).not.toHaveBeenCalled();
     window.removeEventListener(PUSH_RECEIVED_EVENT, onPush);
   });
+
+  it("포그라운드 수신: 지금 보고 있는 방의 메시지는 읽음 처리한 뒤 아이콘 배지를 맞춘다", async () => {
+    const { listenerFor } = await initOnNative();
+    syncAppBadge.mockClear();
+    window.location.pathname = "/chat/one-on-one/305/";
+
+    listenerFor("notificationReceived")({
+      notification: {
+        title: "상대방",
+        body: "안녕",
+        data: { notificationId: "8821", deepLink: "/chat/one-on-one/305/" },
+      },
+    });
+
+    await vi.waitFor(() => expect(syncAppBadge).toHaveBeenCalled());
+    expect(markNotificationRead).toHaveBeenCalledWith(8821);
+    expect(markNotificationRead.mock.invocationCallOrder[0]).toBeLessThan(
+      syncAppBadge.mock.invocationCallOrder[0],
+    );
+    window.location.pathname = "/home/";
+  });
+
+  it("포그라운드 수신: 다른 방 메시지는 읽음 처리하지 않고 배지만 맞춘다", async () => {
+    const { listenerFor } = await initOnNative();
+    syncAppBadge.mockClear();
+    window.location.pathname = "/chat/one-on-one/306/";
+
+    listenerFor("notificationReceived")({
+      notification: { data: { notificationId: "8821", deepLink: "/chat/one-on-one/305/" } },
+    });
+
+    await vi.waitFor(() => expect(syncAppBadge).toHaveBeenCalled());
+    expect(markNotificationRead).not.toHaveBeenCalled();
+    window.location.pathname = "/home/";
+  });
+});
+
+describe("앱 아이콘 배지", () => {
+  it("로그인 후 초기화가 끝나면 한 번 맞춘다", async () => {
+    await initOnNative();
+    expect(syncAppBadge).toHaveBeenCalled();
+  });
+
+  it("알림 탭으로 읽음 처리한 뒤 맞춘다", async () => {
+    const { openNotification } = await import("@/shared/lib/native/pushNotifications");
+
+    openNotification({ notificationId: 8821 }, vi.fn());
+
+    await vi.waitFor(() => expect(syncAppBadge).toHaveBeenCalled());
+  });
+
+  it("로그아웃·탈퇴 시 지운다", async () => {
+    isNativePlatform.mockReturnValue(true);
+    getPlatform.mockReturnValue("ios");
+    const { releasePushToken } = await import("@/shared/lib/native/pushNotifications");
+
+    await releasePushToken();
+
+    expect(clearAppBadge).toHaveBeenCalled();
+  });
 });
 
 describe("toChatRoomKey", () => {
@@ -440,6 +509,30 @@ describe("알림 탭 시 같은 채팅방 알림 정리", () => {
 
     expect(getDeliveredNotifications).not.toHaveBeenCalled();
     expect(clearForegroundNotifications).not.toHaveBeenCalled();
+    expect(markChatRoomNotificationsRead).not.toHaveBeenCalled();
+  });
+
+  it("방에 들어가면 그 방 알림을 서버에서도 읽음 처리하고, 넘긴 게 있으면 배지를 맞춘다", async () => {
+    const { clearChatRoomNotifications } = await import("@/shared/lib/native/pushNotifications");
+    isNativePlatform.mockReturnValue(true);
+    getPlatform.mockReturnValue("ios");
+    markChatRoomNotificationsRead.mockResolvedValueOnce(2);
+
+    await clearChatRoomNotifications("/chat/one-on-one/305/");
+
+    expect(markChatRoomNotificationsRead).toHaveBeenCalledWith(305);
+    expect(syncAppBadge).toHaveBeenCalledTimes(1);
+  });
+
+  it("넘긴 알림이 없으면 배지를 다시 조회하지 않는다", async () => {
+    const { clearChatRoomNotifications } = await import("@/shared/lib/native/pushNotifications");
+    isNativePlatform.mockReturnValue(true);
+    getPlatform.mockReturnValue("ios");
+
+    await clearChatRoomNotifications("/chat/group/7/");
+
+    expect(markChatRoomNotificationsRead).toHaveBeenCalledWith(7);
+    expect(syncAppBadge).not.toHaveBeenCalled();
   });
 
   it("채팅방이 아닌 알림을 탭하면 아무것도 지우지 않는다", async () => {
