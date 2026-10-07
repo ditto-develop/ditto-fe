@@ -64,6 +64,8 @@ function mergeWithStatus(
         // 끝난 요청은 다시 신청할 수도 없다 — 서버가 같은 주의 재요청을 MATCH_REQUEST_ALREADY_EXISTS
         // 로 막으므로, 신청 버튼을 되살리면 누를 때마다 실패한다. 전용 상태로 표시한다.
         // 방향을 나누는 이유: "내가 거절했다"와 "거절당했다"는 사용자에게 전혀 다른 사실이다.
+        // 다른 1:1 성사로 서버가 취소한 신청(CANCELLED, BE #236)도 거절과 똑같이 보여 준다 —
+        // 전용 문구를 두지 않기로 했다(2026-10-07 기획 결정).
         const wasRejectedByThem = !!sent && !isActive(sent);
         const didRejectThem = !!received && !isActive(received);
         return {

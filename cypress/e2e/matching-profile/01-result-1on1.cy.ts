@@ -128,6 +128,30 @@ describe("3.1 매칭 결과 - 1:1 매칭 (WF-06)", () => {
       cy.contains("내가 대화를 신청했어요").should("not.exist");
     });
 
+    // 누군가 이번 주 1:1 이 성사되면 서버가 그 주의 다른 대기 신청을 CANCELLED 로 바꾼다(BE #236).
+    // 전용 문구 없이 거절과 똑같이 보여 준다(2026-10-07 기획 결정 — 위키 QA-1002 는 전용 문구를 제안했다).
+    it("다른 성사로 취소된 신청(CANCELLED)도 거절과 똑같이 표시된다", () => {
+      cy.mockApi({ matchesFixture: "matches-1on1-received.json" });
+      cy.fixture("matching-status-sent-rejected.json").then((status: { sentRequests: object[] }) => {
+        cy.intercept("GET", "**/api/**/matching/status/**", {
+          statusCode: 200,
+          body: {
+            success: true,
+            data: {
+              ...status,
+              sentRequests: status.sentRequests.map((request) => ({ ...request, status: "CANCELLED" })),
+            },
+          },
+        }).as("getCancelledStatus");
+      });
+      cy.visit("/matching");
+      cy.wait("@getCancelledStatus");
+
+      cy.contains("수민", { timeout: 6000 }).should("be.visible");
+      cy.contains("상대방이 신청을 거절했어요").should("be.visible");
+      cy.contains("내가 대화를 신청했어요").should("not.exist");
+    });
+
     // 같은 주에는 다시 신청할 수 없다 — 서버가 MATCH_REQUEST_ALREADY_EXISTS 로 막으므로
     // 신청 버튼을 되살리면 누를 때마다 실패한다.
     it("거절된 후보의 소개노트에서는 대화를 다시 신청할 수 없다", () => {
