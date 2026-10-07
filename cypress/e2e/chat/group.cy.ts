@@ -46,6 +46,48 @@ describe("group chat room", () => {
     cy.contains("만남 투표 진행 중").should("be.visible");
   });
 
+  /**
+   * 나가기 뒤 행선지(2026-10-04 QA, 서버 #247). 열린 방에서 나가면 서버가 응답 전에 나간 사람의
+   * 평가를 열므로 평가 화면으로, 개방 전 방은 방이 끝날 때 열리므로 목록으로 간다.
+   */
+  describe("leaving the room", () => {
+    function visitRoomWithStatus(status: "ACTIVE" | "SCHEDULED") {
+      cy.fixture("chat-rooms.json").then((rooms: Record<string, unknown>[]) => {
+        cy.intercept("GET", "**/api/**/chat/rooms", {
+          statusCode: 200,
+          body: {
+            success: true,
+            data: rooms.map((room) => (room.roomId === 3 ? { ...room, status } : room)),
+          },
+        }).as("roomsWithStatus");
+      });
+      cy.visit("/chat/group/3");
+      cy.wait("@roomsWithStatus");
+    }
+
+    function leaveRoom() {
+      // 방 이름은 방 정보를 찾은 뒤에 그려진다 — 이 뒤로는 화면이 방 상태를 안다.
+      cy.contains("주말 취미 퀴즈", { timeout: 8000 }).should("be.visible");
+      cy.get('img[alt="더보기"]').first().click();
+      cy.contains("대화방 나가기").click();
+      cy.contains("정말 대화방을 나가시겠어요?").should("be.visible");
+      cy.contains("button", "나가기").click();
+      cy.wait("@leaveChatRoom");
+    }
+
+    it("opens the review right after leaving an open room", () => {
+      visitRoomWithStatus("ACTIVE");
+      leaveRoom();
+      cy.location("pathname", { timeout: 6000 }).should("match", /^\/chat\/group\/3\/rate\/?$/);
+    });
+
+    it("returns to the chat list after leaving a room before it opens", () => {
+      visitRoomWithStatus("SCHEDULED");
+      leaveRoom();
+      cy.location("pathname", { timeout: 6000 }).should("match", /^\/chat\/?$/);
+    });
+  });
+
   // 멤버별 답변 일치 배지는 GET /api/v1/users/{id}/answers 의 일치 개수로 그린다.
   // 서버는 상대의 선택지 원문도, 등급 문구도 주지 않는다 — 문구는 FE(getMatchBadgeInfo)가 만든다.
   describe("member list — 답변 일치 배지", () => {

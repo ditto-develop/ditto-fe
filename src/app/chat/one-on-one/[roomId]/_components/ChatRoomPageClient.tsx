@@ -133,7 +133,11 @@ export function ChatRoomPageClient() {
       await endChatRoom(roomId);
       // 서버는 종료 요청 안에서 이 방의 평가를 연다. 나가자마자 평가할 수 있게 평가 화면으로
       // 바로 보낸다(2026-10-04 QA). 평가 화면의 뒤로가기는 방 대신 목록으로 간다 — replace 다.
-      router.replace(`/chat/one-on-one/${roomId}/rate`);
+      // 재매칭 방은 평가가 없다(서버 REVIEWABLE_MATCH_TYPES = PERSONAL·GROUP). 평가 화면으로
+      // 보내면 "열리지 않은 평가"만 뜨므로 목록으로 보낸다.
+      router.replace(
+        room?.sourceType === "REMATCH" ? "/chat" : `/chat/one-on-one/${roomId}/rate`,
+      );
     } catch {
       showToast("대화를 종료하지 못했어요. 잠시 후 다시 시도해주세요.", "error");
       setEnding(false);

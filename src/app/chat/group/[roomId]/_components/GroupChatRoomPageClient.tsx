@@ -203,8 +203,11 @@ export function GroupChatRoomPageClient() {
     setLeaving(true);
     try {
       await leaveChatRoom(roomId);
-      // 나간 뒤에도 방은 읽기 전용으로 목록에 남는다. 목록에서 다시 읽게 한다.
-      router.replace("/chat");
+      // 열린 방에서 나가면 서버가 응답 전에 나간 사람의 평가를 연다(남은 인원 미달로 해체돼도
+      // 전원 평가가 열린다). 개방 전 방은 방이 끝날 때 열리므로 목록으로 간다. 나간 방은 서버가
+      // 목록에서 빼므로 평가 화면은 방 목록이 아니라 평가 목록으로 찾는다(2026-10-04 QA).
+      // 판정은 방 상태(roomState)로 한다 — 이 파일의 `status`는 웹소켓 연결 상태다.
+      router.replace(room && roomState === "OPEN" ? `/chat/group/${roomId}/rate` : "/chat");
     } catch {
       showToast("대화방을 나가지 못했어요. 잠시 후 다시 시도해주세요.", "error");
       setLeaving(false);

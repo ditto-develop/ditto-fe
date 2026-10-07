@@ -170,6 +170,24 @@ describe("1:1 chat room", () => {
     cy.location("pathname", { timeout: 6000 }).should("match", /^\/chat\/one-on-one\/1\/rate\/?$/);
   });
 
+  // 재매칭 방은 평가가 없다(서버 REVIEWABLE_MATCH_TYPES = PERSONAL·GROUP). 평가 화면으로 가면
+  // "열리지 않은 평가"만 뜨므로 목록으로 돌아간다(2026-10-04 QA).
+  it("ends a rematch chat and returns to the chat list instead of the review", () => {
+    mockRoomsWith(1, { sourceType: "REMATCH" }, "roomsRematch");
+    cy.visit("/chat/one-on-one/1");
+    cy.wait("@roomsRematch");
+    cy.wait("@getChatMessages");
+
+    // 상대 닉네임은 방 정보를 찾은 뒤에 그려진다 — 이 뒤로는 방 종류를 안다.
+    cy.contains("수민", { timeout: 8000 }).should("be.visible");
+    cy.get('[data-cy="chat-menu-button"]').click();
+    cy.contains("대화방 나가기").click();
+    cy.contains("나가기").click();
+
+    cy.wait("@endChatRoom");
+    cy.location("pathname", { timeout: 6000 }).should("match", /^\/chat\/?$/);
+  });
+
   // 1:1 방에서도 상대 프로필을 볼 수 있어야 한다(2026-10-04 QA).
   it("opens the partner profile from the partner avatar", () => {
     cy.visit("/chat/one-on-one/1");
