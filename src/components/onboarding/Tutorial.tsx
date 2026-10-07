@@ -457,6 +457,7 @@ export function Tutorial({ initialData }: TutorialProps) {
             buttonText="다음"
             onNext={handleNext}
             onPrev={goPrevStep}
+            scrollDescription
             description={
               <>
                 <Label1Normal>

@@ -82,6 +82,40 @@ describe("signup flow", () => {
     cy.contains("1/2단계").should("be.visible");
   });
 
+  /**
+   * 스크롤하면 설명 문구는 폼과 함께 올라가고 제목·단계만 상단에 남는다(2026-10-07).
+   * 설명까지 고정하면 입력 영역이 좁았다.
+   */
+  it("keeps the title and step fixed while the description scrolls with the profile form", () => {
+    const DESCRIPTION = "나랑 같은 답을 한 사람에게만 정보가 공개돼요.";
+    cy.visit(OAUTH_ENTRY);
+
+    cy.contains("프로필 작성하기", { timeout: 6000 }).should("be.visible");
+    cy.contains(DESCRIPTION)
+      .parents()
+      .filter((_, el) => Cypress.$(el).css("overflow-y") === "auto")
+      .first()
+      .as("profileBody");
+
+    cy.contains("프로필 작성하기").then(($title) => {
+      const titleTop = $title[0].getBoundingClientRect().top;
+      cy.contains(DESCRIPTION).then(($description) => {
+        const descriptionTop = $description[0].getBoundingClientRect().top;
+
+        // 본문이 실제로 스크롤되지 않으면 scrollTo 가 실패한다.
+        cy.get("@profileBody").scrollTo("bottom");
+
+        cy.contains("프로필 작성하기").should(($el) => {
+          expect($el[0].getBoundingClientRect().top).to.equal(titleTop);
+        });
+        cy.contains("1/2단계").should("be.visible");
+        cy.contains(DESCRIPTION).should(($el) => {
+          expect($el[0].getBoundingClientRect().top).to.be.lessThan(descriptionTop);
+        });
+      });
+    });
+  });
+
   it("goes back to the login screen from the profile step", () => {
     cy.visit(OAUTH_ENTRY);
 

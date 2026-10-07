@@ -25,6 +25,12 @@ interface OnboardingLayoutProps {
    * (2026-09-27 QA — 고정 머리말이 화면을 차지해 입력 영역이 좁았다).
    */
   scrollHeader?: boolean;
+  /**
+   * 설명만 본문과 함께 스크롤하고 제목·단계는 상단에 고정한다. 프로필 작성처럼 입력 항목이
+   * 길어 설명 문구까지 고정하면 입력 영역이 좁아지는 화면용(2026-10-07).
+   * `scrollHeader` 와 함께 주면 `scrollHeader` 가 우선한다.
+   */
+  scrollDescription?: boolean;
 
   onNext: () => void;
   onPrev?: () => void;
@@ -46,6 +52,7 @@ export function OnboardingLayout({
   variant,
   hideActions = false,
   scrollHeader = false,
+  scrollDescription = false,
   onNext,
   onPrev,
   onClose,
@@ -63,27 +70,37 @@ export function OnboardingLayout({
     bodyRef.current?.scrollTo({ top: 0 });
   }, [step]);
 
-  const head = (
-    <>
-      <HeaderTop>
-        <Title3 $weight="bold">{title}</Title3>
-        <Label1Normal $color="var(--color-semantic-status-positive)">
-          {step}/{totalSteps}단계
-        </Label1Normal>
-      </HeaderTop>
-      <DescriptionGroup>{description}</DescriptionGroup>
-    </>
+  const headerTop = (
+    <HeaderTop>
+      <Title3 $weight="bold">{title}</Title3>
+      <Label1Normal $color="var(--color-semantic-status-positive)">
+        {step}/{totalSteps}단계
+      </Label1Normal>
+    </HeaderTop>
   );
+  const descriptionGroup = <DescriptionGroup>{description}</DescriptionGroup>;
+  const descriptionScrolls = !scrollHeader && scrollDescription;
 
   return (
     <>
     <PageContainer>
     <Nav prev={onPrev} close={onClose} label={navTitle} />
 
-      {!scrollHeader && <HeadContainer>{head}</HeadContainer>}
+      {!scrollHeader && (
+        <HeadContainer>
+          {headerTop}
+          {!descriptionScrolls && descriptionGroup}
+        </HeadContainer>
+      )}
 
       <BodyContainer ref={bodyRef}>
-        {scrollHeader && <ScrollingHeadContainer>{head}</ScrollingHeadContainer>}
+        {scrollHeader && (
+          <ScrollingHeadContainer>
+            {headerTop}
+            {descriptionGroup}
+          </ScrollingHeadContainer>
+        )}
+        {descriptionScrolls && <ScrollingHeadContainer>{descriptionGroup}</ScrollingHeadContainer>}
         {children}
       </BodyContainer>
 
