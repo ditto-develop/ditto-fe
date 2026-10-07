@@ -10,6 +10,7 @@ import { useMemberReview } from "@/features/rating/hooks/useMemberReview";
 import { useOneOnOneRating } from "@/features/rating/hooks/useOneOnOneRating";
 import { RatingFormFields } from "@/features/rating/ui/RatingFormFields";
 import { RatingSubmitButton } from "@/features/rating/ui/RatingSubmitButton";
+import { markReviewPromptSkipped } from "@/features/rating/lib/reviewStorage";
 import { RatingSkipModal } from "@/features/rating/ui/RatingSkipModal";
 import { RatingStateScreen } from "@/features/rating/ui/RatingStateScreen";
 import { RematchSuccessModal } from "@/features/rating/ui/RematchSuccessModal";
@@ -119,7 +120,10 @@ function OneOnOneRatingContent({ review, reload }: OneOnOneRatingContentProps) {
       <RatingSkipModal
         isOpen={skipModalOpen}
         onClose={() => setSkipModalOpen(false)}
-        onConfirm={() => router.replace("/chat")}
+        onConfirm={() => {
+          markReviewPromptSkipped([review.reviewId]);
+          router.replace("/chat");
+        }}
       />
     </Page>
   );

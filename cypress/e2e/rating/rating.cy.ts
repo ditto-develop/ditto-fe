@@ -282,7 +282,7 @@ describe("미평가 유도 (홈 첫 진입)", () => {
     cy.contains("지난 채팅은 어떠셨나요?").should("not.exist");
   });
 
-  it("건너뛰기를 누르면 홈에 머물고 이번 세션에서는 다시 묻지 않는다", () => {
+  it("건너뛰기를 누르면 홈에 머물고 앱을 다시 켜도 다시 묻지 않는다", () => {
     cy.visit("/home");
     cy.wait("@getMemberReviews");
 
@@ -291,6 +291,55 @@ describe("미평가 유도 (홈 첫 진입)", () => {
     cy.location("pathname").should("match", /^\/home\/?$/);
 
     cy.reload();
+    cy.location("pathname").should("match", /^\/home\/?$/);
+    cy.wait(1000);
+    cy.contains("지난 채팅은 어떠셨나요?").should("not.exist");
+
+    // 앱 재실행 = 새 웹뷰 세션. 세션 단위 확인 플래그가 비워져도 건너뛴 평가는 다시 묻지 않는다.
+    cy.window().then((win) => win.sessionStorage.clear());
+    cy.reload();
+    cy.location("pathname").should("match", /^\/home\/?$/);
+    cy.wait(1000);
+    cy.contains("지난 채팅은 어떠셨나요?").should("not.exist");
+  });
+
+  it("건너뛴 뒤 새로 열린 평가는 다시 안내한다", () => {
+    cy.visit("/home");
+    cy.wait("@getMemberReviews");
+    cy.contains("button", "건너뛰기").click();
+
+    cy.fixture("member-reviews.json").then(
+      (reviews: Array<{ targets: Array<Record<string, unknown>> } & Record<string, unknown>>) => {
+        const [first] = reviews;
+        const opened = {
+          ...first,
+          reviewId: 13,
+          chatRoomId: 3,
+          availableAt: "2026-06-06 09:00:00",
+          targets: [{ ...first.targets[0], memberId: 30, nickname: "지우" }],
+        };
+        cy.intercept("GET", "**/api/**/member-reviews", {
+          statusCode: 200,
+          body: { success: true, data: [...reviews, opened] },
+        }).as("reviewsWithNew");
+      },
+    );
+
+    cy.window().then((win) => win.sessionStorage.clear());
+    cy.reload();
+    cy.wait("@reviewsWithNew");
+    cy.contains("지우님과의 채팅 평가가 아직 남아 있어요.").should("be.visible");
+  });
+
+  it("평가 화면에서 건너뛴 평가는 홈에서 다시 안내하지 않는다", () => {
+    cy.visit("/chat/one-on-one/1/rate");
+    cy.wait("@getMemberReviews");
+
+    cy.get('img[alt="close"]').click();
+    cy.contains("button", "건너뛰기").click();
+    cy.location("pathname").should("match", /^\/chat\/?$/);
+
+    cy.visit("/home");
     cy.location("pathname").should("match", /^\/home\/?$/);
     cy.wait(1000);
     cy.contains("지난 채팅은 어떠셨나요?").should("not.exist");

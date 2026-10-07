@@ -9,6 +9,7 @@ import { useToast } from "@/context/ToastContext";
 import { useGroupRating } from "@/features/rating/hooks/useGroupRating";
 import { useMemberReview } from "@/features/rating/hooks/useMemberReview";
 import { GroupMemberRatingCard } from "@/features/rating/ui/GroupMemberRatingCard";
+import { markReviewPromptSkipped } from "@/features/rating/lib/reviewStorage";
 import { RatingSkipModal } from "@/features/rating/ui/RatingSkipModal";
 import { RatingSubmitButton } from "@/features/rating/ui/RatingSubmitButton";
 import { RatingStateScreen } from "@/features/rating/ui/RatingStateScreen";
@@ -125,7 +126,10 @@ function GroupRatingContent({ review, reload }: GroupRatingContentProps) {
       <RatingSkipModal
         isOpen={skipModalOpen}
         onClose={() => setSkipModalOpen(false)}
-        onConfirm={() => router.replace("/chat")}
+        onConfirm={() => {
+          markReviewPromptSkipped([review.reviewId]);
+          router.replace("/chat");
+        }}
       />
     </Page>
   );
