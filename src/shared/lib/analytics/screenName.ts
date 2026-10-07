@@ -27,6 +27,7 @@ const STATIC_SCREENS: Record<string, string> = {
   "/": "landing",
   "/home": "home",
   "/matching": "matching",
+  "/matching/group": "matching_group",
   "/notifications": "notifications",
   "/chat": "chat_list",
   "/profile": "profile",

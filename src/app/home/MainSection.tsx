@@ -26,6 +26,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useToast } from "@/context/ToastContext";
 import { describeError } from "@/shared/lib/api/apiError";
 import { useGroupName } from "@/features/matching/hooks/useGroupName";
+import { isGroupMatchFailed } from "@/features/matching/model/groupMatchState";
 
 const MainSectionContainer = styled.div`
   /**
@@ -265,12 +266,9 @@ export function MainSection() {
    * 대화 기간에는 성사된 그룹을 수락한 경우만 남긴다.
    */
   const activeGroup = groups[0];
-  const groupFormed = !!activeGroup && activeGroup.myStatus === "ACCEPTED" && activeGroup.isFormed;
-  const groupMatchType: MatchingCardType = !activeGroup
+  const groupMatchType: MatchingCardType = isGroupMatchFailed(activeGroup, period === "CHATTING")
     ? "failmatch"
-    : period === "CHATTING" && !groupFormed
-      ? "failmatch"
-      : "many";
+    : "many";
 
   const resolvedMatchType = isGroupWeek ? groupMatchType : matchType;
   const resolvedCandidates = isGroupWeek ? (activeGroup?.members ?? []) : candidates;
