@@ -13,7 +13,7 @@ describe("onboarding flow", () => {
     cy.contains("button", "시작하기").click();
 
     cy.location("pathname", { timeout: 6000 }).should("match", /^\/home\/?$/);
-    cy.get('img[alt="Ditto"]', { timeout: 6000 }).should("be.visible");
+    cy.get('img[alt="ditto"]', { timeout: 6000 }).should("be.visible");
   });
 
   // 최소 글자 수 제한은 없앴다(2026-09-08). 10자 미만도 그대로 저장된다.

@@ -9,7 +9,7 @@ export function Splash() {
       <ImgContainer>
         <img
           src="/assets/logo/ditto.svg"
-          alt="Ditto"
+          alt="ditto"
         />
         <BetaBadge />
       </ImgContainer>

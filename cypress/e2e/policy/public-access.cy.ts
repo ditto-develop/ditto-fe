@@ -6,9 +6,9 @@
  * 그건 제출 반려 사유가 된다. 화면이 아니라 **접근 가능성**을 고정하는 테스트다.
  */
 const POLICY_ROUTES = [
-  { path: "/settings/privacy", heading: "개인정보처리방침" },
-  { path: "/settings/terms", heading: "이용약관" },
-  { path: "/settings/location-terms", heading: "위치기반서비스 이용약관" },
+  { path: "/settings/privacy", heading: "개인정보 처리방침" },
+  { path: "/settings/terms", heading: "디토 이용 약관" },
+  { path: "/settings/location-terms", heading: "위치기반 서비스 이용약관" },
   { path: "/settings/business", heading: "사업자 정보" },
 ] as const;
 

@@ -1,6 +1,5 @@
 import type { PolicyBlock } from "@/features/settings/model/types";
 import {
-  BUSINESS_INFO,
   POLICY_EFFECTIVE_DATE,
   POLICY_REVISION,
   PRIVACY_OFFICER,
@@ -97,12 +96,12 @@ function parsePolicy(source: string): PolicyBlock[] {
   return blocks;
 }
 
+// 문서 제목은 상단 TopNavigation 이 보여준다. 본문에 `#` 제목을 다시 두지 않는다.
 const termsOfServiceSource = `
-# Ditto 이용약관
 **시행일자**: ${POLICY_REVISION.effective.long} / **최종 수정일**: ${POLICY_REVISION.noticed.long}
 
 ### 제1조 (목적)
-본 약관은 ${BUSINESS_INFO.companyName}가 운영하는 디토(Ditto)의 이용과 관련하여 회사와 이용자의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.
+본 약관은 디토(ditto)의 이용과 관련하여 디토를 운영하는 회사(이하 "회사")와 이용자의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.
 
 ### 제2조 (정의)
 본 약관에서 사용하는 용어의 정의는 다음과 같습니다:
@@ -246,11 +245,10 @@ const termsOfServiceSource = `
 `;
 
 const privacyPolicySource = `
-# Ditto 개인정보처리방침
 **시행일자**: ${POLICY_REVISION.effective.long} / **최종 수정일**: ${POLICY_REVISION.noticed.long}
 
 ### 1. 개인정보 처리방침의 의의
-${BUSINESS_INFO.companyName}는 이용자의 개인정보를 중요시하며, "정보통신망 이용촉진 및 정보보호 등에 관한 법률", "개인정보 보호법" 등 관련 법령을 준수하고 있습니다.
+디토(ditto)를 운영하는 회사(이하 "회사")는 이용자의 개인정보를 중요시하며, "정보통신망 이용촉진 및 정보보호 등에 관한 법률", "개인정보 보호법" 등 관련 법령을 준수하고 있습니다.
 회사는 개인정보처리방침을 통하여 이용자가 제공하는 개인정보가 어떠한 용도와 방식으로 이용되고 있으며, 개인정보보호를 위해 어떠한 조치가 취해지고 있는지 알려드립니다.
 
 ### 2. 수집하는 개인정보의 항목 및 수집 방법
@@ -345,12 +343,11 @@ Google Analytics 로는 화면 이용 기록·체류 시간·기기 정보와 �
 `;
 
 const locationTermsSource = `
-# 위치기반서비스 이용약관 (선택)
 **※ 위치기반서비스를 제공하는 경우에만 필요합니다.**
 **시행일자**: ${POLICY_EFFECTIVE_DATE.long}
 
 ### 제1조 (목적)
-본 약관은 ${BUSINESS_INFO.companyName}가 제공하는 위치기반서비스와 관련하여 회사와 이용자 간의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.
+본 약관은 디토(ditto)를 운영하는 회사(이하 "회사")가 제공하는 위치기반서비스와 관련하여 회사와 이용자 간의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.
 
 ### 제2조 (이용약관의 효력 및 변경)
 1. 본 약관은 서비스를 신청한 고객 또는 개인위치정보주체가 본 약관에 동의하고 회사가 정한 절차에 따라 서비스의 이용자로 등록함으로써 효력이 발생합니다.

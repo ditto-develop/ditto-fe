@@ -29,8 +29,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Ditto",
-  description: "Ditto Description",
+  title: "ditto",
+  description: "ditto Description",
   icons: {
     icon: "/assets/app/icon.svg",
     apple: "/assets/app/icon.svg",

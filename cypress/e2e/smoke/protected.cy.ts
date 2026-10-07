@@ -8,7 +8,7 @@ describe("protected routes", () => {
   it("renders /home", () => {
     cy.visit("/home");
 
-    cy.get('img[alt="Ditto"]', { timeout: 6000 }).should("be.visible");
+    cy.get('img[alt="ditto"]', { timeout: 6000 }).should("be.visible");
     cy.contains("홈").should("be.visible");
   });
 

@@ -189,10 +189,10 @@ export function visitScreen(path: string, options: VisitScreenOptions = {}) {
 /**
  * 비로그인 첫 화면은 스플래시가 3초간 덮는다. 스플래시는 오버레이라 아래 화면이
  * 이미 마운트돼 있어 `should('be.visible')` 만으로는 걷혔는지 알 수 없다.
- * 스플래시의 로고(alt="Ditto")가 사라질 때까지 기다린다.
+ * 스플래시의 로고(alt="ditto")가 사라질 때까지 기다린다.
  */
 export function waitForSplashToClear() {
-  cy.get('img[alt="Ditto"]', { timeout: 10000 }).should("not.exist");
+  cy.get('img[alt="ditto"]', { timeout: 10000 }).should("not.exist");
 }
 
 /** 화면이 다 그려질 때까지 기다린 뒤 찍는다. */

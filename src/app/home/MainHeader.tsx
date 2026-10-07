@@ -52,7 +52,7 @@ export function MainHeader(){
             <LogoBox>
                 <Logo
                     src="/assets/logo/ditto.svg"
-                    alt="Ditto"
+                    alt="ditto"
                 />
             </LogoBox>
 
