@@ -16,7 +16,7 @@ const TAP_COUNT = 5;
 /** 탭 사이가 이보다 벌어지면 처음부터 다시 센다. */
 const TAP_WINDOW_MS = 1500;
 
-/** BE 가 값이 틀리거나 기능이 꺼져 있을 때 주는 코드(INVALID_REVIEW_LOGIN). */
+/** BE 가 값이 틀리거나 기능이 꺼져 있을 때 주는 코드(INVALID_REVIEW_LOGIN, BE ADR 0041). */
 const INVALID_REVIEW_LOGIN = "1005";
 
 /**
@@ -58,6 +58,9 @@ const SubmitButton = styled(Button)`
  *
  * 리뷰어는 카카오·애플 인증을 대신 통과할 수 없어서, BE 에 설정된 ID·비밀번호로 심사 계정에
  * 들어간다. 응답이 네이티브 소셜 로그인과 같으므로 결말 분기도 AppleLogin 과 같다.
+ *
+ * AppleLogin 과 달리 login_* 이벤트를 보내지 않는다 — 리뷰어의 로그인이 실사용자 로그인
+ * 전환율에 섞이지 않게 하려는 의도다.
  */
 export const ReviewLoginSheet = ({ onClose }: { onClose: () => void }) => {
   const router = useRouter();
