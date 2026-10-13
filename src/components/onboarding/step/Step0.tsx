@@ -20,6 +20,7 @@ import {
 import { SplashCarousel } from "@/components/onboarding/Carousel";
 import { AppleLogin } from "@/components/auth/AppleLogin";
 import { KakaoLogin } from "@/components/auth/KakaoLogin";
+import { ReviewLoginSheet, useReviewLoginTrigger } from "@/components/auth/ReviewLogin";
 import type { KakaoLoginResult } from "@/types/kakao";
 import { useRouter } from "next/navigation";
 
@@ -89,6 +90,8 @@ export function Step0({ onLoginComplete }: Step0Props) {
   // as it is now handled by /app/auth/callback/page.tsx.
   // This component is now only responsible for displaying the initial UI.
   const router = useRouter();
+  // App Store 심사용 로그인. 로고 연타로만 열린다 — 심사 노트에 진입 방법을 적어 둔다.
+  const reviewLogin = useReviewLoginTrigger();
 
   return (
     <>
@@ -96,7 +99,12 @@ export function Step0({ onLoginComplete }: Step0Props) {
         <MainContainer>
           <TopConatiner>
             <TopTextContainer>
-              <TopImgContainer src="/assets/logo/ditto.svg" />
+              <TopImgContainer
+                src="/assets/logo/ditto.svg"
+                alt=""
+                data-testid="landing-logo"
+                onClick={reviewLogin.onTap}
+              />
               <Headline1 $weight="semibold">
                 퀴즈로 만나는 새로운 인연
               </Headline1>
@@ -176,6 +184,7 @@ export function Step0({ onLoginComplete }: Step0Props) {
           </LoginFooter>
         </MainContainer>
       </TmpContainer>
+      {reviewLogin.open && <ReviewLoginSheet onClose={reviewLogin.close} />}
     </>
   );
 }

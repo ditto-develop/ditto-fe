@@ -451,6 +451,27 @@ export function loginWithExternalAppleNative(params: {
     });
 }
 
+/**
+ * App Store 심사용 데모 로그인. 리뷰어는 카카오·애플 인증을 대신 통과할 수 없어서
+ * BE 에 설정된 ID·비밀번호로 정해 둔 심사 계정 하나에 들어간다(BE ADR 0041).
+ *
+ * 응답은 네이티브 소셜 로그인과 **완전히 같아서** resolveSocialLogin 을 그대로 쓴다.
+ * 값이 틀리거나 BE 에서 꺼져 있으면 `1005` 다.
+ *
+ * ⚠️ 쿠키 때문에 웹뷰에서 나가야 하고 `credentials: "include"` 가 필요한 이유는
+ * loginWithExternalKakaoNative 와 같다.
+ */
+export function loginWithExternalReviewAccount(params: {
+    loginId: string;
+    password: string;
+}): Promise<NativeSocialLoginResult> {
+    return externalApiFetch<NativeSocialLoginResult>("/api/v1/users/review-login", {
+        method: "POST",
+        body: { loginId: params.loginId, password: params.password },
+        credentials: "include",
+    });
+}
+
 export async function getExternalMatchCandidates(): Promise<GetMatchCandidatesResponse> {
     const data = await externalApiFetch<ExternalMatchCandidateList>("/api/v1/matches/1on1");
     const quizSetId = toId(data.quizSetId) || getStoredQuizSetId();
