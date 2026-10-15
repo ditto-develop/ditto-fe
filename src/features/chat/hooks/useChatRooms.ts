@@ -9,6 +9,7 @@ import { setChatUnreadFromRooms } from "@/features/chat/lib/chatUnreadStore";
 import { deriveRoomState } from "@/features/chat/lib/roomState";
 import type { ChatMessage, ChatRoom, ChatRoomWithCounterpart } from "@/features/chat/model/types";
 import { getMyMemberId } from "@/shared/lib/auth";
+import { PUSH_RECEIVED_EVENT } from "@/shared/lib/native/pushNotifications";
 
 type UseChatRoomsResult = {
   rooms: ChatRoomWithCounterpart[];
@@ -83,21 +84,31 @@ export function useChatRooms(): UseChatRoomsResult {
    *
    * `visibilitychange` 는 앱 전환·화면 복귀를, `pageshow` 는 bfcache 복원을 각각 잡는다.
    * 둘 다 같은 복귀에서 함께 뜰 수 있지만 재조회가 멱등이라 문제되지 않는다.
+   *
+   * 포그라운드 푸시 때도 다시 읽는다. 재매칭 대기방은 성사 후 서버 스케줄러(1분 주기)가
+   * 만들어서, 성사 직후 들어온 목록에는 아직 없고 화면에 머무는 동안에는 위 복귀 이벤트가
+   * 안 뜬다. 서버는 방을 만든 뒤에 REMATCH_MATCHED 푸시를 보내므로 그때 읽으면 방이 있다.
    */
   useEffect(() => {
     const refreshIfVisible = () => {
       if (document.visibilityState !== "visible") return;
       void load();
     };
+    const refreshOnPush = () => {
+      void load();
+    };
 
     document.addEventListener("visibilitychange", refreshIfVisible);
     window.addEventListener("pageshow", refreshIfVisible);
     window.addEventListener("focus", refreshIfVisible);
+    // 웹에서는 발생하지 않는다(푸시 진입점 전체가 네이티브로 막혀 있다).
+    window.addEventListener(PUSH_RECEIVED_EVENT, refreshOnPush);
 
     return () => {
       document.removeEventListener("visibilitychange", refreshIfVisible);
       window.removeEventListener("pageshow", refreshIfVisible);
       window.removeEventListener("focus", refreshIfVisible);
+      window.removeEventListener(PUSH_RECEIVED_EVENT, refreshOnPush);
     };
   }, [load]);
 
