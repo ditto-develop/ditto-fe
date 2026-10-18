@@ -140,7 +140,7 @@ describe("settings", () => {
     cy.visit("/settings");
     cy.window().then((win) => cy.stub(win, "open").as("openDocument"));
     cy.contains("공지사항").click();
-    cy.get("@openDocument").should("have.been.calledWith", "https://app.notion.com/p/3c712870078f809e8d5cfa5809bd18bf?source=copy_link");
+    cy.get("@openDocument").should("have.been.calledWith", "https://absorbed-platypus-f50.notion.site/3fc6d9645e8b8089b7a2dc0ba9121ae8?source=copy_link");
     cy.contains("자주 묻는 질문").click();
     cy.get("@openDocument").should("have.been.calledWith", "https://app.notion.com/p/FAQ-89012870078f820a905901157d1450a8?source=copy_link");
     cy.contains("button", "가이드").click();
