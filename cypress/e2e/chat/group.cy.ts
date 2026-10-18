@@ -26,8 +26,10 @@ describe("group chat room", () => {
     cy.contains("주말 취미 퀴즈", { timeout: 8000 }).should("be.visible");
 
     // 메시지는 1:1과 같은 커서 페이징 응답을 그대로 쓴다.
-    cy.contains("다들 안녕하세요!").should("be.visible");
-    cy.contains("반가워요! 이번 주말 시간 어떠세요?").should("be.visible");
+    // 그려졌는지만 본다. 픽스처의 최신 메시지는 투표 시스템 메시지라 이 둘은 그 위에 있고,
+    // 투표 배너가 먼저 붙으면 화면 위로 밀려나는 게 정상이다(아래 "surfaces the meeting vote banner" 주석 참고).
+    cy.contains("다들 안녕하세요!").should("exist");
+    cy.contains("반가워요! 이번 주말 시간 어떠세요?").should("exist");
   });
 
   // 투표 자체의 플로우는 group-vote.cy.ts가 다룬다.
@@ -94,7 +96,9 @@ describe("group chat room", () => {
     function openMemberList() {
       cy.visit("/chat/group/3");
       cy.wait("@getChatRooms");
-      cy.contains("다들 안녕하세요!", { timeout: 8000 }).should("be.visible");
+      // 방이 그려졌는지만 기다린다. 이 메시지는 투표 배너가 먼저 붙으면 화면 위로 밀려나므로
+      // 보이는지를 따지면 배너와 메시지의 도착 순서에 따라 실패한다(위 투표 배너 테스트 주석 참고).
+      cy.contains("다들 안녕하세요!", { timeout: 8000 }).should("exist");
 
       cy.get('img[alt="더보기"]').click();
       cy.contains("멤버 목록").click();
