@@ -3,43 +3,54 @@
 import { useRef } from "react";
 import styled from "styled-components";
 
-import { REPORT_EVIDENCE_MAX_COUNT } from "@/features/report/model/reportReasons";
-import type { ReportEvidence } from "@/features/report/model/types";
-import { Icon, Tooltip } from "@/shared/ui";
+import { Icon } from "@/shared/ui/Icon/Icon";
+import { Tooltip } from "@/shared/ui/Tooltip/Tooltip";
 
-interface EvidenceAttachFieldProps {
-  evidence: ReportEvidence[];
+interface ImageAttachFieldProps {
+  /** 필드 제목. 예: "증거 첨부 (선택)" */
+  label: string;
+  /** 첨부 버튼의 접근성 이름. 예: "증거 이미지 첨부" */
+  addButtonLabel: string;
+  /** 썸네일의 대체 텍스트. 예: "첨부한 증거" */
+  thumbnailAlt: string;
+  images: { id: string; previewUrl: string }[];
+  maxCount: number;
   onAdd: (files: FileList) => void;
   onRemove: (id: string) => void;
-  /** 첨부가 하나도 없을 때만 노출되는 안내 툴팁. */
-  tooltipVisible: boolean;
-  onDismissTooltip: () => void;
+  /** 첨부가 하나도 없을 때만 노출되는 안내 툴팁. 없으면 그리지 않는다. */
+  tooltip?: { message: string; visible: boolean; onDismiss: () => void };
 }
 
-/** Figma 7.1 [2444:30837] — 증거 첨부(선택). 최대 3장, 장당 5MB. */
-export function EvidenceAttachField({
-  evidence,
+/**
+ * 이미지 첨부(선택) — 카메라 버튼 + 썸네일 줄. Figma 7.1 신고/차단 증거 첨부 [2444:30837] 모양이다.
+ * 개수·크기 제한은 호출부(`useImageAttachments`)가 지킨다. 이 컴포넌트는 그리기만 한다.
+ */
+export function ImageAttachField({
+  label,
+  addButtonLabel,
+  thumbnailAlt,
+  images,
+  maxCount,
   onAdd,
   onRemove,
-  tooltipVisible,
-  onDismissTooltip,
-}: EvidenceAttachFieldProps) {
+  tooltip,
+}: ImageAttachFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const full = evidence.length >= REPORT_EVIDENCE_MAX_COUNT;
+  const full = images.length >= maxCount;
 
   return (
     <Field>
-      <FieldLabel>증거 첨부 (선택)</FieldLabel>
+      <FieldLabel>{label}</FieldLabel>
       <Row>
         <AddButton
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={full}
-          aria-label="증거 이미지 첨부"
+          aria-label={addButtonLabel}
         >
           <CameraIcon name="action.camera" size={32} />
           <Counter>
-            {evidence.length}/{REPORT_EVIDENCE_MAX_COUNT}
+            {images.length}/{maxCount}
           </Counter>
         </AddButton>
 
@@ -55,9 +66,9 @@ export function EvidenceAttachField({
           }}
         />
 
-        {evidence.map((item) => (
+        {images.map((item) => (
           <Thumbnail key={item.id}>
-            <ThumbnailImage src={item.previewUrl} alt="첨부한 증거" />
+            <ThumbnailImage src={item.previewUrl} alt={thumbnailAlt} />
             <RemoveButton
               type="button"
               onClick={() => onRemove(item.id)}
@@ -68,8 +79,8 @@ export function EvidenceAttachField({
           </Thumbnail>
         ))}
 
-        {tooltipVisible && evidence.length === 0 && (
-          <Tooltip message="스크린샷을 첨부해 주세요." onClose={onDismissTooltip} />
+        {tooltip?.visible && images.length === 0 && (
+          <Tooltip message={tooltip.message} onClose={tooltip.onDismiss} />
         )}
       </Row>
     </Field>

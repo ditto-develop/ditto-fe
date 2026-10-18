@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { createUserReport, uploadReportEvidence } from "@/features/report/api/reportApi";
 import {
@@ -17,6 +17,7 @@ import type {
 } from "@/features/report/model/types";
 import { API_ERROR_CODE, getApiErrorCode } from "@/shared/lib/api/apiError";
 import { useToast } from "@/context/ToastContext";
+import { useImageAttachments } from "@/shared/hooks/useImageAttachments";
 
 /** Figma 7.1 항목 미 입력 시 [2456:32028] + BE 에러 코드(PR #97) 문구. */
 const MESSAGE = {
@@ -75,19 +76,17 @@ export function useReportForm(
   const { showToast } = useToast();
   const [reasons, setReasons] = useState<ReportReason[]>([]);
   const [detail, setDetail] = useState("");
-  const [evidence, setEvidence] = useState<ReportEvidence[]>([]);
   const [submitting, setSubmitting] = useState(false);
-
-  // 언마운트 시 objectURL 해제. evidence를 의존성에 넣으면 파일을 지울 때마다
-  // 살아있는 URL까지 revoke되므로 ref로 최신 목록만 들고 있는다.
-  const evidenceRef = useRef<ReportEvidence[]>([]);
-  evidenceRef.current = evidence;
-  useEffect(
-    () => () => {
-      evidenceRef.current.forEach((item) => URL.revokeObjectURL(item.previewUrl));
-    },
-    [],
-  );
+  const {
+    attachments: evidence,
+    addAttachments: addEvidence,
+    removeAttachment: removeEvidence,
+  } = useImageAttachments({
+    maxCount: REPORT_EVIDENCE_MAX_COUNT,
+    maxSizeBytes: REPORT_EVIDENCE_MAX_SIZE_BYTES,
+    tooLargeMessage: MESSAGE.fileTooLarge,
+    tooManyMessage: MESSAGE.tooManyImages,
+  });
 
   const detailRequired = useMemo(
     () =>
@@ -99,44 +98,6 @@ export function useReportForm(
     setReasons((previous) =>
       previous.includes(reason) ? previous.filter((item) => item !== reason) : [...previous, reason],
     );
-  }, []);
-
-  const addEvidence = useCallback(
-    (files: FileList | File[]) => {
-      const incoming = Array.from(files);
-      if (incoming.length === 0) return;
-
-      if (incoming.some((file) => file.size > REPORT_EVIDENCE_MAX_SIZE_BYTES)) {
-        showToast(MESSAGE.fileTooLarge, "error");
-      }
-
-      const accepted = incoming.filter((file) => file.size <= REPORT_EVIDENCE_MAX_SIZE_BYTES);
-      if (accepted.length === 0) return;
-
-      setEvidence((previous) => {
-        const room = REPORT_EVIDENCE_MAX_COUNT - previous.length;
-        if (room <= 0) {
-          showToast(MESSAGE.tooManyImages, "error");
-          return previous;
-        }
-
-        const added = accepted.slice(0, room).map((file, index) => ({
-          id: `${Date.now()}-${index}-${file.name}`,
-          file,
-          previewUrl: URL.createObjectURL(file),
-        }));
-        return [...previous, ...added];
-      });
-    },
-    [showToast],
-  );
-
-  const removeEvidence = useCallback((id: string) => {
-    setEvidence((previous) => {
-      const target = previous.find((item) => item.id === id);
-      if (target) URL.revokeObjectURL(target.previewUrl);
-      return previous.filter((item) => item.id !== id);
-    });
   }, []);
 
   const changeDetail = useCallback((value: string) => {

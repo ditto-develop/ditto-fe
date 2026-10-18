@@ -5,12 +5,11 @@ import { useState } from "react";
 import styled from "styled-components";
 
 import type { useReportForm } from "@/features/report/hooks/useReportForm";
-import { REPORT_REASONS } from "@/features/report/model/reportReasons";
+import { REPORT_EVIDENCE_MAX_COUNT, REPORT_REASONS } from "@/features/report/model/reportReasons";
 import type { ReportTarget } from "@/features/report/model/types";
-import { EvidenceAttachField } from "@/features/report/ui/EvidenceAttachField";
 import { ReportDetailField } from "@/features/report/ui/ReportDetailField";
 import { ReportReasonCard } from "@/features/report/ui/ReportReasonCard";
-import { Avatar, Button, TopNavigation } from "@/shared/ui";
+import { Avatar, Button, ImageAttachField, TopNavigation } from "@/shared/ui";
 
 interface ReportFormViewProps {
   target: ReportTarget | null;
@@ -76,12 +75,20 @@ export function ReportFormView({ target, form, onCancel, onSubmit }: ReportFormV
             onFocusChange={setDetailFocused}
           />
 
-          <EvidenceAttachField
-            evidence={form.evidence}
+          {/* Figma 7.1 [2444:30837] — 증거 첨부(선택). 최대 3장, 장당 5MB. */}
+          <ImageAttachField
+            label="증거 첨부 (선택)"
+            addButtonLabel="증거 이미지 첨부"
+            thumbnailAlt="첨부한 증거"
+            images={form.evidence}
+            maxCount={REPORT_EVIDENCE_MAX_COUNT}
             onAdd={form.addEvidence}
             onRemove={form.removeEvidence}
-            tooltipVisible={tooltipVisible}
-            onDismissTooltip={() => setTooltipVisible(false)}
+            tooltip={{
+              message: "스크린샷을 첨부해 주세요.",
+              visible: tooltipVisible,
+              onDismiss: () => setTooltipVisible(false),
+            }}
           />
         </Body>
       </Content>

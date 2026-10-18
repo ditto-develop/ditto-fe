@@ -18,6 +18,7 @@ export { FilterChips } from "./FilterChips/FilterChips";
 export type { FilterChipOption } from "./FilterChips/FilterChips";
 export { FullScreenModal } from "./FullScreenModal/FullScreenModal";
 export { Icon, ICON_PATHS } from "./Icon/Icon";
+export { ImageAttachField } from "./ImageAttachField/ImageAttachField";
 export type { IconName, IconProps } from "./Icon/Icon";
 export { Nav } from "./Nav/Nav";
 export { PullToRefresh } from "./PullToRefresh/PullToRefresh";

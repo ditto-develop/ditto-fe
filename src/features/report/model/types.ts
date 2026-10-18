@@ -1,3 +1,10 @@
+import type { ImageAttachment } from "@/shared/hooks/useImageAttachments";
+import type {
+  PresignedUpload,
+  PresignedUploadFileRequest,
+  PresignedUploadsResponse,
+} from "@/shared/lib/api/presignedUpload";
+
 /** BE 계약의 reason code (PR #97). */
 export type ReportReason =
   | "inappropriate-behavior"
@@ -18,28 +25,15 @@ export type ReportReasonOption = {
   detailRequired?: boolean;
 };
 
-/** 증거 첨부 슬롯. presigned URL 업로드 전까지 로컬 objectURL로 미리보기를 유지한다. */
-export type ReportEvidence = {
-  id: string;
-  file: File;
-  previewUrl: string;
-};
+/** 증거 첨부 슬롯. */
+export type ReportEvidence = ImageAttachment;
 
-/** POST /api/v1/user-reports/image-upload-urls */
-export type ImageUploadFileRequest = {
-  contentType: string;
-  /** byte 단위. 파일당 최대 5 MiB. */
-  contentLength: number;
-};
+/** POST /api/v1/user-reports/image-upload-urls — 파일당 최대 5 MiB. */
+export type ImageUploadFileRequest = PresignedUploadFileRequest;
 
-export type ImageUploadUrl = {
-  objectKey: string;
-  uploadUrl: string;
-};
+export type ImageUploadUrl = PresignedUpload;
 
-export type ImageUploadUrlsResponse = {
-  uploads: ImageUploadUrl[];
-};
+export type ImageUploadUrlsResponse = PresignedUploadsResponse;
 
 /** POST /api/v1/user-reports */
 export type CreateUserReportRequest = {

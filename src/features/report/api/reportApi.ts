@@ -7,6 +7,7 @@ import type {
 } from "@/features/report/model/types";
 import { getUserProfile } from "@/features/profile/api/profileApi";
 import { externalApiFetch } from "@/shared/lib/api/externalClient";
+import { putToPresignedUrl, uploadViaPresignedUrls } from "@/shared/lib/api/presignedUpload";
 
 /**
  * 신고 대상의 표시용 정보(닉네임/프로필 이미지).
@@ -31,21 +32,9 @@ export function issueReportImageUploadUrls(
   });
 }
 
-/**
- * 2단계: presigned URL에 원본 파일을 직접 PUT 한다.
- * Authorization / X-API-Key는 붙이지 않으며, Content-Type은 발급 요청과 같아야 한다.
- * URL 유효시간은 10분.
- */
-export async function uploadReportImage(uploadUrl: string, file: File): Promise<void> {
-  const response = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type },
-    body: file,
-  });
-
-  if (!response.ok) {
-    throw new Error(`증거 이미지 업로드 실패 (${response.status})`);
-  }
+/** 2단계: presigned URL에 원본 파일을 직접 PUT 한다(`putToPresignedUrl`). */
+export function uploadReportImage(uploadUrl: string, file: File): Promise<void> {
+  return putToPresignedUrl(uploadUrl, file);
 }
 
 /** 3단계: 신고 접수. imageKeys에는 업로드가 끝난 objectKey만 넣는다. */
@@ -58,21 +47,7 @@ export function createUserReport(
   });
 }
 
-/**
- * 발급 → PUT → objectKey 수집을 한 번에 처리한다.
- * 한 장이라도 실패하면 전체를 실패로 본다. 부분 업로드 상태로 접수하면
- * 사용자가 붙인 증거가 조용히 누락되고, BE도 6005로 거절한다.
- */
-export async function uploadReportEvidence(files: File[]): Promise<string[]> {
-  if (files.length === 0) return [];
-
-  const { uploads } = await issueReportImageUploadUrls(
-    files.map((file) => ({ contentType: file.type, contentLength: file.size })),
-  );
-
-  await Promise.all(
-    uploads.map((upload, index) => uploadReportImage(upload.uploadUrl, files[index])),
-  );
-
-  return uploads.map((upload) => upload.objectKey);
+/** 발급 → PUT → objectKey 수집. 한 장이라도 실패하면 전체를 실패로 본다(`uploadViaPresignedUrls`). */
+export function uploadReportEvidence(files: File[]): Promise<string[]> {
+  return uploadViaPresignedUrls(files, issueReportImageUploadUrls);
 }
