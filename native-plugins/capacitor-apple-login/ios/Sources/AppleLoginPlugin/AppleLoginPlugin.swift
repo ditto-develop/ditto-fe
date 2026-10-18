@@ -119,9 +119,8 @@ private final class AppleLoginSession: NSObject,
             return
         }
 
-        // 서버는 인가 코드를 교환하지 않으므로 **보내지 않는다**(BE 위키 Frontend-Apple-Login-Guide §2).
-        // 그래도 여기서 꺼내 두는 이유: 애플은 계정 삭제 시 토큰 폐기(`/auth/revoke`)를 요구하는데
-        // 그때 필요한 값이 이것뿐이라, 정책이 바뀌면 JS 한 줄만 고쳐 실어 보낼 수 있게 남겨 둔다.
+        // 애플은 계정 삭제 시 토큰 폐기(`/auth/revoke`)를 요구하고, 그때 필요한 값이 이것뿐이다.
+        // JS 가 로그인 요청에 실어 보내면 서버가 애플 refresh token 으로 바꿔 둔다(BE ADR 0042).
         let authorizationCode = credential.authorizationCode
             .flatMap { String(data: $0, encoding: .utf8) }
 

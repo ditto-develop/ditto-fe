@@ -51,8 +51,8 @@ describe("loginWithExternalKakaoNative", () => {
 /**
  * 계약 정본은 BE 위키 `Frontend-Apple-Login-Guide` §1 이다.
  *
- * FE 가 먼저 배선해 두면서 가정했던 이름 셋이 실제와 달랐다 — `nonce`→`rawNonce`,
- * `fullName`→`name`, 그리고 `authorizationCode` 는 **서버가 쓰지 않는다.**
+ * FE 가 먼저 배선해 두면서 가정했던 이름 둘이 실제와 달랐다 — `nonce`→`rawNonce`,
+ * `fullName`→`name`. `authorizationCode` 는 탈퇴 때 애플 토큰 폐기용으로 나중에 더해졌다(BE ADR 0042).
  * 이름 하나만 어긋나도 서버는 값을 못 읽고 조용히 검증을 건너뛰거나 거절하므로 못박아 둔다.
  */
 describe("loginWithExternalAppleNative", () => {
@@ -60,9 +60,10 @@ describe("loginWithExternalAppleNative", () => {
     identityToken: "애플-토큰",
     rawNonce: "원본-논스",
     name: "홍길동",
+    authorizationCode: "인가-코드",
   };
 
-  it("위키가 정한 세 필드를 그대로 보낸다", async () => {
+  it("계약의 네 필드를 그대로 보낸다", async () => {
     externalApiFetch.mockResolvedValue({ signupRequired: false, sanctioned: false });
 
     await loginWithExternalAppleNative(PARAMS);
@@ -72,26 +73,21 @@ describe("loginWithExternalAppleNative", () => {
     expect(options).toMatchObject({ method: "POST", body: PARAMS });
   });
 
-  /**
-   * 서버가 인가 코드 교환을 하지 않는다(위키 §2). 이메일은 identityToken 안에 있고,
-   * 클라이언트가 보낸 값은 서버가 믿을 수 없으므로 둘 다 바디에 실으면 안 된다.
-   */
-  it("authorizationCode·email 은 보내지 않는다", async () => {
+  /** 이메일은 identityToken 안에 있고, 클라이언트가 보낸 값은 서버가 믿을 수 없으므로 바디에 실으면 안 된다. */
+  it("email 은 보내지 않는다", async () => {
     externalApiFetch.mockResolvedValue({ signupRequired: false, sanctioned: false });
 
     await loginWithExternalAppleNative(PARAMS);
 
-    const body = externalApiFetch.mock.calls[0][1].body;
-    expect(body).not.toHaveProperty("authorizationCode");
-    expect(body).not.toHaveProperty("email");
+    expect(externalApiFetch.mock.calls[0][1].body).not.toHaveProperty("email");
   });
 
-  it("이름이 없는 재로그인에서도 필드를 유지한다(null)", async () => {
+  it("이름·인가 코드가 없는 재로그인에서도 필드를 유지한다(null)", async () => {
     externalApiFetch.mockResolvedValue({ signupRequired: false, sanctioned: false });
 
-    await loginWithExternalAppleNative({ ...PARAMS, name: null });
+    await loginWithExternalAppleNative({ ...PARAMS, name: null, authorizationCode: null });
 
-    expect(externalApiFetch.mock.calls[0][1].body).toMatchObject({ name: null });
+    expect(externalApiFetch.mock.calls[0][1].body).toMatchObject({ name: null, authorizationCode: null });
   });
 
   it("refreshToken 쿠키를 받으려면 credentials: 'include' 여야 한다", async () => {

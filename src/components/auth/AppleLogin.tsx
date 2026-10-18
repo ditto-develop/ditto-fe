@@ -158,6 +158,7 @@ export const AppleLogin = () => {
           identityToken: outcome.identityToken,
           rawNonce: outcome.rawNonce,
           name: outcome.name,
+          authorizationCode: outcome.authorizationCode,
         });
         const resolved = resolveSocialLogin(result);
 

@@ -33,14 +33,23 @@ type AppleLoginPlugin = {
         rawNonce: string;
         /** 최초 인가 1회만 값이 있다. 재로그인에서는 null. */
         name?: string | null;
-        /** 서버가 쓰지 않는다. 폐기(revoke) 정책이 생기면 쓰려고 남겨 둔 값. */
+        /**
+         * 탈퇴 때 애플 토큰을 폐기(`auth/revoke`)하는 데 쓴다 — 서버가 로그인 요청에서 받아
+         * 애플 refresh token 으로 바꿔 둔다(BE ADR 0042). 5분 안에 한 번만 쓸 수 있다.
+         */
         authorizationCode?: string | null;
     }>;
 };
 
 export type NativeAppleLoginOutcome =
     /** identityToken 확보. 이제 웹뷰가 우리 JWT 로 교환한다. */
-    | { status: "success"; identityToken: string; rawNonce: string; name: string | null }
+    | {
+          status: "success";
+          identityToken: string;
+          rawNonce: string;
+          name: string | null;
+          authorizationCode: string | null;
+      }
     /** 사용자가 스스로 취소했다. **폴백하지 말 것** — 다른 로그인 창을 띄우면 안 된다. */
     | { status: "cancelled" }
     /** 웹이거나, iOS 가 아니거나, 플래그가 꺼져 있다. */
@@ -99,13 +108,19 @@ export async function loginWithAppleSdk(): Promise<NativeAppleLoginOutcome> {
     if (!isNativeAppleLoginAvailable()) return { status: "unavailable" };
 
     try {
-        const { identityToken, rawNonce, name } = await plugin.login();
+        const { identityToken, rawNonce, name, authorizationCode } = await plugin.login();
 
         if (!identityToken) {
             return { status: "failed", message: "Apple identityToken 이 비어 있습니다." };
         }
 
-        return { status: "success", identityToken, rawNonce, name: name ?? null };
+        return {
+            status: "success",
+            identityToken,
+            rawNonce,
+            name: name ?? null,
+            authorizationCode: authorizationCode ?? null,
+        };
     } catch (err: unknown) {
         const message = toMessage(err);
         if (message.includes(CANCELLED_MESSAGE)) return { status: "cancelled" };

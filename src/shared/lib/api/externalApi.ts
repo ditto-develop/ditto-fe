@@ -420,17 +420,16 @@ export function loginWithExternalKakaoNative(
  * 계약 정본은 BE 위키 `Frontend-Apple-Login-Guide` §1 이다. 응답은 카카오 네이티브와
  * **완전히 같아서** NativeSocialLoginResult 와 결말 분기(resolveSocialLogin)를 그대로 공유한다.
  *
- * 필드가 셋뿐인 이유:
+ * 필드:
  * - `identityToken` (필수) — 애플이 서명한 JWT. **이것만으로 인증이 끝난다.**
  * - `rawNonce` (선택·권장) — 네이티브가 만든 원본. 서버가 해시해 토큰의 nonce 클레임과
  *   대조한다. 안 보내면 그 검증만 건너뛰므로 **재생 공격을 막으려면 보내야 한다.**
  * - `name` (선택) — **최초 인가 1회만** 오고 토큰에는 없다. 놓치면 서버에 이름이 영영
  *   남지 않는다. 50자를 넘으면 `0001`.
  *
- * ⚠️ `authorizationCode` 는 **보내지 않는다.** 서버가 인가 코드 교환을 하지 않는다(위키 §2).
- * 다만 애플은 계정 삭제 시 토큰 폐기(`/auth/revoke`)를 요구하고 그건 인가 코드가 있어야
- * 하므로, 탈퇴 흐름에서 그 요구가 문제되면 BE 와 다시 이야기해야 한다 —
- * 플러그인은 그때를 위해 값을 계속 돌려주고 있다.
+ * - `authorizationCode` (선택) — 인증에는 쓰지 않는다. 서버가 애플 refresh token 으로 바꿔
+ *   두었다가 **앱 안 탈퇴 때 애플 토큰을 폐기**한다(App Store 심사 지침 5.1.1(v), BE ADR 0042).
+ *   교환이 실패해도 로그인은 그대로 진행되고, 보내지 않은 회원은 탈퇴 때 폐기만 건너뛴다.
  *
  * ⚠️ 교환 요청이 웹뷰(JS)에서 나가야 하는 이유는 카카오와 같다 —
  * loginWithExternalKakaoNative 주석 참고.
@@ -439,6 +438,7 @@ export function loginWithExternalAppleNative(params: {
     identityToken: string;
     rawNonce: string;
     name: string | null;
+    authorizationCode: string | null;
 }): Promise<NativeSocialLoginResult> {
     return externalApiFetch<NativeSocialLoginResult>("/api/v1/users/social-login/apple/native", {
         method: "POST",
@@ -446,6 +446,7 @@ export function loginWithExternalAppleNative(params: {
             identityToken: params.identityToken,
             rawNonce: params.rawNonce,
             name: params.name,
+            authorizationCode: params.authorizationCode,
         },
         credentials: "include",
     });

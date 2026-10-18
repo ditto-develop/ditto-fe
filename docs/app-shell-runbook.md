@@ -915,18 +915,23 @@ POST /api/v1/users/social-login/apple/native
 응답은 `/kakao/native` 와 **완전히 같다.** `NativeSocialLoginResult` 와 결말 분기
 (`resolveSocialLogin`)를 그대로 공유한다.
 
-**FE 가 먼저 배선하며 가정했던 이름 셋이 실제와 달랐다** — `nonce`→`rawNonce`,
-`fullName`→`name`, 그리고 `authorizationCode` 는 **서버가 쓰지 않는다**(인가 코드 교환을
-하지 않는다). 회귀 방지: `src/shared/lib/api/externalApi.socialLogin.test.ts`
+**FE 가 먼저 배선하며 가정했던 이름 둘이 실제와 달랐다** — `nonce`→`rawNonce`,
+`fullName`→`name`. 회귀 방지: `src/shared/lib/api/externalApi.socialLogin.test.ts`
 
-### ⚠️ 탈퇴 시 애플 토큰 폐기 — 확인 필요
+### 탈퇴 시 애플 토큰 폐기 — `authorizationCode` 를 함께 보낸다
 
 애플은 Sign in with Apple 을 쓰면서 계정 삭제를 제공하는 앱에
 `POST appleid.apple.com/auth/revoke` 로 토큰 폐기를 요구한다(가이드라인 5.1.1(v) 와 묶여 있다).
-그러려면 인가 코드 교환이 필요한데 **BE 는 하지 않는다**(위키 §2).
 
-플러그인은 그때를 위해 `authorizationCode` 를 계속 돌려주고 있다 — 정책이 문제되면
-JS 한 줄만 고쳐 실어 보낼 수 있다. **탈퇴 흐름을 심사에 넣기 전에 BE 와 확인할 것.**
+BE 가 2026-10-17(#299, ADR 0042)부터 로그인 요청의 선택 필드 `authorizationCode` 를 받아 애플
+refresh token 으로 바꿔 두고, 앱 안 탈퇴가 끝나면 그 토큰을 폐기한다. 플러그인이 원래 값을
+돌려주고 있었으므로 JS 만 바꿔 실어 보낸다 — **네이티브 재빌드가 필요 없다.**
+
+- 교환이 실패해도 로그인은 그대로 진행된다(서버가 경고 로그만 남긴다).
+- 이 변경이 배포되기 전에 마지막으로 로그인한 회원은 서버에 토큰이 없어, 다시 로그인하기 전에
+  탈퇴하면 폐기가 건너뛰어진다.
+- 웹·안드로이드 리다이렉트 로그인은 FE 할 일이 없다. 인가 URL 이 `response_type=code id_token`
+  이라 애플 콜백 폼에 `code` 가 실려 오고, BE 가 직접 읽는다.
 
 ### 알아둘 것 (위키 §3)
 

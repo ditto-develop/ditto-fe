@@ -144,8 +144,8 @@ The app renders our web app (ditto.pics) inside WKWebView and adds: Firebase Clo
    Account Holder/Admin 권한이 필요하다. 9/8 Services ID 등록 때 이미 뭔가 입력돼 있다면 그 URL 이
    실제로 존재하는지부터 본다.
 3. (함께) 앱 내 탈퇴 시 애플 토큰 폐기(TN3194): BE 가 인가 코드를 교환해 refresh token 을 보관하고
-   탈퇴 때 `POST https://appleid.apple.com/auth/revoke` 를 부른다. FE 플러그인은 `authorizationCode`
-   를 이미 돌려주고 있어 JS 한 줄로 실어 보낼 수 있다(런북 §6).
+   탈퇴 때 `POST https://appleid.apple.com/auth/revoke` 를 부른다(BE #299 배포됨). FE 는 네이티브
+   로그인 요청에 `authorizationCode` 를 싣는다 — 웹 번들만 바뀌어 재빌드가 필요 없다(런북 §6).
 
 **심사 영향.** 리뷰어가 이 엔드포인트를 직접 시험하지는 않는다 — 제출을 막는 항목은 아니지만
 애플 정책상 필수이고, 없으면 사용자가 애플 쪽에서 연결을 끊어도 우리 계정이 그대로 남는다.

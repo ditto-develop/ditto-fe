@@ -109,4 +109,5 @@ Frontend-Apple-Login-Guide §2). 그래서 폐기할 refresh token 이 없다.
 ## 4. FE 쪽 후속
 
 - 2번 BE 배포 후 `appleLogin.ts` 에서 `authorizationCode` 를 요청 본문에 싣는다(한 줄).
+  → 반영함(2026-10-18, BE #299 · ADR 0042 배포 뒤).
 - 1번은 FE 변경 없음.

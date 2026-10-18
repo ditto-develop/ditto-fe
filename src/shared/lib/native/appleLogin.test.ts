@@ -25,7 +25,7 @@ const APPLE_RESPONSE = {
   identityToken: "애플-토큰",
   rawNonce: "원본-논스",
   name: "홍길동",
-  // 서버로 보내지 않는 값. 플러그인은 계속 돌려준다(폐기 정책이 생길 때를 위해).
+  // 탈퇴 때 애플 토큰 폐기용. 서버가 로그인 요청에서 받아 애플 refresh token 으로 바꿔 둔다.
   authorizationCode: "인가-코드",
 };
 
@@ -113,6 +113,7 @@ describe("loginWithAppleSdk", () => {
       identityToken: "애플-토큰",
       rawNonce: "원본-논스",
       name: "홍길동",
+      authorizationCode: "인가-코드",
     });
   });
 
@@ -120,7 +121,7 @@ describe("loginWithAppleSdk", () => {
    * 재로그인에서는 이름이 오지 않는다(최초 1회뿐). undefined 를 그대로 흘리면
    * 요청 바디에서 필드가 사라져 BE 계약과 어긋난다.
    */
-  it("이름이 없으면 null 로 정규화한다 — 재로그인의 정상 경로다", async () => {
+  it("이름·인가 코드가 없으면 null 로 정규화한다 — 재로그인의 정상 경로다", async () => {
     login.mockResolvedValue({ identityToken: "애플-토큰", rawNonce: "원본-논스" });
 
     const { loginWithAppleSdk } = await loadModule();
@@ -130,6 +131,7 @@ describe("loginWithAppleSdk", () => {
       identityToken: "애플-토큰",
       rawNonce: "원본-논스",
       name: null,
+      authorizationCode: null,
     });
   });
 
