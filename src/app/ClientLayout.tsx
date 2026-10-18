@@ -2,6 +2,7 @@
 
 import { Splash } from "@/components/splash/Splash";
 import { useHomeReady } from "@/context/HomeReadyContext";
+import { WebDownloadContainer } from "@/features/download/containers/WebDownloadContainer";
 import { SanctionGate } from "@/features/sanction";
 import { SignupIncompleteGate } from "@/features/auth/ui/SignupIncompleteGate";
 import { MswProvider } from "@/mocks/MswProvider";
@@ -16,6 +17,7 @@ import { API_ERROR_CODE, describeError, hasApiErrorCode } from "@/shared/lib/api
 import { getGtagScriptSrc, useAnalytics } from "@/shared/lib/analytics";
 import { initChunkReloadGuard } from "@/shared/lib/chunkReload";
 import { isBootSplashPath, normalizePathname } from "@/shared/lib/routePath";
+import { shouldShowWebDownload } from "@/shared/lib/webGate";
 import { initAppShell } from "@/shared/lib/native/appShell";
 import {
   clearChatRoomNotifications,
@@ -105,12 +107,17 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
    * 카카오 비즈앱 검수·앱스토어 심사(개인정보처리방침·지원 URL)에 이 URL 을 그대로 제출하는데,
    * 보호 경로면 심사자가 링크를 눌렀을 때 로그인 화면으로 튕겨 내용 자체를 볼 수 없다.
    * 네 화면 모두 정적 텍스트라 API 호출이 없어 비로그인으로 열려도 문제가 없다.
+   *
+   * 웹 다운로드 안내·Android 출시 알림 신청도 같다 — 로그인하지 않은 브라우저 방문자가 보는 화면이고,
+   * 로그인 상태여도 홈으로 되돌리지 않는다.
    */
   const isPublicDocPath =
     path === '/settings/terms' ||
     path === '/settings/privacy' ||
     path === '/settings/location-terms' ||
-    path === '/support';
+    path === '/support' ||
+    path === '/download' ||
+    path === '/download/android';
   const isPublicPath =
     path === "/" ||
     isOAuthFlowPath ||
@@ -129,6 +136,13 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     !isSanctionPath &&
     !isPublicDocPath &&
     path !== '/localogin';
+
+  /**
+   * 브라우저면 이 화면 대신 앱 다운로드 안내를 그린다(`shouldShowWebDownload`). 앱 웹뷰인지는
+   * 브리지로 가리므로 하이드레이션 뒤에만 판정한다. 막힌 동안에는 세션 확인·로그인 리다이렉트를
+   * 돌리지 않는다 — 어차피 볼 수 없는 화면을 위해 서버를 부를 이유가 없다.
+   */
+  const webGated = isHydrated && shouldShowWebDownload(path);
 
   // 만료된 임시 토큰(refresh 없는 access)을 제거하고 로그인 상태를 동기화한다.
   const syncAuthState = useCallback(() => {
@@ -225,7 +239,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   // /home 진입 시 refresh로 세션 유효성 검증 (이미 검증한 세션은 건너뜀)
   useEffect(() => {
-    if (!isHydrated || path !== "/home" || !isLoggedIn) return;
+    if (!isHydrated || path !== "/home" || !isLoggedIn || webGated) return;
     if (sessionVerified.current || sessionVerifyInFlight.current) return;
 
     sessionVerifyInFlight.current = true;
@@ -251,7 +265,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         router.replace("/");
       }
     });
-  }, [isHydrated, path, isLoggedIn, router]);
+  }, [isHydrated, path, isLoggedIn, webGated, router]);
 
   useEffect(() => {
     if (!isHydrated || path !== "/home" || !isLoggedIn) {
@@ -271,7 +285,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   }, [isHydrated]);
 
   useEffect(() => {
-    if (!isHydrated || isAdminPath) return;
+    if (!isHydrated || isAdminPath || webGated) return;
     // isLoggedIn state는 pathname 변경 시 별도 effect에서 동기화되어 이 렌더에서는
     // 아직 stale일 수 있다(예: 회원가입 중 토큰 세팅 후 보호 경로로 첫 진입).
     // stale 값으로 잘못 리다이렉트하지 않도록 세션을 즉시 재계산해서 사용한다.
@@ -389,6 +403,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     isPublicPath,
     isHomeRedirectCandidate,
     isAdminPath,
+    webGated,
     path,
     router,
   ]);
@@ -396,6 +411,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   // showSplash를 state 없이 순수 파생값으로 계산
   const showSplash = (() => {
     if (isAdminPath) return false;                  // 관리자 경로: 스플래시 없음
+    if (webGated) return false;                     // 브라우저: 다운로드 안내가 바로 뜬다
     /**
      * 스플래시가 받는 화면은 **루트(브랜드)와 홈(첫 진입) 둘뿐이다**(`isBootSplashPath`).
      * 나머지는 전부 여기서 끊는다:
@@ -487,11 +503,19 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       {/* gtag.js. 측정 ID 가 없으면 아예 붙이지 않는다. 로드에 실패해도(광고 차단 등)
           계측 호출은 전부 no-op 이라 앱 동작에는 영향이 없다. */}
       {gtagScriptSrc && <Script src={gtagScriptSrc} strategy="afterInteractive" />}
-      <SanctionGate />
-      <SignupIncompleteGate />
-      {/* children은 항상 마운트 — Splash가 오버레이로 덮음 */}
-      <MswProvider>{children}</MswProvider>
-      {showSplash && <Splash />}
+      {webGated ? (
+        // 브라우저: 주소와 상관없이 앱 다운로드 안내만 그린다. 주소는 그대로 둔다 — 앱 링크를
+        // 브라우저로 연 사람이 앱을 깔고 나서 같은 링크를 다시 열 수 있게.
+        <WebDownloadContainer />
+      ) : (
+        <>
+          <SanctionGate />
+          <SignupIncompleteGate />
+          {/* children은 항상 마운트 — Splash가 오버레이로 덮음 */}
+          <MswProvider>{children}</MswProvider>
+          {showSplash && <Splash />}
+        </>
+      )}
     </>
   );
 }

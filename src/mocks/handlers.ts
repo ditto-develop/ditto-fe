@@ -343,6 +343,9 @@ export const handlers = [
   }),
   http.post(apiPath("/feedbacks"), () => HttpResponse.json(success({ id: 51 }))),
 
+  // Android 출시 알림 신청(BE 요청 명세 docs/be-request-launch-notifications.md). 같은 이메일이어도 성공이다.
+  http.post(apiPath("/launch-notification-requests"), () => HttpResponse.json(success(null))),
+
   http.get(apiPath("/users/me/sanction"), () => HttpResponse.json(success(mySanction))),
 
   http.post(apiPath("/users/[^/]+/leave"), () => HttpResponse.json(success(user))),
