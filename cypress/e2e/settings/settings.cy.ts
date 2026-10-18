@@ -142,7 +142,7 @@ describe("settings", () => {
     cy.contains("공지사항").click();
     cy.get("@openDocument").should("have.been.calledWith", "https://absorbed-platypus-f50.notion.site/3fc6d9645e8b8089b7a2dc0ba9121ae8?source=copy_link");
     cy.contains("자주 묻는 질문").click();
-    cy.get("@openDocument").should("have.been.calledWith", "https://app.notion.com/p/FAQ-89012870078f820a905901157d1450a8?source=copy_link");
+    cy.get("@openDocument").should("have.been.calledWith", "https://absorbed-platypus-f50.notion.site/FAQ-v1-0-3fd6d9645e8b80f98b28d67be9b40272?source=copy_link");
     cy.contains("button", "가이드").click();
     cy.get("@openDocument").should("have.been.calledWith", "https://absorbed-platypus-f50.notion.site/ditto-3e86d9645e8b8071be49c47791bfed55?pvs=143");
   });
