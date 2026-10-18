@@ -56,9 +56,12 @@ export const API_ERROR_CODE = {
   REPORT_DUPLICATE: "6002",
   /** reason=etc인데 detail 누락 */
   REPORT_DETAIL_REQUIRED: "6003",
-  /** 이미지 3장 초과 */
+  /** 이미지 3장 초과. 번호는 신고 때 만들었지만 의견 스크린샷도 같이 쓴다(BE ATTACHMENT_IMAGE_LIMIT_EXCEEDED). */
   REPORT_TOO_MANY_IMAGES: "6004",
-  /** objectKey가 잘못되었거나 업로드 미완료 */
+  /**
+   * objectKey가 잘못되었거나 업로드 미완료. 의견 스크린샷도 같이 쓴다(BE INVALID_ATTACHMENT_IMAGE_KEY).
+   * 발급받지 않은 키·다른 회원의 키·다른 용도(신고↔의견)의 키·이미 접수에 쓴 키도 여기다.
+   */
   REPORT_INVALID_IMAGE_KEY: "6005",
   /** 이용 정지된 계정 */
   SANCTION_SUSPENDED: "6006",

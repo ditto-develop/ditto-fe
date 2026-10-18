@@ -328,6 +328,21 @@ export const handlers = [
   http.put("*/mock-s3-upload/*", () => new HttpResponse(null, { status: 200 })),
   http.post(apiPath("/user-reports"), () => HttpResponse.json(success({ id: 321 }))),
 
+  // 의견 보내기(BE #313): 신고와 같은 presigned 방식. S3 PUT 은 위 /mock-s3-upload 핸들러가 받는다.
+  http.post(apiPath("/feedbacks/image-upload-urls"), async ({ request }) => {
+    const body = (await request.json().catch(() => null)) as { files?: unknown[] } | null;
+    const files = Array.isArray(body?.files) ? body.files : [];
+    return HttpResponse.json(
+      success({
+        uploads: files.map((_, index) => ({
+          objectKey: `pending/feedbacks/1/mock-object-key-${index}`,
+          uploadUrl: `${new URL(request.url).origin}/mock-s3-upload/${index}`,
+        })),
+      }),
+    );
+  }),
+  http.post(apiPath("/feedbacks"), () => HttpResponse.json(success({ id: 51 }))),
+
   http.get(apiPath("/users/me/sanction"), () => HttpResponse.json(success(mySanction))),
 
   http.post(apiPath("/users/[^/]+/leave"), () => HttpResponse.json(success(user))),
