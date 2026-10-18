@@ -9,6 +9,7 @@ import {
 import { externalApiFetch } from "@/shared/lib/api/externalClient";
 import { INTRO_NOTE_FIELDS } from "@/features/profile/model/introNotes";
 import type { AnswerMatchSummary, MyStats, RatingSummary } from "@/features/profile/model/types";
+import { toAvatarImageUrl } from "@/shared/lib/avatar";
 
 // --- BE DTO ---
 
@@ -68,7 +69,8 @@ function toPublicProfile(raw: ExternalPublicProfile): PublicProfileDto {
         gender: raw.gender ?? "",
         age: raw.age ?? 0,
         introduction: raw.introduction ?? undefined,
-        profileImageUrl: raw.profileImageUrl ?? undefined,
+        // 옛 캐리커쳐 주소는 고른 그림으로 바꿔 내보낸다(avatar.ts).
+        profileImageUrl: toAvatarImageUrl(raw.profileImageUrl ?? undefined),
         location: raw.location ?? undefined,
         occupation: raw.occupation ?? undefined,
         interests: raw.interests ?? [],

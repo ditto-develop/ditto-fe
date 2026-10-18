@@ -21,6 +21,7 @@ import type {
     MatchRequestDto,
     ScoreBreakdownDto,
 } from "@/features/matching/api/matchingApi";
+import { toAvatarImageUrl } from "@/shared/lib/avatar";
 
 type ExternalId = string | number;
 
@@ -154,7 +155,8 @@ const toMatchCandidate = (candidate: ExternalMatchCandidate): MatchCandidateDto 
     age: candidate.age,
     introduction: candidate.introduction ?? null,
     location: candidate.location,
-    profileImageUrl: candidate.profileImageUrl ?? null,
+    // 옛 캐리커쳐 주소는 고른 그림으로 바꿔 내보낸다(avatar.ts).
+    profileImageUrl: toAvatarImageUrl(candidate.profileImageUrl ?? null),
     matchRate: candidate.matchRate ?? candidate.scoreBreakdown.quizMatchRate,
     scoreBreakdown: candidate.scoreBreakdown,
 });

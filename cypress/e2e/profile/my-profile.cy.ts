@@ -41,6 +41,20 @@ describe("my profile", () => {
     cy.location("pathname").should("eq", "/profile/intro-note/");
   });
 
+  // 가입이 2026-10-19 까지 옛 그림 세트 주소를 저장했다 — 번호만 같고 그림이 달라 고른 것과 다른 사진이 떴다.
+  it("draws the caricature the member picked even when an old avatar path is stored", () => {
+    cy.fixture("my-profile.json").then((profile) => {
+      cy.intercept("GET", "**/api/v1/users/me/profile", {
+        success: true,
+        data: { ...profile, profileImageUrl: "/onboarding/profileimg/avatar/m3.svg" },
+      }).as("getMyProfileLegacyAvatar");
+    });
+    cy.visit("/profile");
+    cy.wait("@getMyProfileLegacyAvatar");
+
+    cy.get('img[alt="개굴개굴렌"]').should("have.attr", "src", "/assets/avatar/m3.webp");
+  });
+
   // 로딩 문구 한 줄만 띄우면 데이터 도착 순간 레이아웃이 통째로 바뀌어 화면이 튄다.
   it("holds the layout with a skeleton while the profile loads", () => {
     cy.intercept("GET", "**/api/v1/users/me/profile", (req) => {

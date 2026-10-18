@@ -5,6 +5,7 @@ import type {
   ReviewTarget,
   SubmitReviewBody,
 } from "@/features/rating/model/types";
+import { toAvatarImageUrl } from "@/shared/lib/avatar";
 
 const COMMENT_MAX_LENGTH = 50;
 
@@ -69,7 +70,7 @@ function normalizeTarget(target: ReviewTarget): ReviewTarget {
     gender: target.gender ?? null,
     age: target.age ?? null,
     location: target.location ?? null,
-    profileImageUrl: target.profileImageUrl ?? null,
+    profileImageUrl: toAvatarImageUrl(target.profileImageUrl ?? null),
     meetingStatus: target.meetingStatus ?? null,
     rating: target.rating ?? null,
     comment: target.comment ?? null,

@@ -208,7 +208,9 @@ describe("signup flow", () => {
 
     cy.wait("@createUser").its("request.body").should((body) => {
       expect(body.gender, "gender").to.equal("FEMALE");
-      expect(body.caricature, "caricature").to.contain("/f3.svg");
+      // 고르는 화면이 보여 준 그림 주소 그대로 보낸다. 예전에는 옛 그림 세트(/onboarding/profileimg/avatar/f3.svg)를
+      // 보내 프로필에 고른 것과 다른 그림이 떴다.
+      expect(body.caricature, "caricature").to.equal("/assets/avatar/f3.webp");
     });
   });
 

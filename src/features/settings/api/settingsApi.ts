@@ -1,5 +1,6 @@
 import { externalApiFetch } from "@/shared/lib/api/externalClient";
 import type { BlockedUser, NotificationSettings } from "@/features/settings/model/types";
+import { toAvatarImageUrl } from "@/shared/lib/avatar";
 
 /**
  * GET /api/v1/users/me/blocks 원형(BlockedMemberResponse).
@@ -16,7 +17,7 @@ function toBlockedUser(raw: ExternalBlockedMember): BlockedUser {
   return {
     id: String(raw.id),
     nickname: raw.nickname,
-    profileImageUrl: raw.profileImageUrl ?? null,
+    profileImageUrl: toAvatarImageUrl(raw.profileImageUrl ?? null),
     blockedAt: raw.blockedAt,
   };
 }

@@ -21,6 +21,7 @@ import { parseServerDateTime } from "@/shared/lib/serverDateTime";
 import { getNicknameRuleErrors } from "@/shared/lib/nicknameSafety";
 import { LOCATION_LABELS, OCCUPATION_LABELS } from "@/shared/lib/profileLabels";
 import { BottomActionArea, Button, Select, TextField, TopNavigation } from "@/shared/ui";
+import { avatarImageUrl } from "@/shared/lib/avatar";
 
 const MAX_INTEREST_COUNT = 5;
 
@@ -98,7 +99,7 @@ export function EditProfileContainer() {
 
     const nicknameLocked = nicknameQuota.remaining !== null && nicknameQuota.remaining <= 0;
 
-    const avatarUrl = useMemo(() => `/assets/avatar/${profileId}.webp`, [profileId]);
+    const avatarUrl = useMemo(() => avatarImageUrl(profileId), [profileId]);
     const trimmedNickname = nickname.trim();
     const nicknameChanged = Boolean(profile) && trimmedNickname !== profile?.nickname;
     const isValid = interests.length > 0 && trimmedNickname.length > 0 && Boolean(location) && Boolean(occupation);

@@ -44,6 +44,7 @@ import {
   defaultAvatarId,
   toAvatarGender,
 } from "@/components/onboarding/ProfileSelect";
+import { avatarImageUrl } from "@/shared/lib/avatar";
 
 export const interestOptions = [
   { label: "💪 운동", value: "workout" },
@@ -275,7 +276,7 @@ export const Step2Profile = forwardRef<Step2Ref, Step2Props>(({ data, onChange, 
   return (
     <ProfileContainer>
       <ProfileWrapper>
-        <ProfileImg imageUrl={"/assets/avatar/" + profile + ".webp"} />
+        <ProfileImg imageUrl={avatarImageUrl(profile)} />
         <ProfileEdit
           role="button"
           tabIndex={0}

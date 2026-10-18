@@ -14,6 +14,7 @@ import { clearTokens } from "@/shared/lib/auth";
 import { API_ERROR_CODE, describeError, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { useBackClose } from "@/shared/hooks/useBackClose";
 import { calculateAge, toAgeBucket } from "@/shared/lib/age";
+import { avatarImageUrl } from "@/shared/lib/avatar";
 import type { CreateExternalUserBody } from "@/shared/lib/api/externalApi";
 import { INTRO_NOTE_FIELDS } from "@/features/profile/model/introNotes";
 
@@ -305,9 +306,10 @@ export function Tutorial({ initialData }: TutorialProps) {
           location: formData.place ?? "",
           job: formData.job ?? "",
 
-          // 사용자가 선택한 아바타(formData.pic: "m1"/"f4" 등)를 svg 경로로 전송한다.
+          // 사용자가 선택한 아바타(formData.pic: "m1"/"f4" 등)를 Step_2 가 보여 준 그림 주소 그대로 보낸다.
           // 별도 profileImageUrl 필드는 없다 — 이 경로가 프로필 조회의 profileImageUrl로 나간다.
-          caricature: `/onboarding/profileimg/avatar/${formData.pic}.svg`,
+          // 예전에는 옛 그림 세트(/onboarding/profileimg/avatar/*.svg)를 보내 고른 것과 다른 그림이 떴다(avatar.ts).
+          caricature: avatarImageUrl(formData.pic),
 
           // 한 줄 소개. 소개노트 마지막 문항(Q10)의 답변이 그대로 여기로 간다.
           introduction: introduce[LAST_INTRO_NOTE_INDEX]?.trim() || null,
