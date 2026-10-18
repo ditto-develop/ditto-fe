@@ -143,8 +143,7 @@ export const DescriptionGroup = styled.div`
  *
  * BodyContainer 안쪽이라 좌우 패딩은 본문이 준다. 위쪽은 본문 패딩(--space-8)을 되돌려 고정
  * 머리말일 때와 같은 자리(내비게이션 아래 --space-2)에 둔다. 아래 --space-4 는 본문 gap(16px)과
- * 합쳐 진행 카드의 sticky 위쪽 띠(--space-8, Step_3 ProgressSticky)와 같은 높이가 된다 —
- * 띠가 설명 마지막 줄을 덮지 않게 하려는 값이다.
+ * 합쳐 설명과 진행 카드 사이를 --space-8 로 띄운다.
  *
  * 설명만 스크롤하는 화면(프로필 작성, OnboardingLayout `scrollDescription`)도 이 컨테이너로
  * 설명을 감싼다. 고정 HeadContainer 는 아래 패딩이 없어, 같은 여백으로 설명이 제목 아래

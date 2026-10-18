@@ -359,13 +359,16 @@ const QuestionProgressCard: React.FC<QuestionProgressCardProps> = ({
 /**
  * 스크롤해도 진행 카드를 위에 붙여 둔다.
  *
- * 스크롤 컨테이너(OnboardingLayout 의 BodyContainer)는 위쪽 패딩이 --space-8 이고,
- * 브라우저는 sticky 기준선을 그 패딩 안쪽으로 잡는다. 그대로 두면 카드가 패딩만큼 아래에
- * 붙고, 그 위 빈 띠로 지나가는 질문이 비쳐 보인다. 그래서 패딩만큼 위로 올려 붙이고
- * (top 음수), 같은 높이의 여백을 카드 위에 배경색으로 깔아 띠를 가린다.
- * 실측 결과 카드 위치는 고정 전과 같다(컨테이너 패딩 = 여백).
+ * 스크롤 컨테이너(OnboardingLayout 의 BodyContainer · EditIntroNoteContainer 의 Body)는 위쪽
+ * 패딩이 --space-8 이고, 브라우저는 sticky 기준선을 그 패딩 안쪽으로 잡는다. 그대로 두면 카드가
+ * 패딩만큼 아래에 붙고, 그 위 빈 띠로 지나가는 질문이 비쳐 보인다. 그래서 패딩만큼 위로 올려
+ * (top 음수) 카드를 스크롤 영역 맨 위 — 내비게이션 바로 아래 — 에 붙인다.
  *
- * 아래쪽에도 배경 띠(--space-4)를 둔다. 없으면 고정된 카드 바로 밑으로 질문이 붙어 지나가
+ * 예전에는 카드 위에도 같은 높이(--space-8)의 배경 띠를 깔았는데, 고정되면 그 띠가 내비게이션과
+ * 카드 사이 여백으로 보였다(2026-10-18 QA "스크롤하면 progress bar 위에 여백"). 지금은 위쪽 띠가
+ * 없어 고정 전 위치는 그대로이고 고정 후에만 여백이 사라진다.
+ *
+ * 아래쪽에는 배경 띠(--space-4)를 둔다. 없으면 고정된 카드 바로 밑으로 질문이 붙어 지나가
  * 답답해 보였다(2026-09-27 QA "progress bar 하단 여백").
  */
 const ProgressSticky = styled.div`
@@ -373,9 +376,7 @@ const ProgressSticky = styled.div`
   top: calc(-1 * var(--space-8));
   z-index: 1;
   width: 100%;
-  padding-top: var(--space-8);
   padding-bottom: var(--space-4);
-  margin-top: calc(-1 * var(--space-8));
   background-color: var(--color-semantic-background-normal-normal);
 `;
 
