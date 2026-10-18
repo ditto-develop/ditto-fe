@@ -3,6 +3,7 @@ import {
   POLICY_EFFECTIVE_DATE,
   POLICY_REVISION,
   PRIVACY_OFFICER,
+  PRIVACY_POLICY_REVISION,
 } from "@/shared/lib/businessInfo";
 
 type PolicyDocumentData = {
@@ -245,7 +246,7 @@ const termsOfServiceSource = `
 `;
 
 const privacyPolicySource = `
-**시행일자**: ${POLICY_REVISION.effective.long} / **최종 수정일**: ${POLICY_REVISION.noticed.long}
+**시행일자**: ${PRIVACY_POLICY_REVISION.effective.long} / **최종 수정일**: ${PRIVACY_POLICY_REVISION.noticed.long}
 
 ### 1. 개인정보 처리방침의 의의
 디토(ditto)를 운영하는 회사(이하 "회사")는 이용자의 개인정보를 중요시하며, "정보통신망 이용촉진 및 정보보호 등에 관한 법률", "개인정보 보호법" 등 관련 법령을 준수하고 있습니다.
@@ -260,9 +261,12 @@ const privacyPolicySource = `
 - 서비스 이용 기록 / 접속 로그 / IP 주소 / 쿠키 / 접속 기기 정보(OS, 브라우저 종류 등)
 (3) 매칭 및 채팅 과정에서 수집되는 정보
 - 퀴즈 답변 내용 / 채팅 메시지 내용 / 평가 및 신고 내용
+(4) Android 앱 출시 알림을 신청할 때 수집하는 정보(비회원)
+- 필수 정보: 이메일 주소
 
 **2.2 개인정보 수집 방법**
 - 웹사이트 및 모바일 애플리케이션을 통한 회원가입 및 서비스 이용
+- 웹사이트의 Android 앱 출시 알림 신청
 - 소셜 로그인(카카오, 애플)
 - 고객센터를 통한 상담 과정
 
@@ -270,6 +274,7 @@ const privacyPolicySource = `
 **3.1 회원 관리** — 부정 이용 방지, 만 19세 이상 여부 확인, 가입 의사 확인, 분쟁 조정 기록 보존, 불만처리, 고지사항 전달.
 **3.2 서비스 제공** — 퀴즈 제공·답변 처리, 매칭 서비스, 채팅 서비스, 평가 시스템 운영, 신고 처리 및 안전한 환경 조성.
 **3.3 마케팅 및 광고 활용(선택 동의 시)** — 신규 서비스 개발·맞춤 서비스 제공, 이벤트·광고성 정보 제공, 서비스 이용 통계 분석.
+**3.4 Android 앱 출시 안내** — 출시 알림을 신청한 분께 Android 앱 출시 소식을 메일로 안내.
 
 ### 4. 개인정보의 보유 및 이용 기간
 **4.1 원칙** — 수집·이용 목적이 달성되면 지체 없이 파기.
@@ -279,6 +284,7 @@ const privacyPolicySource = `
 - 전자상거래법: 계약·청약철회 기록 5년 / 대금결제·재화공급 기록 5년 / 소비자 불만·분쟁처리 기록 3년
 - 통신비밀보호법: 로그인 기록 3개월
 (3) 신고 및 제재 관련 기록 — 신고 내용·채팅 기록: 법적 분쟁 종료 시까지 / 제재 이력: 계정 복구 또는 영구 차단 시까지.
+(4) Android 앱 출시 알림 신청 정보(이메일 주소) — 신청일로부터 3개월. 기간이 지나면 지체 없이 파기.
 
 ### 5. 개인정보의 제3자 제공
 원칙적으로 제3자에게 제공하지 않음. 예외:
@@ -303,7 +309,7 @@ Google Analytics 로는 화면 이용 기록·체류 시간·기기 정보와 �
 
 ### 8. 이용자 및 법정대리인의 권리와 그 행사방법
 **8.1 개인정보 열람 및 정정** — 언제든지 조회·수정 가능(설정 > 프로필 수정에서 열람·정정).
-**8.2 동의 철회** — 서비스 내 '회원탈퇴' 또는 개인정보 보호책임자에게 이메일로 요청 시 즉시 삭제 등 조치.
+**8.2 동의 철회** — 서비스 내 '회원탈퇴' 또는 개인정보 보호책임자에게 이메일로 요청 시 즉시 삭제 등 조치. Android 앱 출시 알림 신청은 개인정보 보호책임자에게 이메일로 철회를 요청할 수 있습니다.
 **8.3 14세 미만 아동의 개인정보 보호** — 본 서비스는 만 19세 이상만 이용 가능하며 14세 미만 아동의 개인정보는 수집하지 않습니다.
 
 ### 9. 개인정보 자동 수집 장치의 설치·운영 및 그 거부에 관한 사항
@@ -333,13 +339,14 @@ Google Analytics 로는 화면 이용 기록·체류 시간·기기 정보와 �
 - 경찰청 사이버안전국: (국번없이) 182 / cyberbureau.police.go.kr
 
 ### 14. 부칙
-**14.1 시행일** — 이 개인정보 처리방침은 ${POLICY_REVISION.effective.long}부터 시행됩니다.
+**14.1 시행일** — 이 개인정보 처리방침은 ${PRIVACY_POLICY_REVISION.effective.long}부터 시행됩니다.
 **14.2 변경 이력**
 
 | 버전 | 공고일자 | 시행일자 | 변경 내용 |
 | --- | --- | --- | --- |
 | v1.0 | ${POLICY_EFFECTIVE_DATE.dotted} | ${POLICY_EFFECTIVE_DATE.dotted} | 최초 제정 |
 | v1.1 | ${POLICY_REVISION.noticed.dotted} | ${POLICY_REVISION.effective.dotted} | 소셜 로그인 수집 경로(구글 삭제)·채팅 수집 항목(연락처 교환 삭제)·관리적 보호 대책 현행화 |
+| v1.2 | ${PRIVACY_POLICY_REVISION.noticed.dotted} | ${PRIVACY_POLICY_REVISION.effective.dotted} | 비회원 Android 앱 출시 알림 신청(이메일 주소, 보유 기간 3개월) 항목 신설 |
 `;
 
 const locationTermsSource = `

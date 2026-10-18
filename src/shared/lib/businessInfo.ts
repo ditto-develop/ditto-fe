@@ -48,3 +48,15 @@ export const POLICY_REVISION = {
   noticed: { long: "2026년 10월 6일", dotted: "2026.10.06" },
   effective: { long: "2026년 10월 12일", dotted: "2026.10.12" },
 } as const;
+
+/**
+ * 개인정보처리방침만의 개정 v1.2 — 비회원 Android 출시 알림 신청(이메일) 항목 신설.
+ * 이용약관은 바뀌지 않아 `POLICY_REVISION` 을 그대로 쓴다.
+ *
+ * 공고일에 바로 시행한다. 새로 생기는 수집이라 기존 회원의 권리를 바꾸지 않고, 수집을 시작하는
+ * 날부터 방침에 적혀 있어야 하기 때문이다(신청 화면에서도 항목·목적·보유 기간을 따로 고지한다).
+ */
+export const PRIVACY_POLICY_REVISION = {
+  noticed: { long: "2026년 10월 19일", dotted: "2026.10.19" },
+  effective: { long: "2026년 10월 19일", dotted: "2026.10.19" },
+} as const;
