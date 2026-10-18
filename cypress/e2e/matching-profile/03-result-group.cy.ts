@@ -49,7 +49,8 @@ describe("3.1 매칭 결과 - 그룹 매칭 (WF-07)", () => {
   });
 
   describe("그룹 이름", () => {
-    it("그룹 퀴즈셋의 카테고리로 그룹 이름을 짓는다", () => {
+    // 그룹 채팅방 이름(서버 roomName)과 같은 값을 쓰도록 퀴즈셋 title 로 짓는다.
+    it("그룹 퀴즈셋의 제목으로 그룹 이름을 짓는다", () => {
       mockGroupWeek();
       // 그룹 후보의 quizSetId(102)와 같은 GROUP 세트를 이번 주 퀴즈셋에 싣는다.
       cy.fixture("quiz-current.json").then((data) => {
@@ -62,7 +63,13 @@ describe("3.1 매칭 결과 - 그룹 매칭 (WF-07)", () => {
               ...data,
               quizSets: [
                 oneToOne,
-                { ...oneToOne, id: "102", category: "여행, 음식", matchingType: "GROUP" },
+                {
+                  ...oneToOne,
+                  id: "102",
+                  title: "여행, 음식",
+                  category: "쓰이지 않는 카테고리",
+                  matchingType: "GROUP",
+                },
               ],
             },
           },
@@ -72,6 +79,7 @@ describe("3.1 매칭 결과 - 그룹 매칭 (WF-07)", () => {
       openGroupModal();
       cy.contains("같은 여행, 음식 그룹").should("be.visible");
       cy.contains("같은 취미, 취향 그룹").should("not.exist");
+      cy.contains("쓰이지 않는 카테고리").should("not.exist");
     });
   });
 

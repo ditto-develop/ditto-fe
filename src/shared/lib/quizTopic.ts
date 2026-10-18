@@ -11,15 +11,18 @@ export const DEFAULT_QUIZ_TOPIC_LABEL: Record<QuizMatchingType, string> = {
 };
 
 /**
- * 퀴즈 세트의 주제 문구. `category` 가 있으면 그걸 쓰고, 없으면 `title` 로 간다
- * (2026-09-18 요청). 둘 다 비면 기본 문구로 떨어진다.
+ * 퀴즈 세트의 주제 문구. `title` 을 쓴다 — 그룹 채팅방 이름(서버 `roomName`)이 퀴즈셋 `title` 이라
+ * 퀴즈 시트·그룹 이름·채팅방이 같은 이름을 보여 주게 맞췄다(2026-10-19). 9/18 부터 10/19 까지는
+ * `category` 를 먼저 썼다.
+ *
+ * 서버는 두 값을 모두 필수로 두지만, 비어 오면 `category` 로, 그것도 비면 기본 문구로 떨어진다.
  */
 export function toQuizTopicLabel(quizSet: { matchingType: unknown; category?: string; title?: string }): string {
-  const category = quizSet.category?.trim();
-  if (category) return category;
-
   const title = quizSet.title?.trim();
   if (title) return title;
+
+  const category = quizSet.category?.trim();
+  if (category) return category;
 
   const type = String(quizSet.matchingType);
   return type === "GROUP"

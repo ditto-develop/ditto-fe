@@ -100,16 +100,17 @@ describe("quiz navigation", () => {
     cy.contains("그룹 매칭").should("not.exist");
   });
 
-  it("labels each quiz type with the set's category, falling back to its title", () => {
-    // 같은 주에 두 종류가 열린 상태. 1:1 은 category 를, 그룹은 category 가 비어 title 을 쓴다.
+  it("labels each quiz type with the set's title, falling back to its category", () => {
+    // 같은 주에 두 종류가 열린 상태. 1:1 은 title 을, 그룹은 title 이 비어 category 를 쓴다.
+    // title 을 먼저 쓰는 이유: 그룹 채팅방 이름(서버 roomName)이 title 이다.
     cy.fixture("quiz-current.json").then((page) => {
-      const oneToOne = { ...page.quizSets[0], category: "여행 취향", title: "쓰이지 않는 제목" };
+      const oneToOne = { ...page.quizSets[0], title: "여행 취향", category: "쓰이지 않는 카테고리" };
       const group = {
         ...page.quizSets[0],
         id: "102",
         matchingType: "GROUP",
-        category: "",
-        title: "주말을 보내는 방식",
+        title: "",
+        category: "주말을 보내는 방식",
       };
       cy.intercept("GET", "**/api/v1/quiz-sets/current-week", {
         success: true,
@@ -127,7 +128,7 @@ describe("quiz navigation", () => {
     // 하드코딩된 옛 문구가 다시 새어 나오지 않는지 함께 본다.
     cy.contains("성격, 가치관").should("not.exist");
     cy.contains("취미, 취향").should("not.exist");
-    cy.contains("쓰이지 않는 제목").should("not.exist");
+    cy.contains("쓰이지 않는 카테고리").should("not.exist");
   });
 
   function finishOneToOneQuiz() {

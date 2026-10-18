@@ -6,7 +6,7 @@ import { DEFAULT_GROUP_NAME, toGroupName, toQuizTopicLabel } from "@/shared/lib/
 
 /**
  * 그룹 매칭의 그룹 이름("같은 {주제} 그룹"). 주제는 퀴즈 시트와 같은 규칙으로
- * 이번 주 퀴즈셋의 `category`(없으면 `title`)에서 가져온다.
+ * 이번 주 퀴즈셋의 `title`(없으면 `category`)에서 가져온다. 그룹 채팅방 이름과 같은 값이다.
  *
  * 그룹 후보 응답이 주는 `quizSetId` 로 세트를 고르고, 못 찾으면 GROUP 세트로 간다.
  * 둘 다 없거나 조회가 실패하면 기본 문구("같은 취미, 취향 그룹")를 쓴다.

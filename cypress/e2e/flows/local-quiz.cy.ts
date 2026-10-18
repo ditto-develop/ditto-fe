@@ -14,7 +14,8 @@ describe("local quiz test flow", () => {
 
     cy.contains("button", "시작하기").click();
     cy.contains("퀴즈의 종류를 선택하세요", { timeout: 6000 }).should("be.visible");
-    cy.contains("성격, 가치관").click();
+    // 시트의 이름은 퀴즈셋 title 이다(픽스처 101).
+    cy.contains("이번 주 1:1 매칭 퀴즈").click();
 
     cy.location("pathname", { timeout: 6000 }).should("match", /^\/quiz\/current\/?$/);
     cy.contains("button", "가볍게 취미 이야기", { timeout: 6000 }).click();
