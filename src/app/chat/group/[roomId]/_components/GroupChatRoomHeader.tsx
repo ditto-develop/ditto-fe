@@ -91,11 +91,12 @@ const TitleInner = styled.div`
   overflow: hidden;
 `;
 
+/* 공용 TopNavigation 제목과 같은 크기·굵기(16px·700). */
 const TitleText = styled.span`
   font-family: "Pretendard JP", sans-serif;
-  font-size: var(--typography-headline-2-font-size);
-  font-weight: 600;
-  line-height: 1.412;
+  font-size: var(--typography-body-1-normal-font-size);
+  font-weight: 700;
+  line-height: var(--typography-body-1-normal-line-height);
   color: var(--color-semantic-label-strong);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -105,9 +106,9 @@ const TitleText = styled.span`
 
 const MemberCount = styled.span`
   font-family: "Pretendard JP", sans-serif;
-  font-size: var(--typography-headline-2-font-size);
-  font-weight: 600;
-  line-height: 1.412;
+  font-size: var(--typography-body-1-normal-font-size);
+  font-weight: 700;
+  line-height: var(--typography-body-1-normal-line-height);
   color: var(--color-semantic-primary-heavy);
   flex-shrink: 0;
 `;

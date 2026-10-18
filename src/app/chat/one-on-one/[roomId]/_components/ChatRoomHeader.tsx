@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
-import { Headline2, Label1Normal } from "@/shared/ui";
+import { Body1Normal, Label1Normal } from "@/shared/ui";
 import { useTimer } from "./useTimer";
 
 interface ChatRoomHeaderProps {
@@ -31,7 +31,10 @@ export function ChatRoomHeader({
         </IconButton>
 
         <TitleWrapper>
-          <Headline2 $align="center">{partnerNickname}</Headline2>
+          {/* 공용 TopNavigation 제목과 같은 크기·굵기(16px·700) */}
+          <Body1Normal $align="center" $weight="bold" $color="var(--color-semantic-label-strong)">
+            {partnerNickname}
+          </Body1Normal>
         </TitleWrapper>
 
         <IconButton onClick={onMenuClick} data-cy="chat-menu-button">

@@ -56,9 +56,10 @@ export const Title = styled.h2`
   padding: 0 32px;
   overflow: hidden;
   color: var(--color-semantic-label-strong);
-  font-size: var(--typography-headline-2-font-size);
-  font-weight: 600;
-  line-height: 1.412;
+  /* 공용 TopNavigation 제목과 같은 크기·굵기(16px·700). */
+  font-size: var(--typography-body-1-normal-font-size);
+  font-weight: 700;
+  line-height: var(--typography-body-1-normal-line-height);
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;

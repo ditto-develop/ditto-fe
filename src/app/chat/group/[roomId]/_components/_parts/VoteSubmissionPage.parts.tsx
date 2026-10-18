@@ -50,9 +50,10 @@ export const NavTitle = styled.h2`
   flex: 1;
   margin: 0;
   color: var(--color-semantic-label-strong);
-  font-size: var(--typography-headline-2-font-size);
-  font-weight: 600;
-  line-height: 1.412;
+  /* 공용 TopNavigation 제목과 같은 크기·굵기(16px·700). */
+  font-size: var(--typography-body-1-normal-font-size);
+  font-weight: 700;
+  line-height: var(--typography-body-1-normal-line-height);
   /* 가운데 정렬이 아니다 — Figma 에서 제목은 뒤로가기 옆에 붙는다(x=48). */
   text-align: left;
 `;
