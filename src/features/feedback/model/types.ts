@@ -17,7 +17,7 @@ export type FeedbackDeviceInfo = {
   appVersion?: string;
   /** "<플랫폼> <버전>". 예: "iOS 18.2", "Android 15". 최대 30자. */
   os?: string;
-  /** OS가 주는 모델 식별자. 예: "SM-S928N". 최대 50자. */
+  /** OS가 주는 모델 식별자. 예: "SM-S928N", "iPhone15,2". 최대 50자. */
   deviceModel?: string;
 };
 

@@ -1,19 +1,23 @@
+import { Capacitor } from "@capacitor/core";
+
 import type { FeedbackDeviceInfo } from "@/features/feedback/model/types";
 import { getAppVersion } from "@/shared/lib/native/appVersion";
 import type { NativePlatform } from "@/shared/lib/native/platform";
 import { getNativePlatform, isNativeApp } from "@/shared/lib/native/platform";
 
 /**
- * 의견에 실을 기기 정보를 **웹뷰가 아는 만큼만** 모은다.
+ * 의견에 실을 기기 정보를 모은다. 정확한 값부터 쓰고, 없으면 웹뷰가 아는 만큼으로 내려간다.
  *
- * 정확한 OS 버전·모델 식별자(`iPhone15,2`)는 `@capacitor/device` 같은 네이티브 플러그인이 있어야
- * 얻는데, 그러려면 앱을 다시 빌드해 심사를 받아야 한다. 그래서 지금은 User-Agent 와
- * User-Agent Client Hints 에서 읽는다. 플러그인을 넣으면 이 파일만 바꾸면 된다.
+ * 1. `@capacitor/device`(iOS 1.0.1 (8) · Android 1.0.1 (1) 부터 앱에 들어 있다) — OS 버전과 모델
+ *    식별자(`iPhone15,2`, `SM-S928N`)를 OS 에서 직접 읽는다.
+ * 2. User-Agent Client Hints(안드로이드 크롬·웹뷰) — 정확한 버전·모델.
+ * 3. User-Agent — iOS 는 OS 버전과 기기 종류(iPhone·iPad)까지만. 모델 식별자는 웹에 노출되지 않는다.
+ *    데스크톱 웹은 OS 이름만(브라우저가 UA 의 버전을 고정값으로 내보내 믿을 수 없다).
  *
- * - iOS: OS 버전과 기기 종류(iPhone·iPad)까지. 모델 식별자는 웹에 노출되지 않는다.
- * - Android: Client Hints 가 있으면 정확한 버전·모델, 없으면 UA 에서 읽는다.
- * - 데스크톱 웹: OS 이름만. 브라우저가 UA 의 버전을 고정값으로 내보내 믿을 수 없다.
- * - `appVersion` 은 앱 셸에서만 싣는다. 웹에는 셸이 없으므로 이 값이 없으면 웹에서 보낸 의견이다.
+ * 원격 URL 로드라 **플러그인이 없는 옛 앱 빌드(iOS 1.0 (7) 이하)에서도 이 코드가 돈다.**
+ * `isPluginAvailable` 로 막고 2·3 으로 내려간다.
+ *
+ * `appVersion` 은 앱 셸에서만 싣는다. 웹에는 셸이 없으므로 이 값이 없으면 웹에서 보낸 의견이다.
  */
 
 const MAX_APP_VERSION_LENGTH = 30;
@@ -80,21 +84,47 @@ async function readAndroidClientHints(): Promise<UserAgentInfo | null> {
   }
 }
 
+const DEVICE_PLUGIN = "Device";
+
+const OS_NAMES: Partial<Record<string, string>> = { ios: "iOS", android: "Android" };
+
+/** 앱에 들어 있는 `@capacitor/device` 로 읽는다. 웹·옛 앱 빌드·실패는 null. */
+async function readNativeDevice(): Promise<UserAgentInfo | null> {
+  if (!isNativeApp() || !Capacitor.isPluginAvailable(DEVICE_PLUGIN)) return null;
+
+  try {
+    // 정적 import 하지 않는다 — 웹 방문자 전원이 그 청크를 내게 된다(appBadge.ts 와 같은 이유).
+    const { Device } = await import("@capacitor/device");
+    const { operatingSystem, osVersion, model } = await Device.getInfo();
+    const osName = OS_NAMES[operatingSystem];
+    return {
+      os: osName && osVersion ? `${osName} ${osVersion}` : osName,
+      deviceModel: model || undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function limit(value: string | undefined, maxLength: number): string | undefined {
   return value ? value.slice(0, maxLength) : undefined;
 }
 
 /** 던지지 않는다 — 기기 정보를 못 읽어도 의견은 보내져야 한다. */
 export async function getFeedbackDeviceInfo(): Promise<FeedbackDeviceInfo> {
-  const [appVersion, hints] = await Promise.all([
+  const [appVersion, native, hints] = await Promise.all([
     isNativeApp() ? getAppVersion() : Promise.resolve(undefined),
+    readNativeDevice(),
     readAndroidClientHints(),
   ]);
   const parsed = parseUserAgent(navigator.userAgent, getNativePlatform());
 
   return {
     appVersion: limit(appVersion, MAX_APP_VERSION_LENGTH),
-    os: limit(hints?.os ?? parsed.os, MAX_OS_LENGTH),
-    deviceModel: limit(hints?.deviceModel ?? parsed.deviceModel, MAX_DEVICE_MODEL_LENGTH),
+    os: limit(native?.os ?? hints?.os ?? parsed.os, MAX_OS_LENGTH),
+    deviceModel: limit(
+      native?.deviceModel ?? hints?.deviceModel ?? parsed.deviceModel,
+      MAX_DEVICE_MODEL_LENGTH,
+    ),
   };
 }

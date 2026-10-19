@@ -14,6 +14,17 @@ vi.mock("@/shared/lib/native/appVersion", () => ({
   getAppVersion: () => getAppVersion(),
 }));
 
+const isPluginAvailable = vi.fn<(name: string) => boolean>(() => false);
+vi.mock("@capacitor/core", () => ({
+  Capacitor: { isPluginAvailable: (name: string) => isPluginAvailable(name) },
+}));
+
+type DeviceInfoLike = { operatingSystem: string; osVersion: string; model: string };
+const getInfo = vi.fn<() => Promise<DeviceInfoLike>>();
+vi.mock("@capacitor/device", () => ({
+  Device: { getInfo: () => getInfo() },
+}));
+
 const IPHONE_APP =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148";
 const IPAD_DESKTOP_CLASS =
@@ -31,6 +42,8 @@ beforeEach(() => {
   isNativeApp.mockReset().mockReturnValue(false);
   getNativePlatform.mockReset().mockReturnValue("web");
   getAppVersion.mockClear();
+  isPluginAvailable.mockReset().mockReturnValue(false);
+  getInfo.mockReset();
 });
 
 afterEach(() => {
@@ -79,7 +92,39 @@ describe("getFeedbackDeviceInfo", () => {
     vi.stubGlobal("navigator", { userAgent, userAgentData });
   }
 
-  it("앱 셸에서는 셸 버전과 UA 의 OS·모델을 싣는다", async () => {
+  it("기기 플러그인이 있는 앱이면 OS 가 주는 버전과 모델 식별자를 싣는다", async () => {
+    isNativeApp.mockReturnValue(true);
+    getNativePlatform.mockReturnValue("ios");
+    isPluginAvailable.mockImplementation((name) => name === "Device");
+    getInfo.mockResolvedValue({ operatingSystem: "ios", osVersion: "18.2.1", model: "iPhone15,2" });
+    stubNavigator(IPHONE_APP);
+
+    const { getFeedbackDeviceInfo } = await load();
+
+    expect(await getFeedbackDeviceInfo()).toEqual({
+      appVersion: "1.0.0 (6)",
+      os: "iOS 18.2.1",
+      deviceModel: "iPhone15,2",
+    });
+  });
+
+  it("안드로이드 앱이면 플러그인 값을 Client Hints 보다 먼저 쓴다", async () => {
+    isNativeApp.mockReturnValue(true);
+    getNativePlatform.mockReturnValue("android");
+    isPluginAvailable.mockImplementation((name) => name === "Device");
+    getInfo.mockResolvedValue({ operatingSystem: "android", osVersion: "16", model: "SM-S938N" });
+    stubNavigator(ANDROID_WEBVIEW, {
+      platform: "Android",
+      getHighEntropyValues: async () => ({ platformVersion: "15.0.0", model: "SM-S928N" }),
+    });
+
+    const { getFeedbackDeviceInfo } = await load();
+
+    expect(await getFeedbackDeviceInfo()).toMatchObject({ os: "Android 16", deviceModel: "SM-S938N" });
+  });
+
+  /** 원격 URL 로드라 플러그인이 없는 옛 빌드(iOS 1.0 (7) 이하)에서도 같은 코드가 돈다. */
+  it("플러그인이 없는 옛 앱이면 셸 버전과 UA 의 OS·모델을 싣는다", async () => {
     isNativeApp.mockReturnValue(true);
     getNativePlatform.mockReturnValue("ios");
     stubNavigator(IPHONE_APP);
@@ -91,6 +136,19 @@ describe("getFeedbackDeviceInfo", () => {
       os: "iOS 18.2",
       deviceModel: "iPhone",
     });
+    expect(getInfo).not.toHaveBeenCalled();
+  });
+
+  it("플러그인이 실패하면 UA 로 돌아간다", async () => {
+    isNativeApp.mockReturnValue(true);
+    getNativePlatform.mockReturnValue("ios");
+    isPluginAvailable.mockImplementation((name) => name === "Device");
+    getInfo.mockRejectedValue(new Error("not implemented"));
+    stubNavigator(IPHONE_APP);
+
+    const { getFeedbackDeviceInfo } = await load();
+
+    expect(await getFeedbackDeviceInfo()).toMatchObject({ os: "iOS 18.2", deviceModel: "iPhone" });
   });
 
   /** 웹에는 셸이 없다. 설정 화면의 표시용 웹 버전(1.0.0)을 실으면 앱에서 보낸 것처럼 보인다. */
@@ -102,6 +160,7 @@ describe("getFeedbackDeviceInfo", () => {
     const info = await getFeedbackDeviceInfo();
     expect(info.appVersion).toBeUndefined();
     expect(getAppVersion).not.toHaveBeenCalled();
+    expect(getInfo).not.toHaveBeenCalled();
   });
 
   it("안드로이드 Client Hints 가 있으면 UA 보다 먼저 쓴다", async () => {
