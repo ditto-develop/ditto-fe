@@ -21,6 +21,16 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        /**
+         * 카카오 SDK(native-plugins/capacitor-kakao-login) 전용. Maven Central 에 없다.
+         * 앱 모듈이 플러그인의 전이 의존성을 풀 때는 플러그인이 아니라 **이 목록**을 보므로
+         * 여기 없으면 `Could not find com.kakao.sdk:v2-user` 로 빌드가 멈춘다.
+         * 다른 그룹은 이 저장소에서 받지 않도록 막아 둔다.
+         */
+        maven {
+            url 'https://devrepo.kakao.com/nexus/content/groups/public/'
+            content { includeGroup 'com.kakao.sdk' }
+        }
     }
 }
 

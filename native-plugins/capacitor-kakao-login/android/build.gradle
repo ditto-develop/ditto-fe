@@ -50,11 +50,16 @@ android {
 repositories {
     google()
     mavenCentral()
+    // 카카오 SDK 는 Maven Central 에 없다(2026-10-19 실빌드로 확인 — Central 404). 앱 모듈도 같은
+    // 저장소가 있어야 런타임 클래스패스가 풀리므로 android/build.gradle 의 allprojects 에도 둔다.
+    maven {
+        url 'https://devrepo.kakao.com/nexus/content/groups/public/'
+        content { includeGroup 'com.kakao.sdk' }
+    }
 }
 
 dependencies {
     implementation project(':capacitor-android')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
-    // 카카오 SDK v2 는 2.11.0 부터 Maven Central 에 올라온다. devrepo.kakao.com 은 필요 없다.
     implementation 'com.kakao.sdk:v2-user:2.21.5'
 }
