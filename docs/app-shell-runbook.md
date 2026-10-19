@@ -207,7 +207,7 @@ DevTools 로 `schedule()` 을 직접 불러 재현했다 — 기본값이면 설
 - 언젠가 진짜 예약 알림을 다시 쓰게 되면 권한을 되살리고, 권한이 없을 때의 흐름을 따로 설계할 것.
 - 같은 플러그인은 매니페스트의 `default_notification_icon` 도 보지 않는다. 비워 두면 상태바에 시스템 기본
   "ⓘ"가 뜨므로 `capacitor.config.ts` 의 `LocalNotifications.smallIcon` 에 FCM 과 같은 `ic_stat_ditto` 를 줬다
-  (네이티브 설정이라 Android 1.0 (1) 부터 들어간다).
+  (네이티브 설정이라 Android 1.0.1 (1) 부터 들어간다).
 
 #### 아직 안 한 것 (의도적)
 
@@ -1159,7 +1159,8 @@ Organizer 를 열어 **Distribute App → App Store Connect → Upload**.
 | 1.0 (4) | 2026-10-01 | 오프라인 폴백(`app-offline.html`) 자동 재시도 — 연결이 돌아오면 보던 화면으로 스스로 복귀. iOS 는 -999(취소)도 이 화면으로 보내므로 멀쩡한 망에서도 뜬다 |
 | 1.0 (5) | 2026-10-04 | 베타 앱 아이콘(하단 BETA 띠)·런치 스플래시(BETA 배지), 홈 화면 이름 `ditto`. 오프라인 폴백은 (4)와 같은 파일 |
 | 1.0 (6) | 2026-10-06 | 앱 아이콘·런치 스플래시에서 BETA 제거(가이드라인 2.2 — 웹 스플래시 배지도 앱 안에서는 숨긴다). 프라이버시 매니페스트에 GA4 분석 수집(사용 데이터·대략적 위치·ID 의 분석 목적) 신고 |
-| 1.0 (7) | 2026-10-07 | **심사 제출 후보.** 앱 아이콘 배지 플러그인(`@capawesome/capacitor-badge`) — 알림을 읽으면 아이콘 숫자가 미읽음 수로 내려간다(§2.2). 그 외는 (6)과 같다 |
+| 1.0 (7) | 2026-10-07 | **1.0 출시 빌드.** 앱 아이콘 배지 플러그인(`@capawesome/capacitor-badge`) — 알림을 읽으면 아이콘 숫자가 미읽음 수로 내려간다(§2.2). 그 외는 (6)과 같다 |
+| 1.0.1 (8) | 2026-10-19 | **앱 언어를 한국어로**(`CFBundleDevelopmentRegion`·`CFBundleLocalizations`·pbxproj `developmentRegion`) — (7)까지는 템플릿 기본값 `en` 이라 App Store 에 "영어"로 표시됐다. **기기 정보 플러그인**(`@capacitor/device`) — 의견 보내기에 정확한 OS 버전·모델 식별자를 싣는다. `SystemBars.style: LIGHT`(스플래시부터 어두운 상태바 아이콘 — 웹이 넣던 값과 같다). 1.0 이 출시돼 같은 버전에 빌드를 더할 수 없어 1.0.1 로 올렸다 |
 
 #### 처리 상태를 CLI 로 보는 법
 
@@ -1290,7 +1291,7 @@ npm run android:bundle      # = cap:sync + ./gradlew bundleRelease
 | 업로드 | `E1:8D:BC:9B:D8:9B:F1:C1:BF:FF:DD:DC:BF:E5:68:15:5B:18:E3:65` | `4Y28m9ib8cG//93cv+VoFVsY42U=` |
 | Play 앱 서명 | 첫 업로드 뒤 Play Console → 앱 서명에서 | ⬜ |
 
-### 업로드 전 확인 (2026-10-19 1.0 (1) 기준 통과)
+### 업로드 전 확인 (2026-10-19 Android 1.0.1 (1) 기준 통과)
 
 ```bash
 BT=~/Library/Android/sdk/build-tools/36.0.0

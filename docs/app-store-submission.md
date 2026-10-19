@@ -227,3 +227,35 @@ npm run capture:appstore   # → cypress/screenshots/app-store.cy.ts/*.png (1320
   신고가 있지만 본인인증이 없다. 해당 여부는 법률 검토가 필요하다.
 - 본인인증이 없으므로 스토어 문구·심사 노트에 "인증", "검증된 회원" 같은 표현을 쓰지 않는다.
   연령은 "가입 시 생년월일 입력 · 만 19세 미만 가입 거절" 수준으로만 적는다.
+
+---
+
+## 7. 1.0.1 (8) 제출 (2026-10-19)
+
+1.0 은 출시됐다. 출시된 버전에는 빌드를 더할 수 없어 1.0.1 로 올렸다. 바뀐 것은 런북 §7 빌드 표.
+
+- **앱 언어 한국어** — 1.0 은 `CFBundleDevelopmentRegion = en`(Capacitor 템플릿 기본값)으로 나가 상품 페이지
+  "언어"가 **영어**였다. 이 빌드가 출시되면 한국어로 바뀐다. 앱 안의 iOS 시스템 화면(사진 첨부 시트·복사 메뉴 등)도
+  한국어 기기에서 한국어로 뜬다.
+- **기기 정보 플러그인** — 의견 보내기에 `iPhone15,2` 같은 모델 식별자와 정확한 iOS 버전이 실린다.
+  웹 코드는 플러그인 유무를 보고 나눠서, 1.0 (7) 사용자는 지금처럼 UA 에서 읽은 값으로 보낸다.
+
+IPA: `build/export-8/App.ipa`(gitignore). 버전 1.0.1 · 빌드 8 · `aps-environment = production` ·
+`CFBundleDevelopmentRegion = ko` · `CFBundleLocalizations = [ko]` 확인 완료.
+
+### 남은 수작업
+
+1. **업로드** — 자격증명이 필요해 직접 한다(런북 §7 "업로드"):
+   ```bash
+   set -a && source .env.local && set +a
+   xcrun altool --validate-app -f build/export-8/App.ipa -t ios --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+   xcrun altool --upload-app   -f build/export-8/App.ipa -t ios --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+   ```
+   또는 `open build/App-8.xcarchive` → Organizer → Distribute App → App Store Connect → Upload.
+2. App Store Connect → **+ 버전** → `1.0.1` → 빌드 8 선택(처리가 끝나야 고를 수 있다).
+3. **이번 버전의 새로운 기능** — §5 원고는 출시 안내문("v1.0이 출시됐어요")이라 1.0.1 에는 어색하다. 짧게:
+   ```text
+   - 앱 언어 표시를 한국어로 바꿨어요.
+   - 의견 보내기에 기기 정보가 더 정확하게 담겨요. 문제를 더 빨리 확인할 수 있어요.
+   ```
+4. 심사 제출. 심사 노트·데모 계정은 1.0 것이 그대로 남아 있다. **심사 중에는 프로덕션 웹 배포를 멈춘다**(§3-6).

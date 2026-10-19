@@ -9,7 +9,7 @@
 
 | 항목 | 상태 | 비고 |
 |---|---|---|
-| 릴리스 번들 1.0 (1) | ✅ 빌드 | `build/android/ditto-1.0-1.aab`(gitignore). targetSdk 36 · minSdk 24 · 16KB 페이지 대응 확인 |
+| 릴리스 번들 1.0.1 (1) | ✅ 빌드 | `build/android/ditto-1.0.1-1.aab`(gitignore). targetSdk 36 · minSdk 24 · 16KB 페이지 대응 확인 |
 | 업로드 키 | ✅ 생성 | `android/keystores/ditto-upload.jks` + `android/keystore.properties`(둘 다 gitignore). **백업 필요 — §2-0** |
 | 카카오 SDK 저장소 | ✅ 고침 | Maven Central 에 없어 Android 빌드가 아예 안 되던 문제(런북 §5) |
 | 포그라운드 푸시 → "알람 및 리마인더" 설정 화면 | ✅ 고침 | Android 14+ 에서 앱을 켜 둔 채 푸시가 올 때마다 설정 화면이 뜨던 문제(런북 §2.2). **웹 배포로 적용된다** |
@@ -57,7 +57,7 @@
 ### 2-2. 앱 만들기 · 첫 번들 업로드
 
 1. Play Console → **앱 만들기** — §3-1 값.
-2. **테스트 및 출시 → 내부 테스트 → 새 버전 만들기** → `build/android/ditto-1.0-1.aab` 업로드.
+2. **테스트 및 출시 → 내부 테스트 → 새 버전 만들기** → `build/android/ditto-1.0.1-1.aab` 업로드.
    - 처음 올릴 때 **Play 앱 서명**을 묻는다 → 기본값(Google 이 키 생성·관리)으로 둔다.
    - 첫 번들은 Console 에서 손으로 올려야 한다(API 로는 앱 레코드가 생긴 뒤부터 된다).
 3. 내부 테스터(최대 100명)에 팀원 Gmail 을 넣고 링크로 설치한다 — 심사 없이 바로 받는다.
@@ -282,7 +282,7 @@ npm run assets:play -- --screenshots ~/Downloads/shots # + 스크린샷 변환
 
 | 빌드 | 날짜 | 내용 |
 |---|---|---|
-| 1.0 (1) | 2026-10-19 | 첫 업로드 후보 |
+| 1.0.1 (1) | 2026-10-19 | 첫 업로드 후보. 버전 이름은 같은 날 만든 iOS 1.0.1 (8) 과 맞췄다(웹뷰 셸이 같다). `@capacitor/device` 포함 |
 
 ---
 
