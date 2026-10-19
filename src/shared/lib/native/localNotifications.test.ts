@@ -87,6 +87,21 @@ describe("clearLegacyScheduledNotifications", () => {
   });
 });
 
+describe("showForegroundNotification", () => {
+  it("정확한 알람을 요구하지 않는다 — Android 14+ 에서 설정 화면이 뜨지 않게", async () => {
+    isNativeApp.mockReturnValue(true);
+    const { showForegroundNotification } = await import("@/shared/lib/native/localNotifications");
+
+    await showForegroundNotification({ title: "t", body: "b", deepLink: null, notificationId: null });
+
+    const [{ notifications }] = schedule.mock.calls[0] as unknown as [
+      { notifications: Array<{ isExactNotification?: boolean; schedule?: unknown }> },
+    ];
+    expect(notifications[0].isExactNotification).toBe(false);
+    expect(notifications[0].schedule).toBeUndefined();
+  });
+});
+
 describe("clearForegroundNotifications", () => {
   const isRoom305 = (deepLink: string) => deepLink.startsWith("/chat/one-on-one/305");
 

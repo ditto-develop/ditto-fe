@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <application
         android:allowBackup="true"
@@ -84,4 +85,13 @@
       파일 선택기 인텐트로 처리되어 권한이 필요 없고, CAMERA 를 선언하는 순간
       런타임 승인까지 받아야 촬영이 동작하게 되어 오히려 실패 경로가 늘어난다.
     -->
+
+    <!--
+      정확한 알람 권한은 @capacitor/local-notifications 가 끌고 오는 것을 뺀다. 앱이 띄우는 로컬
+      알림은 포그라운드 푸시를 즉시 보여 주는 것뿐이고 예약하지 않는다(localNotifications.ts 가
+      isExactNotification: false 로 보낸다). Play 의 정확한 알람 정책 검토 대상에서도 빠진다.
+    -->
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        tools:node="remove" />
 </manifest>

@@ -122,6 +122,13 @@ export async function showForegroundNotification({
                     id,
                     title,
                     body,
+                    /**
+                     * Android 플러그인(8.3+)은 이 값이 기본 true 면 즉시 발송이어도 정확한 알람 권한을
+                     * 먼저 확인하고, 없으면 **"알람 및 리마인더" 설정 화면을 띄운다.** Android 14+ 는
+                     * 새로 설치한 앱에 그 권한을 주지 않으므로, 앱을 켜 둔 채 푸시가 올 때마다 설정
+                     * 화면이 열린다. 예약이 없는 알림이라 정확도와 무관하니 끈다. iOS 는 무시한다.
+                     */
+                    isExactNotification: false,
                     // 없는 값은 싣지 않는다 — 네이티브 브리지로 null 을 넘길 이유가 없다.
                     extra: {
                         ...(deepLink ? { deepLink } : {}),
