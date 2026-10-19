@@ -25,6 +25,24 @@ describe("고객 지원", () => {
     cy.location("pathname", { timeout: 8000 }).should("eq", "/");
   });
 
+  it("고객 지원에서 계정 삭제 안내로 가고, 삭제 절차·요청 메일·보관 기간이 보인다", () => {
+    cy.visit("/support");
+
+    cy.contains("a", "계정 삭제 방법과 보관되는 데이터 보기", { timeout: 8000 }).click();
+    cy.location("pathname", { timeout: 8000 }).should("match", /^\/support\/delete-account\/?$/);
+
+    // Google Play 가 요구하는 네 가지: 앱 이름 · 요청 절차 · 지워지는/보관되는 데이터 · 보관 기간.
+    cy.contains("디토(ditto) 계정").should("be.visible");
+    cy.contains("'회원탈퇴'").should("be.visible");
+    cy.contains(CONTACT_EMAIL).should("be.visible");
+    cy.contains("삭제되는 데이터").should("be.visible");
+    cy.contains("30일이 지나면 데이터가 완전히 삭제됩니다").should("be.visible");
+    cy.contains("td", "로그인 기록(통신비밀보호법)").should("be.visible");
+
+    cy.get('img[alt="back"]').click();
+    cy.location("pathname", { timeout: 8000 }).should("match", /^\/support\/?$/);
+  });
+
   it("첫 화면과 고객 지원 화면에 사업자 정보가 없다", () => {
     cy.visit("/");
     cy.contains("카카오로 계속하기", { timeout: 10000 }).should("be.visible");

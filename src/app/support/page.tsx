@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { getPolicyBackPath } from "@/features/settings/lib/policyNavigation";
@@ -24,6 +25,12 @@ export default function SupportPage() {
           <Label>이메일</Label>
           <Value>
             <MailLink href={`mailto:${BUSINESS_INFO.contactEmail}`}>{BUSINESS_INFO.contactEmail}</MailLink>
+          </Value>
+        </ContactList>
+        <ContactList>
+          <Label>계정 삭제</Label>
+          <Value>
+            <PageLink href="/support/delete-account">계정 삭제 방법과 보관되는 데이터 보기</PageLink>
           </Value>
         </ContactList>
       </Content>
@@ -84,6 +91,11 @@ const Value = styled.dd`
 `;
 
 const MailLink = styled.a`
+  color: inherit;
+  text-decoration-line: underline;
+`;
+
+const PageLink = styled(Link)`
   color: inherit;
   text-decoration-line: underline;
 `;

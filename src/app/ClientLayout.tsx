@@ -116,6 +116,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     path === '/settings/privacy' ||
     path === '/settings/location-terms' ||
     path === '/support' ||
+    path === '/support/delete-account' ||
     path === '/download' ||
     path === '/download/android';
   const isPublicPath =

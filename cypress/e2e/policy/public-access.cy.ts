@@ -10,6 +10,8 @@ const POLICY_ROUTES = [
   { path: "/settings/terms", heading: "디토 이용 약관" },
   { path: "/settings/location-terms", heading: "위치기반 서비스 이용약관" },
   { path: "/support", heading: "고객 지원" },
+  // Google Play 계정 삭제 URL. 앱을 지운 사람이 브라우저로 연다.
+  { path: "/support/delete-account", heading: "계정 삭제 안내" },
 ] as const;
 
 /**

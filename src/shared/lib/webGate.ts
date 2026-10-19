@@ -20,6 +20,7 @@ export function isWebGateEnabled(): boolean {
  *
  * - 다운로드 안내·Android 출시 알림 신청: 차단된 사람이 가는 곳이다.
  * - 약관 3종·고객 지원: App Store 심사에 개인정보처리방침·지원 URL 로 제출한 주소다.
+ * - 계정 삭제 안내: Google Play 에 계정 삭제 URL 로 제출한 주소다. 앱을 지운 사람이 브라우저로 연다.
  * - OAuth 콜백: 앱 웹뷰에서만 쓰지만, 로그인 도중 브리지가 늦게 붙는 경우가 있어도 로그인이
  *   끊기지 않게 열어 둔다. 브라우저에서 들어와도 로그인 뒤 가는 화면에서 다시 막힌다.
  * - 어드민: 운영자가 브라우저로 쓴다.
@@ -31,6 +32,7 @@ const WEB_OPEN_PATHS: readonly string[] = [
   "/settings/privacy",
   "/settings/location-terms",
   "/support",
+  "/support/delete-account",
   "/auth/callback",
 ];
 

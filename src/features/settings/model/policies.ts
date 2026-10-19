@@ -404,6 +404,49 @@ const locationTermsSource = `
 **부칙** — 본 약관은 ${POLICY_EFFECTIVE_DATE.long}부터 시행합니다.
 `;
 
+/**
+ * 계정 삭제 안내. Google Play 의 **계정 삭제 URL**(`https://ditto.pics/support/delete-account`)이
+ * 가리키는 화면이다. Play 는 앱을 지운 사람도 웹에서 삭제를 요청할 수 있어야 한다고 보고, 그 페이지에
+ * 앱 이름·요청 절차·지워지는 데이터와 보관되는 데이터·보관 기간을 적으라고 요구한다.
+ *
+ * 30일 복구 기간은 탈퇴 화면(WithdrawContainer)의 안내와 같고, 보관 예외는 개인정보 처리방침 제4조를
+ * 그대로 옮겼다. 셋 중 하나를 바꾸면 나머지도 함께 맞춘다.
+ */
+const accountDeletionSource = `
+디토(ditto) 계정과 계정에 딸린 데이터를 삭제하는 방법을 안내합니다.
+
+### 1. 앱에서 직접 삭제하기
+1. 디토 앱에 로그인합니다.
+2. 하단 프로필 탭에서 오른쪽 위 설정(톱니바퀴)을 누릅니다.
+3. 맨 아래 '회원탈퇴'를 누르고, 안내를 확인한 뒤 탈퇴합니다.
+
+**※ 진행 중인 매칭이나 채팅이 있으면 탈퇴가 제한됩니다. 정리한 뒤 다시 시도해 주세요.**
+
+### 2. 앱을 쓸 수 없을 때 — 이메일로 요청하기
+앱을 지웠거나 로그인할 수 없다면 아래 주소로 삭제를 요청해 주세요. 본인 확인을 거쳐 처리한 뒤 결과를 회신해 드립니다.
+- 받는 주소: ${PRIVACY_OFFICER.email}
+- 메일 제목: 디토 계정 삭제 요청
+- 적어 주실 내용: 가입한 로그인 수단(카카오 또는 Apple)과 닉네임
+
+### 3. 삭제되는 데이터
+- 회원가입 정보: 이메일 주소, 생년월일, 성별, 닉네임, 거주 지역, 직업, 관심사, 한 줄 소개, 프로필 이미지(아바타)
+- 서비스 이용 정보: 퀴즈 답변, 매칭·대화 기록, 평가, 알림 기록, 푸시 알림 기기 정보, 소셜 로그인 연결 정보
+
+### 4. 삭제 시점과 보관되는 데이터
+- 탈퇴 후 30일 이내에 다시 가입하면 계정을 복구할 수 있습니다. 30일이 지나면 데이터가 완전히 삭제됩니다.
+- 다만 아래 정보는 개인정보 처리방침 제4조에 따라 정해진 기간 동안 보관한 뒤 파기합니다.
+
+| 보관하는 정보 | 보관 기간 |
+| --- | --- |
+| 신고가 접수됐거나 법적 분쟁이 있는 회원의 정보 | 1년 |
+| 신고 내용·채팅 기록 | 법적 분쟁이 끝날 때까지 |
+| 제재 이력 | 계정 복구 또는 영구 차단 시까지 |
+| 로그인 기록(통신비밀보호법) | 3개월 |
+| 소비자 불만·분쟁처리 기록 등 전자상거래법이 정한 기록 | 법령이 정한 기간(3~5년) |
+
+자세한 내용은 개인정보 처리방침을 확인해 주세요.
+`;
+
 export const termsOfService: PolicyDocumentData = {
   title: "디토 이용 약관",
   blocks: parsePolicy(termsOfServiceSource),
@@ -412,6 +455,11 @@ export const termsOfService: PolicyDocumentData = {
 export const privacyPolicy: PolicyDocumentData = {
   title: "개인정보 처리방침",
   blocks: parsePolicy(privacyPolicySource),
+};
+
+export const accountDeletionGuide: PolicyDocumentData = {
+  title: "계정 삭제 안내",
+  blocks: parsePolicy(accountDeletionSource),
 };
 
 export const locationTerms: PolicyDocumentData = {
