@@ -8,10 +8,12 @@ import {
   StepperImgContainer,
   TopProgressContainer,
 } from "@/components/onboarding/OnboardingContainer";
-import { APP_STORE_URL } from "@/shared/lib/appStore";
+import { APP_STORE_URL, PLAY_STORE_URL } from "@/shared/lib/appStore";
 import { Body1Normal, Button, Caption1, Headline1 } from "@/shared/ui";
 
 interface WebDownloadViewProps {
+  /** Play 스토어 공개 출시 후에는 출시 알림 신청 대신 Google Play 버튼을 보여 준다(`isPlayStoreReleased`). */
+  playStoreReleased: boolean;
   onAndroidNotify: () => void;
   onOpenDocument: (path: "/settings/terms" | "/settings/privacy" | "/support") => void;
 }
@@ -28,7 +30,11 @@ const STEPS = [
  *
  * App Store 버튼은 https 링크다 — iPhone 에서 누르면 App Store 앱의 디토 페이지로 바로 넘어간다.
  */
-export function WebDownloadView({ onAndroidNotify, onOpenDocument }: WebDownloadViewProps) {
+export function WebDownloadView({
+  playStoreReleased,
+  onAndroidNotify,
+  onOpenDocument,
+}: WebDownloadViewProps) {
   return (
     <Page>
       <Main>
@@ -80,12 +86,27 @@ export function WebDownloadView({ onAndroidNotify, onOpenDocument }: WebDownload
           >
             App Store에서 다운로드
           </StoreButton>
-          <FullWidthButton type="button" $variant="outlined" $size="large" onClick={onAndroidNotify}>
-            Android 출시 알림 받기
-          </FullWidthButton>
-          <Caption1 $align="center" $color="var(--color-semantic-label-alternative)">
-            Android 앱은 준비 중이에요. 출시되면 메일로 알려 드릴게요.
-          </Caption1>
+          {playStoreReleased ? (
+            <StoreButton
+              as="a"
+              href={PLAY_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              $variant="solid"
+              $size="large"
+            >
+              Google Play에서 다운로드
+            </StoreButton>
+          ) : (
+            <>
+              <FullWidthButton type="button" $variant="outlined" $size="large" onClick={onAndroidNotify}>
+                Android 출시 알림 받기
+              </FullWidthButton>
+              <Caption1 $align="center" $color="var(--color-semantic-label-alternative)">
+                Android 앱은 준비 중이에요. 출시되면 메일로 알려 드릴게요.
+              </Caption1>
+            </>
+          )}
         </Actions>
 
         <LegalLinks>

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { WebDownloadView } from "@/features/download/ui/WebDownloadView";
+import { isPlayStoreReleased } from "@/shared/lib/appStore";
 
 /**
  * 웹 다운로드 안내(/download). ClientLayout 이 브라우저에서 막는 화면 대신에도 이걸 그린다.
@@ -13,6 +14,7 @@ export function WebDownloadContainer() {
 
   return (
     <WebDownloadView
+      playStoreReleased={isPlayStoreReleased()}
       onAndroidNotify={() => router.push("/download/android")}
       onOpenDocument={(path) => router.push(path)}
     />
