@@ -4,8 +4,23 @@
 <dict>
   <key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
+	<!--
+	  앱 언어 = 한국어.
+
+	  1.0 (7) 까지는 Capacitor 템플릿 기본값 `en` 이었다. 번들에 언어 폴더가 Base.lproj 뿐이라
+	  App Store 가 이 값을 앱 언어로 보고 상품 페이지에 "영어"로 표시했고, 앱 안에서 iOS 가 그리는
+	  화면(사진 첨부 시트·복사 메뉴·alert 버튼)도 한국어 기기에서 영어로 떴다.
+
+	  CFBundleLocalizations 는 lproj 폴더 없이 지원 언어를 선언한다. 문자열은 전부 웹에 있어
+	  ko.lproj 를 둘 이유가 없다. pbxproj 의 developmentRegion·knownRegions 도 ko 로 맞췄다 —
+	  이 값이 `$(DEVELOPMENT_LANGUAGE)` 가 아니라 문자열이라 pbxproj 만 바꾸면 빌드 결과는 그대로 en 이다.
+	-->
 	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
+	<string>ko</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>ko</string>
+	</array>
 	<key>CFBundleDisplayName</key>
         <string>ditto</string>
 	<key>CFBundleExecutable</key>
