@@ -124,6 +124,18 @@ const config: CapacitorConfig = {
     },
     plugins: {
         /**
+         * 상태바·내비게이션 바 아이콘을 늘 어둡게(`LIGHT` = 밝은 배경용) 둔다.
+         *
+         * 기본값(`DEFAULT`)은 **기기 테마**를 따른다. 앱은 다크 모드가 없어 배경이 늘 밝은
+         * `#E9E6E2` 인데, 기기가 다크 모드면 아이콘이 흰색이 되어 시계·배터리가 보이지 않는다.
+         * Android 15+ 는 edge-to-edge 가 강제라 웹뷰가 상태바 밑까지 그려지므로 그대로 드러난다.
+         * iOS 는 `appShell.ts` 가 같은 값(`Style.Light`)을 이미 넣는데, 여기 두면 웹이
+         * 뜨기 전(스플래시)부터 맞는다.
+         */
+        SystemBars: {
+            style: "LIGHT",
+        },
+        /**
          * 일반 화면은 키보드가 열리면 iOS가 WebView 자체를 줄이는 기본 동작을 쓴다.
          * 채팅 입력창만 키보드와 동시에 움직여야 해서 포커스 중에 일시적으로 none으로
          * 바꾸고, 네이티브 keyboardWillShow 높이로 레이아웃을 직접 맞춘다.
@@ -159,6 +171,16 @@ const config: CapacitorConfig = {
          */
         FirebaseMessaging: {
             presentationOptions: ["badge"],
+        },
+        /**
+         * Android 상태바에 뜨는 로컬 알림(포그라운드 푸시 배너) 아이콘.
+         *
+         * FCM 이 직접 그리는 알림은 매니페스트의 `default_notification_icon` 을 쓰지만, 이 플러그인은
+         * 그걸 보지 않는다. 비워 두면 시스템 기본 "ⓘ" 아이콘이 뜬다(2026-10-19 에뮬레이터로 확인).
+         * FCM 과 같은 워드마크 자산을 쓴다(scripts/generate-app-assets.mjs 가 만든다). iOS 는 무시한다.
+         */
+        LocalNotifications: {
+            smallIcon: "ic_stat_ditto",
         },
         /**
          * iOS 앱 아이콘 배지(`@capawesome/capacitor-badge`). 숫자는 웹이 알림 센터 미읽음 수로

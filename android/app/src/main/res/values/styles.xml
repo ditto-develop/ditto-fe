@@ -9,10 +9,16 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <!--
+      windowBackground 를 앱 배경색으로 둔다. 웹뷰가 오래돼(Chromium 140 미만) 상태바 밑까지
+      그리지 못하는 기기는 Capacitor 가 웹뷰에 패딩을 주는데, 그 패딩 자리에 이 색이 보인다.
+      비워 두면 테마 기본색(라이트 흰색·다크 검정)이 상태바 뒤에 띠로 깔린다.
+    -->
     <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <item name="android:windowBackground">@color/brand_background</item>
     </style>
 
 
