@@ -57,6 +57,11 @@ captures/
 #*.jks
 #*.keystore
 
+# 업로드 키와 그 비밀번호. 절대 커밋하지 않는다(app/build.gradle 의 signingConfigs 참고).
+*.jks
+*.keystore
+keystore.properties
+
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild
 .cxx/

@@ -32,6 +32,21 @@ def kakaoNativeAppKey = {
     return 'NOT_SET'
 }().toString()
 
+/**
+ * 업로드 키 서명 설정. `android/keystore.properties` 에서 읽는다(gitignore — 비밀번호가 들어 있다).
+ *
+ * 이 키는 **업로드 키**다. Play 에 올린 번들은 Google 이 보관하는 앱 서명 키로 다시 서명돼
+ * 사용자에게 간다(Play 앱 서명). 업로드 키를 잃어버려도 Play Console 에서 재설정할 수 있지만
+ * 며칠 걸린다 — keystore.properties 와 .jks 를 함께 백업할 것(docs/play-store-submission.md).
+ *
+ * 파일이 없으면 서명하지 않은 번들이 나온다. 빌드 자체는 막지 않는다.
+ */
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+
 android {
     namespace = "pics.ditto.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -49,8 +64,21 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile rootProject.file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

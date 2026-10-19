@@ -26,7 +26,9 @@
     "assets:app": "node scripts/generate-app-assets.mjs",
     "cap:sync": "npm run build && npx cap sync",
     "cap:ios": "npx cap open ios",
-    "cap:android": "npx cap open android"
+    "cap:android": "npx cap open android",
+    "android:bundle": "npm run cap:sync && cd android && ./gradlew bundleRelease",
+    "assets:play": "node scripts/generate-play-store-assets.mjs"
   },
   "dependencies": {
     "@capacitor-firebase/messaging": "^8.4.0",
