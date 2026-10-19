@@ -49,6 +49,13 @@ CloudFront 도메인을 웹뷰로 열 뿐이다 (`capacitor.config.ts`의 `serve
 - **세로 고정** — 393px 기준 모바일 전용 레이아웃이라 가로에서 깨진다.
   가로를 지원하려면 `AndroidManifest.xml`의 `android:screenOrientation`과
   `Info.plist`의 `UISupportedInterfaceOrientations`를 되돌리면 된다.
+- **정확한 알람 권한(`SCHEDULE_EXACT_ALARM`)은 매니페스트에서 뺐다**(2026-10-19) — 로컬 알림 플러그인이
+  끌고 오지만 예약 알림을 쓰지 않는다. §2.2 "포그라운드 알림과 정확한 알람".
+- **상태바 아이콘은 늘 어둡게**(`capacitor.config.ts` 의 `SystemBars.style: "LIGHT"`, 2026-10-19) — 기본값은
+  기기 테마를 따라서, 다크 모드 기기에서는 밝은 앱 배경 위에 흰 아이콘이 떠 안 보였다. Android 15+ 는
+  edge-to-edge 가 강제라 웹뷰가 상태바 밑까지 그려지고 웹의 `env(safe-area-inset-*)` 가 여백을 맡는다
+  (Capacitor 8 `SystemBars` 가 처리). 웹뷰가 오래된(Chromium 140 미만) 기기는 Capacitor 가 대신 패딩을
+  주는데, 그 자리에 보이는 색이 `AppTheme.NoActionBar` 의 `windowBackground`(= 앱 배경색)다.
 
 ### 설정 변경 후 반영
 
@@ -183,6 +190,24 @@ Android 13+의 `POST_NOTIFICATIONS` 권한도 같은 경로에서 처리한다.
   `Capacitor.isPluginAvailable("Badge")` 로 막혀 아무 일도 하지 않는다.
 - 안드로이드는 손대지 않았다 — 런처 배지는 알림창에 남은 알림 수를 따라가 의미가 다르다.
   네이티브 프로젝트에는 플러그인이 들어가 있지만 JS 가 iOS 에서만 부른다.
+
+#### 포그라운드 알림과 정확한 알람 (Android, 2026-10-19)
+
+`@capacitor/local-notifications` 8.3+ 는 `schedule()` 에 넘긴 알림의 `isExactNotification` 이 기본값
+`true` 면 **예약이 없는 즉시 발송이어도** 정확한 알람 권한부터 본다. 없으면 시스템 **"알람 및 리마인더" 설정
+화면을 띄운다.** Android 14+ 는 새로 설치한 앱에 이 권한을 주지 않으므로, 앱을 켜 둔 채 푸시가 올 때마다
+설정 화면이 열리는 셈이었다. 첫 Android 실빌드 검토에서 코드로 찾았고, Android 16 에뮬레이터에서 웹뷰
+DevTools 로 `schedule()` 을 직접 불러 재현했다 — 기본값이면 설정 화면이 뜨고 알림은 돌아온 뒤에야 뜬다,
+`false` 면 바로 뜬다.
+
+- `showForegroundNotification` 이 `isExactNotification: false` 를 싣는다. 웹 코드라 **배포만으로 이미
+  설치된 앱에도 적용된다.** 회귀 테스트: `localNotifications.test.ts`.
+- 매니페스트에서 `SCHEDULE_EXACT_ALARM` 을 `tools:node="remove"` 로 뺐다. 위 수정이 배포되기 **전**의
+  웹 번들과 이 매니페스트가 만나면 Android 12·13 에서도 설정 화면이 뜬다 — 웹 배포가 먼저다.
+- 언젠가 진짜 예약 알림을 다시 쓰게 되면 권한을 되살리고, 권한이 없을 때의 흐름을 따로 설계할 것.
+- 같은 플러그인은 매니페스트의 `default_notification_icon` 도 보지 않는다. 비워 두면 상태바에 시스템 기본
+  "ⓘ"가 뜨므로 `capacitor.config.ts` 의 `LocalNotifications.smallIcon` 에 FCM 과 같은 `ic_stat_ditto` 를 줬다
+  (네이티브 설정이라 Android 1.0 (1) 부터 들어간다).
 
 #### 아직 안 한 것 (의도적)
 
@@ -730,7 +755,21 @@ BE 위키 `Frontend-Native-Login-Peer-Profile-Guide` §1, 요청서 `docs/be-req
 | 토큰 교환 | `loginWithExternalKakaoNative` (`externalApi.ts`) | 완료 |
 | 결말 분기 공유 | `src/features/auth/lib/socialLoginOutcome.ts` | 완료 (리다이렉트 콜백과 공유) |
 | 앱 키 | `.env.local` / `Info.plist` | 발급 완료(2026-09-06). 콘솔 **플랫폼 등록은 별도 확인 필요** |
-| 실기기 빌드 검증 | — | **미실시** (Xcode / Android Studio 필요) |
+| 실기기 빌드 검증 | — | iOS 는 1.0 출시로 확인. **Android 는 2026-10-19 첫 빌드** — 아래 |
+
+### Android 첫 빌드에서 드러난 것 (2026-10-19)
+
+`build.gradle` 에는 "카카오 SDK v2 는 2.11.0 부터 Maven Central 에 올라온다"고 적혀 있었는데 **틀렸다.**
+Central 에서 `com.kakao.sdk:v2-user` 는 404 이고, 카카오 자체 저장소(`devrepo.kakao.com`)에만 있다.
+Android 프로젝트를 한 번도 빌드하지 않아 아무도 몰랐다 — iOS 때(§8 "왜 여태 몰랐나")와 같은 사정이다.
+
+- 저장소를 **두 곳**에 둔다: 플러그인 `build.gradle` 과 `android/build.gradle` 의 `allprojects`.
+  앱 모듈은 플러그인의 전이 의존성을 **자기 저장소 목록으로** 풀기 때문에 플러그인 쪽만 고치면
+  `:app:checkDebugAarMetadata` 에서 그대로 멈춘다.
+- `content { includeGroup 'com.kakao.sdk' }` 로 이 저장소에서는 카카오 패키지만 받게 막았다.
+
+키 해시(공개 값): 업로드 키 `4Y28m9ib8cG//93cv+VoFVsY42U=` · 이 맥의 디버그 키 `cX2Q268GxPeMiCvT6j+9gXPUsEo=`.
+**Play 로 받은 앱은 Google 의 앱 서명 키로 다시 서명되므로 그 키의 해시도 등록해야 한다** — `docs/play-store-submission.md` §2-3.
 
 ### 역할 분담 — 여기가 이 기능의 핵심이다
 
@@ -746,8 +785,9 @@ BE 위키 `Frontend-Native-Login-Peer-Profile-Guide` §1, 요청서 `docs/be-req
 1. **카카오 개발자 콘솔** (기존 앱에 추가하는 것이다 — 새 앱을 만들지 말 것)
    - 앱 키 > **네이티브 앱 키** 복사
    - 플랫폼 > iOS: 번들 ID `pics.ditto.app`
-   - 플랫폼 > Android: 패키지명 `pics.ditto.app`, **키 해시**(디버그·릴리스 각각)
+   - 플랫폼 > Android: 패키지명 `pics.ditto.app`, **키 해시**(디버그 · 업로드 · Play 앱 서명 각각)
      - 디버그: `keytool -exportcert -alias androiddebugkey -keystore ~/.android/debug.keystore -storepass android -keypass android | openssl sha1 -binary | openssl base64`
+     - 업로드 · Play 앱 서명: 위 "Android 첫 빌드에서 드러난 것" 참고
    - 카카오 로그인 활성화 ON
 
 2. **앱 키를 두 곳에 넣는다** (둘이 어긋나면 카카오톡에서 앱으로 돌아오지 못한다)
@@ -1205,3 +1245,68 @@ rm -rf ~/Library/Developer/Xcode/DerivedData/App-*
 **iOS 프로젝트를 한 번도 빌드한 적이 없었다.** 카카오 플러그인(2026-09-06)에 들어간
 `branch: "main"` 이 그대로 있었고, 애플 플러그인을 만들면서 같은 줄을 복사해 두 개가 됐다.
 `npm run lint && build && tsc` 는 이 문제를 절대 잡지 못한다 — 웹 빌드에는 Swift 가 없다.
+
+---
+
+## 9. Android 빌드 · 서명 · Play 업로드 (2026-10-19)
+
+> Play Console 입력값과 남은 수작업은 `docs/play-store-submission.md`.
+
+### 도구 — Android Studio 없이 된다
+
+이 맥에는 Android Studio 가 없다. **커맨드라인 도구만** `~/Library/Android/sdk` 에 깔았다
+(Google 공식 zip → `cmdline-tools/latest`, 그다음 `sdkmanager` 로 `platform-tools` · `platforms;android-36` ·
+`build-tools;36.0.0`). JDK 는 Temurin 21(`capacitor.build.gradle` 이 Java 21 을 요구한다).
+
+`android/local.properties`(gitignore)에 `sdk.dir=/Users/<나>/Library/Android/sdk` 한 줄이 있으면 Gradle 이 SDK 를 찾는다.
+새 맥이면 이 파일부터 만든다.
+
+### 빌드
+
+```bash
+npm run android:bundle      # = cap:sync + ./gradlew bundleRelease
+# → android/app/build/outputs/bundle/release/app-release.aab
+```
+
+`cap:sync` 를 빼면 `capacitor.config.ts` 변경(예: `SystemBars`)이 번들에 안 들어간다. iOS 와 같다.
+
+### 서명 — 업로드 키
+
+`android/app/build.gradle` 의 `signingConfigs.release` 가 `android/keystore.properties` 를 읽는다.
+
+| 파일 | 무엇 | 커밋 |
+|---|---|---|
+| `android/keystores/ditto-upload.jks` | 업로드 키(RSA 4096, 별칭 `upload`, 30년) | ❌ gitignore |
+| `android/keystore.properties` | `storeFile` · `storePassword` · `keyAlias` · `keyPassword` | ❌ gitignore |
+
+비밀번호는 생성 시 무작위로 만들어 파일에만 썼다(화면·로그에 찍지 않았다). **두 파일을 함께 백업할 것.**
+파일이 없으면 서명하지 않은 번들이 나온다 — 빌드는 막지 않는다.
+
+이건 **업로드 키**다. Play 앱 서명이 켜져 있어 사용자에게 가는 앱은 Google 이 보관한 앱 서명 키로 다시 서명된다.
+그래서 키 해시·인증서 지문이 필요한 곳(카카오 콘솔 등)에는 **두 키를 모두** 등록한다.
+
+| 키 | SHA-1 | 카카오 키 해시 |
+|---|---|---|
+| 업로드 | `E1:8D:BC:9B:D8:9B:F1:C1:BF:FF:DD:DC:BF:E5:68:15:5B:18:E3:65` | `4Y28m9ib8cG//93cv+VoFVsY42U=` |
+| Play 앱 서명 | 첫 업로드 뒤 Play Console → 앱 서명에서 | ⬜ |
+
+### 업로드 전 확인 (2026-10-19 1.0 (1) 기준 통과)
+
+```bash
+BT=~/Library/Android/sdk/build-tools/36.0.0
+APK=android/app/build/outputs/apk/release/app-release.apk   # ./gradlew assembleRelease
+$BT/apksigner verify --print-certs $APK                      # 업로드 키로 서명됐는가
+$BT/aapt2 dump badging $APK | grep -E "^package|targetSdk"   # pics.ditto.app · versionCode · 36
+$BT/aapt2 dump permissions $APK                              # AD_ID · SCHEDULE_EXACT_ALARM 이 없어야 한다
+$BT/zipalign -c -P 16 -v 4 $APK | tail -1                    # 16KB 페이지(Play 필수, 2025-11~)
+unzip -l $APK | grep app-offline.html                        # 오프라인 폴백
+```
+
+- **16KB 페이지** — 네이티브 라이브러리는 `libdatastore_shared_counter.so`(Firebase 가 끌고 오는 androidx.datastore)
+  하나뿐이고, zip 정렬과 ELF `LOAD` 세그먼트 정렬(16384) 둘 다 맞다.
+- **카카오 리다이렉트 스킴** — 매니페스트의 `kakao<앱키>` 가 `kakaoNOT_SET` 이 아닌지. 앱 키를 못 읽으면 빌드는
+  통과하고 카카오 로그인만 실패한다(§5).
+
+### 버전
+
+`android/app/build.gradle` 의 `versionCode`(+1 씩)와 `versionName`. 이력은 `docs/play-store-submission.md` §5.
