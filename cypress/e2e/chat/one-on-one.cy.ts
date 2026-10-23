@@ -391,6 +391,7 @@ describe("1:1 chat room", () => {
   it("keeps a failed message in the room and retries it", () => {
     // Cypress 환경에는 STOMP 서버가 없어 소켓이 연결되지 않는다.
     // 일반 실패는 토스트 대신 실패 버블과 재전송 액션으로 남는다.
+    // 끊긴 채 재전송을 누르면 연결부터 다시 붙이며 기다리고(보내는 중), 끝내 못 붙으면 다시 실패로 돌아온다.
     cy.visit("/chat/one-on-one/1");
     cy.wait("@getChatMessages");
 
@@ -400,7 +401,9 @@ describe("1:1 chat room", () => {
     cy.contains("저도 반가워요!").should("be.visible");
     cy.get('[aria-label="전송 실패"]').should("be.visible");
     cy.contains("button", "재전송").should("be.visible").click();
-    cy.contains("button", "재전송").should("be.visible");
+    cy.contains("button", "재전송").should("not.exist");
+    // 재연결 대기(RETRY_RECONNECT_TIMEOUT_MS 15초)가 끝나면 실패 버블과 재전송이 돌아온다.
+    cy.contains("button", "재전송", { timeout: 20000 }).should("be.visible");
     cy.contains("메시지를 보내지 못했어요. 잠시 후 다시 시도해주세요.").should("not.exist");
   });
 });
