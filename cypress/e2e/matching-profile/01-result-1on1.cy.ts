@@ -129,27 +129,68 @@ describe("3.1 매칭 결과 - 1:1 매칭 (WF-06)", () => {
     });
 
     // 누군가 이번 주 1:1 이 성사되면 서버가 그 주의 다른 대기 신청을 CANCELLED 로 바꾼다(BE #236).
-    // 전용 문구 없이 거절과 똑같이 보여 준다(2026-10-07 기획 결정 — 위키 QA-1002 는 전용 문구를 제안했다).
-    it("다른 성사로 취소된 신청(CANCELLED)도 거절과 똑같이 표시된다", () => {
-      cy.mockApi({ matchesFixture: "matches-1on1-received.json" });
-      cy.fixture("matching-status-sent-rejected.json").then((status: { sentRequests: object[] }) => {
-        cy.intercept("GET", "**/api/**/matching/status/**", {
-          statusCode: 200,
-          body: {
-            success: true,
-            data: {
-              ...status,
-              sentRequests: status.sentRequests.map((request) => ({ ...request, status: "CANCELLED" })),
+    // 거절한 적 없는 회원이 "거절"로 보인다는 문의가 들어와 거절과 문구를 나눈다(2026-10-22,
+    // 2026-10-07 의 "거절과 같게" 결정을 뒤집음). 누가 성사됐는지는 hasAcceptedMatch 로 가른다.
+    describe("다른 성사로 취소된 신청(CANCELLED)", () => {
+      const visitWithCancelled = (
+        fixture: string,
+        overrides: { hasAcceptedMatch: boolean; acceptedMatchUserId: number | null },
+      ) => {
+        cy.mockApi({ matchesFixture: "matches-1on1-received.json" });
+        cy.fixture(fixture).then((status: { sentRequests: object[]; receivedRequests: object[] }) => {
+          const cancel = (requests: object[]) => requests.map((request) => ({ ...request, status: "CANCELLED" }));
+          cy.intercept("GET", "**/api/**/matching/status/**", {
+            statusCode: 200,
+            body: {
+              success: true,
+              data: {
+                ...status,
+                ...overrides,
+                sentRequests: cancel(status.sentRequests),
+                receivedRequests: cancel(status.receivedRequests),
+              },
             },
-          },
-        }).as("getCancelledStatus");
-      });
-      cy.visit("/matching");
-      cy.wait("@getCancelledStatus");
+          }).as("getCancelledStatus");
+        });
+        cy.visit("/matching");
+        cy.wait("@getCancelledStatus");
+        cy.contains("이번 주 매칭 결과", { timeout: 6000 }).should("be.visible");
+      };
 
-      cy.contains("수민", { timeout: 6000 }).should("be.visible");
-      cy.contains("상대방이 신청을 거절했어요").should("be.visible");
-      cy.contains("내가 대화를 신청했어요").should("not.exist");
+      it("상대가 다른 분과 성사되면 거절이 아니라 상대가 대화를 시작했다고 표시된다", () => {
+        visitWithCancelled("matching-status-sent-rejected.json", {
+          hasAcceptedMatch: false,
+          acceptedMatchUserId: null,
+        });
+
+        cy.contains("상대가 다른 분과 대화를 시작했어요").should("be.visible");
+        cy.contains("상대방이 신청을 거절했어요").should("not.exist");
+        cy.contains("내가 대화를 신청했어요").should("not.exist");
+      });
+
+      it("내가 다른 분과 성사되면 받은 신청에 연결되지 않았다고 표시된다", () => {
+        visitWithCancelled("matching-status-rejected.json", {
+          hasAcceptedMatch: true,
+          acceptedMatchUserId: 999,
+        });
+
+        cy.contains("다른 분과 대화를 시작해서 연결되지 않았어요").should("be.visible");
+        cy.contains("내가 신청을 거절했어요").should("not.exist");
+        cy.contains("상대가 대화를 신청했어요").should("not.exist");
+      });
+
+      // 거절과 마찬가지로 같은 주에는 다시 신청할 수 없다(MATCH_REQUEST_ALREADY_EXISTS).
+      it("취소된 후보의 소개노트에서도 대화를 다시 신청할 수 없다", () => {
+        visitWithCancelled("matching-status-sent-rejected.json", {
+          hasAcceptedMatch: false,
+          acceptedMatchUserId: null,
+        });
+
+        cy.contains("상대가 다른 분과 대화를 시작했어요").click();
+        cy.location("pathname", { timeout: 6000 }).should("match", /^\/profile\/501\/?$/);
+        cy.contains("이번 주에는 연결되지 않았어요").should("be.visible");
+        cy.contains("대화 신청하기").should("not.exist");
+      });
     });
 
     // 같은 주에는 다시 신청할 수 없다 — 서버가 MATCH_REQUEST_ALREADY_EXISTS 로 막으므로

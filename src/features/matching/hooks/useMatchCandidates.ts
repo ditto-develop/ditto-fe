@@ -22,6 +22,12 @@ export interface MatchItem {
     wasRejectedByThem: boolean;
     /** 상대가 보낸 신청을 내가 거절했다 */
     didRejectThem: boolean;
+    /**
+     * 둘 중 한 사람이 같은 주에 다른 사람과 성사돼 서버가 끝낸 신청(CANCELLED).
+     * 누가 성사됐는지는 hasAcceptedMatch 로 가른다 — 한 쌍의 신청은 한 주에 한 건뿐이라
+     * 내가 성사됐다면 그 상대는 이 후보가 아니다.
+     */
+    wasCancelled: boolean;
     matchRequestId?: string;
 }
 
@@ -53,6 +59,12 @@ const ACTIVE_REQUEST_STATUSES: MatchRequestStatus[] = ["PENDING", "ACCEPTED"];
 const isActive = (request?: MatchRequestDto): boolean =>
     !!request && ACTIVE_REQUEST_STATUSES.includes(request.status);
 
+const isCancelled = (request?: MatchRequestDto): boolean => request?.status === "CANCELLED";
+
+/** 거절로 보이는 끝난 요청. 서버가 만들지 않는 EXPIRED 도 여기 남겨 신청 버튼이 되살아나지 않게 한다. */
+const isRejected = (request?: MatchRequestDto): boolean =>
+    !!request && !isActive(request) && !isCancelled(request);
+
 function mergeWithStatus(
     candidates: MatchCandidateDto[],
     sentRequests: MatchRequestDto[],
@@ -64,10 +76,11 @@ function mergeWithStatus(
         // 끝난 요청은 다시 신청할 수도 없다 — 서버가 같은 주의 재요청을 MATCH_REQUEST_ALREADY_EXISTS
         // 로 막으므로, 신청 버튼을 되살리면 누를 때마다 실패한다. 전용 상태로 표시한다.
         // 방향을 나누는 이유: "내가 거절했다"와 "거절당했다"는 사용자에게 전혀 다른 사실이다.
-        // 다른 1:1 성사로 서버가 취소한 신청(CANCELLED, BE #236)도 거절과 똑같이 보여 준다 —
-        // 전용 문구를 두지 않기로 했다(2026-10-07 기획 결정).
-        const wasRejectedByThem = !!sent && !isActive(sent);
-        const didRejectThem = !!received && !isActive(received);
+        // 다른 1:1 성사로 서버가 취소한 신청(CANCELLED, BE #236)은 거절과 따로 둔다 — 거절한 적 없는
+        // 회원이 "거절"로 보인다는 문의가 들어왔다(2026-10-22, 2026-10-07 의 "거절과 같게" 결정을 뒤집음).
+        const wasRejectedByThem = isRejected(sent);
+        const didRejectThem = isRejected(received);
+        const wasCancelled = isCancelled(sent) || isCancelled(received);
         return {
             profile: toMatchProfile(c),
             // 뱃지 등급/문구는 일치 개수·전체 문항 수 기준 (getMatchBadgeInfo)
@@ -79,6 +92,7 @@ function mergeWithStatus(
             hasReceivedRequest: isActive(received),
             wasRejectedByThem,
             didRejectThem,
+            wasCancelled,
             matchRequestId: sent?.id ?? received?.id,
         };
     });

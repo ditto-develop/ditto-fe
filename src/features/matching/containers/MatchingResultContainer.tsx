@@ -124,7 +124,7 @@ export function MatchingResultContainer({
                                 onClick={() => {
                                     const state = hasAcceptedMatch && match.profile.id === acceptedMatchUserId
                                         ? "chat_started"
-                                        : match.wasRejectedByThem || match.didRejectThem
+                                        : match.wasRejectedByThem || match.didRejectThem || match.wasCancelled
                                         ? "rejected"
                                         : match.hasReceivedRequest
                                         ? "after_acceptance"
@@ -152,6 +152,16 @@ export function MatchingResultContainer({
                                     <StatusRow>
                                         <StatusBlockIcon src="/icons/status/circle-block.svg" alt="" />
                                         <StatusText>내가 신청을 거절했어요</StatusText>
+                                    </StatusRow>
+                                )}
+                                {match.wasCancelled && (
+                                    <StatusRow>
+                                        <StatusBlockIcon src="/icons/status/circle-block.svg" alt="" />
+                                        <StatusText>
+                                            {hasAcceptedMatch
+                                                ? "다른 분과 대화를 시작해서 연결되지 않았어요"
+                                                : "상대가 다른 분과 대화를 시작했어요"}
+                                        </StatusText>
                                     </StatusRow>
                                 )}
                                 {match.hasReceivedRequest && (

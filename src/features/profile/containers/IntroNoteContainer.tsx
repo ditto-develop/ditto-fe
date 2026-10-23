@@ -219,8 +219,8 @@ export function IntroNoteContainer({
                     <GradientFade />
                     <ButtonArea>
                         {state === "rejected" ? (
-                            // 거절된 요청은 되돌릴 수 없고 같은 주에 다시 신청할 수도 없다
-                            // (서버가 MATCH_REQUEST_ALREADY_EXISTS 로 막는다).
+                            // 거절·취소(다른 성사로 끝난 CANCELLED)된 요청은 되돌릴 수 없고 같은 주에 다시
+                            // 신청할 수도 없다(서버가 MATCH_REQUEST_ALREADY_EXISTS 로 막는다).
                             <CompletedButton disabled>
                                 이번 주에는 연결되지 않았어요
                             </CompletedButton>
