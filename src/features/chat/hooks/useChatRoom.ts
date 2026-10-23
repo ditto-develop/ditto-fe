@@ -11,6 +11,7 @@ import {
 import { trackEvent } from "@/shared/lib/analytics";
 import type { ChatRoomType } from "@/shared/lib/analytics";
 import { createChatSocket, type ChatSocket } from "@/features/chat/lib/chatSocket";
+import { useReconnectOnResume } from "@/features/chat/hooks/useReconnectOnResume";
 import { deriveRoomState } from "@/features/chat/lib/roomState";
 import { getSystemPeriod } from "@/features/system/api/systemStateApi";
 import { CHAT_TEXT_MAX_LENGTH } from "@/features/chat/model/constants";
@@ -35,6 +36,8 @@ const MAX_RESUME_PAGES = 5;
  * 돌아오지 않으면 실패로 판정하고 방 상태를 다시 읽어 원인을 가린다.
  */
 const SEND_ECHO_TIMEOUT_MS = 5000;
+/** 끊긴 상태에서 재시도를 누르면 다시 붙을 때까지 기다린다. 이만큼 지나도 못 붙으면 실패로 되돌린다. */
+const RETRY_RECONNECT_TIMEOUT_MS = 15000;
 
 type PendingSend = {
   localId: string;
@@ -130,6 +133,10 @@ export function useChatRoom(
   const optimisticMessagesRef = useRef<ChatOptimisticMessage[]>([]);
   const myMemberIdRef = useRef<number | null>(null);
   const localIdSequenceRef = useRef(0);
+  /** 연결이 끊긴 채 재시도를 눌러, 다시 붙으면 보낼 메시지들(localId → 포기 타이머). */
+  const retryOnConnectRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  /** 소켓 이펙트를 다시 만들지 않고 최신 전송 함수를 부르기 위한 창구. */
+  const flushRetryOnConnectRef = useRef<() => void>(() => undefined);
 
   const clearSendError = useCallback(() => setSendError(null), []);
 
@@ -293,6 +300,8 @@ export function useChatRoom(
     () => () => {
       pendingSendsRef.current.forEach((pending) => clearTimeout(pending.timeoutId));
       pendingSendsRef.current.clear();
+      retryOnConnectRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+      retryOnConnectRef.current.clear();
     },
     [],
   );
@@ -369,6 +378,7 @@ export function useChatRoom(
       },
       onConnect: () => {
         setStatus("connected");
+        flushRetryOnConnectRef.current();
         // 끊겨 있는 동안 쌓인 메시지를 REST로 메운다. 메시지는 DB에 영속돼 유실이 아니다.
         if (latestIdRef.current > 0) {
           void resumeFrom(latestIdRef.current).catch(() => undefined);
@@ -483,13 +493,51 @@ export function useChatRoom(
     ],
   );
 
+  const reconnectNow = useCallback(() => socketRef.current?.reconnectNow(), []);
+  useReconnectOnResume(reconnectNow);
+
+  // 다시 붙으면 기다리던 재시도를 보낸다. 그 사이 화면에서 사라진 메시지는 넘긴다.
+  flushRetryOnConnectRef.current = () => {
+    const waiting = [...retryOnConnectRef.current.entries()];
+    retryOnConnectRef.current.clear();
+    waiting.forEach(([localId, timeoutId]) => {
+      clearTimeout(timeoutId);
+      const message = optimisticMessagesRef.current.find((item) => item.localId === localId);
+      if (message) publishOptimisticMessage(message);
+    });
+  };
+
+  /**
+   * 실패한 메시지를 다시 보낸다.
+   *
+   * 연결이 끊겨 있으면 지금 보내 봐야 또 실패한다. "보내는 중"으로 두고 연결부터 다시 붙인 뒤,
+   * 붙는 순간 보낸다 — 끊긴 채 몇 번을 눌러도 아무 일도 일어나지 않던 문제를 막는다.
+   */
   const retrySend = useCallback(
     (localId: string) => {
       const message = optimisticMessagesRef.current.find((item) => item.localId === localId);
       if (!message || message.status !== "failed") return;
-      publishOptimisticMessage(message);
+
+      if (socketRef.current?.isConnected()) {
+        publishOptimisticMessage(message);
+        return;
+      }
+
+      updateOptimisticMessages((previous) =>
+        previous.map((item) => (item.localId === localId ? { ...item, status: "sending" } : item)),
+      );
+      const previousTimeout = retryOnConnectRef.current.get(localId);
+      if (previousTimeout) clearTimeout(previousTimeout);
+      retryOnConnectRef.current.set(
+        localId,
+        setTimeout(() => {
+          retryOnConnectRef.current.delete(localId);
+          markSendFailed(localId);
+        }, RETRY_RECONNECT_TIMEOUT_MS),
+      );
+      reconnectNow();
     },
-    [publishOptimisticMessage],
+    [markSendFailed, publishOptimisticMessage, reconnectNow, updateOptimisticMessages],
   );
 
   return {
