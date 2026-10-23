@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getChatRooms } from "@/features/chat/api/chatApi";
 import { getCounterpartProfile } from "@/features/chat/api/counterpartApi";
 import { createChatRoomsSocket } from "@/features/chat/lib/chatSocket";
+import { useReconnectOnResume } from "@/features/chat/hooks/useReconnectOnResume";
 import { setChatUnreadFromRooms } from "@/features/chat/lib/chatUnreadStore";
 import { deriveRoomState } from "@/features/chat/lib/roomState";
 import type { ChatMessage, ChatRoom, ChatRoomWithCounterpart } from "@/features/chat/model/types";
@@ -170,6 +171,9 @@ export function useChatRooms(): UseChatRoomsResult {
       void socket.deactivate();
     };
   }, [applyIncoming, applySelfRead]);
+
+  const reconnectNow = useCallback(() => socketRef.current?.reconnectNow(), []);
+  useReconnectOnResume(reconnectNow);
 
   useEffect(() => {
     socketRef.current?.setRooms(roomIdsKey === "" ? [] : roomIdsKey.split(",").map(Number));

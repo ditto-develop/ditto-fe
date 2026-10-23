@@ -24,6 +24,8 @@ type ChatSocketHandlers = {
 export type ChatSocket = {
   activate: () => void;
   deactivate: () => Promise<void>;
+  /** 끊겨 있으면 백오프를 기다리지 않고 지금 다시 붙는다. 이미 붙어 있으면 아무것도 안 한다. */
+  reconnectNow: () => void;
   publish: (message: ChatOutgoingMessage) => boolean;
   isConnected: () => boolean;
 };
@@ -31,6 +33,50 @@ export type ChatSocket = {
 /** 재연결 지터 백오프: 서버가 단일 인스턴스라 동시 재접속이 몰리는 것을 피한다. */
 const BASE_RECONNECT_DELAY_MS = 2000;
 const MAX_RECONNECT_DELAY_MS = 30000;
+
+/**
+ * 죽은 연결에서 빠져나오기 위한 설정. 두 연결(방·목록)이 같이 쓴다.
+ *
+ * stompjs 는 `onclose` 가 와야만 재연결을 예약한다. 그런데 서버가 사라지면(배포·Spot 회수) 하트비트가
+ * 끊겼을 때 기본 동작은 `ws.close()` 로 정중히 닫기를 요청하는 것뿐이고, 상대가 없는 소켓에서는
+ * 웹뷰가 닫기 핸드셰이크를 끝없이 기다려 `onclose` 가 오지 않는다 — 재시도를 아무리 눌러도 앱을
+ * 다시 켜기 전까지 붙지 않던 원인이다.
+ *
+ * - `discardWebsocketOnCommFailure`: 하트비트가 끊기면 닫기를 기다리지 않고 소켓을 버린 뒤 바로 재연결한다.
+ * - `connectionTimeout`: 연결 시도 자체가 응답 없이 매달려도 제한 시간 뒤 버리고 다시 시도한다.
+ */
+const DEAD_CONNECTION_ESCAPE = {
+  discardWebsocketOnCommFailure: true,
+  connectionTimeout: 10000,
+} as const;
+
+/**
+ * 백오프를 건너뛰고 지금 다시 붙는다 — 화면 복귀·네트워크 복구·사용자 재시도용.
+ *
+ * `deactivate({ force: true })` 로 매달린 소켓을 즉시 버리고 새로 시작한다. 연속 호출이 겹치면
+ * 연결이 두 개 생길 수 있어 진행 중이면 넘긴다. 이미 닫은 소켓은 건드리지 않는다.
+ */
+function createReconnectNow(
+  client: Client,
+  resetBackoff: () => void,
+  isDisposed: () => boolean,
+): () => void {
+  let reconnecting = false;
+  return () => {
+    if (isDisposed() || client.connected || reconnecting) return;
+    reconnecting = true;
+    resetBackoff();
+    void client
+      .deactivate({ force: true })
+      // 기다리는 사이 화면이 닫혔으면(deactivate) 다시 켜지 않는다 — 떠난 방에 연결이 남는다.
+      .then(() => {
+        if (!isDisposed()) client.activate();
+      })
+      .finally(() => {
+        reconnecting = false;
+      });
+  };
+}
 
 export function jitteredDelay(attempt: number, random: number): number {
   const exponential = Math.min(BASE_RECONNECT_DELAY_MS * 2 ** attempt, MAX_RECONNECT_DELAY_MS);
@@ -60,7 +106,16 @@ export function createChatSocket(roomId: number, handlers: ChatSocketHandlers): 
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
     reconnectDelay: BASE_RECONNECT_DELAY_MS,
+    ...DEAD_CONNECTION_ESCAPE,
   });
+  let disposed = false;
+  const reconnectNow = createReconnectNow(
+    client,
+    () => {
+      reconnectAttempt = 0;
+    },
+    () => disposed,
+  );
 
   client.onConnect = () => {
     reconnectAttempt = 0;
@@ -94,10 +149,12 @@ export function createChatSocket(roomId: number, handlers: ChatSocketHandlers): 
   return {
     activate: () => client.activate(),
     deactivate: async () => {
+      disposed = true;
       subscription?.unsubscribe();
       subscription = null;
       await client.deactivate();
     },
+    reconnectNow,
     publish: (message: ChatOutgoingMessage) => {
       if (!client.connected) return false;
       client.publish({
@@ -132,6 +189,8 @@ type ChatRoomsSocketHandlers = {
 export type ChatRoomsSocket = {
   activate: () => void;
   deactivate: () => Promise<void>;
+  /** 끊겨 있으면 백오프를 기다리지 않고 지금 다시 붙는다. */
+  reconnectNow: () => void;
   /** 구독 대상을 갈아 끼운다. 늘어난 방만 구독하고 빠진 방만 해지한다. */
   setRooms: (roomIds: number[]) => void;
 };
@@ -162,7 +221,16 @@ export function createChatRoomsSocket(handlers: ChatRoomsSocketHandlers): ChatRo
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
     reconnectDelay: BASE_RECONNECT_DELAY_MS,
+    ...DEAD_CONNECTION_ESCAPE,
   });
+  let disposed = false;
+  const reconnectNow = createReconnectNow(
+    client,
+    () => {
+      reconnectAttempt = 0;
+    },
+    () => disposed,
+  );
 
   const subscribeRoom = (roomId: number) => {
     if (!client.connected || subscriptions.has(roomId)) return;
@@ -211,9 +279,11 @@ export function createChatRoomsSocket(handlers: ChatRoomsSocketHandlers): ChatRo
   return {
     activate: () => client.activate(),
     deactivate: async () => {
+      disposed = true;
       subscriptions.clear();
       await client.deactivate();
     },
+    reconnectNow,
     setRooms: (roomIds: number[]) => {
       desiredRoomIds = [...roomIds];
       syncSubscriptions();
