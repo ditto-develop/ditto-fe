@@ -2,7 +2,7 @@
 
 import { MatchingDay } from "@/components/home/MatchingDay";
 import { MatchingCardSkeleton } from "@/components/home/_parts/MatchingCardSkeleton";
-import { matchAcceptedNotifKey } from "@/components/home/_parts/MatchingDay.helpers";
+import { matchAcceptedNotifKey, toJoinedGroupMembers } from "@/components/home/_parts/MatchingDay.helpers";
 import { ThisWeekQuiz } from "@/components/home/ThisWeekQuiz";
 import { TimeLine } from "@/components/home/Timeline";
 import type { MatchingCardType } from "@/components/home/MatchingDay";
@@ -350,7 +350,7 @@ export function MainSection() {
             isChatTime={true}
             matchType={resolvedMatchType}
             buttonState="primary"
-            candidates={resolvedCandidates}
+            candidates={isGroupWeek ? toJoinedGroupMembers(resolvedCandidates, chatRoom) : resolvedCandidates}
             hasAcceptedMatch={hasAcceptedMatch}
             acceptedCandidate={acceptedCandidate}
             chatRoom={chatRoom}

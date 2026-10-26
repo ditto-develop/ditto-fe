@@ -245,7 +245,11 @@ export const ChattingView = ({
         <ChatMainContainer>
           <RelativeProfileSlot>
             <ProfileWrapper>
-              <TopImgContainer onClick={openProfileSelector}>
+              <TopImgContainer
+                role="button"
+                aria-label="그룹 멤버 프로필 보기"
+                onClick={openProfileSelector}
+              >
                 {shown.map((c, i) => (
                   <SmallProfileImg
                     key={c.userId}
