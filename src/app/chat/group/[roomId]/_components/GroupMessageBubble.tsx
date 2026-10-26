@@ -15,6 +15,8 @@ interface GroupMessageBubbleProps {
   senderNickname: string;
   senderAvatarUrl: string | null;
   onImageClick?: (imageUrl: string) => void;
+  /** 보낸 사람 아바타를 누르면 그 사람 프로필을 연다. 보낸 사람을 못 찾으면 비운다. */
+  onAvatarClick?: () => void;
 }
 
 function formatTime(date: string): string {
@@ -31,6 +33,7 @@ export function GroupMessageBubble({
   senderNickname,
   senderAvatarUrl,
   onImageClick,
+  onAvatarClick,
 }: GroupMessageBubbleProps) {
   // IMAGE는 content가 S3 key라 그대로 그리면 안 된다. 표시는 항상 imageUrl을 쓴다.
   const body =
@@ -71,8 +74,13 @@ export function GroupMessageBubble({
   return (
     <ReceivedRow $isFirstInGroup={isFirstInGroup} data-chat-message-id={message.id}>
       {isFirstInGroup ? (
-        <AvatarSlot>
-          <Avatar src={senderAvatarUrl ?? "/assets/avatar/f1.webp"} alt={senderNickname} />
+        <AvatarSlot
+          type="button"
+          onClick={onAvatarClick}
+          disabled={!onAvatarClick}
+          aria-label={`${senderNickname} 프로필 보기`}
+        >
+          <Avatar src={senderAvatarUrl ?? "/assets/avatar/f1.webp"} alt="" />
         </AvatarSlot>
       ) : (
         <AvatarPlaceholder />
@@ -109,9 +117,17 @@ const ReceivedRow = styled.div<{ $isFirstInGroup: boolean }>`
   margin-bottom: 2px;
 `;
 
-const AvatarSlot = styled.div`
+const AvatarSlot = styled.button`
   width: 40px;
   flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+  }
 `;
 
 const AvatarPlaceholder = styled.div`

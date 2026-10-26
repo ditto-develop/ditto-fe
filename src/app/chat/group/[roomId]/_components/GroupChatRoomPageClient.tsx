@@ -279,6 +279,7 @@ export function GroupChatRoomPageClient() {
         onImageClick={setViewerImageUrl}
         getVoteById={getVoteById}
         onVoteClick={openVoteView}
+        onSenderClick={setSelectedMember}
       />
 
       {/* 나간 방은 읽기 전용이다. 입력창도 평가 버튼도 띄우지 않는다. */}

@@ -37,6 +37,8 @@ interface GroupMessageListProps {
   /** VOTE_CREATED 카드의 요약을 그리려면 상세가 필요하다. 아직 못 읽었으면 null. */
   getVoteById?: (voteId: number) => GroupVote | null;
   onVoteClick?: (voteId: number) => void;
+  /** 보낸 사람 아바타를 누르면 그 사람 프로필을 연다. */
+  onSenderClick?: (member: CounterpartProfile) => void;
 }
 
 /** `"성수 카페거리 외 2개"`. 선택지가 없으면 빈 문자열이라 호출부가 대체 문구를 쓴다. */
@@ -75,6 +77,7 @@ export function GroupMessageList({
   onImageClick,
   getVoteById,
   onVoteClick,
+  onSenderClick,
 }: GroupMessageListProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const isInitialLoad = useRef(true);
@@ -221,6 +224,7 @@ export function GroupMessageList({
               )}
               timestamp={message.createdAt}
               onClick={() => onVoteClick?.(voteEvent.voteId)}
+              onAvatarClick={creator && onSenderClick ? () => onSenderClick(creator) : undefined}
             />,
           );
           return;
@@ -259,6 +263,7 @@ export function GroupMessageList({
               outcome={outcome}
               timestamp={message.createdAt}
               onClick={() => onVoteClick?.(voteEvent.voteId)}
+              onAvatarClick={closer && onSenderClick ? () => onSenderClick(closer) : undefined}
             />,
           );
           return;
@@ -308,6 +313,8 @@ export function GroupMessageList({
           senderNickname={sender?.nickname ?? "알 수 없음"}
           senderAvatarUrl={sender?.profileImageUrl ?? null}
           onImageClick={onImageClick}
+          // 나간 회원은 memberById 에 없다 — 열 프로필이 없으니 누를 수 없게 둔다.
+          onAvatarClick={sender && onSenderClick ? () => onSenderClick(sender) : undefined}
         />,
       );
 

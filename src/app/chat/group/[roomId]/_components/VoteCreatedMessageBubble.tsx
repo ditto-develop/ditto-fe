@@ -15,6 +15,8 @@ interface VoteCreatedMessageBubbleProps {
   timeSummary: { head: string; extraCount: number };
   timestamp: string;
   onClick: () => void;
+  /** 투표를 연 사람 아바타를 누르면 그 사람 프로필을 연다. 못 찾으면 비운다. */
+  onAvatarClick?: () => void;
 }
 
 function formatTime(date: string): string {
@@ -44,6 +46,7 @@ export function VoteCreatedMessageBubble({
   timeSummary,
   timestamp,
   onClick,
+  onAvatarClick,
 }: VoteCreatedMessageBubbleProps) {
   const timeLabel = formatTime(timestamp);
 
@@ -88,10 +91,15 @@ export function VoteCreatedMessageBubble({
   return (
     <ReceivedRow data-chat-message-id={messageId}>
       {isFirstInGroup ? (
-        <AvatarSlot>
+        <AvatarSlot
+          type="button"
+          onClick={onAvatarClick}
+          disabled={!onAvatarClick}
+          aria-label={`${senderNickname} 프로필 보기`}
+        >
           <Avatar
             src={senderAvatarUrl ?? "/assets/avatar/f1.webp"}
-            alt={senderNickname}
+            alt=""
           />
         </AvatarSlot>
       ) : (
@@ -180,9 +188,17 @@ const ReceivedRow = styled.div`
   margin-bottom: 2px;
 `;
 
-const AvatarSlot = styled.div`
+const AvatarSlot = styled.button`
   width: 40px;
   flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+  }
 `;
 
 const AvatarPlaceholder = styled.div`

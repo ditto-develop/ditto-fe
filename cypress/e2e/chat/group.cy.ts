@@ -48,6 +48,18 @@ describe("group chat room", () => {
     cy.contains("만남 투표 진행 중").should("be.visible");
   });
 
+  // 캐리커처를 눌러도 반응이 없었다(QA 2026-10-26). 1:1 방처럼 보낸 사람의 프로필을 연다.
+  it("opens the sender profile from a message avatar", () => {
+    cy.visit("/chat/group/3");
+    cy.wait("@getChatRooms");
+    cy.contains("다들 안녕하세요!", { timeout: 8000 }).should("exist");
+
+    // 멤버 프로필(public-profile.json)은 모두 "수민"이다. 아무 말풍선의 아바타나 눌러도 된다.
+    cy.get('button[aria-label="수민 프로필 보기"]', { timeout: 8000 }).last().scrollIntoView().click();
+    // 소개노트 전체가 보인다(intro-notes.json 의 Q1 답) — 멤버 프로필 화면이 열렸다.
+    cy.contains("짐은 단출하게 챙기는 편이에요.", { timeout: 6000 }).should("exist");
+  });
+
   /**
    * 나가기 뒤 행선지(2026-10-04 QA, 서버 #247). 열린 방에서 나가면 서버가 응답 전에 나간 사람의
    * 평가를 열므로 평가 화면으로, 개방 전 방은 방이 끝날 때 열리므로 목록으로 간다.
