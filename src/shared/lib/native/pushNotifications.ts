@@ -346,8 +346,51 @@ async function markReadIfViewing(data: unknown): Promise<void> {
 }
 
 /**
+ * 알림 탭 이동이 문서 로드를 기다리는 상한. 넘기면 그대로 이동한다 — 콜드 스타트 스플래시
+ * 상한(ClientLayout `BOOT_SPLASH_MAX_MS`, 6초)보다 짧게 둬서 스플래시가 걷히기 전에 이동을 시작한다.
+ */
+const NAVIGATE_AFTER_LOAD_MAX_MS = 5000;
+
+/**
+ * 지금 문서의 로드(window `load`)가 끝난 다음 틱에 resolve 한다. 문서가 없으면(테스트) 다음 틱.
+ *
+ * 앱이 꺼진 채 푸시를 탭하면 탭 이벤트는 플러그인이 쥐고 있다가 리스너가 붙는 순간(로그인 확인
+ * 직후) 넘어온다. 그때 첫 문서는 아직 이미지·스크립트를 받는 중일 수 있다. 채팅방·평가 딥링크는
+ * 정적 export 라 문서를 새로 받는 이동이 되고, iOS 웹뷰는 끝나지 않은 첫 문서를 취소(-999)한다.
+ * Capacitor 는 그 취소를 로드 실패로 보고 `app-offline.html`("연결할 수 없어요")로 바꾼다
+ * (2026-10-26). load 이벤트 처리 도중에 이동을 시작하지 않으려고 한 틱 더 미룬다.
+ */
+function whenDocumentLoaded(): Promise<void> {
+    return new Promise<void>((resolve) => {
+        const resolveNextTick = () => setTimeout(resolve, 0);
+        if (typeof document === "undefined" || document.readyState === "complete") {
+            resolveNextTick();
+            return;
+        }
+        window.addEventListener("load", resolveNextTick, { once: true });
+    });
+}
+
+/**
+ * 이 문서에서 알림 탭이 이동을 맡았는지.
+ *
+ * 콜드 스타트는 루트("/")에서 세션을 확인한 뒤 홈으로 보내는데(ClientLayout), 그 확인이 탭보다
+ * 늦게 끝나면 딥링크를 홈으로 덮는다. 문서를 새로 받는 이동이면 도중에 끼어들기까지 한다.
+ * 이동을 기다리는 동안이나 문서를 받는 동안에는 주소가 아직 "/" 라 경로로는 가릴 수 없어 표시를 둔다.
+ */
+let notificationNavigationPending = false;
+
+/** 알림 탭이 이동을 맡았으면 true 를 돌려주고 표시를 지운다. 루트 → 홈 리다이렉트가 한 번 확인한다. */
+export function consumeNotificationNavigation(): boolean {
+    const pending = notificationNavigationPending;
+    notificationNavigationPending = false;
+    return pending;
+}
+
+/**
  * 알림을 탭했을 때. 원격 푸시 배너와 포그라운드 로컬 배너(`presentInForeground`) 모두 여기로 온다.
  * 탭은 곧 확인이므로 알림 센터의 행도 읽음으로 넘긴다(BE 위키 §앱 구현 노트).
+ * 이동은 문서 로드가 끝난 뒤에 한다(`whenDocumentLoaded`).
  */
 export function openNotification(data: unknown, navigate: (path: string) => void): void {
     const notificationId = extractNotificationId(data);
@@ -369,7 +412,9 @@ export function openNotification(data: unknown, navigate: (path: string) => void
     void clearChatRoomNotifications(path);
     // 딥링크 경로 자체는 싣지 않는다 — 방 번호가 그대로 들어 있다. 유무만 본다.
     trackEvent("notification_open", { has_deep_link: path !== null });
-    if (path) navigate(path);
+    if (!path) return;
+    notificationNavigationPending = true;
+    void waitAtMost(whenDocumentLoaded(), NAVIGATE_AFTER_LOAD_MAX_MS).then(() => navigate(path));
 }
 
 type PushOptions = {

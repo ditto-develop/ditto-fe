@@ -21,6 +21,7 @@ import { shouldShowWebDownload } from "@/shared/lib/webGate";
 import { initAppShell } from "@/shared/lib/native/appShell";
 import {
   clearChatRoomNotifications,
+  consumeNotificationNavigation,
   initPushNotifications,
   openNotification,
 } from "@/shared/lib/native/pushNotifications";
@@ -396,6 +397,12 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       }
 
       if (verified) sessionVerified.current = true;
+      /*
+       * 푸시를 탭해 앱이 켜졌으면 그 딥링크가 행선지다. 홈으로 덮지 않는다
+       * (`consumeNotificationNavigation` 주석). 이동할 때까지는 스플래시가 받는다 — 루트 홀드가
+       * `rootAuthResolved` 없이 남으므로 상한(BOOT_SPLASH_MAX_MS) 전에는 로그인 화면이 비치지 않는다.
+       */
+      if (consumeNotificationNavigation()) return;
       router.replace("/home");
     });
   }, [

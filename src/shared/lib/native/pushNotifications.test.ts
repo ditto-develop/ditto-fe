@@ -327,8 +327,8 @@ describe("네이티브 초기화 이후 동작", () => {
       },
     });
 
-    expect(navigate).toHaveBeenCalledWith("/chat/one-on-one/305/");
     expect(markNotificationRead).toHaveBeenCalledWith(8821);
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith("/chat/one-on-one/305/"));
     // 탭이 띄운 같은 방 알림 정리가 다음 테스트로 새지 않게 끝까지 돌린다.
     await vi.waitFor(() => expect(getDeliveredNotifications).toHaveBeenCalled());
   });
@@ -351,8 +351,8 @@ describe("네이티브 초기화 이후 동작", () => {
     // 로컬 배너 extra 에는 이미 파싱된 값(숫자 id·내부 경로)이 실린다.
     openNotification({ deepLink: "/chat/one-on-one/305/", notificationId: 8821 }, navigate);
 
-    expect(navigate).toHaveBeenCalledWith("/chat/one-on-one/305/");
     expect(markNotificationRead).toHaveBeenCalledWith(8821);
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith("/chat/one-on-one/305/"));
     // 탭이 띄운 같은 방 알림 정리가 다음 테스트로 새지 않게 끝까지 돌린다.
     await vi.waitFor(() => expect(getDeliveredNotifications).toHaveBeenCalled());
   });
@@ -403,6 +403,61 @@ describe("네이티브 초기화 이후 동작", () => {
     await vi.waitFor(() => expect(syncAppBadge).toHaveBeenCalled());
     expect(markNotificationRead).not.toHaveBeenCalled();
     window.location.pathname = "/home/";
+  });
+});
+
+/**
+ * 콜드 스타트 푸시 탭(2026-10-26): 첫 문서가 다 뜨기 전에 문서를 새로 받는 이동을 시작하면
+ * iOS 웹뷰가 첫 문서를 취소하고 Capacitor 가 오프라인 화면으로 바꾼다. 이동은 load 뒤에 한다.
+ * 채팅방 경로를 쓰면 같은 방 알림 정리가 다음 테스트로 새므로 정적 경로로 고정한다.
+ */
+describe("알림 탭 이동 시점", () => {
+  afterEach(() => {
+    Reflect.deleteProperty(globalThis, "document");
+    vi.useRealTimers();
+  });
+
+  it("문서 로드가 끝나기 전에는 이동하지 않고, load 뒤에 이동한다", async () => {
+    const { openNotification } = await import("@/shared/lib/native/pushNotifications");
+    const doc = { readyState: "loading" };
+    Object.assign(globalThis, { document: doc });
+    const navigate = vi.fn();
+
+    openNotification({ deepLink: "/matching/group/" }, navigate);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(navigate).not.toHaveBeenCalled();
+
+    doc.readyState = "complete";
+    window.dispatchEvent(new Event("load"));
+
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith("/matching/group/"));
+  });
+
+  it("load 가 오지 않아도 상한이 지나면 이동한다", async () => {
+    vi.useFakeTimers();
+    const { openNotification } = await import("@/shared/lib/native/pushNotifications");
+    Object.assign(globalThis, { document: { readyState: "loading" } });
+    const navigate = vi.fn();
+
+    openNotification({ deepLink: "/matching/group/" }, navigate);
+    await vi.advanceTimersByTimeAsync(4999);
+    expect(navigate).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(navigate).toHaveBeenCalledWith("/matching/group/");
+  });
+
+  it("딥링크로 이동을 맡은 탭만 루트 → 홈 리다이렉트를 한 번 막는다", async () => {
+    const push = await import("@/shared/lib/native/pushNotifications");
+    // 앞선 테스트의 탭이 남긴 표시를 비운다.
+    push.consumeNotificationNavigation();
+
+    push.openNotification({ notificationId: 8821 }, vi.fn());
+    expect(push.consumeNotificationNavigation()).toBe(false);
+
+    push.openNotification({ deepLink: "/matching/group/" }, vi.fn());
+    expect(push.consumeNotificationNavigation()).toBe(true);
+    expect(push.consumeNotificationNavigation()).toBe(false);
   });
 });
 
