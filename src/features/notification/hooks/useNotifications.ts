@@ -8,6 +8,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from "@/features/notification/api/notificationApi";
+import { markBellSeen, newestNotificationId } from "@/features/notification/lib/bellSeen";
 import { hiddenNotifications } from "@/features/notification/lib/hiddenNotifications";
 import { isToday } from "@/features/notification/lib/notificationTime";
 import { isUnread } from "@/features/notification/model/notificationMeta";
@@ -125,6 +126,9 @@ export function useNotifications(): UseNotificationsResult {
         if (!active) return;
         setItems(data);
         setNow(Date.now());
+        // 전체 목록을 봤으니 홈 벨 레드닷을 내린다. 벨을 눌러 들어온 경로가 아니어도
+        // (푸시 탭 등) 여기서 본 알림 때문에 점이 다시 뜨지 않게 한다.
+        if (filter === "ALL") markBellSeen(newestNotificationId(data));
       })
       .catch(() => {
         if (active) setError(true);

@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 
+import { useNotificationBellDot } from "@/features/notification/hooks/useNotificationBellDot";
+
 const Header = styled.div`
     display: flex;
     /*
@@ -32,6 +34,7 @@ const Logo = styled.img`
 `;
 
 const AlarmButton = styled.button`
+    position: relative;
     padding-top: 4px;
     border: none;
     background: none;
@@ -44,8 +47,20 @@ const AlarmIcon = styled.img`
     display: block;
 `;
 
+/** 마지막으로 벨을 누른 뒤 새 알림이 왔다는 표시(useNotificationBellDot). 종 아이콘의 오른쪽 위에 얹는다. */
+const AlarmDot = styled.span`
+    position: absolute;
+    top: var(--space-1);
+    right: 0;
+    width: var(--space-2);
+    height: var(--space-2);
+    border-radius: 50%;
+    background-color: var(--color-semantic-status-negative);
+`;
+
 export function MainHeader(){
     const router = useRouter();
+    const bell = useNotificationBellDot();
 
     return(
         <Header>
@@ -59,12 +74,16 @@ export function MainHeader(){
             <AlarmButton
                 type="button"
                 aria-label="알림"
-                onClick={() => router.push("/notifications")}
+                onClick={() => {
+                    bell.markSeen();
+                    router.push("/notifications");
+                }}
             >
                 <AlarmIcon
                     src='/icons/navigation/alarm.svg'
                     alt=""
                 />
+                {bell.showDot && <AlarmDot data-testid="notification-bell-dot" />}
             </AlarmButton>
         </Header>
     )

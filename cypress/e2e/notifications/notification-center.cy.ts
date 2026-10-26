@@ -180,6 +180,46 @@ describe("notification center", () => {
     cy.contains("7일 전").should("be.visible");
   });
 
+  /**
+   * 벨 레드닷은 "안 읽은 알림이 있다"가 아니라 "마지막으로 벨을 누른 뒤 새 알림이 왔다"다
+   * (QA 2026-10-26: 누르면 사라져야 한다). 알림 센터의 행별 안읽음 표시는 그대로 남는다.
+   */
+  it("shows a red dot on the home bell until the bell is tapped", () => {
+    mockNotificationsApi();
+    cy.visit("/home");
+
+    cy.get('[data-testid="notification-bell-dot"]', { timeout: 6000 }).should("be.visible");
+    cy.get('button[aria-label="알림"]').click();
+    cy.location("pathname").should("include", "/notifications");
+    cy.wait("@getNotifications");
+
+    // 안 읽은 알림이 남아 있어도 이미 본 알림이라, 홈으로 돌아와 다시 확인해도 점이 없다.
+    // 벨의 확인 요청(size=20)만 따로 엿본다 — 응답은 위 목업이 그대로 준다.
+    cy.intercept("GET", "**/api/**/notifications?size=20").as("bellCheck");
+    cy.go("back");
+    cy.wait("@bellCheck");
+    cy.get('button[aria-label="알림"]', { timeout: 6000 }).should("be.visible");
+    cy.get('[data-testid="notification-bell-dot"]').should("not.exist");
+
+    // 그 뒤에 새 알림이 오면 다시 뜬다.
+    mockNotificationsApi([
+      {
+        id: 10,
+        type: "CHAT_MESSAGE",
+        category: "CHAT",
+        title: "산책러버님의 새 메시지",
+        body: "내일 봬요!",
+        minutesAgo: 0,
+        read: false,
+        targetId: 22,
+        deepLink: "/chat/one-on-one/22/",
+      },
+      ...NOTIFICATIONS,
+    ]);
+    cy.reload();
+    cy.get('[data-testid="notification-bell-dot"]', { timeout: 6000 }).should("be.visible");
+  });
+
   it("filters by category chips (서버 category 파라미터)", () => {
     mockNotificationsApi();
     cy.visit("/notifications");

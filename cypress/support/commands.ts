@@ -343,6 +343,11 @@ Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
   }).as("chatImageUploadUrls");
   cy.intercept("PUT", "**/mock-chat-s3/*", { statusCode: 200, body: "" }).as("chatImagePut");
 
+  // 홈 헤더 벨이 레드닷을 판단하려고 알림 목록을 읽는다. 홈을 여는 모든 스펙이 타므로 빈 목록을
+  // 기본으로 둔다. 알림 센터 스펙은 자기 인터셉트로 덮는다(나중에 건 인터셉트가 이긴다).
+  mockStatic("GET", ["**/api/**/notifications?*"], { notifications: [], nextCursor: null }, "getNotificationsDefault");
+  mockStatic("GET", ["**/api/**/notifications/unread-count"], { count: 0 }, "getUnreadCountDefault");
+
   // 평가(member-reviews). 채팅방 목록이 평가 진입점을 그리려고 항상 조회하므로
   // 개별 스펙이 아니라 여기서 기본 목킹한다.
   mockFixture(
