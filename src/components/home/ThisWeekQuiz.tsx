@@ -15,6 +15,7 @@ import {
 } from "@/features/profile/model/introNotes";
 import { useTargetDayCountdown } from "@/lib/hooks/useKstCountdown";
 import { QUIZ_SELECT_QUERY_KEY, QUIZ_SELECT_QUERY_VALUE } from "@/components/quiz/QuizModal";
+import { formatParticipantCount } from "@/components/home/_parts/participantCount";
 import { getExternalCurrentWeekQuizSets } from "@/shared/lib/api/externalApi";
 import {
   DEFAULT_QUIZ_TOPIC_LABEL,
@@ -116,6 +117,7 @@ interface ThisWeekQuizProps {
    * 조회에 실패해 개수를 모르면 null — 그때는 퀴즈를 막지 않는다.
    */
   introNoteCount: number | null;
+  /** 서버가 준 실제 참여 인원. 표시는 구간으로 뭉갠다(formatParticipantCount). */
   participantCount: number;
 }
 
@@ -243,7 +245,7 @@ export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: T
                 <Label2 $color="var(--color-semantic-label-alternative)">
                   참여한 사람
                 </Label2>
-                <Body1Bold $weight="bold">{participantCount}명</Body1Bold>
+                <Body1Bold $weight="bold">{formatParticipantCount(participantCount)}</Body1Bold>
               </CardDivContainer>
             </FCardDivContainer>
             <img src="/assets/illustration/quizpeople.svg" loading="lazy" />
@@ -378,7 +380,7 @@ export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: T
               <Label2 $color="var(--color-semantic-label-alternative)">
                 참여한 사람
               </Label2>
-              <Body1Bold $weight="bold">{participantCount}명</Body1Bold>
+              <Body1Bold $weight="bold">{formatParticipantCount(participantCount)}</Body1Bold>
             </CardDivContainer>
           </CardContainer>
         }

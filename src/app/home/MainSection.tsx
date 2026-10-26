@@ -58,9 +58,6 @@ function mapSystemPeriod(apiPeriod: SystemStateDto["period"]): Period {
   }
 }
 
-/** 홈 "이번 주 참여자 수" 표시에만 더하는 값. 실참여 6명이면 56명으로 보인다. */
-const PARTICIPANT_COUNT_DISPLAY_OFFSET = 50;
-
 /** 방 목록은 최근 대화순이라 첫 번째가 가장 최근 방이다. */
 async function getLatestChatRoom(): Promise<ChatRoom | undefined> {
   const rooms = await getChatRooms();
@@ -132,9 +129,7 @@ export function MainSection() {
             setIsQuizComplete(
               progress.status === QuizProgressDto.status.COMPLETED
             );
-            setParticipantCount(
-              (progress.participantCount ?? 0) + PARTICIPANT_COUNT_DISPLAY_OFFSET
-            );
+            setParticipantCount(progress.participantCount ?? 0);
           }
           return;
         }
