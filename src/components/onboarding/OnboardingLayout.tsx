@@ -122,10 +122,14 @@ export function OnboardingLayout({
             {buttonText}
           </ActionButton>
 
-          {/* ✅ 서브 버튼: onSubAction이 있으면 실행, 없으면 onNext 실행(기존 호환) */}
+          {/*
+           * ✅ 서브 버튼: onSubAction이 있으면 실행, 없으면 onNext 실행(기존 호환)
+           * 메인 버튼과 같은 크기의 테두리 버튼이다. 글자 버튼(tertiary)은 높이·글자가 작아
+           * 위 버튼과 크기가 달라 보였다(QA 2026-10-26).
+           */}
           {subbuttonText && (
             <ActionButton
-              variant="tertiary"
+              variant="secondary"
               onClick={onSubAction || onNext}
             >
               {subbuttonText}
