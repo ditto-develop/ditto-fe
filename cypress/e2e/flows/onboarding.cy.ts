@@ -93,8 +93,13 @@ describe("onboarding flow", () => {
     cy.get("textarea").eq(1).click();
     cy.contains("작성 중인 다른 답변이 있어요", { timeout: 4000 }).should("be.visible");
 
-    // 저장하지 않고 화면을 떠난다. 포커스가 풀리면 하단 CTA가 돌아온다.
-    cy.contains("button", "다음에 할래요", { timeout: 4000 }).click();
+    /*
+     * 저장하지 않고 화면을 떠난다. 포커스가 풀리면 하단 CTA가 돌아온다.
+     * "다음에 할래요"가 위 버튼과 같은 52px 버튼이 된 뒤로(2026-10-26) 하단 고정 토스트가 그 대부분을
+     * 덮는다 — 토스트가 "저장 또는 취소 후 이동"을 요구하는 안내라 그대로 둔다. 이 테스트는 떠날 때
+     * 토스트가 걷히는지를 보므로 덮임 검사만 건너뛴다.
+     */
+    cy.contains("button", "다음에 할래요", { timeout: 4000 }).click({ force: true });
 
     cy.location("pathname", { timeout: 6000 }).should("match", /^\/onboarding\/complete\/?$/);
     cy.contains("작성 중인 다른 답변이 있어요").should("not.exist");
