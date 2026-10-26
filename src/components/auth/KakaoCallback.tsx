@@ -10,6 +10,7 @@ import {
   resolveSocialLogin,
 } from "@/features/auth/lib/socialLoginOutcome";
 import { takeLoginAttempt, trackEvent } from "@/shared/lib/analytics";
+import { hasValidSession } from "@/shared/lib/auth";
 import type { KakaoLoginResult } from "@/types/kakao";
 
 const LoadingContainer = styled.div`
@@ -93,6 +94,18 @@ function KakaoCallbackContent() {
         trackEvent("login_fail", { provider, method: "redirect", reason: "sanctioned" });
       }
       router.replace(`/sanction?${outcome.query}`);
+      return;
+    }
+
+    /*
+     * 쿼리에도 저장소에도 토큰이 없으면 방금 로그인한 것이 아니다 — 가입을 포기하고 나간 뒤
+     * 히스토리(iOS 스와이프 등)로 되돌아온 옛 항목이거나, 토큰을 지운 뒤 늦게 도착한 3001 로
+     * SignupIncompleteGate 가 보낸 것이다. 네이티브 로그인은 토큰을 먼저 저장하고 들어온다.
+     * 여기서 가입 화면을 열면 남아 있던 refresh 쿠키가 포기한 계정을 되살려 다른 수단(애플)으로
+     * 로그인할 수 없게 되므로 로그인 화면으로 돌려보낸다.
+     */
+    if (!hasValidSession()) {
+      router.replace("/");
       return;
     }
 

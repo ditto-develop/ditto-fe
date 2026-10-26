@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { SIGNUP_INCOMPLETE_EVENT } from "@/shared/lib/api/apiError";
+import { normalizePathname } from "@/shared/lib/routePath";
 
 /**
  * 회원가입 미완료(3001)는 특정 화면이 아니라 세션 전체에 걸린다 — 로그인 응답이
@@ -19,6 +20,13 @@ export function SignupIncompleteGate() {
     const handle = () => {
       // 회원가입 화면 자체에서는 무한 이동하지 않도록 막는다.
       if (pathname?.startsWith("/auth/callback")) return;
+      /*
+       * 로그인 화면(루트)에서도 보내지 않는다. 루트는 가입 미완료 세션을 로그인 버튼 화면에
+       * 그대로 두기로 했다(ClientLayout 의 루트 진입 확인) — 버튼을 누르면 로그인이 새로 시작돼
+       * 가입으로 이어진다. 여기서 보내면 가입을 포기하고 나온 사람이 늦게 도착한 3001 하나에
+       * 포기한 계정의 가입 화면으로 끌려가 다른 수단(애플)으로 로그인할 수 없다(QA 2026-10-26).
+       */
+      if (pathname && normalizePathname(pathname) === "/") return;
       router.replace("/auth/callback?signupRequired=true");
     };
 

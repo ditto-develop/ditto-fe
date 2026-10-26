@@ -13,6 +13,8 @@ import { createExternalUser, saveExternalIntroNote } from "@/shared/lib/api/exte
 import { clearTokens } from "@/shared/lib/auth";
 import { API_ERROR_CODE, describeError, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { useBackClose } from "@/shared/hooks/useBackClose";
+import { useHistoryBackGuard } from "@/shared/hooks/useHistoryBackGuard";
+import { closeTopOverlay } from "@/shared/lib/overlayStack";
 import { calculateAge, toAgeBucket } from "@/shared/lib/age";
 import { avatarImageUrl } from "@/shared/lib/avatar";
 import type { CreateExternalUserBody } from "@/shared/lib/api/externalApi";
@@ -131,6 +133,8 @@ export function Tutorial({ initialData }: TutorialProps) {
   // 그대로라 ref 이름도 컴포넌트를 따르고, 화면 번호와는 하나씩 어긋난다.
   const step2Ref = useRef<Step2Ref>(null);      // 1단계: 프로필
   const step3Ref = useRef<Step3Ref>(null);      // 2단계: 소개 노트
+  // 방금 처리한 뒤로가기가 가입을 떠났는지(goPrevStep 이 세운다). 히스토리 가드가 다시 쌓을지를 가른다.
+  const leftSignupRef = useRef(false);
 
   // --- Form Data ---
   const [formData, setFormData] = useState<FormData>({
@@ -384,6 +388,7 @@ export function Tutorial({ initialData }: TutorialProps) {
       return;
     }
 
+    leftSignupRef.current = true;
     // 1단계에서의 뒤로가기는 가입 포기다. 이탈 지점을 직접 가리키는 유일한 이벤트다.
     trackEvent("signup_abandon", { step_index: step, step_name: SIGNUP_STEP_NAMES[step] });
     clearTokens();
@@ -404,6 +409,20 @@ export function Tutorial({ initialData }: TutorialProps) {
    * 모달·바텀시트가 떠 있으면 그쪽이 스택 위라 먼저 닫힌다.
    */
   useBackClose(step >= 1, goPrevStep);
+
+  /**
+   * iOS 가장자리 스와이프(웹뷰 히스토리 뒤로가기)도 같게 동작시킨다. 스와이프는 JS 를 거치지 않고
+   * 웹뷰 히스토리를 되감아, goPrevStep 이 돌지 않은 채 — 가입 미완료 토큰을 든 채 — 로그인 전에
+   * 보던 화면이나 리다이렉트 로그인의 카카오 페이지로 나갈 수 있었다. QA 2026-10-26 의 "가입
+   * 화면에서 뒤로가면 크래시 · 카카오로 시작하면 돌아가 애플로 로그인할 수 없음"은 기기에서
+   * 재현하지 못해, 그럴 만한 경로를 막는 것이다.
+   * 안드로이드 뒤로가기와 같은 순서로, 시트가 떠 있으면 시트만 닫고 아니면 goPrevStep 이다.
+   */
+  useHistoryBackGuard(step >= 1, () => {
+    leftSignupRef.current = false;
+    closeTopOverlay();
+    return !leftSignupRef.current;
+  });
 
   const handleNext = () => {
     // ✅ 각 단계별 Ref 검증 로직 분리

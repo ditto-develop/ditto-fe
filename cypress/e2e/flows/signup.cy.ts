@@ -134,6 +134,71 @@ describe("signup flow", () => {
     cy.window().its("localStorage").invoke("getItem", "accessToken").should("be.null");
   });
 
+  /**
+   * iOS 가장자리 스와이프는 웹뷰 히스토리 뒤로가기라 화면 안 뒤로 버튼을 거치지 않는다.
+   * 히스토리 가드가 그것도 같은 동작(로그인 화면으로 나가며 토큰 삭제)으로 바꾼다(QA 2026-10-26).
+   */
+  it("treats a history back (iOS edge swipe) on the profile step like the back button", () => {
+    cy.visit(OAUTH_ENTRY);
+
+    cy.contains("프로필 작성하기", { timeout: 6000 }).should("be.visible");
+    cy.go("back");
+
+    cy.location("pathname", { timeout: 6000 }).should("match", /^\/$/);
+    cy.contains("카카오로 계속하기", { timeout: 6000 }).should("be.visible");
+    cy.window().its("localStorage").invoke("getItem", "accessToken").should("be.null");
+  });
+
+  it("steps back to the profile step on a history back from the intro note step", () => {
+    cy.visit(OAUTH_ENTRY);
+    cy.contains("프로필 작성하기", { timeout: 6000 }).should("be.visible");
+    fillProfile();
+    clickNavigationButton("다음");
+    cy.contains("소개 노트 작성하기", { timeout: 6000 }).should("be.visible");
+
+    cy.go("back");
+    cy.contains("프로필 작성하기", { timeout: 6000 }).should("be.visible");
+    cy.location("pathname").should("include", "/oauth/kakao");
+
+    // 가드가 다시 쌓였다 — 한 번 더 뒤로가면 그때 가입을 떠난다.
+    cy.go("back");
+    cy.location("pathname", { timeout: 6000 }).should("match", /^\/$/);
+    cy.contains("카카오로 계속하기", { timeout: 6000 }).should("be.visible");
+  });
+
+  /**
+   * 토큰 없이 들어온 콜백은 방금 로그인한 것이 아니다(가입을 포기한 뒤 히스토리로 되돌아온 항목 등).
+   * 가입 화면을 열면 남은 refresh 쿠키가 포기한 계정을 되살리므로 로그인 화면으로 보낸다.
+   */
+  it("sends a callback entry without any token to the login screen", () => {
+    cy.visit("/auth/callback?signupRequired=true");
+
+    cy.location("pathname", { timeout: 6000 }).should("match", /^\/$/);
+    cy.contains("카카오로 계속하기", { timeout: 6000 }).should("be.visible");
+    cy.contains("프로필 작성하기").should("not.exist");
+  });
+
+  /**
+   * 로그인 화면(루트)에서는 가입 미완료(3001)여도 가입 화면으로 끌고 가지 않는다 — 루트 진입
+   * 확인이 로그인 버튼 화면에 두기로 한 대로다. 끌고 가면 다른 수단(애플)으로 로그인할 수 없다.
+   */
+  it("keeps a signup-incomplete session on the login screen", () => {
+    cy.intercept("GET", "**/api/v1/system/state", {
+      statusCode: 403,
+      body: {
+        success: false,
+        data: null,
+        error: { code: "3001", message: "회원가입을 완료해야 이용할 수 있습니다.", statusCode: 403 },
+      },
+    }).as("signupIncompleteState");
+    cy.login();
+    cy.visit("/");
+
+    cy.wait("@signupIncompleteState");
+    cy.contains("카카오로 계속하기", { timeout: 8000 }).should("be.visible");
+    cy.location("pathname").should("match", /^\/$/);
+  });
+
   it("blocks the profile step when required fields are empty", () => {
     cy.visit(OAUTH_ENTRY);
 
