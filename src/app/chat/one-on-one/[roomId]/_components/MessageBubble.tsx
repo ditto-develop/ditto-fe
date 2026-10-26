@@ -263,10 +263,14 @@ const ImageFallback = styled.span`
   color: var(--color-semantic-label-alternative);
 `;
 
+/*
+ * 안읽음 수는 시간 위, 말풍선 쪽 끝에 붙인다(그룹 말풍선과 같은 배치). 시간 칸의 반대쪽 끝에
+ * 두면 시간 글자 폭만큼 말풍선에서 떨어져 보였다(QA 2026-10-26).
+ */
 const SentMeta = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: flex-end;
   gap: 2px;
   flex-shrink: 0;
@@ -313,9 +317,14 @@ const RetryButton = styled.button`
   cursor: pointer;
 `;
 
+/* SentMeta 와 좌우만 바꾼 배치. 가로로 두면 안읽음 수와 시간이 붙어 "112:30"처럼 읽혔다. */
 const ReceivedMeta = styled.div`
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
 `;
 
 const TimeLabel = styled.span`
