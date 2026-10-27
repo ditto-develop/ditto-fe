@@ -16,6 +16,8 @@ import { getExternalSystemState } from "@/shared/lib/api/externalApi";
 import { API_ERROR_CODE, describeError, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { getGtagScriptSrc, useAnalytics } from "@/shared/lib/analytics";
 import { initChunkReloadGuard } from "@/shared/lib/chunkReload";
+// 부수효과 import: 모듈을 읽는 순간 DB 초기화 전의 id 기록을 비운다(staleLocalIds 주석).
+import "@/shared/lib/staleLocalIds";
 import { isBootSplashPath, normalizePathname } from "@/shared/lib/routePath";
 import { shouldShowWebDownload } from "@/shared/lib/webGate";
 import { initAppShell } from "@/shared/lib/native/appShell";

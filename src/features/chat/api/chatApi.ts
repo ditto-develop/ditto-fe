@@ -18,6 +18,14 @@ export function setChatRoomMuted(roomId: number, muted: boolean): Promise<null> 
   });
 }
 
+/**
+ * 끝난 방을 내 목록에서 감춘다. 서버가 계정 단위로 기록해(`hidden_at`) 다른 기기에서도 빠진다.
+ * 메시지와 상대 목록은 그대로다. 진행 중인 방은 서버가 7006(CHAT_ROOM_NOT_ENDED)으로 막는다.
+ */
+export function hideChatRoom(roomId: number): Promise<unknown> {
+  return externalApiFetch<unknown>(`/api/v1/chat/rooms/${roomId}`, { method: "DELETE" });
+}
+
 /** 내 채팅방 목록. 최근 대화순 정렬로 내려온다. */
 export async function getChatRooms(): Promise<ChatRoom[]> {
   const rooms = await externalApiFetch<ChatRoom[]>("/api/v1/chat/rooms");

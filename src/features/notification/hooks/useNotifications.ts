@@ -1,15 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
+  deleteAllNotifications,
+  deleteNotification,
   getNotifications,
   getUnreadNotificationCount,
   markAllNotificationsRead,
   markNotificationRead,
 } from "@/features/notification/api/notificationApi";
 import { markBellSeen, newestNotificationId } from "@/features/notification/lib/bellSeen";
-import { hiddenNotifications } from "@/features/notification/lib/hiddenNotifications";
 import { isToday } from "@/features/notification/lib/notificationTime";
 import { isUnread } from "@/features/notification/model/notificationMeta";
 import type {
@@ -18,7 +19,6 @@ import type {
   NotificationItem,
   NotificationSection,
 } from "@/features/notification/model/types";
-import { EMPTY_HIDDEN_IDS } from "@/shared/lib/hiddenItemStore";
 import { syncAppBadge } from "@/shared/lib/native/appBadge";
 import { PUSH_RECEIVED_EVENT } from "@/shared/lib/native/pushNotifications";
 import { parseServerDateTime } from "@/shared/lib/serverDateTime";
@@ -45,9 +45,9 @@ type UseNotificationsResult = {
   isEmpty: boolean;
   markRead: (id: number) => void;
   markAllRead: () => void;
-  /** 알림 한 건을 목록에서 치운다(기기 로컬 — hiddenNotifications 주석 참고). */
+  /** 알림 한 건을 지운다. 서버에 기록돼 다른 기기에서도 빠진다. */
   hide: (id: number) => void;
-  /** 지금 목록에 보이는 알림을 모두 치운다. 다른 탭의 알림은 건드리지 않는다. */
+  /** 지금 탭의 알림을 모두 지운다. 다른 탭의 알림은 건드리지 않는다. */
   hideAll: () => void;
   /** '전체 지우기'를 누를 수 있는 상태인지. */
   canHideAll: boolean;
@@ -97,16 +97,6 @@ export function useNotifications(): UseNotificationsResult {
    * Frontend-Push-Guide §앱 구현 노트), 열려 있는 알림 센터가 스스로 최신을 받아야 한다.
    */
   const [reloadKey, setReloadKey] = useState(0);
-  /**
-   * 이 기기에서 치운 알림 id. 서버에 삭제 API 가 없어 로컬로만 숨긴다
-   * (hiddenNotifications 주석 참고). 다른 탭에서 치운 것도 따라오도록 구독한다.
-   */
-  const hiddenIds = useSyncExternalStore(
-    hiddenNotifications.subscribe,
-    hiddenNotifications.read,
-    // SSR(정적 내보내기)에는 저장소가 없다. 빈 Set 이어야 하이드레이션이 어긋나지 않는다.
-    () => EMPTY_HIDDEN_IDS,
-  );
 
   // 웹에서는 이 이벤트가 발생하지 않는다(푸시 진입점 전체가 네이티브로 막혀 있다).
   useEffect(() => {
@@ -158,11 +148,8 @@ export function useNotifications(): UseNotificationsResult {
   }, [reloadKey]);
 
   const visibleItems = useMemo(
-    () =>
-      items
-        .filter((item) => !hiddenIds.has(String(item.id)))
-        .sort((left, right) => toTimestamp(right.createdAt) - toTimestamp(left.createdAt)),
-    [items, hiddenIds],
+    () => [...items].sort((left, right) => toTimestamp(right.createdAt) - toTimestamp(left.createdAt)),
+    [items],
   );
 
   const sections = useMemo(() => toSections(visibleItems, now), [visibleItems, now]);
@@ -192,23 +179,34 @@ export function useNotifications(): UseNotificationsResult {
   }, []);
 
   /**
-   * 치우기는 읽음까지 함께 처리한다. 목록에서 사라진 알림이 벨 배지에는 계속 잡혀 있으면
-   * "안 읽은 알림이 있다는데 목록은 비어 있다"가 된다.
+   * 지우기는 서버에 기록한다. 예전에는 기기 저장소에 알림 id 만 적어 두고 목록에서 뺐는데,
+   * DB 를 초기화해 id 가 다시 1부터 매겨지자 새 알림이 예전에 지운 id 와 겹쳐 보이지 않았다(2026-10-27).
+   *
+   * 화면에서는 먼저 빼고(낙관적), 실패하면 다시 읽어 서버 상태로 되돌린다. 서버는 지운 알림을
+   * 미읽음 수에서도 빼므로, 지운 것이 안 읽은 알림이었으면 배지도 함께 내린다.
    */
   const hide = useCallback(
     (id: number) => {
       const target = items.find((item) => item.id === id);
-      if (target && isUnread(target)) markRead(id);
-      hiddenNotifications.hide(id);
+      if (!target) return;
+      setItems((previous) => previous.filter((item) => item.id !== id));
+      if (isUnread(target)) setUnreadCount((previous) => Math.max(previous - 1, 0));
+      void deleteNotification(id)
+        .then(() => syncAppBadge())
+        .catch(() => setReloadKey((previous) => previous + 1));
     },
-    [items, markRead],
+    [items],
   );
 
   const hideAll = useCallback(() => {
     if (visibleItems.length === 0) return;
-    if (visibleItems.some(isUnread)) markAllRead();
-    hiddenNotifications.hideAll(visibleItems.map((item) => item.id));
-  }, [visibleItems, markAllRead]);
+    const removedUnread = visibleItems.filter(isUnread).length;
+    setItems([]);
+    setUnreadCount((previous) => Math.max(previous - removedUnread, 0));
+    void deleteAllNotifications(filter === "ALL" ? undefined : filter)
+      .then(() => syncAppBadge())
+      .catch(() => setReloadKey((previous) => previous + 1));
+  }, [filter, visibleItems]);
 
   return {
     sections,

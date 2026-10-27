@@ -116,7 +116,7 @@ export function NotificationCenterContainer() {
       <AlertModal
         isOpen={isClearAllOpen}
         title="알림을 모두 지울까요?"
-        message="지운 알림은 이 기기에서 다시 볼 수 없어요."
+        message="지운 알림은 다른 기기에서도 다시 볼 수 없어요."
         confirmParams={{
           // 상단 바 버튼과 글자가 겹치지 않게 둔다 — 겹치면 어느 쪽을 눌렀는지 모른다.
           text: "모두 지우기",

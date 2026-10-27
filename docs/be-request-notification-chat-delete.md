@@ -3,6 +3,9 @@
 > 작성: 2026-09-18 · FE 담당: @junseo2323
 > 관련: [BE-Request 위키](https://github.com/ditto-develop/ditto-fe/wiki/BE-Request)
 > 우선순위: **P2** — FE 가 임시 우회(기기 로컬 숨김)로 먼저 냈습니다. 우회는 기기마다 어긋납니다.
+> **상태(2026-10-27): 알림·대화방 삭제는 해결.** BE 가 `DELETE /api/v1/notifications(/{id})`·`DELETE /api/v1/chat/rooms/{roomId}` 를 냈고,
+> FE 가 기기 로컬 숨김을 걷어 내고 이 API 로 옮겼다. 계기는 DB 초기화로 id 가 겹쳐 새 재매칭 대기방이 목록에서 사라진 일이다.
+> 기기에 남은 옛 숨김 기록은 `src/shared/lib/staleLocalIds.ts` 가 한 번 지운다.
 
 ---
 

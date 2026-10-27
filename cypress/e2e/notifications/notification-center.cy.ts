@@ -305,11 +305,15 @@ describe("notification center", () => {
   });
 
   /**
-   * 옆으로 밀어 지우기. 서버에 삭제 API 가 없어 기기 로컬 숨김이다
-   * (docs/be-request-notification-chat-delete.md) — 그래서 새로고침 뒤 검증까지 한다.
+   * 옆으로 밀어 지우기. 서버(`DELETE /notifications/{id}`, 계정 단위)에 기록한다. 기기 로컬 숨김은
+   * DB 초기화로 id 가 겹치자 새 알림까지 가려서 없앴다(2026-10-27).
    */
   it("옆으로 밀어 알림 하나를 지운다", () => {
     mockNotificationsApi();
+    cy.intercept("DELETE", /\/api\/v1\/notifications\/\d+$/, {
+      statusCode: 200,
+      body: { success: true, data: { deletedCount: 1 }, error: null },
+    }).as("deleteNotification");
     cy.visit("/notifications");
     cy.wait("@getNotifications");
 
@@ -323,18 +327,18 @@ describe("notification center", () => {
     swipeOpen("이번 주 매칭 결과가 나왔어요");
     cy.get('[aria-label="알림 삭제: 이번 주 매칭 결과가 나왔어요"]').click();
 
+    cy.wait("@deleteNotification");
     cy.contains("이번 주 매칭 결과가 나왔어요").should("not.exist");
     // 다른 알림은 그대로 남는다.
     cy.contains("산책러버님의 새 메시지").should("be.visible");
-
-    cy.reload();
-    cy.wait("@getNotifications");
-    cy.contains("산책러버님의 새 메시지").should("be.visible");
-    cy.contains("이번 주 매칭 결과가 나왔어요").should("not.exist");
   });
 
   it("전체 지우기로 목록을 비운다", () => {
     mockNotificationsApi();
+    cy.intercept("DELETE", /\/api\/v1\/notifications(\?.*)?$/, {
+      statusCode: 200,
+      body: { success: true, data: { deletedCount: 3 }, error: null },
+    }).as("deleteAllNotifications");
     cy.visit("/notifications");
     cy.wait("@getNotifications");
 
@@ -342,6 +346,8 @@ describe("notification center", () => {
     cy.contains("알림을 모두 지울까요?").should("be.visible");
     cy.contains("button", "모두 지우기").click();
 
+    // '전체' 탭이라 카테고리 없이 지운다.
+    cy.wait("@deleteAllNotifications").its("request.url").should("match", /\/notifications$/);
     cy.contains("새로운 알림이 없어요").should("be.visible");
     cy.contains("button", "전체 지우기").should("be.disabled");
   });

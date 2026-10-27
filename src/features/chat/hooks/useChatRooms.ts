@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { getChatRooms } from "@/features/chat/api/chatApi";
+import { getChatRooms, hideChatRoom } from "@/features/chat/api/chatApi";
 import { getCounterpartProfile } from "@/features/chat/api/counterpartApi";
 import { createChatRoomsSocket } from "@/features/chat/lib/chatSocket";
 import { useReconnectOnResume } from "@/features/chat/hooks/useReconnectOnResume";
@@ -17,6 +17,14 @@ type UseChatRoomsResult = {
   loading: boolean;
   error: boolean;
   refresh: () => Promise<void>;
+  /**
+   * 끝난 방을 내 목록에서 감춘다. 화면에서 먼저 빼고 서버에 기록한다 — 실패하면 다시 읽어 되돌린다.
+   *
+   * 예전에는 기기 저장소에 방 id 만 적어 두고 목록에서 뺐는데, DB 를 초기화해 id 가 다시 1부터
+   * 매겨지자 새 방(재매칭 대기방)이 예전에 지운 방 id 와 겹쳐 목록에서 사라졌다(2026-10-27).
+   * 서버(`hidden_at`)는 계정 단위라 기기·재설치·초기화와 무관하다.
+   */
+  hideRooms: (roomIds: number[]) => void;
 };
 
 async function attachCounterpart(room: ChatRoom): Promise<ChatRoomWithCounterpart> {
@@ -190,5 +198,18 @@ export function useChatRooms(): UseChatRoomsResult {
     setChatUnreadFromRooms(rooms);
   }, [rooms, loading]);
 
-  return { rooms, loading, error, refresh: load };
+  const hideRooms = useCallback(
+    (roomIds: number[]) => {
+      if (roomIds.length === 0) return;
+      const hidden = new Set(roomIds);
+      setRooms((previous) => previous.filter((room) => !hidden.has(room.roomId)));
+      // 일괄 감춤 API 가 없어 방마다 부른다. 끝난 방만 대상이라 수가 적다.
+      void Promise.allSettled(roomIds.map((roomId) => hideChatRoom(roomId))).then((results) => {
+        if (results.some((result) => result.status === "rejected")) void load();
+      });
+    },
+    [load],
+  );
+
+  return { rooms, loading, error, refresh: load, hideRooms };
 }

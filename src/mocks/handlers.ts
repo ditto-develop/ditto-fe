@@ -298,6 +298,10 @@ export const handlers = [
       }),
     );
   }),
+  http.delete(apiPath("/notifications/[^/]+"), () =>
+    HttpResponse.json(success({ deletedCount: 1 })),
+  ),
+  http.delete(apiPath("/notifications"), () => HttpResponse.json(success({ deletedCount: 0 }))),
   http.put(apiPath("/notifications/read-all"), () => {
     const readCount = notificationsFixture.filter(
       (item) => !readNotificationIds.has(item.id),
@@ -398,6 +402,8 @@ export const handlers = [
   http.post(apiPath("/chat/rooms/[^/]+/read"), () => HttpResponse.json(success(null))),
   // 종료는 멱등이고 응답 data가 비어 있다. 그룹 방이면 BE가 7002로 막는다.
   http.post(apiPath("/chat/rooms/[^/]+/end"), () => HttpResponse.json(success({}))),
+  // 끝난 방을 내 목록에서 감춘다(계정 단위). 목은 목록을 바꾸지 않는다.
+  http.delete(apiPath("/chat/rooms/[^/]+"), () => HttpResponse.json(success(null))),
   http.post(apiPath("/chat/rooms/[^/]+/image-upload-urls"), async ({ request }) => {
     const body = (await request.json().catch(() => null)) as { files?: unknown[] } | null;
     const files = Array.isArray(body?.files) ? body.files : [];

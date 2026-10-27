@@ -193,9 +193,14 @@ describe("chat list", () => {
   });
 
   /**
-   * 옆으로 밀어 지우기 — **완료된 방만** 열린다. 서버에 방 삭제 API 가 없어 기기 로컬
-   * 숨김이다(docs/be-request-notification-chat-delete.md).
+   * 옆으로 밀어 지우기 — **완료된 방만** 열린다. 서버(`DELETE /chat/rooms/{id}`, 계정 단위 감춤)에
+   * 기록한다. 기기 로컬 숨김은 DB 초기화로 id 가 겹치자 새 방까지 가려서 없앴다(2026-10-27).
    */
+  const interceptHideRoom = () =>
+    cy.intercept("DELETE", /\/api\/v1\/chat\/rooms\/\d+$/, {
+      statusCode: 200,
+      body: { success: true, data: null, error: null },
+    }).as("hideRoom");
   const swipeOpen = (text: string) =>
     cy
       .contains(text)
@@ -204,6 +209,7 @@ describe("chat list", () => {
       .trigger("pointerup", { clientX: 200, clientY: 200, pointerId: 1 });
 
   it("옆으로 밀어 완료된 대화방을 지운다", () => {
+    interceptHideRoom();
     cy.visit("/chat");
     cy.wait("@getChatRooms");
     cy.contains("수민", { timeout: 8000 }).should("be.visible");
@@ -212,13 +218,10 @@ describe("chat list", () => {
     swipeOpen("사진을 보냈어요.");
     cy.get('[aria-label^="대화방 삭제"]').filter(":visible").first().click();
 
+    cy.wait("@hideRoom").its("request.url").should("match", /\/chat\/rooms\/2$/);
     cy.contains("사진을 보냈어요.").should("not.exist");
     // 진행 중인 방은 그대로다.
     cy.contains("안녕하세요, 반가워요!").should("be.visible");
-
-    cy.reload();
-    cy.contains("안녕하세요, 반가워요!", { timeout: 8000 }).should("be.visible");
-    cy.contains("사진을 보냈어요.").should("not.exist");
   });
 
   it("진행 중인 대화방은 밀어도 삭제 버튼이 열리지 않는다", () => {
@@ -235,6 +238,7 @@ describe("chat list", () => {
   });
 
   it("완료된 대화 지우기로 종료된 방만 비운다", () => {
+    interceptHideRoom();
     cy.visit("/chat");
     cy.wait("@getChatRooms");
     cy.contains("수민", { timeout: 8000 }).should("be.visible");
@@ -243,6 +247,9 @@ describe("chat list", () => {
     cy.contains("완료된 대화를 모두 지울까요?").should("be.visible");
     cy.contains("button", "모두 지우기").click();
 
+    // 끝난 방(2)만 서버에 감춤을 요청한다. 진행 중인 방은 보내지 않는다.
+    cy.wait("@hideRoom").its("request.url").should("match", /\/chat\/rooms\/2$/);
+    cy.get("@hideRoom.all").should("have.length", 1);
     cy.contains("사진을 보냈어요.").should("not.exist");
     cy.contains("안녕하세요, 반가워요!").should("be.visible");
     cy.contains("button", "완료된 대화 지우기").should("not.exist");
