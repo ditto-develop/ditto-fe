@@ -40,6 +40,21 @@ export function markBellSeen(newestId: number): void {
   }
 }
 
+/**
+ * 적어 둔 값이 실제 가장 최근 알림보다 크면 끌어내린다.
+ *
+ * 알림 id 는 늘기만 하므로 이 상태는 DB 초기화로 id 가 다시 1부터 매겨졌을 때만 생긴다. 그대로 두면
+ * 새 id 가 옛 값을 넘을 때까지 벨 점이 뜨지 않는다. 내려도 안전하다 — 화면에 그보다 큰 id 가 없다.
+ */
+export function healBellSeen(newestId: number): void {
+  if (!Number.isFinite(newestId) || readBellSeenId() <= newestId) return;
+  try {
+    window.localStorage.setItem(storageKey(), String(newestId));
+  } catch {
+    // 내리지 못하면 점이 늦게 뜰 뿐이다.
+  }
+}
+
 /** 목록에서 가장 최근 알림 id. 비어 있으면 0. */
 export function newestNotificationId(items: NotificationItem[]): number {
   return items.reduce((newest, item) => Math.max(newest, item.id), 0);

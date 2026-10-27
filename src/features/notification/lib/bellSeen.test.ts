@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   hasNewUnreadSince,
+  healBellSeen,
   markBellSeen,
   newestNotificationId,
   readBellSeenId,
@@ -91,5 +92,25 @@ describe("markBellSeen", () => {
 
     window.localStorage.setItem("accessToken", fakeAccessToken(8));
     expect(readBellSeenId()).toBe(0);
+  });
+
+  describe("healBellSeen", () => {
+    it("pulls a value left over from before a DB reset down to the newest real id", () => {
+      // id 가 1부터 다시 매겨지면 옛 값(500)이 새 알림(3)을 모두 "본 것"으로 가린다.
+      markBellSeen(500);
+
+      healBellSeen(3);
+
+      expect(readBellSeenId()).toBe(3);
+      expect(hasNewUnreadSince([notification(4, false)], readBellSeenId())).toBe(true);
+    });
+
+    it("never raises the value", () => {
+      markBellSeen(10);
+
+      healBellSeen(20);
+
+      expect(readBellSeenId()).toBe(10);
+    });
   });
 });

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getNotifications } from "@/features/notification/api/notificationApi";
 import {
   hasNewUnreadSince,
+  healBellSeen,
   markBellSeen,
   newestNotificationId,
   readBellSeenId,
@@ -36,6 +37,7 @@ export function useNotificationBellDot(): NotificationBellDot {
     getNotifications({ size: CHECK_SIZE })
       .then(({ notifications }) => {
         newestIdRef.current = newestNotificationId(notifications);
+        healBellSeen(newestIdRef.current);
         setShowDot(hasNewUnreadSince(notifications, readBellSeenId()));
       })
       // 점 하나로 화면을 막을 일은 아니다. 실패하면 직전 상태를 그대로 둔다.

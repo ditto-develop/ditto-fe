@@ -42,6 +42,26 @@ export function markAllNotificationsRead(): Promise<{ readCount: number }> {
   });
 }
 
+/**
+ * 알림 하나를 지운다. 서버가 계정 단위로 기록해(`deleted_at`) 다른 기기에서도 빠지고,
+ * 미읽음 수·전체 읽음에서도 빠진다. 되돌릴 수 없다. 내 알림이 아니거나 이미 지웠으면 404다.
+ */
+export function deleteNotification(id: number): Promise<{ deletedCount: number }> {
+  return externalApiFetch<{ deletedCount: number }>(`/api/v1/notifications/${id}`, {
+    method: "DELETE",
+  });
+}
+
+/** 알림을 모두 지운다. [category] 를 주면 그 탭만. 지울 것이 없어도 성공한다. */
+export function deleteAllNotifications(
+  category?: NotificationCategory,
+): Promise<{ deletedCount: number }> {
+  const query = category ? `?${new URLSearchParams({ category }).toString()}` : "";
+  return externalApiFetch<{ deletedCount: number }>(`/api/v1/notifications${query}`, {
+    method: "DELETE",
+  });
+}
+
 /** 방에 들어가면 이미 본 것으로 치는 알림. 평가 요청(REVIEW_*)은 할 일이 남아 있어 빠진다. */
 const CHAT_ROOM_SEEN_TYPES = new Set(["CHAT_MESSAGE", "CHAT_ENDING_SOON"]);
 
