@@ -23,7 +23,8 @@
 | 스토어 아이콘 · 그래픽 이미지 | ✅ | `npm run assets:play` → `build/play-store/` |
 | 휴대전화 스크린샷 | ✅ 6장 | 2026-11-02 Figma 에서 내보내 변환 → `build/play-store/screenshot-1~6.png`(1624×3248). §4 |
 | 실기기 스모크 | ⬜ | 런북 §3 · §9 |
-| Play Console 계정 · 앱 · 입력값 | ⬜ | §2 · §3 |
+| Play Console 계정 · 앱 · 입력값 | ✅ 2026-11-02 | 개인 계정. 앱 콘텐츠·스토어 등록정보·비공개 테스트(대한민국, 1.0.1(1)) 입력 완료 |
+| 비공개 테스터 12명 | ⬜ 2명 | 이메일 목록 `디토 비공개 테스터`. 12명이 14일 참여해야 프로덕션 신청 — §2-6 |
 
 **권한(병합된 매니페스트 기준)**: `INTERNET`, 위치(대략·정확), `POST_NOTIFICATIONS`, 그리고 플러그인이 끌고 오는
 `RECEIVE_BOOT_COMPLETED`·`WAKE_LOCK`·`ACCESS_NETWORK_STATE`·FCM 수신·런처 배지(삼성 등 제조사별) 권한.
@@ -68,7 +69,8 @@
 카카오 네이티브 로그인은 **앱을 서명한 인증서의 키 해시**가 콘솔에 등록돼 있어야 한다. 없으면 카카오톡 로그인이
 실패하고 리다이렉트 로그인으로 폴백한다(로그인은 되지만 카카오톡 앱 전환이 안 된다).
 
-내 애플리케이션 → 디토 → 앱 → 플랫폼 → **Android** (기존 앱에 추가 — 새 앱을 만들지 말 것)
+앱 `Ditto`(ID 1559516) → 앱 → 플랫폼 키 → **Default Native AppKey** → Android 앱 정보 (기존 키에 추가 — 새 앱을 만들지 말 것).
+2026-11-02 에 패키지명·스토어 URL·아래 키 해시 3개를 모두 등록했다.
 
 | 항목 | 값 |
 |---|---|
@@ -76,7 +78,7 @@
 | 마켓 URL | `https://play.google.com/store/apps/details?id=pics.ditto.app` |
 | 키 해시 — 업로드 키 | `4Y28m9ib8cG//93cv+VoFVsY42U=` (로컬 릴리스 빌드·내부 앱 공유용) |
 | 키 해시 — 디버그 키(이 맥) | `cX2Q268GxPeMiCvT6j+9gXPUsEo=` (Android Studio 실행용) |
-| 키 해시 — **Play 앱 서명 키** | ⬜ 2-2 를 마친 뒤 — 아래 |
+| 키 해시 — **Play 앱 서명 키** | `j012zPtmYWGZkU0hsMCNDjjlpdg=` (SHA-1 `8F:4D:76:CC:…:A5:D8`) — 2026-11-02 등록 |
 
 **Play 로 받은 앱은 Google 의 앱 서명 키로 다시 서명된다.** 스토어·테스트 트랙으로 설치한 앱은 이 해시로만 통한다.
 Play Console → 테스트 및 출시 → 설정 → **앱 서명** → "앱 서명 키 인증서"의 **SHA-1** 을 복사해 변환한다
@@ -188,6 +190,7 @@ echo '<SHA-1, 콜론 포함 그대로>' | tr -d ':' | xxd -r -p | openssl base64
 | 정부 앱 · 금융 기능 · 건강 | 아니요 / 해당 없음 | |
 | 데이터 보안 | §3-4 | |
 | **계정 삭제** | 웹 링크 `https://ditto.pics/support/delete-account` | 프로덕션에 배포돼 있다(2026-11-02 확인) |
+| **아동 안전 표준** | `https://ditto.pics/support/child-safety` · 담당자 `ditto.apply@gmail.com` · 앱 내 신고·법규 준수 둘 다 체크 | 소셜 카테고리 필수. 없으면 검토 전송이 막힌다 |
 
 ### 3-4. 데이터 보안
 
