@@ -120,6 +120,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     path === '/settings/location-terms' ||
     path === '/support' ||
     path === '/support/delete-account' ||
+    path === '/support/child-safety' ||
     path === '/download' ||
     path === '/download/android';
   const isPublicPath =

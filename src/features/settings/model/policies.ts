@@ -1,5 +1,6 @@
 import type { PolicyBlock } from "@/features/settings/model/types";
 import {
+  BUSINESS_INFO,
   POLICY_EFFECTIVE_DATE,
   POLICY_REVISION,
   PRIVACY_OFFICER,
@@ -449,6 +450,43 @@ const accountDeletionSource = `
 자세한 내용은 개인정보 처리방침을 확인해 주세요.
 `;
 
+/**
+ * 아동 안전 기준. Google Play 의 **아동 안전 표준 URL**(`https://ditto.pics/support/child-safety`)이
+ * 가리키는 화면이다. 소셜·데이트 카테고리 앱은 아동 성적 학대·착취(CSAE)를 금지하는 기준을 앱 밖에
+ * 공개하고, 앱 안 신고 수단과 담당자 연락처를 밝혀야 한다.
+ *
+ * 신고·자동 차단·24시간 검토는 스토어 설명(`docs/play-store-submission.md` §3-2)과 같은 사실이다.
+ * 한쪽을 바꾸면 다른 쪽도 맞춘다.
+ */
+const childSafetySource = `
+디토(ditto)는 아동 성적 학대 및 착취(CSAE)를 어떠한 형태로도 허용하지 않습니다. 이 페이지는 디토가 아동을 보호하기 위해 지키는 기준과 신고 방법을 안내합니다.
+
+### 1. 이용 대상
+- 디토는 만 19세 이상만 가입할 수 있습니다.
+- 가입할 때 생년월일을 확인하며, 만 19세 미만으로 확인된 계정은 이용을 제한합니다.
+
+### 2. 금지하는 행위
+아래 행위는 발견 즉시 계정을 영구 정지하며, 관련 기록을 보존해 수사기관에 제공합니다.
+- 아동·청소년 성착취물(CSAM)을 만들거나 보내거나 공유하거나 요청하는 행위
+- 아동·청소년에게 성적인 대화를 걸거나 만남을 유도하는 행위(그루밍)
+- 아동·청소년을 성적으로 묘사하거나 대상화하는 콘텐츠를 올리는 행위
+- 아동·청소년의 개인정보나 사진을 성적인 목적으로 이용하는 행위
+
+### 3. 신고 방법
+- **앱 안에서**: 대화방이나 평가 화면의 신고 버튼으로 바로 신고할 수 있습니다. 신고하면 상대는 자동으로 차단됩니다.
+- **이메일로**: ${BUSINESS_INFO.contactEmail} 로 신고 내용을 보내 주세요. 앱을 쓰지 않는 분도 신고할 수 있습니다.
+- 아동이 지금 위험에 처해 있다면 먼저 경찰(112)에 신고해 주세요.
+
+### 4. 처리 절차
+- 운영팀이 신고를 24시간 안에 검토합니다.
+- 위반이 확인되면 콘텐츠를 지우고 계정을 영구 정지합니다.
+- 아동·청소년 성착취물이 확인되면 관련 법령에 따라 수사기관과 방송통신심의위원회에 신고합니다.
+
+### 5. 아동 안전 담당자
+아동 안전 정책과 성착취물 방지 조치에 관한 문의는 아래로 연락해 주세요.
+- 이메일: ${BUSINESS_INFO.contactEmail}
+`;
+
 export const termsOfService: PolicyDocumentData = {
   title: "디토 이용 약관",
   blocks: parsePolicy(termsOfServiceSource),
@@ -462,6 +500,11 @@ export const privacyPolicy: PolicyDocumentData = {
 export const accountDeletionGuide: PolicyDocumentData = {
   title: "계정 삭제 안내",
   blocks: parsePolicy(accountDeletionSource),
+};
+
+export const childSafetyStandards: PolicyDocumentData = {
+  title: "아동 안전 기준",
+  blocks: parsePolicy(childSafetySource),
 };
 
 export const locationTerms: PolicyDocumentData = {

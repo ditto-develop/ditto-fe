@@ -43,6 +43,23 @@ describe("고객 지원", () => {
     cy.location("pathname", { timeout: 8000 }).should("match", /^\/support\/?$/);
   });
 
+  it("고객 지원에서 아동 안전 기준으로 가고, 금지 행위·신고 방법·담당자 연락처가 보인다", () => {
+    cy.visit("/support");
+
+    cy.contains("a", "아동 안전 기준과 신고 방법 보기", { timeout: 8000 }).click();
+    cy.location("pathname", { timeout: 8000 }).should("match", /^\/support\/child-safety\/?$/);
+
+    // Google Play 아동 안전 표준이 요구하는 것: CSAE 금지 기준 · 앱 안 신고 수단 · 담당자 연락처.
+    cy.contains("아동 성적 학대 및 착취(CSAE)").should("be.visible");
+    cy.contains("금지하는 행위").should("be.visible");
+    cy.contains("신고 버튼").should("be.visible");
+    cy.contains("아동 안전 담당자").should("be.visible");
+    cy.contains(CONTACT_EMAIL).should("be.visible");
+
+    cy.get('img[alt="back"]').click();
+    cy.location("pathname", { timeout: 8000 }).should("match", /^\/support\/?$/);
+  });
+
   it("첫 화면과 고객 지원 화면에 사업자 정보가 없다", () => {
     cy.visit("/");
     cy.contains("카카오로 계속하기", { timeout: 10000 }).should("be.visible");

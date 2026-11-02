@@ -33,6 +33,12 @@ export default function SupportPage() {
             <PageLink href="/support/delete-account">계정 삭제 방법과 보관되는 데이터 보기</PageLink>
           </Value>
         </ContactList>
+        <ContactList>
+          <Label>아동 안전</Label>
+          <Value>
+            <PageLink href="/support/child-safety">아동 안전 기준과 신고 방법 보기</PageLink>
+          </Value>
+        </ContactList>
       </Content>
     </Page>
   );

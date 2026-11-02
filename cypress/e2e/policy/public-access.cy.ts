@@ -12,6 +12,8 @@ const POLICY_ROUTES = [
   { path: "/support", heading: "고객 지원" },
   // Google Play 계정 삭제 URL. 앱을 지운 사람이 브라우저로 연다.
   { path: "/support/delete-account", heading: "계정 삭제 안내" },
+  // Google Play 아동 안전 표준 URL. 앱 밖에서 누구나 열 수 있어야 한다.
+  { path: "/support/child-safety", heading: "아동 안전 기준" },
 ] as const;
 
 /**

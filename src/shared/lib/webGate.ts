@@ -33,6 +33,7 @@ const WEB_OPEN_PATHS: readonly string[] = [
   "/settings/location-terms",
   "/support",
   "/support/delete-account",
+  "/support/child-safety",
   "/auth/callback",
 ];
 

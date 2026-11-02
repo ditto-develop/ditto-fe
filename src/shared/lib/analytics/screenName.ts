@@ -49,6 +49,7 @@ const STATIC_SCREENS: Record<string, string> = {
   "/sanction": "sanction",
   "/support": "support",
   "/support/delete-account": "support_delete_account",
+  "/support/child-safety": "support_child_safety",
   // 404. 정적 export + CloudFront 조합에서는 잘 도달하지 않지만, 찍히면 깨진 링크나
   // rewrite 함수 누락 신호라 이름을 붙여 둔다.
   "/_not-found": "not_found",
