@@ -4,6 +4,7 @@ import {
   POLICY_REVISION,
   PRIVACY_OFFICER,
   PRIVACY_POLICY_REVISION,
+  PRIVACY_POLICY_REVISION_V1_2,
 } from "@/shared/lib/businessInfo";
 
 type PolicyDocumentData = {
@@ -279,7 +280,7 @@ const privacyPolicySource = `
 ### 4. 개인정보의 보유 및 이용 기간
 **4.1 원칙** — 수집·이용 목적이 달성되면 지체 없이 파기.
 **4.2 예외사항**
-(1) 회원 탈퇴 시 — 원칙: 즉시 파기 / 예외: 신고 접수 또는 법적 분쟁 시 1년간 보존.
+(1) 회원 탈퇴 시 — 원칙: 탈퇴일로부터 30일간 보관(이 기간 안에 다시 가입하면 계정 복구) 후 지체 없이 파기 / 예외: 신고 접수 또는 법적 분쟁 시 1년간 보존.
 (2) 관련 법령에 의한 정보 보유
 - 전자상거래법: 계약·청약철회 기록 5년 / 대금결제·재화공급 기록 5년 / 소비자 불만·분쟁처리 기록 3년
 - 통신비밀보호법: 로그인 기록 3개월
@@ -309,7 +310,7 @@ Google Analytics 로는 화면 이용 기록·체류 시간·기기 정보와 �
 
 ### 8. 이용자 및 법정대리인의 권리와 그 행사방법
 **8.1 개인정보 열람 및 정정** — 언제든지 조회·수정 가능(설정 > 프로필 수정에서 열람·정정).
-**8.2 동의 철회** — 서비스 내 '회원탈퇴' 또는 개인정보 보호책임자에게 이메일로 요청 시 즉시 삭제 등 조치. Android 앱 출시 알림 신청은 개인정보 보호책임자에게 이메일로 철회를 요청할 수 있습니다.
+**8.2 동의 철회** — 서비스 내 '회원탈퇴' 또는 개인정보 보호책임자에게 이메일로 요청 시 지체 없이 탈퇴 처리하며, 개인정보는 4.2(1)에 따라 파기. Android 앱 출시 알림 신청은 개인정보 보호책임자에게 이메일로 철회를 요청할 수 있습니다.
 **8.3 14세 미만 아동의 개인정보 보호** — 본 서비스는 만 19세 이상만 이용 가능하며 14세 미만 아동의 개인정보는 수집하지 않습니다.
 
 ### 9. 개인정보 자동 수집 장치의 설치·운영 및 그 거부에 관한 사항
@@ -346,7 +347,8 @@ Google Analytics 로는 화면 이용 기록·체류 시간·기기 정보와 �
 | --- | --- | --- | --- |
 | v1.0 | ${POLICY_EFFECTIVE_DATE.dotted} | ${POLICY_EFFECTIVE_DATE.dotted} | 최초 제정 |
 | v1.1 | ${POLICY_REVISION.noticed.dotted} | ${POLICY_REVISION.effective.dotted} | 소셜 로그인 수집 경로(구글 삭제)·채팅 수집 항목(연락처 교환 삭제)·관리적 보호 대책 현행화 |
-| v1.2 | ${PRIVACY_POLICY_REVISION.noticed.dotted} | ${PRIVACY_POLICY_REVISION.effective.dotted} | 비회원 Android 앱 출시 알림 신청(이메일 주소, 보유 기간 3개월) 항목 신설 |
+| v1.2 | ${PRIVACY_POLICY_REVISION_V1_2.noticed.dotted} | ${PRIVACY_POLICY_REVISION_V1_2.effective.dotted} | 비회원 Android 앱 출시 알림 신청(이메일 주소, 보유 기간 3개월) 항목 신설 |
+| v1.3 | ${PRIVACY_POLICY_REVISION.noticed.dotted} | ${PRIVACY_POLICY_REVISION.effective.dotted} | 회원 탈퇴 시 보유 기간 현행화(탈퇴 후 30일 보관·계정 복구 후 파기) |
 `;
 
 const locationTermsSource = `

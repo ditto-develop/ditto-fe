@@ -51,12 +51,24 @@ export const POLICY_REVISION = {
 
 /**
  * 개인정보처리방침만의 개정 v1.2 — 비회원 Android 출시 알림 신청(이메일) 항목 신설.
- * 이용약관은 바뀌지 않아 `POLICY_REVISION` 을 그대로 쓴다.
+ * 이용약관은 바뀌지 않아 `POLICY_REVISION` 을 그대로 쓴다. 지금은 변경 이력 표에만 쓴다.
  *
- * 공고일에 바로 시행한다. 새로 생기는 수집이라 기존 회원의 권리를 바꾸지 않고, 수집을 시작하는
+ * 공고일에 바로 시행했다. 새로 생기는 수집이라 기존 회원의 권리를 바꾸지 않고, 수집을 시작하는
  * 날부터 방침에 적혀 있어야 하기 때문이다(신청 화면에서도 항목·목적·보유 기간을 따로 고지한다).
  */
-export const PRIVACY_POLICY_REVISION = {
+export const PRIVACY_POLICY_REVISION_V1_2 = {
   noticed: { long: "2026년 10월 19일", dotted: "2026.10.19" },
   effective: { long: "2026년 10월 19일", dotted: "2026.10.19" },
+} as const;
+
+/**
+ * 개인정보처리방침의 현재 개정 v1.3 — 회원 탈퇴 시 보유 기간을 실제 동작(탈퇴 후 30일 보관·
+ * 그 안에 재가입하면 계정 복구, 지나면 파기)에 맞춘다. 탈퇴 화면(WithdrawContainer)과 계정 삭제
+ * 안내(/support/delete-account)는 이미 30일로 고지하고 있었고, 방침만 "즉시 파기"로 남아 있었다.
+ *
+ * 방침 제12조("변경 시 시행 7일 전부터 고지")대로 공고 7일 뒤 시행한다.
+ */
+export const PRIVACY_POLICY_REVISION = {
+  noticed: { long: "2026년 11월 2일", dotted: "2026.11.02" },
+  effective: { long: "2026년 11월 9일", dotted: "2026.11.09" },
 } as const;
