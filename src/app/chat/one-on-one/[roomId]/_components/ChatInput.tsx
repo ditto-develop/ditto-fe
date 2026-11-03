@@ -1,6 +1,6 @@
 "use client";
 
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, ReactNode } from "react";
 import { useState, useRef } from "react";
 import styled from "styled-components";
 
@@ -14,18 +14,30 @@ import { CHAT_KEYBOARD_ANIMATION_MS } from "@/features/chat/hooks/useChatKeyboar
 import { useToast } from "@/context/ToastContext";
 import { AlertModal, Icon } from "@/shared/ui";
 
+/**
+ * 8.1 "질문 보내기" 로 입력창 위에 붙인 문항(Figma 3279:35005). 붙어 있는 동안은
+ * - 전송이 STOMP 텍스트 대신 `onSend` 로 간다(REST quiz-shares).
+ * - 글이 비어도 보낼 수 있다(Figma 주석 "텍스트 없어도 전송 버튼 활성").
+ * - 사진 첨부는 숨긴다 — 문항 카드와 사진이 한 번에 나갈 수 없다.
+ */
+export type ChatInputQuizAttachment = {
+  preview: ReactNode;
+  onSend: (content: string) => Promise<void>;
+};
+
 interface ChatInputProps {
   onSend: (content: string) => Promise<void>;
   /** 이미지 첨부. 미지정 시 첨부 버튼을 숨긴다. */
   onSendImages?: (files: File[]) => Promise<void>;
   disabled?: boolean;
+  quizAttachment?: ChatInputQuizAttachment | null;
 }
 
 /** BE가 code 0001로 거절하는 상한과 동일하게 맞춘다. */
 const MAX_MESSAGE_LENGTH = CHAT_TEXT_MAX_LENGTH;
 const TEXTAREA_MAX_HEIGHT = 190;
 
-export function ChatInput({ onSend, onSendImages, disabled }: ChatInputProps) {
+export function ChatInput({ onSend, onSendImages, disabled, quizAttachment }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [sending, setSending] = useState(false);
   /** 금칙어 확인 대기 중인 문장. null 이면 확인 모달이 닫혀 있다. */
@@ -37,7 +49,7 @@ export function ChatInput({ onSend, onSendImages, disabled }: ChatInputProps) {
 
   const handleSend = () => {
     const trimmed = value.trim();
-    if (!trimmed || sending || disabled) return;
+    if ((!trimmed && !quizAttachment) || sending || disabled) return;
 
     /**
      * 금칙어가 있으면 한 번 더 묻는다.
@@ -57,7 +69,7 @@ export function ChatInput({ onSend, onSendImages, disabled }: ChatInputProps) {
   const sendText = async (trimmed: string) => {
     setSending(true);
     try {
-      await onSend(trimmed);
+      await (quizAttachment ? quizAttachment.onSend(trimmed) : onSend(trimmed));
       setValue("");
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
@@ -115,16 +127,17 @@ export function ChatInput({ onSend, onSendImages, disabled }: ChatInputProps) {
     el.style.overflowY = el.scrollHeight > TEXTAREA_MAX_HEIGHT ? "auto" : "hidden";
   };
 
-  const canSend = value.trim().length > 0 && !sending && !disabled;
+  const canSend = (value.trim().length > 0 || !!quizAttachment) && !sending && !disabled;
   const hasForbiddenWord = containsForbiddenWord(value);
 
   return (
-    <Outer>
+    <Outer $hasAttachment={!!quizAttachment}>
       {hasForbiddenWord && (
         <InputWarning role="status">채팅 내 금칙어가 있습니다.</InputWarning>
       )}
+      {quizAttachment?.preview}
       <FieldWrapper>
-        {onSendImages && (
+        {onSendImages && !quizAttachment && (
           <>
             <AttachButton
               type="button"
@@ -155,7 +168,7 @@ export function ChatInput({ onSend, onSendImages, disabled }: ChatInputProps) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onInput={handleInput}
-          placeholder="텍스트를 입력해 주세요."
+          placeholder={quizAttachment ? "한마디 덧붙여 보세요 (선택)" : "텍스트를 입력해 주세요."}
           rows={1}
           maxLength={MAX_MESSAGE_LENGTH}
           disabled={disabled}
@@ -187,13 +200,24 @@ export function ChatInput({ onSend, onSendImages, disabled }: ChatInputProps) {
   );
 }
 
-const Outer = styled.div`
+const Outer = styled.div<{ $hasAttachment: boolean }>`
   position: relative;
   flex-shrink: 0;
   background-color: var(--color-semantic-background-normal-normal);
   padding: var(--space-4) var(--space-4) var(--chat-input-bottom-padding);
   box-sizing: border-box;
   transition: padding-bottom ${CHAT_KEYBOARD_ANIMATION_MS}ms ease-out;
+
+  /* 문항 미리보기가 붙으면 위에 선을 긋고 미리보기·입력창을 10px 간격으로 쌓는다(Figma 3279:35066). */
+  ${({ $hasAttachment }) =>
+    $hasAttachment &&
+    `
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-10px);
+    padding-top: var(--spacing-10px);
+    border-top: 1px solid var(--color-semantic-background-normal-alternative);
+  `}
 `;
 
 const InputWarning = styled.div`

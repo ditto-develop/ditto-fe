@@ -1,7 +1,9 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
+import { Icon } from "@/shared/ui";
 import { getGroupRoomTitle } from "@/features/chat";
 import { useTimer } from "@/app/chat/one-on-one/[roomId]/_components/useTimer";
 
@@ -12,6 +14,10 @@ interface GroupChatRoomHeaderProps {
   totalMembers: number;
   expiresAt: Date | null;
   onMenuClick: () => void;
+  /** 8.1 "우리 그룹의 답변" 문서 아이콘. 테스터 모드에서 방 답변을 읽었을 때만 넘긴다(Figma 3262:55446). */
+  onAnswersClick?: () => void;
+  /** 문서 아이콘 아래 첫 진입 안내 말풍선(Figma 3262:55481). 헤더 기준 절대 위치로 놓인다. */
+  answersTooltip?: ReactNode;
 }
 
 export function GroupChatRoomHeader({
@@ -20,6 +26,8 @@ export function GroupChatRoomHeader({
   totalMembers,
   expiresAt,
   onMenuClick,
+  onAnswersClick,
+  answersTooltip,
 }: GroupChatRoomHeaderProps) {
   const router = useRouter();
   const timeLeft = useTimer(expiresAt);
@@ -32,6 +40,8 @@ export function GroupChatRoomHeader({
         <IconButton onClick={() => router.back()}>
           <img src="/icons/navigation/arrow-left.svg" alt="뒤로가기" width={24} height={24} />
         </IconButton>
+        {/* 오른쪽에 문서 아이콘이 붙은 만큼 왼쪽도 비워 제목을 화면 가운데에 둔다. */}
+        {onAnswersClick && <TrailingBalance aria-hidden />}
 
         <TitleWrapper>
           <TitleInner>
@@ -40,9 +50,16 @@ export function GroupChatRoomHeader({
           </TitleInner>
         </TitleWrapper>
 
-        <IconButton onClick={onMenuClick}>
-          <img src="/icons/action/more-vertical.svg" alt="더보기" width={24} height={24} />
-        </IconButton>
+        <TrailingButtons>
+          {onAnswersClick && (
+            <IconButton onClick={onAnswersClick} aria-label="우리 그룹의 답변" data-cy="room-answers-button">
+              <Icon name="content.documentText" size={24} />
+            </IconButton>
+          )}
+          <IconButton onClick={onMenuClick}>
+            <img src="/icons/action/more-vertical.svg" alt="더보기" width={24} height={24} />
+          </IconButton>
+        </TrailingButtons>
       </NavRow>
 
       <ToolRow>
@@ -50,6 +67,7 @@ export function GroupChatRoomHeader({
           {timeLeft.label}
         </TimeText>
       </ToolRow>
+      {answersTooltip}
     </HeaderContainer>
   );
 }
@@ -74,6 +92,18 @@ const NavRow = styled.div`
   padding: 16px 16px 0;
   box-sizing: border-box;
   margin-bottom: -4px;
+`;
+
+const TrailingButtons = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+`;
+
+/* 문서 아이콘(24px) + 간격(8px)만큼의 빈 칸. */
+const TrailingBalance = styled.span`
+  width: calc(var(--space-6) + var(--space-2));
+  flex-shrink: 0;
 `;
 
 const TitleWrapper = styled.div`
@@ -145,4 +175,5 @@ const IconButton = styled.button`
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
+  color: var(--color-semantic-label-normal);
 `;

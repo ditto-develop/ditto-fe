@@ -18,6 +18,20 @@ import {
   useChatKeyboardInset,
 } from "@/features/chat/hooks/useChatKeyboardInset";
 import { useSystemPeriod } from "@/features/system/hooks/useSystemPeriod";
+import { shareQuizToRoom } from "@/features/records/api/recordsApi";
+import { useRoomQuizAnswers } from "@/features/records/hooks/useRoomQuizAnswers";
+import { summarizeRoomAnswers } from "@/features/records/lib/roomAnswers";
+import { formatAnswersSummary, toQuizChips } from "@/features/records/lib/roomAnswerText";
+import type { RoomQuizQuestion } from "@/features/records/model/types";
+import { RoomAnswersSummaryBar } from "@/features/records/ui/RoomAnswersSummaryBar";
+import {
+  RoomAnswersTooltip,
+  useGroupAnswersTooltip,
+} from "@/features/records/ui/RoomAnswersTooltip";
+import { RoomFirstHintCard } from "@/features/records/ui/RoomFirstHintCard";
+import { RoomGroupAnswersPage } from "@/features/records/ui/RoomGroupAnswersPage";
+import { RoomQuizAttachmentPreview } from "@/features/records/ui/RoomQuizAttachmentPreview";
+import { useFeatureFlag } from "@/shared/lib/hooks/useFeatureFlag";
 import { useToast } from "@/context/ToastContext";
 import { useChatRoomMuteToggle } from "@/features/chat/hooks/useChatRoomMuteToggle";
 import { getMyMemberId } from "@/shared/lib/auth";
@@ -82,6 +96,9 @@ export function GroupChatRoomPageClient() {
   const [voteView, setVoteView] = useState<VoteView | null>(null);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  /** 8.1 "우리 그룹의 답변" 화면과, 거기서 골라 입력창 위에 붙인 문항. */
+  const [isAnswersOpen, setIsAnswersOpen] = useState(false);
+  const [pendingQuiz, setPendingQuiz] = useState<RoomQuizQuestion | null>(null);
   const keyboardInset = useChatKeyboardInset();
 
   const {
@@ -96,6 +113,7 @@ export function GroupChatRoomPageClient() {
     sendImages,
     sendError,
     clearSendError,
+    receiveMessages,
   } = useChatRoom(roomId, { roomType: "group" });
   const { room, members, memberById, loading: metaLoading, refresh: refreshRoom } =
     useChatRoomMeta(roomId);
@@ -109,6 +127,19 @@ export function GroupChatRoomPageClient() {
   const serverPeriod = useSystemPeriod();
   const { showToast } = useToast();
   const toggleMute = useChatRoomMuteToggle(roomId, room?.isMuted ?? false, refreshRoom);
+  /*
+   * 8.1 퀴즈 기록(공개 전, 테스터 모드). 운영 BE 에 API 가 없는 동안은 404 → null 이라
+   * 요약 바·힌트·문서 아이콘·툴팁이 모두 빠지고 방은 예전 그대로다.
+   */
+  const recordsEnabled = useFeatureFlag("records");
+  const { data: quizAnswers, markShared } = useRoomQuizAnswers(roomId, recordsEnabled);
+  const answersTooltip = useGroupAnswersTooltip();
+
+  /** 문서 아이콘을 누르면 툴팁도 다시 안 뜬다(Figma 주석 3269:34323). */
+  const openAnswers = () => {
+    answersTooltip.dismiss();
+    setIsAnswersOpen(true);
+  };
 
   useEffect(() => {
     setMyUserId(getMyMemberId());
@@ -198,6 +229,20 @@ export function GroupChatRoomPageClient() {
     }
   };
 
+  /** 문항 카드를 올린다. 실패하면 ChatInput 이 이 문구로 토스트를 띄우고 입력값을 남긴다. */
+  const handleShareQuiz = async (content: string) => {
+    if (!pendingQuiz) return;
+    const quizId = pendingQuiz.quizId;
+    try {
+      const message = await shareQuizToRoom(roomId, content ? { quizId, content } : { quizId });
+      receiveMessages([message]);
+      markShared(quizId, message.createdAt);
+      setPendingQuiz(null);
+    } catch {
+      throw new Error("질문을 보내지 못했어요. 잠시 후 다시 시도해주세요.");
+    }
+  };
+
   const handleLeave = async () => {
     if (leaving) return;
     setLeaving(true);
@@ -238,6 +283,9 @@ export function GroupChatRoomPageClient() {
         ? "연결이 끊겼어요. 다시 연결되면 놓친 메시지를 불러올게요."
         : undefined;
 
+  const answersSummary = quizAnswers ? summarizeRoomAnswers(quizAnswers) : null;
+  const canShareQuiz = roomState === "OPEN" && !hasLeft;
+
   return (
     <PageContainer $keyboardInset={keyboardInset} data-cy="chat-room">
       <GroupChatRoomHeader
@@ -246,6 +294,12 @@ export function GroupChatRoomPageClient() {
         totalMembers={totalMembers}
         expiresAt={isEnded ? null : expiresAt}
         onMenuClick={() => setIsMenuOpen(true)}
+        onAnswersClick={quizAnswers ? openAnswers : undefined}
+        answersTooltip={
+          quizAnswers && answersTooltip.visible ? (
+            <RoomAnswersTooltip onClose={answersTooltip.dismiss} />
+          ) : null
+        }
       />
 
       {openVote && (
@@ -259,7 +313,20 @@ export function GroupChatRoomPageClient() {
         />
       )}
 
-      {!openVote && latestClosedVote && (
+      {/*
+        8.1 진행 중 투표가 없으면 그 자리에 "우리의 답변" 요약 바를 띄운다(Figma 주석 3270:36279
+        "조건에 따라 노출 배너 차이" — 진행 중 3270:36243 / 미진행 3270:36278). 마감된 투표
+        배너는 요약 바가 없을 때(테스터 모드가 아니거나 방 답변을 못 읽음)만 그대로 뜬다.
+      */}
+      {!openVote && answersSummary && (
+        <RoomAnswersSummaryBar
+          label={formatAnswersSummary(answersSummary)}
+          tone="dark"
+          onOpen={openAnswers}
+        />
+      )}
+
+      {!openVote && !answersSummary && latestClosedVote && (
         <VoteBanner
           label={getClosedVoteLabel(latestClosedVote)}
           buttonLabel="확인하기"
@@ -280,6 +347,15 @@ export function GroupChatRoomPageClient() {
         getVoteById={getVoteById}
         onVoteClick={openVoteView}
         onSenderClick={setSelectedMember}
+        quizAnswers={quizAnswers}
+        leadingCard={
+          quizAnswers?.firstHint ? (
+            <RoomFirstHintCard
+              hint={quizAnswers.firstHint}
+              memberCount={quizAnswers.members.length}
+            />
+          ) : null
+        }
       />
 
       {/* 나간 방은 읽기 전용이다. 입력창도 평가 버튼도 띄우지 않는다. */}
@@ -288,6 +364,25 @@ export function GroupChatRoomPageClient() {
           onSend={sendText}
           onSendImages={sendImages}
           disabled={roomState !== "OPEN"}
+          quizAttachment={
+            pendingQuiz
+              ? {
+                  preview: (
+                    <RoomQuizAttachmentPreview
+                      order={pendingQuiz.order}
+                      question={pendingQuiz.question}
+                      chips={toQuizChips(pendingQuiz.choices, {
+                        myUserId,
+                        nameOf: (memberId) => memberById.get(memberId)?.nickname ?? "알 수 없음",
+                        myChoiceId: pendingQuiz.myChoiceId,
+                      })}
+                      onRemove={() => setPendingQuiz(null)}
+                    />
+                  ),
+                  onSend: handleShareQuiz,
+                }
+              : null
+          }
         />
       )}
 
@@ -337,6 +432,18 @@ export function GroupChatRoomPageClient() {
       )}
 
       <ChatImageViewer imageUrl={viewerImageUrl} onClose={() => setViewerImageUrl(null)} />
+
+      {isAnswersOpen && quizAnswers && (
+        <RoomGroupAnswersPage
+          data={quizAnswers}
+          canShare={canShareQuiz}
+          onClose={() => setIsAnswersOpen(false)}
+          onShare={(question) => {
+            setPendingQuiz(question);
+            setIsAnswersOpen(false);
+          }}
+        />
+      )}
 
       <ChatLeaveModal
         isOpen={isLeaveModalOpen}

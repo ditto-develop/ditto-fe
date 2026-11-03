@@ -4,14 +4,18 @@ import React from "react";
 import styled from "styled-components";
 
 export const ICON_PATHS = {
+  "action.bubble": "/icons/action/bubble.svg",
   "action.camera": "/icons/action/camera.svg",
   "action.edit": "/icons/action/edit.svg",
   "action.lock": "/icons/action/lock.svg",
+  "action.lockOutline": "/icons/action/lock-outline.svg",
   "action.message": "/icons/action/message.svg",
   "action.moreVertical": "/icons/action/more-vertical.svg",
   "action.notePen": "/icons/action/note-pen.svg",
   "action.plus": "/icons/action/plus.svg",
   "action.send": "/icons/action/send.svg",
+  "content.documentText": "/icons/content/document-text.svg",
+  "content.lightbulb": "/icons/content/lightbulb.svg",
   "content.people": "/icons/content/people.svg",
   "content.peopleGreen": "/icons/content/people-green.svg",
   "content.peopleRed": "/icons/content/people-red.svg",

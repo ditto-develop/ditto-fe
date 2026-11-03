@@ -19,6 +19,16 @@ import {
 } from "@/features/chat/hooks/useChatKeyboardInset";
 import { useChatRoomMuteToggle } from "@/features/chat/hooks/useChatRoomMuteToggle";
 import { useSystemPeriod } from "@/features/system/hooks/useSystemPeriod";
+import { shareQuizToRoom } from "@/features/records/api/recordsApi";
+import { useRoomQuizAnswers } from "@/features/records/hooks/useRoomQuizAnswers";
+import { summarizeRoomAnswers } from "@/features/records/lib/roomAnswers";
+import { formatAnswersSummary, toQuizChips } from "@/features/records/lib/roomAnswerText";
+import type { RoomQuizQuestion } from "@/features/records/model/types";
+import { RoomAnswersSummaryBar } from "@/features/records/ui/RoomAnswersSummaryBar";
+import { RoomFirstHintCard } from "@/features/records/ui/RoomFirstHintCard";
+import { RoomOneOnOneAnswersPage } from "@/features/records/ui/RoomOneOnOneAnswersPage";
+import { RoomQuizAttachmentPreview } from "@/features/records/ui/RoomQuizAttachmentPreview";
+import { useFeatureFlag } from "@/shared/lib/hooks/useFeatureFlag";
 import { useToast } from "@/context/ToastContext";
 import { getMyMemberId } from "@/shared/lib/auth";
 import { parseServerDateTime } from "@/shared/lib/serverDateTime";
@@ -52,6 +62,9 @@ export function ChatRoomPageClient() {
   const [ending, setEnding] = useState(false);
   const [isUrgentNoticeDismissed, setIsUrgentNoticeDismissed] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  /** 8.1 "우리의 답변" 화면과, 거기서 골라 입력창 위에 붙인 문항. */
+  const [isAnswersOpen, setIsAnswersOpen] = useState(false);
+  const [pendingQuiz, setPendingQuiz] = useState<RoomQuizQuestion | null>(null);
 
   const {
     messages,
@@ -68,12 +81,19 @@ export function ChatRoomPageClient() {
     retrySend,
     sendError,
     clearSendError,
+    receiveMessages,
   } = useChatRoom(roomId, { optimisticSending: true, roomType: "one_on_one" });
   const { room, members, refresh: refreshRoom } = useChatRoomMeta(roomId);
   // 개방 판정의 기준. 어드민 시각 오버라이드가 반영된 서버 기간이다.
   const serverPeriod = useSystemPeriod();
   const { showToast } = useToast();
   const keyboardInset = useChatKeyboardInset();
+  /*
+   * 8.1 퀴즈 기록(공개 전, 테스터 모드). 운영 BE 에 API 가 없는 동안은 404 → null 이라
+   * 요약 바·힌트·문서 아이콘이 모두 빠지고 방은 예전 그대로다.
+   */
+  const recordsEnabled = useFeatureFlag("records");
+  const { data: quizAnswers, markShared } = useRoomQuizAnswers(roomId, recordsEnabled);
 
   const counterpart = members[0] ?? null;
 
@@ -126,6 +146,20 @@ export function ChatRoomPageClient() {
     setIsUrgentNoticeDismissed(true);
   };
 
+  /** 문항 카드를 올린다. 실패하면 ChatInput 이 이 문구로 토스트를 띄우고 입력값을 남긴다. */
+  const handleShareQuiz = async (content: string) => {
+    if (!pendingQuiz) return;
+    const quizId = pendingQuiz.quizId;
+    try {
+      const message = await shareQuizToRoom(roomId, content ? { quizId, content } : { quizId });
+      receiveMessages([message]);
+      markShared(quizId, message.createdAt);
+      setPendingQuiz(null);
+    } catch {
+      throw new Error("질문을 보내지 못했어요. 잠시 후 다시 시도해주세요.");
+    }
+  };
+
   const handleEndChat = async () => {
     if (ending) return;
     setEnding(true);
@@ -173,6 +207,8 @@ export function ChatRoomPageClient() {
         : null;
   const showUrgentNotice =
     !isEnded && timer.isUrgent && !timer.isExpired && !isUrgentNoticeDismissed;
+  const answersSummary = quizAnswers ? summarizeRoomAnswers(quizAnswers) : null;
+  const canShareQuiz = roomState === "OPEN";
 
   return (
     <PageContainer $keyboardInset={keyboardInset} data-cy="chat-room">
@@ -182,7 +218,16 @@ export function ChatRoomPageClient() {
         expiresAt={expiresAt}
         isEnded={isEnded}
         onMenuClick={() => setIsMenuOpen(true)}
+        onAnswersClick={quizAnswers ? () => setIsAnswersOpen(true) : undefined}
       />
+
+      {answersSummary && (
+        <RoomAnswersSummaryBar
+          label={formatAnswersSummary(answersSummary)}
+          tone="light"
+          onOpen={() => setIsAnswersOpen(true)}
+        />
+      )}
 
       {isEnded && (
         <ChatStatusBanner message={endedMessage} showWarningIcon />
@@ -202,6 +247,14 @@ export function ChatRoomPageClient() {
         onRetrySend={retrySend}
         onImageClick={setViewerImageUrl}
         onPartnerClick={counterpart ? () => setIsProfileOpen(true) : undefined}
+        leadingCard={
+          quizAnswers?.firstHint ? (
+            <RoomFirstHintCard
+              hint={quizAnswers.firstHint}
+              memberCount={quizAnswers.members.length}
+            />
+          ) : null
+        }
       />
 
       {!isEnded && (
@@ -216,6 +269,25 @@ export function ChatRoomPageClient() {
             onSend={sendText}
             onSendImages={sendImages}
             disabled={roomState !== "OPEN"}
+            quizAttachment={
+              pendingQuiz
+                ? {
+                    preview: (
+                      <RoomQuizAttachmentPreview
+                        order={pendingQuiz.order}
+                        question={pendingQuiz.question}
+                        chips={toQuizChips(pendingQuiz.choices, {
+                          myUserId,
+                          nameOf: () => partnerNickname,
+                          myChoiceId: pendingQuiz.myChoiceId,
+                        })}
+                        onRemove={() => setPendingQuiz(null)}
+                      />
+                    ),
+                    onSend: handleShareQuiz,
+                  }
+                : null
+            }
           />
         </>
       )}
@@ -240,6 +312,18 @@ export function ChatRoomPageClient() {
       )}
 
       <ChatImageViewer imageUrl={viewerImageUrl} onClose={() => setViewerImageUrl(null)} />
+
+      {isAnswersOpen && quizAnswers && (
+        <RoomOneOnOneAnswersPage
+          data={quizAnswers}
+          canShare={canShareQuiz}
+          onClose={() => setIsAnswersOpen(false)}
+          onShare={(question) => {
+            setPendingQuiz(question);
+            setIsAnswersOpen(false);
+          }}
+        />
+      )}
 
       {isProfileOpen && counterpart && (
         <GroupMemberProfilePage

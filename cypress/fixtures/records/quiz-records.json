@@ -1,0 +1,57 @@
+{
+  "summary": {
+    "participatedWeeks": 3,
+    "answeredQuestions": 36,
+    "minorityOpinions": 5
+  },
+  "records": [
+    {
+      "quizSetId": 42,
+      "year": 2026,
+      "month": 10,
+      "week": 4,
+      "weekStartedOn": "2026-10-26",
+      "matchingType": "ONE_TO_ONE",
+      "title": "시간이 멈춘다면",
+      "answeredCount": 12,
+      "totalCount": 12,
+      "submittedAt": "2026-10-27 21:14:00",
+      "statsRevealAt": "2026-10-29 00:00:00",
+      "revealed": false,
+      "isCurrentWeek": true,
+      "minorityCount": null
+    },
+    {
+      "quizSetId": 41,
+      "year": 2026,
+      "month": 10,
+      "week": 3,
+      "weekStartedOn": "2026-10-19",
+      "matchingType": "GROUP",
+      "title": "가을 밤, 같이 볼 영화",
+      "answeredCount": 12,
+      "totalCount": 12,
+      "submittedAt": "2026-10-20 22:03:00",
+      "statsRevealAt": "2026-10-22 00:00:00",
+      "revealed": true,
+      "isCurrentWeek": false,
+      "minorityCount": 2
+    },
+    {
+      "quizSetId": 40,
+      "year": 2026,
+      "month": 10,
+      "week": 2,
+      "weekStartedOn": "2026-10-12",
+      "matchingType": "ONE_TO_ONE",
+      "title": "비 오는 날의 기억",
+      "answeredCount": 12,
+      "totalCount": 12,
+      "submittedAt": "2026-10-13 08:41:00",
+      "statsRevealAt": "2026-10-15 00:00:00",
+      "revealed": true,
+      "isCurrentWeek": false,
+      "minorityCount": 3
+    }
+  ]
+}

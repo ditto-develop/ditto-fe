@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef } from "react";
+import type { ReactNode } from "react";
 import styled from "styled-components";
 
 import { isRoomEndedSystemMessage } from "@/features/chat";
@@ -31,6 +32,8 @@ interface MessageListProps {
   onImageClick?: (imageUrl: string) => void;
   onPartnerClick?: () => void;
   onRetrySend?: (localId: string) => void;
+  /** 안전 안내 바로 아래에 한 번 놓이는 카드(8.1 첫 대화 힌트, Figma 3256:51233). */
+  leadingCard?: ReactNode;
 }
 
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -52,9 +55,12 @@ function isSameDay(a: Date, b: Date): boolean {
   );
 }
 
-/** 경고 배너는 사용자가 직접 쓴 TEXT에만 적용한다(IMAGE의 objectKey는 대상이 아니다). */
+/**
+ * 경고 배너는 사용자가 직접 쓴 글에만 적용한다(IMAGE의 objectKey는 대상이 아니다).
+ * QUIZ 의 content 도 사용자가 덧붙인 한마디라 같이 본다.
+ */
 function isTextMessage(message: ChatMessage | ChatOptimisticMessage): boolean {
-  return message.messageType === "TEXT";
+  return message.messageType === "TEXT" || message.messageType === "QUIZ";
 }
 
 function isOptimisticMessage(
@@ -85,6 +91,7 @@ export function MessageList({
   onImageClick,
   onPartnerClick,
   onRetrySend,
+  leadingCard,
 }: MessageListProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const isInitialLoad = useRef(true);
@@ -256,6 +263,7 @@ export function MessageList({
           partnerNickname={partnerNickname}
           onImageClick={onImageClick}
           onPartnerClick={onPartnerClick}
+          myUserId={myUserId}
           onRetry={
             isOptimisticMessage(message) ? () => onRetrySend?.(message.localId) : undefined
           }
@@ -278,6 +286,7 @@ export function MessageList({
         안전한 만남을 위해 가급적 ditto 에서 대화를 나눠주세요.{"\n"}
         불건전한 행위 발견 시 신고해 주세요.
       </WarningText>
+      {leadingCard && <LeadingCardSlot>{leadingCard}</LeadingCardSlot>}
       {loadingOlder && <LoadingOlder>이전 메시지를 불러오는 중...</LoadingOlder>}
       {renderMessages()}
       {notice && !hasRoomEndedSystemMessage && <RoomNoticeCard>{notice}</RoomNoticeCard>}
@@ -306,6 +315,11 @@ const WarningText = styled.p`
   text-align: center;
   white-space: pre-line;
   margin: 4px 0 8px;
+`;
+
+/* 안내 문구·힌트 카드·메시지 사이를 24px 로 띄운다(Figma Body gap 3256:38415). 목록 gap 10px 를 뺀 값. */
+const LeadingCardSlot = styled.div`
+  margin: var(--spacing-6px) 0 calc(var(--space-3) + var(--spacing-2px));
 `;
 
 const LoadingOlder = styled.p`

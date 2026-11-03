@@ -7,6 +7,7 @@ import { ChatMessageText } from "@/app/chat/_components/ChatMessageText";
 
 import { getSystemMessageText } from "@/features/chat";
 import type { ChatMessage, ChatOptimisticMessage } from "@/features/chat";
+import { ChatQuizCardView } from "@/features/records/ui/ChatQuizCardView";
 import { RoomNoticeCard } from "./RoomNoticeCard";
 
 interface MessageBubbleProps {
@@ -20,6 +21,8 @@ interface MessageBubbleProps {
   /** 상대 아바타를 누르면 상대 프로필을 연다. */
   onPartnerClick?: () => void;
   onRetry?: () => void;
+  /** QUIZ 카드 칩에서 "나" 를 가리려면 필요하다. */
+  myUserId?: number | null;
 }
 
 function formatTime(date: string): string {
@@ -38,6 +41,7 @@ export function MessageBubble({
   onImageClick,
   onPartnerClick,
   onRetry,
+  myUserId = null,
 }: MessageBubbleProps) {
   const messageId = "id" in message ? message.id : undefined;
 
@@ -73,7 +77,37 @@ export function MessageBubble({
       <BubbleText><ChatMessageText content={message.content} /></BubbleText>
     );
 
+  /*
+   * 8.1 질문 보내기(QUIZ). 문항 카드 아래에 덧붙인 한마디를 일반 말풍선으로 잇는다(Figma 3256:38421).
+   * 테스터 모드와 상관없이 그린다. 카드 스냅샷이 없으면(예전 서버) 본문만 글로 남는다.
+   */
+  const quiz = message.messageType === "QUIZ" && "quiz" in message ? (message.quiz ?? null) : null;
+  const quizCard = quiz ? (
+    <ChatQuizCardView card={quiz} myUserId={myUserId} nameOf={() => partnerNickname} />
+  ) : null;
+
   if (isMine) {
+    if (quizCard) {
+      return (
+        <SentRow data-chat-message-id={messageId}>
+          <SentMeta>
+            {unreadCount > 0 && (
+              <TimeLabel aria-label={`안 읽은 사람 ${unreadCount}명`}>{unreadCount}</TimeLabel>
+            )}
+            <TimeLabel>{formatTime(message.createdAt)}</TimeLabel>
+          </SentMeta>
+          <QuizStack $align="end">
+            {quizCard}
+            {message.content && (
+              <SentBubble $isFirstInGroup={false} $isImage={false}>
+                {body}
+              </SentBubble>
+            )}
+          </QuizStack>
+        </SentRow>
+      );
+    }
+
     return (
       <SentRow data-chat-message-id={messageId}>
         {deliveryStatus === "failed" ? (
@@ -120,12 +154,23 @@ export function MessageBubble({
       <ReceivedContainer>
         {isFirstInGroup && <NicknameLabel>{partnerNickname}</NicknameLabel>}
         <ReceivedBubbleRow>
-          <ReceivedBubble
-            $isFirstInGroup={isFirstInGroup}
-            $isImage={message.messageType === "IMAGE"}
-          >
-            {body}
-          </ReceivedBubble>
+          {quizCard ? (
+            <QuizStack $align="start">
+              {quizCard}
+              {message.content && (
+                <ReceivedBubble $isFirstInGroup={false} $isImage={false}>
+                  {body}
+                </ReceivedBubble>
+              )}
+            </QuizStack>
+          ) : (
+            <ReceivedBubble
+              $isFirstInGroup={isFirstInGroup}
+              $isImage={message.messageType === "IMAGE"}
+            >
+              {body}
+            </ReceivedBubble>
+          )}
           {(
             <ReceivedMeta>
               {unreadCount > 0 && <TimeLabel aria-label={`안 읽은 사람 ${unreadCount}명`}>{unreadCount}</TimeLabel>}
@@ -153,6 +198,16 @@ const ReceivedRow = styled.div<{ $isFirstInGroup: boolean }>`
   gap: 12px;
   margin-bottom: 2px;
   padding-left: ${({ $isFirstInGroup }) => ($isFirstInGroup ? "0" : "52px")};
+`;
+
+/* 문항 카드 + 덧붙인 한마디. 둘 사이 10px(Figma 3256:38421). */
+const QuizStack = styled.div<{ $align: "start" | "end" }>`
+  display: flex;
+  flex-direction: column;
+  align-items: ${({ $align }) => ($align === "end" ? "flex-end" : "flex-start")};
+  gap: var(--spacing-10px);
+  min-width: 0;
+  max-width: var(--space-64);
 `;
 
 const SentContent = styled.div`

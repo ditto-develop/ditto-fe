@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
-import { Body1Normal, Label1Normal } from "@/shared/ui";
+import { Body1Normal, Icon, Label1Normal } from "@/shared/ui";
 import { useTimer } from "./useTimer";
 
 interface ChatRoomHeaderProps {
@@ -11,6 +11,8 @@ interface ChatRoomHeaderProps {
   expiresAt: Date | null;
   isEnded?: boolean;
   onMenuClick: () => void;
+  /** 8.1 "우리의 답변" 문서 아이콘. 테스터 모드에서 방 답변을 읽었을 때만 넘긴다(Figma 3270:34759). */
+  onAnswersClick?: () => void;
 }
 
 export function ChatRoomHeader({
@@ -18,6 +20,7 @@ export function ChatRoomHeader({
   expiresAt,
   isEnded = false,
   onMenuClick,
+  onAnswersClick,
 }: ChatRoomHeaderProps) {
   const router = useRouter();
   const timeLeft = useTimer(expiresAt, isEnded);
@@ -29,6 +32,8 @@ export function ChatRoomHeader({
         <IconButton onClick={() => router.back()}>
           <img src="/icons/navigation/arrow-left.svg" alt="뒤로가기" width={24} height={24} />
         </IconButton>
+        {/* 오른쪽에 문서 아이콘이 붙은 만큼 왼쪽도 비워 제목을 화면 가운데에 둔다. */}
+        {onAnswersClick && <TrailingBalance aria-hidden />}
 
         <TitleWrapper>
           {/* 공용 TopNavigation 제목과 같은 크기·굵기(16px·700) */}
@@ -37,9 +42,16 @@ export function ChatRoomHeader({
           </Body1Normal>
         </TitleWrapper>
 
-        <IconButton onClick={onMenuClick} data-cy="chat-menu-button">
-          <img src="/icons/action/more-vertical.svg" alt="더보기" width={24} height={24} />
-        </IconButton>
+        <TrailingButtons>
+          {onAnswersClick && (
+            <IconButton onClick={onAnswersClick} aria-label="우리의 답변" data-cy="room-answers-button">
+              <Icon name="content.documentText" size={24} />
+            </IconButton>
+          )}
+          <IconButton onClick={onMenuClick} data-cy="chat-menu-button">
+            <img src="/icons/action/more-vertical.svg" alt="더보기" width={24} height={24} />
+          </IconButton>
+        </TrailingButtons>
       </NavRow>
 
       {/* Tool row */}
@@ -72,6 +84,19 @@ const NavRow = styled.div`
   padding: 16px 16px 0;
   box-sizing: border-box;
   margin-bottom: -4px; /* p 태그 line-height half-leading 상쇄 */
+`;
+
+/* 문서 아이콘은 메뉴 왼쪽 8px 에 붙는다(Figma 3270:34759). */
+const TrailingButtons = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+`;
+
+/* 문서 아이콘(24px) + 간격(8px)만큼의 빈 칸. */
+const TrailingBalance = styled.span`
+  width: calc(var(--space-6) + var(--space-2));
+  flex-shrink: 0;
 `;
 
 const TitleWrapper = styled.div`
@@ -108,4 +133,5 @@ const IconButton = styled.button`
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
+  color: var(--color-semantic-label-normal);
 `;

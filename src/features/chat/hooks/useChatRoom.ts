@@ -18,7 +18,7 @@ import { CHAT_TEXT_MAX_LENGTH } from "@/features/chat/model/constants";
 import type {
   ChatConnectionStatus,
   ChatMessage,
-  ChatMessageType,
+  ChatOutgoingMessage,
   ChatReadEvent,
   ChatOptimisticMessage,
 } from "@/features/chat/model/types";
@@ -65,6 +65,11 @@ type UseChatRoomResult = {
   /** 방 상태 때문에 실패한 전송의 안내 문구. 표시 후 clearSendError로 비운다. */
   sendError: string | null;
   clearSendError: () => void;
+  /**
+   * REST 응답으로 받은 메시지를 목록에 넣는다(8.1 "질문 보내기" — 서버가 만든 QUIZ 메시지).
+   * 같은 메시지가 STOMP 로도 오지만 id 로 합치므로 두 번 쌓이지 않는다.
+   */
+  receiveMessages: (messages: ChatMessage[]) => void;
 };
 
 type UseChatRoomOptions = {
@@ -234,7 +239,7 @@ export function useChatRoom(
   );
 
   const createOptimisticMessage = useCallback(
-    (content: string, messageType: Exclude<ChatMessageType, "SYSTEM">) => {
+    (content: string, messageType: ChatOutgoingMessage["messageType"]) => {
       localIdSequenceRef.current += 1;
       return {
         localId: `${roomId}-${Date.now()}-${localIdSequenceRef.current}`,
@@ -248,7 +253,7 @@ export function useChatRoom(
   );
 
   const addOptimisticMessage = useCallback(
-    (content: string, messageType: Exclude<ChatMessageType, "SYSTEM">) => {
+    (content: string, messageType: ChatOutgoingMessage["messageType"]) => {
       const message = createOptimisticMessage(content, messageType);
 
       updateOptimisticMessages((previous) => [...previous, message]);
@@ -556,5 +561,6 @@ export function useChatRoom(
     retrySend,
     sendError,
     clearSendError,
+    receiveMessages: applyIncoming,
   };
 }

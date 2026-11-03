@@ -20,10 +20,22 @@ export type FeatureStage = "tester" | "all";
  * `useFeatureFlag("키")` 를 부르던 곳이 전부 타입 에러가 나므로 남은 분기를 빠짐없이 찾을 수 있다.
  */
 export const FEATURES = {
-  // 예: records: "tester",
+  /**
+   * 8.1 퀴즈 기록 — 하단 "기록" 탭(/records)과 대화방의 "우리의 답변"(요약 바·첫 대화 힌트·질문 보내기).
+   * 부르는 BE API 는 BE 위키 [BE-Request-Quiz-Records] 로 요청해 둔 것이다(2026-11-03).
+   */
+  records: "tester",
 } as const satisfies Record<string, FeatureStage>;
 
 export type FeatureFlag = keyof typeof FEATURES;
+
+/**
+ * 플래그의 단계. 반환형을 `FeatureStage` 로 넓혀 둔다 — `FEATURES` 는 `as const` 라 그대로 읽으면
+ * 리터럴 타입("tester")으로 좁혀져, 모든 키가 같은 단계일 때 `stage === "all"` 이 타입 에러가 된다.
+ */
+export function featureStage(flag: FeatureFlag): FeatureStage {
+  return FEATURES[flag];
+}
 
 export function isStageVisible(stage: FeatureStage, testerMode: boolean): boolean {
   return stage === "all" || testerMode;

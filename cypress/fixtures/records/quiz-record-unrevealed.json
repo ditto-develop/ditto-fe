@@ -1,0 +1,273 @@
+{
+  "quizSetId": 42,
+  "year": 2026,
+  "month": 10,
+  "week": 4,
+  "weekStartedOn": "2026-10-26",
+  "matchingType": "ONE_TO_ONE",
+  "title": "시간이 멈춘다면",
+  "answeredCount": 12,
+  "totalCount": 12,
+  "submittedAt": "2026-10-27 21:14:00",
+  "statsRevealAt": "2026-10-29 00:00:00",
+  "revealed": false,
+  "isCurrentWeek": true,
+  "minorityCount": null,
+  "participantCount": 87,
+  "similarMemberCount": null,
+  "similarThreshold": 8,
+  "questions": [
+    {
+      "quizId": 4201,
+      "order": 1,
+      "question": "커튼을 열면 보이는 색은?",
+      "myChoiceId": 42012,
+      "isMinority": null,
+      "choices": [
+        {
+          "choiceId": 42011,
+          "content": "하늘빛",
+          "order": 1,
+          "percent": null
+        },
+        {
+          "choiceId": 42012,
+          "content": "노을빛",
+          "order": 2,
+          "percent": null
+        }
+      ]
+    },
+    {
+      "quizId": 4202,
+      "order": 2,
+      "question": "반려견 이름을 짓는다면?",
+      "myChoiceId": 42021,
+      "isMinority": null,
+      "choices": [
+        {
+          "choiceId": 42021,
+          "content": "후추",
+          "order": 1,
+          "percent": null
+        },
+        {
+          "choiceId": 42022,
+          "content": "소금",
+          "order": 2,
+          "percent": null
+        }
+      ]
+    },
+    {
+      "quizId": 4203,
+      "order": 3,
+      "question": "시간이 멈춘다면 그 시각은?",
+      "myChoiceId": 42032,
+      "isMinority": null,
+      "choices": [
+        {
+          "choiceId": 42031,
+          "content": "오후 3시",
+          "order": 1,
+          "percent": null
+        },
+        {
+          "choiceId": 42032,
+          "content": "새벽 2시",
+          "order": 2,
+          "percent": null
+        }
+      ]
+    },
+    {
+      "quizId": 4204,
+      "order": 4,
+      "question": "편의점에서 하나만 고른다면?",
+      "myChoiceId": 42042,
+      "isMinority": null,
+      "choices": [
+        {
+          "choiceId": 42041,
+          "content": "제로콜라",
+          "order": 1,
+          "percent": null
+        },
+        {
+          "choiceId": 42042,
+          "content": "홈런볼",
+          "order": 2,
+          "percent": null
+        }
+      ]
+    },
+    {
+      "quizId": 4205,
+      "order": 5,
+      "question": "비 오는 날 귀갓길은?",
+      "myChoiceId": 42052,
+      "isMinority": null,
+      "choices": [
+        {
+          "choiceId": 42051,
+          "content": "지하철",
+          "order": 1,
+          "percent": null
+        },
+        {
+          "choiceId": 42052,
+          "content": "버스",
+          "order": 2,
+          "percent": null
+        }
+      ]
+    },
+    {
+      "quizId": 4206,
+      "order": 6,
+      "question": "여름 끝에 남기고 싶은 맛?",
+      "myChoiceId": 42062,
+      "isMinority": null,
+      "choices": [
+        {
+          "choiceId": 42061,
+          "content": "메로나",
+          "order": 1,
+          "percent": null
+        },
+        {
+          "choiceId": 42062,
+          "content": "비비빅",
+          "order": 2,
+          "percent": null
+        }
+      ]
+    },
+    {
+      "quizId": 4207,
+      "order": 7,
+      "question": "냄새로 기억된다면?",
+      "myChoiceId": 42072,
+      "isMinority": null,
+      "choices": [
+        {
+          "choiceId": 42071,
+          "content": "섬유유연제",
+          "order": 1,
+          "percent": null
+        },
+        {
+          "choiceId": 42072,
+          "content": "애착이불",
+          "order": 2,
+          "percent": null
+        }
+      ]
+    },
+    {
+      "quizId": 4208,
+      "order": 8,
+      "question": "고민이 생기면?",
+      "myChoiceId": 42082,
+      "isMinority": null,
+      "choices": [
+        {
+          "choiceId": 42081,
+          "content": "친구에게 털어놓기",
+          "order": 1,
+          "percent": null
+        },
+        {
+          "choiceId": 42082,
+          "content": "혼자 정리하기",
+          "order": 2,
+          "percent": null
+        }
+      ]
+    },
+    {
+      "quizId": 4209,
+      "order": 9,
+      "question": "하루 끝에 듣고 싶은 말?",
+      "myChoiceId": 42092,
+      "isMinority": null,
+      "choices": [
+        {
+          "choiceId": 42091,
+          "content": "잘 자",
+          "order": 1,
+          "percent": null
+        },
+        {
+          "choiceId": 42092,
+          "content": "수고했어",
+          "order": 2,
+          "percent": null
+        }
+      ]
+    },
+    {
+      "quizId": 4210,
+      "order": 10,
+      "question": "오래 남는 건?",
+      "myChoiceId": 42102,
+      "isMinority": null,
+      "choices": [
+        {
+          "choiceId": 42101,
+          "content": "함께 간 장소",
+          "order": 1,
+          "percent": null
+        },
+        {
+          "choiceId": 42102,
+          "content": "나눈 대화",
+          "order": 2,
+          "percent": null
+        }
+      ]
+    },
+    {
+      "quizId": 4211,
+      "order": 11,
+      "question": "주말 아침 첫 일과는?",
+      "myChoiceId": 42111,
+      "isMinority": null,
+      "choices": [
+        {
+          "choiceId": 42111,
+          "content": "늦잠",
+          "order": 1,
+          "percent": null
+        },
+        {
+          "choiceId": 42112,
+          "content": "산책",
+          "order": 2,
+          "percent": null
+        }
+      ]
+    },
+    {
+      "quizId": 4212,
+      "order": 12,
+      "question": "여행 가방에 꼭 넣는 건?",
+      "myChoiceId": 42122,
+      "isMinority": null,
+      "choices": [
+        {
+          "choiceId": 42121,
+          "content": "책",
+          "order": 1,
+          "percent": null
+        },
+        {
+          "choiceId": 42122,
+          "content": "카메라",
+          "order": 2,
+          "percent": null
+        }
+      ]
+    }
+  ]
+}

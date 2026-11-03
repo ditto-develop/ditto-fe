@@ -8,14 +8,30 @@ import { Caption2 } from '@/shared/ui';
 import { Icon, type IconName } from '@/shared/ui';
 import { useChatUnreadTotal } from '@/features/chat/hooks/useChatUnreadTotal';
 import { isPathActive } from '@/shared/lib/routePath';
+import { useFeatureFlag } from '@/shared/lib/hooks/useFeatureFlag';
 
 // 1. 네비게이션 아이템 설정 (경로, 라벨, 아이콘 경로 등)
 // 실제 프로젝트에 있는 이미지 경로로 교체해주세요.
+type NavItemConfig = {
+  label: string;
+  path: string;
+  iconName: IconName;
+  /** 공개 전 기능의 탭이면 그 플래그. 테스터 모드에서만 보인다(CLAUDE.md §9.1). */
+  feature?: 'records';
+};
+
 const NAV_ITEMS = [
   {
     label: '홈',
     path: '/home', // 메인 페이지
     iconName: 'tab.home',
+  },
+  {
+    // 8.1 퀴즈 기록 [3254:37114]. 공개 전이라 테스터 모드에서만 홈과 대화방 사이에 끼운다.
+    label: '기록',
+    path: '/records',
+    iconName: 'content.documentText',
+    feature: 'records',
   },
   {
     label: '대화방',
@@ -27,15 +43,19 @@ const NAV_ITEMS = [
     path: '/profile',
     iconName: 'tab.profile',
   },
-] satisfies Array<{ label: string; path: string; iconName: IconName }>;
+] satisfies NavItemConfig[];
 
 const MainBottomNav = () => {
   const pathname = usePathname(); // 현재 경로 가져오기
   const chatUnreadTotal = useChatUnreadTotal();
+  const recordsVisible = useFeatureFlag('records');
+  const items: NavItemConfig[] = NAV_ITEMS.filter(
+    (item: NavItemConfig) => item.feature !== 'records' || recordsVisible,
+  );
 
   return (
     <NavContainer>
-      {NAV_ITEMS.map((item) => {
+      {items.map((item) => {
         // trailingSlash 설정 탓에 하드 로드면 "/home/", 클라이언트 내비게이션이면 "/home"이
         // 들어온다. 문자열 동등 비교로는 전자가 통째로 빗나가므로 정규화해서 본다.
         const isActive = isPathActive(pathname, item.path);

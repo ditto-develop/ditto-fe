@@ -5,6 +5,7 @@ import { selectableContent } from "@/shared/styles/selection";
 import { ChatImage } from "@/app/chat/_components/ChatImage";
 import { ChatMessageText } from "@/app/chat/_components/ChatMessageText";
 import type { ChatMessage } from "@/features/chat";
+import { ChatQuizCardView } from "@/features/records/ui/ChatQuizCardView";
 
 interface GroupMessageBubbleProps {
   message: ChatMessage;
@@ -17,6 +18,12 @@ interface GroupMessageBubbleProps {
   onImageClick?: (imageUrl: string) => void;
   /** 보낸 사람 아바타를 누르면 그 사람 프로필을 연다. 보낸 사람을 못 찾으면 비운다. */
   onAvatarClick?: () => void;
+  /** QUIZ 카드용. 1:1 처럼 고른 사람이 실려 오면 "나"·이름을 가린다. */
+  myUserId?: number | null;
+  nameOf?: (memberId: number) => string;
+  /** QUIZ 카드에서 밝게 칠할 내 선택지·이어서 던질 질문. 방 답변을 읽었을 때만(테스터 모드) 있다. */
+  quizMyChoiceId?: number | null;
+  quizPrompt?: string | null;
 }
 
 function formatTime(date: string): string {
@@ -34,6 +41,10 @@ export function GroupMessageBubble({
   senderAvatarUrl,
   onImageClick,
   onAvatarClick,
+  myUserId = null,
+  nameOf = () => "알 수 없음",
+  quizMyChoiceId = null,
+  quizPrompt = null,
 }: GroupMessageBubbleProps) {
   // IMAGE는 content가 S3 key라 그대로 그리면 안 된다. 표시는 항상 imageUrl을 쓴다.
   const body =
@@ -53,7 +64,41 @@ export function GroupMessageBubble({
       <BubbleText><ChatMessageText content={message.content} /></BubbleText>
     );
 
+  /*
+   * 8.1 질문 보내기(QUIZ) — 문항 카드 + 덧붙인 한마디(Figma 그룹 카드 3273:37755 · 3273:37774).
+   * 테스터 모드와 상관없이 그린다. 카드 스냅샷이 없으면(예전 서버) 본문만 글로 남는다.
+   */
+  const quizCard =
+    message.messageType === "QUIZ" && message.quiz ? (
+      <ChatQuizCardView
+        card={message.quiz}
+        myUserId={myUserId}
+        nameOf={nameOf}
+        myChoiceId={quizMyChoiceId}
+        prompt={message.quiz.prompt ?? quizPrompt}
+      />
+    ) : null;
+
   if (isMine) {
+    if (quizCard) {
+      return (
+        <SentRow data-chat-message-id={message.id}>
+          <SentMeta>
+            {message.unreadCount > 0 && (
+              <TimeLabel aria-label={`안 읽은 사람 ${message.unreadCount}명`}>
+                {message.unreadCount}
+              </TimeLabel>
+            )}
+            <TimeLabel>{formatTime(message.createdAt)}</TimeLabel>
+          </SentMeta>
+          <QuizStack $align="end">
+            {quizCard}
+            {message.content && <SentBubble $isFirstInGroup={false}>{body}</SentBubble>}
+          </QuizStack>
+        </SentRow>
+      );
+    }
+
     return (
       <SentRow data-chat-message-id={message.id}>
         {(
@@ -88,7 +133,14 @@ export function GroupMessageBubble({
       <ReceivedContainer>
         {isFirstInGroup && <NicknameLabel>{senderNickname}</NicknameLabel>}
         <ReceivedBubbleRow>
-          <ReceivedBubble $isFirstInGroup={isFirstInGroup}>{body}</ReceivedBubble>
+          {quizCard ? (
+            <QuizStack $align="start">
+              {quizCard}
+              {message.content && <ReceivedBubble $isFirstInGroup={false}>{body}</ReceivedBubble>}
+            </QuizStack>
+          ) : (
+            <ReceivedBubble $isFirstInGroup={isFirstInGroup}>{body}</ReceivedBubble>
+          )}
           {(
             <ReceivedMeta>
               {message.unreadCount > 0 && <TimeLabel aria-label={`안 읽은 사람 ${message.unreadCount}명`}>{message.unreadCount}</TimeLabel>}
@@ -100,6 +152,16 @@ export function GroupMessageBubble({
     </ReceivedRow>
   );
 }
+
+/* 문항 카드 + 덧붙인 한마디. 둘 사이 10px(Figma 3256:38421). */
+const QuizStack = styled.div<{ $align: "start" | "end" }>`
+  display: flex;
+  flex-direction: column;
+  align-items: ${({ $align }) => ($align === "end" ? "flex-end" : "flex-start")};
+  gap: var(--spacing-10px);
+  min-width: 0;
+  max-width: var(--space-64);
+`;
 
 const SentRow = styled.div`
   display: flex;

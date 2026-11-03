@@ -18,6 +18,7 @@ import {
 } from "@/features/chat/hooks/useStayAtBottom";
 import { useKeepScrollOnPrepend } from "@/features/chat/hooks/useKeepScrollOnPrepend";
 import { useVisibleMessageRead } from "@/features/chat/hooks/useVisibleMessageRead";
+import type { RoomQuizAnswers } from "@/features/records/model/types";
 import { GroupMessageBubble } from "./GroupMessageBubble";
 import { VoteCreatedMessageBubble } from "./VoteCreatedMessageBubble";
 import { VoteResultMessageBubble } from "./VoteResultMessageBubble";
@@ -39,6 +40,13 @@ interface GroupMessageListProps {
   onVoteClick?: (voteId: number) => void;
   /** 보낸 사람 아바타를 누르면 그 사람 프로필을 연다. */
   onSenderClick?: (member: CounterpartProfile) => void;
+  /** 목록 맨 위에 한 번 놓이는 카드(8.1 첫 대화 힌트, Figma 3270:36280). */
+  leadingCard?: React.ReactNode;
+  /**
+   * 8.1 방 답변(테스터 모드에서만 값이 있다). QUIZ 카드에 내 선택지·이어서 던질 질문을 붙일 때 쓴다 —
+   * 카드 스냅샷에는 둘 다 없다.
+   */
+  quizAnswers?: RoomQuizAnswers | null;
 }
 
 /** `"성수 카페거리 외 2개"`. 선택지가 없으면 빈 문자열이라 호출부가 대체 문구를 쓴다. */
@@ -78,6 +86,8 @@ export function GroupMessageList({
   getVoteById,
   onVoteClick,
   onSenderClick,
+  leadingCard,
+  quizAnswers = null,
 }: GroupMessageListProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const isInitialLoad = useRef(true);
@@ -302,6 +312,11 @@ export function GroupMessageList({
         !isSameDay(toDate(next.createdAt), messageDate);
 
       const sender = memberById.get(message.senderId);
+      const quizQuestion =
+        message.messageType === "QUIZ" && message.quiz
+          ? (quizAnswers?.questions.find((question) => question.quizId === message.quiz?.quizId) ??
+            null)
+          : null;
 
       items.push(
         <GroupMessageBubble
@@ -315,14 +330,19 @@ export function GroupMessageList({
           onImageClick={onImageClick}
           // 나간 회원은 memberById 에 없다 — 열 프로필이 없으니 누를 수 없게 둔다.
           onAvatarClick={sender && onSenderClick ? () => onSenderClick(sender) : undefined}
+          myUserId={myUserId}
+          nameOf={(memberId) => memberById.get(memberId)?.nickname ?? "알 수 없음"}
+          quizMyChoiceId={quizQuestion?.myChoiceId ?? null}
+          quizPrompt={quizQuestion?.prompt ?? null}
         />,
       );
 
       /**
        * 링크·금전 요구 주의 카드. 1:1 방에만 있었는데 같은 수법이 그룹 방에도 그대로
        * 들어온다(2026-09-15 QA). IMAGE 의 content 는 objectKey 라 TEXT 만 본다.
+       * QUIZ 의 content 는 사용자가 덧붙인 한마디라 같이 본다.
        */
-      if (message.messageType === "TEXT") {
+      if (message.messageType === "TEXT" || message.messageType === "QUIZ") {
         items.push(...renderChatSafetyWarnings(message.content, String(message.id)));
       }
     });
@@ -332,6 +352,7 @@ export function GroupMessageList({
 
   return (
     <ListContainer ref={listRef} data-cy="message-list">
+      {leadingCard && <LeadingCardSlot>{leadingCard}</LeadingCardSlot>}
       {loadingOlder && <LoadingOlder>이전 메시지를 불러오는 중...</LoadingOlder>}
       {renderMessages()}
       {notice && (
@@ -346,6 +367,11 @@ export function GroupMessageList({
     </ListContainer>
   );
 }
+
+/* 힌트 카드와 첫 날짜 사이 24px(Figma Body gap 3270:34370). 목록 gap 10px 를 뺀 값. */
+const LeadingCardSlot = styled.div`
+  margin-bottom: calc(var(--space-3) + var(--spacing-2px));
+`;
 
 const LoadingOlder = styled.div`
   display: flex;

@@ -15,6 +15,13 @@ import {
   listExtraMessages,
   listVotes as listMockVotes,
 } from "@/mocks/voteStore";
+import {
+  listQuizMessages,
+  quizRecordDetail,
+  quizRecords,
+  roomQuizAnswers,
+  shareQuiz,
+} from "@/mocks/recordsData";
 
 import chatMessages from "@/mocks/fixtures/chat-messages.json";
 import chatRooms from "@/mocks/fixtures/chat-rooms.json";
@@ -199,6 +206,14 @@ function toNotification(item: NotificationFixture, now: number) {
 }
 
 export const handlers = [
+  http.get(apiPath("/quiz-records"), () => HttpResponse.json(success(quizRecords))),
+  http.get(apiPath("/quiz-records/[^/]+"), ({ request }) => {
+    const id = Number(new URL(request.url).pathname.match(/\/quiz-records\/([^/]+)/)?.[1]);
+    const detail = quizRecordDetail(id);
+    return detail
+      ? HttpResponse.json(success(detail))
+      : failure("0004", "요청한 대상을 찾을 수 없습니다.", 404);
+  }),
   http.get(apiPath("/quiz-sets/current-week"), () => HttpResponse.json(success(quizCurrent))),
   http.get(apiPath("/quiz-progress/current"), () => HttpResponse.json(success(quizProgressCurrent))),
   http.get(apiPath("/quiz-progress/quiz-sets/[^/]+"), () => HttpResponse.json(success(quizSetWithProgress))),
@@ -386,8 +401,11 @@ export const handlers = [
     const url = new URL(request.url);
     const roomId = url.pathname.match(/\/chat\/rooms\/([^/]+)\/messages/)?.[1];
     const base = roomId === "3" ? groupChatMessages : chatMessages;
-    // 마감 등으로 런타임에 생긴 SYSTEM 메시지를 최신순 앞에 붙인다.
-    const extras = listExtraMessages(Number(roomId));
+    // 마감 등으로 런타임에 생긴 SYSTEM 메시지와 "질문 보내기" QUIZ 메시지를 최신순 앞에 붙인다.
+    const extras = [
+      ...listQuizMessages(Number(roomId)),
+      ...listExtraMessages(Number(roomId)),
+    ].sort((a, b) => b.id - a.id);
     const page = extras.length
       ? { ...base, messages: [...extras, ...base.messages] }
       : base;
@@ -400,6 +418,21 @@ export const handlers = [
     return HttpResponse.json(success({ messages: older, nextCursor: null }));
   }),
   http.post(apiPath("/chat/rooms/[^/]+/read"), () => HttpResponse.json(success(null))),
+
+  // 8.1 퀴즈 기록 — 운영 BE 에 아직 없다(위키 BE-Request-Quiz-Records). 값은 recordsData.ts.
+  http.get(apiPath("/chat/rooms/[^/]+/quiz-answers"), ({ request }) => {
+    const answers = roomQuizAnswers(roomIdFromUrl(request.url));
+    return answers
+      ? HttpResponse.json(success(answers))
+      : failure("0004", "요청한 대상을 찾을 수 없습니다.", 404);
+  }),
+  http.post(apiPath("/chat/rooms/[^/]+/quiz-shares"), async ({ request }) => {
+    const body = (await request.json()) as { quizId?: number; content?: string };
+    const message = shareQuiz(roomIdFromUrl(request.url), Number(body.quizId), body.content ?? "");
+    return message
+      ? HttpResponse.json(success(message))
+      : failure("0004", "요청한 대상을 찾을 수 없습니다.", 404);
+  }),
   // 종료는 멱등이고 응답 data가 비어 있다. 그룹 방이면 BE가 7002로 막는다.
   http.post(apiPath("/chat/rooms/[^/]+/end"), () => HttpResponse.json(success({}))),
   // 끝난 방을 내 목록에서 감춘다(계정 단위). 목은 목록을 바꾸지 않는다.

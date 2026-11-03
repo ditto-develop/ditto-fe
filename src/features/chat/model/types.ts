@@ -1,4 +1,11 @@
-export type ChatMessageType = "TEXT" | "IMAGE" | "SYSTEM";
+import type { ChatQuizCard } from "@/features/records/model/types";
+
+/**
+ * `QUIZ` 는 8.1 "질문 보내기"(퀴즈 문항 카드)다 — 아직 운영 BE 에 없다(위키 BE-Request-Quiz-Records).
+ * 서버가 보내기 시작하면 테스터 모드와 상관없이 그려야 한다: 테스터가 보낸 카드를 같은 방의
+ * 일반 회원도 받는다.
+ */
+export type ChatMessageType = "TEXT" | "IMAGE" | "SYSTEM" | "QUIZ";
 
 /**
  * 방의 원본 유형. 1:1·그룹·재매칭 모두 같은 방 계약을 쓴다.
@@ -80,6 +87,11 @@ export type ChatMessage = {
   unreadCount: number;
   /** yyyy-MM-dd HH:mm:ss */
   createdAt: string;
+  /**
+   * `QUIZ` 메시지의 문항 카드. 그 밖의 타입은 null. 이 필드를 내려주기 전 서버(2026-11-03 운영)는
+   * 키 자체가 없어서 optional 이다.
+   */
+  quiz?: ChatQuizCard | null;
 };
 
 export type ChatMessagesPage = {
@@ -166,7 +178,8 @@ export type ChatConnectionStatus = "idle" | "connecting" | "connected" | "discon
 export type ChatOptimisticMessage = {
   localId: string;
   content: string;
-  messageType: Exclude<ChatMessageType, "SYSTEM">;
+  /** STOMP 로 보내는 타입만. `QUIZ` 는 REST(quiz-shares)로 보내 낙관적 메시지가 없다. */
+  messageType: ChatOutgoingMessage["messageType"];
   createdAt: string;
   status: "sending" | "failed";
 };

@@ -5,7 +5,7 @@ import { useEffect, useSyncExternalStore } from "react";
 
 import type { FeatureFlag } from "@/shared/lib/featureFlags";
 import {
-  FEATURES,
+  featureStage,
   isStageVisible,
   readTesterMode,
   subscribeTesterMode,
@@ -25,7 +25,7 @@ function useTesterMode(): boolean | null {
  * 한 박자 늦게 나타난다.
  */
 export function useFeatureFlag(flag: FeatureFlag): boolean {
-  return isStageVisible(FEATURES[flag], useTesterMode() === true);
+  return isStageVisible(featureStage(flag), useTesterMode() === true);
 }
 
 /**
@@ -38,7 +38,7 @@ export function useFeatureFlag(flag: FeatureFlag): boolean {
 export function useFeatureGate(flag: FeatureFlag): boolean {
   const router = useRouter();
   const testerMode = useTesterMode();
-  const stage = FEATURES[flag];
+  const stage = featureStage(flag);
   const known = stage === "all" || testerMode !== null;
   const enabled = isStageVisible(stage, testerMode === true);
 

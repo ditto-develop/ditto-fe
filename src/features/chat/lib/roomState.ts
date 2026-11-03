@@ -88,6 +88,8 @@ export function getLastMessagePreview(
   const last = room.lastMessage;
   if (!last) return undefined;
   if (last.messageType === "IMAGE") return "사진을 보냈어요.";
+  // 8.1 질문 보내기. 덧붙인 한마디가 있으면 그게 더 많이 말해 준다.
+  if (last.messageType === "QUIZ") return last.content.trim() || "질문을 보냈어요.";
   return last.content;
 }
 

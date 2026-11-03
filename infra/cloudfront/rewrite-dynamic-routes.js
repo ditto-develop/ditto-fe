@@ -23,7 +23,8 @@ var ROUTES = [
   { p: ["chat","group"], s: [], t: "/chat/group/placeholder/index.html" },
   { p: ["chat","one-on-one"], s: [], t: "/chat/one-on-one/placeholder/index.html" },
   { p: ["profile"], s: [], t: "/profile/placeholder/index.html" },
-  { p: ["quiz"], s: [], t: "/quiz/placeholder/index.html" }
+  { p: ["quiz"], s: [], t: "/quiz/placeholder/index.html" },
+  { p: ["records"], s: [], t: "/records/placeholder/index.html" }
 ];
 
 function handler(event) {
