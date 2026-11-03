@@ -109,6 +109,16 @@ Cypress.Commands.add("login", (options: LoginOptions = {}) => {
   });
 });
 
+/**
+ * 테스터 모드를 켠다 — 공개 전 기능(src/shared/lib/featureFlags.ts 의 "tester" 단계)이 보인다.
+ * cy.login 처럼 cy.visit 전에 부른다. 키는 TESTER_MODE_STORAGE_KEY 와 같아야 한다.
+ */
+Cypress.Commands.add("enableTesterMode", () => {
+  return cy.window().then((win) => {
+    win.localStorage.setItem("ditto.testerMode", "on");
+  });
+});
+
 Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
   // 자격증명(credentials:'include') 요청(예: 토큰 refresh)은 와일드카드 origin을
   // 허용하지 않으므로, preflight에서 요청 origin을 그대로 echo하고

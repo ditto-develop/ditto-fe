@@ -307,6 +307,32 @@ process.env.NODE_ENV === 'development'
 
 ---
 
+## 9.1 Unreleased Features — Tester Mode Flags
+
+There is no staging (§13.0), so a new screen ships to production **hidden** and the team checks it
+there first. Tapping the home logo 7 times toggles "tester mode" on that device (localStorage);
+features at stage `"tester"` are visible only in tester mode. Source: `src/shared/lib/featureFlags.ts`.
+
+When building a new screen or feature that must not be public yet:
+
+1. Register it in `FEATURES` in `src/shared/lib/featureFlags.ts`: `records: "tester",`.
+2. **Gate every entry point** (tab, button, banner, link) with
+   `useFeatureFlag("records")` from `@/shared/lib/hooks/useFeatureFlag`.
+3. **Gate the route itself.** Static export uploads the page HTML regardless of the flag, so a URL,
+   push or deep link still opens it. At the top of the page component:
+   `const allowed = useFeatureGate("records"); if (!allowed) return null;`
+   (redirects to `/home` when off; waits while the flag is still unknown during hydration).
+4. Cypress (§12.1): call `cy.enableTesterMode()` before `cy.visit` in the new screen's tests. Also
+   assert that the entry point is **absent** without it.
+5. **Release** = change the value to `"all"` and deploy. Later cleanup removes the key and the
+   branches together — deleting the key makes every remaining `useFeatureFlag("records")` a type error.
+
+Limits: this hides UI only. It is not access control (the code is in the bundle) and it does not
+gate APIs — any BE API the feature calls must already be live in the production BE. Changes to
+existing code paths (bug fixes, refactors) cannot be hidden this way.
+
+---
+
 ## 10. Large Component Rules
 
 Components over 500 lines are refactor candidates.

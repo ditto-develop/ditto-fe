@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import styled from "styled-components";
 
 import { useNotificationBellDot } from "@/features/notification/hooks/useNotificationBellDot";
+import { useTesterModeTap } from "@/shared/lib/hooks/useTesterModeTap";
 
 const Header = styled.div`
     display: flex;
@@ -26,6 +27,9 @@ const LogoBox = styled.div`
     justify-content: center;
     width: 60px;
     height: 32px;
+    /* 테스터 모드 토글(useTesterModeTap)용으로 눌리는 영역이다. 연타해도 글자 선택·탭 하이라이트가 뜨지 않게 한다. */
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 `;
 
 const Logo = styled.img`
@@ -61,10 +65,12 @@ const AlarmDot = styled.span`
 export function MainHeader(){
     const router = useRouter();
     const bell = useNotificationBellDot();
+    // 숨은 동작이라 버튼으로 드러내지 않는다(접근성 트리에는 그냥 로고 이미지다).
+    const handleLogoTap = useTesterModeTap();
 
     return(
         <Header>
-            <LogoBox>
+            <LogoBox data-testid="home-logo" onClick={handleLogoTap}>
                 <Logo
                     src="/assets/logo/ditto.svg"
                     alt="ditto"

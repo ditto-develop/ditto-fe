@@ -8,6 +8,8 @@ declare global {
         accessToken?: string;
         refreshToken?: string;
       }): Chainable<void>;
+      /** 공개 전 기능이 보이도록 테스터 모드를 켠다. cy.visit 전에 부른다. */
+      enableTesterMode(): Chainable<void>;
       mockApi(options?: {
         matchesFixture?: string;
         matchingStatusFixture?: string;
