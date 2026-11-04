@@ -111,7 +111,7 @@ lint · typecheck · vitest · Cypress 가 전부 통과해야 `deploy` 가 돌�
 | 1 | Route53 에 `alpha` A(Alias) → `d28wm0h79feewt.cloudfront.net` |
 | 2 | CloudFront 배포판의 **대체 도메인 이름**에 `alpha.ditto.pics` 추가 (인증서는 `*.ditto.pics` 와일드카드라 재발급 불필요) |
 | 3 | CloudFront 함수의 host→prefix 분기에 alpha 추가 |
-| 4 | `deploy-prod.yml` 을 복제해 트리거 브랜치와 S3 프리픽스만 교체 |
+| 4 | `deploy-prod.yml` 을 복제해 트리거 브랜치와 S3 프리픽스만 교체. prod 는 릴리스 폴더 + 함수 한 줄 전환 방식이다(CLAUDE.md §13.2.2) — 두 워크플로가 **같은 함수**를 게시하므로, alpha 용 프리픽스 선언을 따로 두고 치환 스크립트가 자기 줄만 바꾸게 해야 서로의 릴리스를 덮지 않는다 |
 | 5 | `ALLOWED_HOSTS`(`appShell.ts`)에 추가 · `verify:domains --also alpha.ditto.pics` |
 | 6 | BE CORS 허용 목록에 추가 |
 
@@ -469,16 +469,29 @@ node scripts/generate-cf-rewrite-function.mjs      # infra/cloudfront/rewrite-dy
 것이 아니라 **그 함수의 내용을 교체**한다. 이름을 유지하면 연결(association)을 건드릴
 필요가 없어 가장 안전하다.
 
+> ⚠️ **커밋된 함수 파일을 그대로 게시하지 말 것** (2026-11 릴리스 폴더 도입 이후).
+> 커밋본의 `PROD_RELEASE_PREFIX` 는 `'/prod'` 이고, `prod/` 의 문서는 릴리스 폴더 도입 직전
+> 배포에 멈춰 있다. 그대로 올리면 **에러 없이 사이트가 옛 버전으로 돌아간다.**
+> 반드시 현재 릴리스 id 로 치환한 사본을 쓴다(CLAUDE.md §13.2.2):
+>
+> ```bash
+> LIVE_ID=$(aws s3api list-objects-v2 --bucket ditto-pics-247842832483-ap-northeast-2 --prefix releases-meta/ \
+>   --query 'sort_by(Contents[?ends_with(Key, `/chunks.txt`)], &LastModified)[-1].Key' --output text | cut -d/ -f2)
+> node scripts/render-cf-release-function.mjs "$LIVE_ID" cf-release-function.js
+> ```
+>
+> 단순히 이전 릴리스로 되돌리는 것이 목적이면 이 절차가 아니라 배포 워크플로의 `rollback_to` 를 쓴다.
+
 ```bash
 # 1) DEVELOPMENT 스테이지에 올린다 (LIVE 는 그대로 — 트래픽 영향 없음)
 ETAG=$(aws cloudfront describe-function --name www-to-apex-ditto-pics --query 'ETag' --output text)
 aws cloudfront update-function \
   --name www-to-apex-ditto-pics --if-match "$ETAG" \
   --function-config Comment="www->apex 301 + host prefix routing + static export dynamic route rewrite",Runtime=cloudfront-js-2.0 \
-  --function-code fileb://infra/cloudfront/rewrite-dynamic-routes.js
+  --function-code fileb://cf-release-function.js
 
 # 2) 배포 없이 입력별 출력을 확인한다 (test-function 은 DEVELOPMENT 를 친다)
-#    최소한 이 셋은 봐야 한다: 딥링크 rewrite · 형제 정적 라우트 · /prod 프리픽스
+#    최소한 이 셋은 봐야 한다: 딥링크 rewrite · 형제 정적 라우트 · /releases/<id> 프리픽스(청크만 /prod)
 DEV_ETAG=$(aws cloudfront describe-function --name www-to-apex-ditto-pics --stage DEVELOPMENT --query 'ETag' --output text)
 aws cloudfront test-function --name www-to-apex-ditto-pics --stage DEVELOPMENT \
   --if-match "$DEV_ETAG" --event-object fileb://event.json
