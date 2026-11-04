@@ -111,7 +111,7 @@ lint · typecheck · vitest · Cypress 가 전부 통과해야 `deploy` 가 돌�
 | 1 | Route53 에 `alpha` A(Alias) → `d28wm0h79feewt.cloudfront.net` |
 | 2 | CloudFront 배포판의 **대체 도메인 이름**에 `alpha.ditto.pics` 추가 (인증서는 `*.ditto.pics` 와일드카드라 재발급 불필요) |
 | 3 | CloudFront 함수의 host→prefix 분기에 alpha 추가 |
-| 4 | `deploy-prod.yml` 을 복제해 트리거 브랜치와 S3 프리픽스만 교체 |
+| 4 | `deploy-prod.yml` 을 복제해 트리거 브랜치와 S3 프리픽스만 교체. prod 는 릴리스 폴더 + 함수 한 줄 전환 방식이다(CLAUDE.md §13.2.2) — 두 워크플로가 **같은 함수**를 게시하므로, alpha 용 프리픽스 선언을 따로 두고 치환 스크립트가 자기 줄만 바꾸게 해야 서로의 릴리스를 덮지 않는다 |
 | 5 | `ALLOWED_HOSTS`(`appShell.ts`)에 추가 · `verify:domains --also alpha.ditto.pics` |
 | 6 | BE CORS 허용 목록에 추가 |
 

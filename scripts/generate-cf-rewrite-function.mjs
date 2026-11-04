@@ -87,9 +87,13 @@ const source = `// 이 파일은 생성됩니다. 직접 수정하지 마세요.
 // 한 함수가 다 한다. 하나라도 빠뜨리고 배포하면 사이트가 통째로 깨진다.
 //
 //   1. www.ditto.pics → 아펙스 301 (쿼리스트링 보존)
-//   2. host → S3 프리픽스(\`/prod\`, test 는 \`/staging\`) + 디렉터리 URI → index.html
+//   2. host → S3 프리픽스(prod 는 릴리스 폴더, test 는 \`/staging\`) + 디렉터리 URI → index.html
 //      ⚠️ 프리픽스는 origin path 가 아니라 **이 함수가** 붙인다. 2026-08-28 에
 //      라이브 소스를 직접 읽어 확인했다. 빼면 전 경로가 404 다.
+//      prod 는 배포마다 \`releases/<id>/\` 에 통째로 올리고, 이 함수의 PROD_RELEASE_PREFIX 를
+//      바꿔 게시하는 순간 한 번에 넘어간다(scripts/render-cf-release-function.mjs).
+//      청크(\`/_next/static/\`)만은 버전 공용 \`/prod\` 에 둔다 — 배포 전에 열어 둔 탭이
+//      옛 청크를 계속 받아야 하기 때문이다.
 //   3. 정적 export 동적 라우트 rewrite (아래 ROUTES)
 //
 // 3번이 있는 이유: 정적 export 는 동적 라우트를 placeholder 한 장으로만 내보내
@@ -100,6 +104,13 @@ const source = `// 이 파일은 생성됩니다. 직접 수정하지 마세요.
 var ROUTES = [
 ${table}
 ];
+
+// prod 의 현재 릴리스. 커밋본은 '/prod'(릴리스 폴더 도입 전 위치)이고, 배포 워크플로가
+// '/releases/<id>' 로 치환한 사본을 게시한다. 이 줄의 모양을 바꾸면 치환 스크립트도 고칠 것.
+var PROD_RELEASE_PREFIX = '/prod';
+
+// 버전 공용 청크 위치. 파일명에 콘텐츠 해시가 붙어 릴리스끼리 섞여도 충돌하지 않는다.
+var SHARED_CHUNK_PREFIX = '/prod';
 
 function handler(event) {
   var request = event.request;
@@ -123,13 +134,20 @@ function handler(event) {
   }
 
   // 2) host → S3 프리픽스. 알 수 없는 호스트는 prod 다(기존 동작 유지).
-  var prefix = normalizedHost === 'test.ditto.pics' ? '/staging' : '/prod';
+  var isStaging = normalizedHost === 'test.ditto.pics';
+  var prefix = isStaging ? '/staging' : PROD_RELEASE_PREFIX;
 
   var uri = rewriteDynamicRoute(request.uri);
 
   // 이미 프리픽스가 붙어 들어온 요청은 두 번 붙이지 않는다.
-  if (uri.indexOf('/staging/') === 0 || uri.indexOf('/prod/') === 0) {
+  if (uri.indexOf('/staging/') === 0 || uri.indexOf('/prod/') === 0 || uri.indexOf('/releases/') === 0) {
     request.uri = uri;
+    return request;
+  }
+
+  // 청크는 릴리스 폴더가 아니라 공용 위치에서 준다(위 SHARED_CHUNK_PREFIX 설명).
+  if (!isStaging && uri.indexOf('/_next/static/') === 0) {
+    request.uri = SHARED_CHUNK_PREFIX + uri;
     return request;
   }
 

@@ -426,12 +426,15 @@ after the first release, at which point a second workflow will be added.
   It runs on push to `deploy` and on manual `workflow_dispatch`.
 - It has two jobs. **`verify` gates `deploy`** — lint, typecheck, vitest, and Cypress E2E must
   all pass before anything reaches S3. This gate replaces the staging buffer; do not weaken it.
-- `deploy` then runs `npm run build` (static export to `./out`) → S3 upload (see §13.2.2) →
-  CloudFront `/*` invalidation → publishes the CloudFront rewrite function (skipped until
-  `CF_REWRITE_FUNCTION_NAME` is set) → prunes abandoned chunks.
+- `deploy` then runs `npm run build` (static export to `./out`) → uploads the build into a new
+  release folder (see §13.2.2) → **switches** by publishing the CloudFront function with that
+  release's prefix → CloudFront `/*` invalidation → prunes old releases and abandoned chunks.
+- **Rollback** = run the workflow manually with `rollback_to=<release id>` (no build, seconds).
+  Candidates: `aws s3 ls s3://ditto-pics-247842832483-ap-northeast-2/releases-meta/` (last 5).
 - [`.github/workflows/e2e.yml`](.github/workflows/e2e.yml) is **pull-request only**. The push
   path's E2E lives in the deploy workflow's `verify` job, so it can block the deploy.
-- `ditto.pics` and `www.ditto.pics` are routed to the `/prod` S3 prefix (`www` 301s to the apex).
+- `ditto.pics` and `www.ditto.pics` are routed to the current `releases/<id>/` S3 prefix, chunks to
+  the shared `prod/_next/static/` (`www` 301s to the apex).
 - **Uncommitted or unpushed changes are NEVER deployed.** Working-tree edits and local
   `npm run build` output (`./out`) have no effect on the live site until they are committed AND
   pushed. If "deployment isn't happening," first check `git status`, then
@@ -462,7 +465,14 @@ production. After the run succeeds, confirm the live site with `npm run verify:d
 
 S3 prefixes:
 
-- `prod/`: `ditto.pics`, `www.ditto.pics` — the only live prefix
+- `releases/<id>/`: one full build per deploy (everything except `_next/static`). The CloudFront
+  function's `PROD_RELEASE_PREFIX` picks the live one. `<id>` = `<run_id>-<run_attempt>-<sha7>`.
+- `releases-meta/<id>/`: `function.js` (the exact function that release was published with — used
+  by rollback) and `chunks.txt` (its chunk keys — protects them from pruning). Never served.
+- `prod/_next/static/`: the shared chunk pool, live for every release.
+- `prod/` (everything else): frozen at the last deploy before release folders (2026-11). Nothing
+  serves it unless the **committed** function (default `PROD_RELEASE_PREFIX = '/prod'`) is
+  published as-is. Safe to delete once a few releases have gone out.
 - `staging/`: orphaned. `test.ditto.pics` was dropped in the Route53 migration and nothing
   serves this prefix any more. Safe to delete once `alpha.ditto.pics` is set up.
 
@@ -488,26 +498,33 @@ The `Verify Content-Type and Cache-Control` step asserts one object per class pl
 keep it, and note it gates the invalidation, so a failure there leaves S3 updated but edges
 stale — fix forward and re-run rather than leaving it red.
 
-### 13.2.2 Upload order and chunk retention (zero-downtime)
+### 13.2.2 Release folders and the atomic switch (zero-downtime)
 
 S3/CloudFront never goes down during a deploy — there is no process to restart. The real
-hazard is **version skew**: a tab that loaded before the deploy holds route HTML pointing at
-the old build's hashed chunks. Three rules keep that tab alive; do not undo them.
+hazards are **version skew** (some routes new, some old while files are being overwritten) and
+**stale tabs** (a tab that loaded before the deploy keeps requesting the old build's hashed
+chunks). The deploy handles both; do not undo these rules.
 
-1. **Chunks go up first, route HTML second.** Reversing the order opens a window where the new
-   HTML references chunks that are not in S3 yet.
-2. **`prod/_next/static/**` is never deleted by the sync.** The chunk upload uses
-   `cp --recursive` with no `--delete`, and the main sync passes `--exclude "_next/static/*"`
-   (which excludes those keys from deletion too, not just from copying). Filenames are
-   content-hashed, so old chunks coexist harmlessly. Deleting them is what turns a deploy into
-   a mass `ChunkLoadError`.
-3. **Old chunks are pruned inside the deploy, not by an S3 lifecycle rule.** The final
-   `Prune abandoned chunks older than 7 days` step removes `prod/_next/static/**` objects older
-   than 7 days that are not in the current build. A bucket lifecycle `Expiration` rule would be
-   wrong here: it runs regardless of deploys, so a 7-day quiet period would expire the **live**
-   chunks and take the site down. Keeping the prune in the deploy preserves "only a deploy
-   changes production." The chunk upload re-uploads every live chunk each deploy precisely so
-   their `LastModified` stays fresh and only orphans age out.
+1. **Upload everything first, then switch once.** Each deploy uploads into a fresh
+   `releases/<id>/` that nobody is looking at yet, then publishes the CloudFront function with
+   `PROD_RELEASE_PREFIX = '/releases/<id>'` (rendered by `scripts/render-cf-release-function.mjs`,
+   which fails unless it replaces exactly one line). That publish *is* the release. While the
+   function propagates, users flip at slightly different moments, but every request gets HTML
+   and files from one release. The cache key uses the rewritten URI, so a new release starts
+   with fresh cache keys.
+2. **Header verification runs before the switch.** If it fails, users stay on the previous
+   release — fix forward and re-run.
+3. **Chunks live in one shared pool, `prod/_next/static/**`, and are never deleted by the
+   upload.** The function sends only `/_next/static/` there. Filenames are content-hashed, so
+   releases coexist harmlessly, and a tab from before the switch still gets its old chunks.
+   Moving chunks into release folders would turn every deploy into a mass `ChunkLoadError`.
+4. **Pruning happens inside the deploy, not by an S3 lifecycle rule.** The last step keeps the
+   newest 5 releases and deletes chunks that are older than 7 days **and** not listed in any kept
+   release's `chunks.txt` — so a rollback target always has its chunks. A bucket lifecycle
+   `Expiration` rule would be wrong: it runs regardless of deploys, so a quiet week would expire
+   the **live** chunks and take the site down.
+5. **One deploy at a time.** The workflow has `concurrency: deploy-prod`; two overlapping runs
+   could otherwise publish their functions in the wrong order.
 
 The client-side backstop is [`src/shared/lib/chunkReload.ts`](src/shared/lib/chunkReload.ts),
 wired in `ClientLayout`: on a chunk/module load failure it reloads the document once (30s
