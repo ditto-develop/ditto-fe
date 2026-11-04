@@ -472,7 +472,9 @@ S3 prefixes:
 - `prod/_next/static/`: the shared chunk pool, live for every release.
 - `prod/` (everything else): frozen at the last deploy before release folders (2026-11). Nothing
   serves it unless the **committed** function (default `PROD_RELEASE_PREFIX = '/prod'`) is
-  published as-is. Safe to delete once a few releases have gone out.
+  published as-is. It is also the **only way back past the first release-folder deploy**
+  (that layout has no `releases-meta/` entry, so `rollback_to` cannot reach it). Delete it only
+  after a few releases have gone out and that fallback is no longer wanted.
 - `staging/`: orphaned. `test.ditto.pics` was dropped in the Route53 migration and nothing
   serves this prefix any more. Safe to delete once `alpha.ditto.pics` is set up.
 
@@ -524,7 +526,13 @@ chunks). The deploy handles both; do not undo these rules.
    `Expiration` rule would be wrong: it runs regardless of deploys, so a quiet week would expire
    the **live** chunks and take the site down.
 5. **One deploy at a time.** The workflow has `concurrency: deploy-prod`; two overlapping runs
-   could otherwise publish their functions in the wrong order.
+   could otherwise publish their functions in the wrong order. GitHub keeps only one *pending*
+   run per group, so a queued rollback is cancelled if a push to `deploy` queues behind it —
+   check that the rollback run actually ran.
+6. **A run that fails mid-upload leaves an orphan `releases/<id>/`** with no `releases-meta/`
+   entry. Prune only walks `releases-meta/`, so delete such folders by hand (storage only).
+   Kept releases are also directly reachable at `/releases/<id>/…` — they contain nothing that
+   is not already public.
 
 The client-side backstop is [`src/shared/lib/chunkReload.ts`](src/shared/lib/chunkReload.ts),
 wired in `ClientLayout`: on a chunk/module load failure it reloads the document once (30s
