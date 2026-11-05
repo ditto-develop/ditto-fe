@@ -14,7 +14,7 @@ interface GroupChatRoomHeaderProps {
   totalMembers: number;
   expiresAt: Date | null;
   onMenuClick: () => void;
-  /** 8.1 "우리 그룹의 답변" 문서 아이콘. 테스터 모드에서 방 답변을 읽었을 때만 넘긴다(Figma 3262:55446). */
+  /** 8.1 "우리 그룹의 답변" 문서 아이콘. `RECORDS` 플래그가 켜져 방 답변을 읽었을 때만 넘긴다(Figma 3262:55446). */
   onAnswersClick?: () => void;
   /** 문서 아이콘 아래 첫 진입 안내 말풍선(Figma 3262:55481). 헤더 기준 절대 위치로 놓인다. */
   answersTooltip?: ReactNode;

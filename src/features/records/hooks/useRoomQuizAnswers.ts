@@ -23,7 +23,7 @@ type UseRoomQuizResult<T extends RoomQuizData> = {
 
 /**
  * 대화방 답변 데이터 공통 모양. 채팅 자체는 그대로 써야 하므로 실패해도 토스트를 띄우지 않는다.
- * `enabled` 가 false(테스터 모드 꺼짐·끝난 방)면 부르지 않고 비운다.
+ * `enabled` 가 false(`RECORDS` 플래그 꺼짐·끝난 방)면 부르지 않고 비운다.
  */
 function useRoomQuizData<T extends RoomQuizData>(
   load: (roomId: number) => Promise<T>,

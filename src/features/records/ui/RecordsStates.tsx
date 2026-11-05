@@ -33,7 +33,7 @@ type RecordsLoadErrorProps = {
   onRetry?: () => void;
 };
 
-/** 불러오기 실패. 운영 BE 에 IMP-1 API 가 아직 없으면(배포 전) 테스터 기기에서는 여기로 온다. */
+/** 불러오기 실패. 운영 BE 에 IMP-1 API 가 아직 없으면(배포 전) 플래그를 켠 기기에서는 여기로 온다. */
 export function RecordsLoadError({ message, onRetry }: RecordsLoadErrorProps) {
   return (
     <ErrorBox role="alert">

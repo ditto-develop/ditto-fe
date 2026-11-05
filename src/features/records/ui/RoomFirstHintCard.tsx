@@ -14,7 +14,7 @@ type RoomFirstHintCardProps = {
  * 가운데 카드로 그린다(Figma 1:1 3256:51233 · 그룹 3270:36280). 보낸 사람이 없고 안 읽음·푸시 대상이 아니다.
  *
  * "“{문항}” / 두 분 모두 **{답}**를 골랐어요. {이어서 던질 질문}"
- * 테스터 모드와 상관없이 그린다 — 서버 `QUIZ_CHAT` 플래그가 켜지면 모든 회원의 방에 온다.
+ * `RECORDS` 플래그와 상관없이 그린다 — 서버 `QUIZ_CHAT` 플래그가 켜지면 모든 회원의 방에 온다.
  */
 export function RoomFirstHintCard({ hint }: RoomFirstHintCardProps) {
   const sentence = describeHint(hint);

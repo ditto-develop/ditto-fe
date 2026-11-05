@@ -8,7 +8,7 @@ import { externalApiFetch } from "@/shared/lib/api/externalClient";
 
 /*
  * 8.1 퀴즈 기록 · 대화방 답변 비교 API(서버 IMP-1, ditto-server #366).
- * 화면이 테스터 모드(`records` 플래그) 뒤에 있는 동안만 부른다.
+ * 화면이 서버 `RECORDS` 플래그 뒤에 있어, 켜져 있을 때만 부른다.
  * 질문 카드 전송은 REST 가 아니라 STOMP 프레임이다(`useChatRoom.sendQuizCard`).
  */
 

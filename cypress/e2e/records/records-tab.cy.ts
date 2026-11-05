@@ -1,5 +1,6 @@
 /**
- * 8.1 퀴즈 기록 탭(/records) — 2026-11-05 공개. 테스터 모드와 상관없이 보인다(CLAUDE.md §9.1).
+ * 8.1 퀴즈 기록 탭(/records) — 서버 기능 플래그 `RECORDS` 뒤에 있다(CLAUDE.md §9.1).
+ * cy.mockApi 는 물어본 플래그를 모두 켜서 답한다. 꺼짐은 cy.mockFeatureFlags 로 덮는다.
  *
  * 서버 IMP-1 계약(GET /quiz-history, /quiz-history/{quizSetId}). 여기서는
  * cypress/fixtures/records/* (src/mocks/recordsData.ts 에서 뽑은 값)로 응답을 고정한다.
@@ -23,12 +24,11 @@ function mockRecordsApi() {
   });
 }
 
-describe("퀴즈 기록 탭 — 테스터 모드", () => {
+describe("퀴즈 기록 탭 — 서버 RECORDS 켜짐", () => {
   beforeEach(() => {
     cy.mockApi();
     mockRecordsApi();
     cy.login();
-    cy.enableTesterMode();
   });
 
   it("홈 하단 탭에 '기록' 이 홈과 대화방 사이에 보인다", () => {
@@ -127,25 +127,41 @@ describe("퀴즈 기록 탭 — 테스터 모드", () => {
   });
 });
 
-describe("퀴즈 기록 탭 — 공개 후 테스터 모드 없이", () => {
+describe("퀴즈 기록 탭 — 서버 RECORDS 꺼짐", () => {
   beforeEach(() => {
     cy.mockApi();
+    cy.mockFeatureFlags({ RECORDS: false });
     mockRecordsApi();
     cy.login();
   });
 
-  it("홈 하단 탭에 '기록' 이 보인다", () => {
+  it("홈 하단 탭에 '기록' 이 없다", () => {
     cy.visit("/home");
 
-    cy.contains("nav a", "기록", { timeout: 8000 }).should("be.visible");
-    cy.get("nav a").should("have.length", 4);
+    cy.wait("@getFeatureFlags");
+    cy.contains("nav a", "대화방", { timeout: 8000 }).should("be.visible");
+    cy.contains("nav a", "기록").should("not.exist");
+    cy.get("nav a").should("have.length", 3);
   });
 
-  it("주소로 /records 에 들어오면 기록 API 를 부르고 기록 화면을 보여 준다", () => {
+  it("주소로 /records 에 들어와도 /home 으로 보내고 기록 API 를 부르지 않는다", () => {
     cy.visit("/records");
 
-    cy.wait("@getQuizRecords");
-    cy.location("pathname").should("match", /^\/records\/?$/);
-    cy.contains("퀴즈 기록", { timeout: 8000 }).should("be.visible");
+    cy.location("pathname", { timeout: 15000 }).should("match", /^\/home\/?$/);
+    cy.contains("퀴즈 기록").should("not.exist");
+    cy.get("@getQuizRecords.all").should("have.length", 0);
+  });
+
+  it("상세 주소(/records/42)로 들어와도 /home 으로 보낸다", () => {
+    cy.visit("/records/42");
+
+    cy.location("pathname", { timeout: 15000 }).should("match", /^\/home\/?$/);
+    cy.get("@getQuizRecord42.all").should("have.length", 0);
+  });
+
+  it("플래그는 쓰는 키만 묻는다", () => {
+    cy.visit("/home");
+
+    cy.wait("@getFeatureFlags").its("request.url").should("include", "keys=RECORDS");
   });
 });

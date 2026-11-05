@@ -17,7 +17,7 @@ type ChatQuizCardViewProps = {
   sentByMe: boolean;
   /** 1:1 칩의 상대 이름. */
   partnerName: string;
-  /** 문항 번호. 카드에는 없어 방 답변을 읽었을 때만(테스터 모드) 붙인다. */
+  /** 문항 번호. 카드에는 없어 방 답변을 읽었을 때만(`RECORDS` 플래그) 붙인다. */
   order?: number | null;
   /** 그룹 칩에서 내 선택지를 밝게 칠 때 쓴다. 모르면 생략 — 모든 칩이 밝게 나온다. */
   myChoiceId?: number | null;
@@ -30,7 +30,7 @@ type ChatQuizCardViewProps = {
  * - 1:1: "나 · 노을빛" / "사부작사부작 · 하늘빛", 같은 답이면 "둘 다 노을빛"(Figma 3256:52642)
  * - 그룹: "열린 결말 2명" 칩, 모두 같으면 "4명 모두 '끝까지 본다'"(Figma 3273:37774) + 힌트 질문 한 줄
  *
- * 테스터 모드와 상관없이 그린다 — 테스터가 보낸 카드는 같은 방의 일반 회원에게도 간다.
+ * `RECORDS` 플래그와 상관없이 그린다 — 받은 카드는 플래그가 꺼진 기기에서도 보여야 한다.
  */
 export function ChatQuizCardView({
   card,

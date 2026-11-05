@@ -23,7 +23,7 @@ interface MessageBubbleProps {
   /** 상대 아바타를 누르면 상대 프로필을 연다. */
   onPartnerClick?: () => void;
   onRetry?: () => void;
-  /** 질문 카드의 문항 번호. 카드에는 없어 방 답변을 읽었을 때만(테스터 모드) 안다. */
+  /** 질문 카드의 문항 번호. 카드에는 없어 방 답변을 읽었을 때만(`RECORDS` 플래그) 안다. */
   quizOrderOf?: (quizId: number) => number | null;
 }
 
@@ -93,7 +93,7 @@ export function MessageBubble({
 
   /*
    * 8.1 질문 카드(QUIZ_CARD). content 는 서버가 만든 카드 JSON 이다. 덧붙인 한마디는 바로 뒤 TEXT
-   * 메시지로 따로 와 일반 말풍선으로 이어진다(Figma 3256:38421). 테스터 모드와 상관없이 그린다.
+   * 메시지로 따로 와 일반 말풍선으로 이어진다(Figma 3256:38421). `RECORDS` 플래그와 상관없이 그린다.
    */
   const quiz = message.messageType === "QUIZ_CARD" ? parseQuizCard(message.content) : null;
   if (message.messageType === "QUIZ_CARD" && !quiz) return null;

@@ -43,7 +43,7 @@ interface GroupMessageListProps {
   /** 보낸 사람 아바타를 누르면 그 사람 프로필을 연다. */
   onSenderClick?: (member: CounterpartProfile) => void;
   /**
-   * 8.1 방 답변 분포(테스터 모드에서만 값이 있다). 질문 카드에 문항 번호·내 선택지를 붙일 때 쓴다 —
+   * 8.1 방 답변 분포(`RECORDS` 플래그가 켜져 있을 때만 값이 있다). 질문 카드에 문항 번호·내 선택지를 붙일 때 쓴다 —
    * 서버 그룹 카드에는 둘 다 없다.
    */
   quizDistribution?: QuizDistributionResponse | null;

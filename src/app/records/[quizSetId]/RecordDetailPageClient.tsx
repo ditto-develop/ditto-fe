@@ -18,11 +18,11 @@ function RecordDetailContent() {
 }
 
 /**
- * 8.1 내 답변 보기 / 퀴즈 결과. 공개 전 기능이라 테스터 모드가 아니면 /home 으로 보낸다
+ * 8.1 내 답변 보기 / 퀴즈 결과. 서버 `RECORDS` 플래그가 꺼져 있으면 /home 으로 보낸다
  * (CLAUDE.md §9.1) — 푸시·딥링크로 바로 들어와도 막힌다.
  */
 export function RecordDetailPageClient() {
-  const allowed = useFeatureGate("records");
+  const allowed = useFeatureGate("RECORDS");
   if (!allowed) return null;
   return <RecordDetailContent />;
 }
