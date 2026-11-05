@@ -2,11 +2,11 @@
 
 import styled from "styled-components";
 
-import type { QuizRecordQuestion } from "@/features/records/model/types";
+import type { QuizHistoryAnswer } from "@/features/records/model/types";
 import { RecordQuestionSection } from "@/features/records/ui/RecordQuestionSection";
 
 type RecordAnswerListProps = {
-  questions: QuizRecordQuestion[];
+  questions: QuizHistoryAnswer[];
 };
 
 function byOrder<T extends { order: number }>(items: T[]): T[] {

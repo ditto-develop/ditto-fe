@@ -1,0 +1,22 @@
+[
+  {
+    "id": 25,
+    "roomId": 1,
+    "senderId": null,
+    "messageType": "QUIZ_HINT",
+    "content": "{\"quizId\":4203,\"kind\":\"SAME\",\"question\":\"시간이 멈춘다면 그 시각은?\",\"answer\":\"새벽 2시\",\"hintQuestion\":\"그 시간엔 주로 뭘 하세요?\"}",
+    "imageUrl": null,
+    "unreadCount": 0,
+    "createdAt": "2026-06-05 00:00:00"
+  },
+  {
+    "id": 26,
+    "roomId": 1,
+    "senderId": 2,
+    "messageType": "QUIZ_CARD",
+    "content": "{\"quizId\":4202,\"question\":\"반려견 이름을 짓는다면?\",\"choices\":[{\"choiceId\":42021,\"content\":\"후추\"},{\"choiceId\":42022,\"content\":\"소금\"}],\"senderChoiceId\":42021,\"peerChoiceId\":42021,\"hintQuestion\":\"그 이름엔 어떤 사연이 있어요?\"}",
+    "imageUrl": null,
+    "unreadCount": 0,
+    "createdAt": "2026-06-05 16:40:00"
+  }
+]

@@ -265,21 +265,18 @@ describe("getLastMessagePreview", () => {
     ).toBe("사진을 보냈어요.");
   });
 
-  it("QUIZ는 덧붙인 한마디, 없으면 안내 문구를 쓴다", () => {
-    const quiz = {
-      id: 2,
-      roomId: 1,
-      senderId: 2,
-      messageType: "QUIZ" as const,
-      imageUrl: null,
-      createdAt: "2026-06-06 12:00:00",
-    };
-    expect(getLastMessagePreview({ lastMessage: { ...quiz, content: "왜 하늘빛이에요?" } })).toBe(
-      "왜 하늘빛이에요?",
-    );
-    expect(getLastMessagePreview({ lastMessage: { ...quiz, content: "" } })).toBe(
-      "질문을 보냈어요.",
-    );
+  it("퀴즈 메시지는 JSON content 를 숨기고 안내 문구를 쓴다", () => {
+    const base = { id: 2, roomId: 1, imageUrl: null, unreadCount: 0, createdAt: "2026-06-06 12:00:00" };
+    expect(
+      getLastMessagePreview({
+        lastMessage: { ...base, senderId: 2, messageType: "QUIZ_CARD", content: '{"quizId":1}' },
+      }),
+    ).toBe("질문을 보냈어요.");
+    expect(
+      getLastMessagePreview({
+        lastMessage: { ...base, senderId: null, messageType: "QUIZ_HINT", content: '{"quizId":1}' },
+      }),
+    ).toBe("첫 대화 힌트가 도착했어요");
   });
 
   it("메시지가 없으면 undefined다", () => {

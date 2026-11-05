@@ -1,6 +1,11 @@
 import { Client, type IMessage, type StompSubscription } from "@stomp/stompjs";
 
-import type { ChatMessage, ChatOutgoingMessage, ChatReadEvent } from "@/features/chat/model/types";
+import type {
+  ChatMessage,
+  ChatOutgoingMessage,
+  ChatReadEvent,
+  QuizCardRejectedEvent,
+} from "@/features/chat/model/types";
 import { getAccessToken } from "@/shared/lib/auth";
 import { getExternalApiBase } from "@/shared/lib/api/externalClient";
 
@@ -16,6 +21,8 @@ export function getChatSocketUrl(): string {
 type ChatSocketHandlers = {
   onMessage: (message: ChatMessage) => void;
   onRead?: (event: ChatReadEvent) => void;
+  /** 이미 올라온 문항을 카드로 다시 보냈다(7007). 방 토픽이라 남이 보낸 것도 온다 — 받는 쪽이 거른다. */
+  onQuizCardRejected?: (event: QuizCardRejectedEvent) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
   onError?: (reason: string) => void;
@@ -123,9 +130,12 @@ export function createChatSocket(roomId: number, handlers: ChatSocketHandlers): 
 
     subscription = client.subscribe(`/sub/chat/rooms/${roomId}`, (frame: IMessage) => {
       try {
-        const payload = JSON.parse(frame.body) as ChatMessage | ChatReadEvent;
+        const payload = JSON.parse(frame.body) as ChatMessage | ChatReadEvent | QuizCardRejectedEvent;
+        // 이벤트 프레임에는 `type` 이 있고 메시지 프레임에는 없다(서버 docs/domains/chat.md).
         if ("type" in payload) {
-          if (payload.type === "READ" && payload.roomId === roomId) handlers.onRead?.(payload);
+          if (payload.roomId !== roomId) return;
+          if (payload.type === "READ") handlers.onRead?.(payload);
+          else if (payload.type === "QUIZ_CARD_REJECTED") handlers.onQuizCardRejected?.(payload);
           return;
         }
         handlers.onMessage(payload);
@@ -237,7 +247,7 @@ export function createChatRoomsSocket(handlers: ChatRoomsSocketHandlers): ChatRo
 
     const subscription = client.subscribe(`/sub/chat/rooms/${roomId}`, (frame: IMessage) => {
       try {
-        const payload = JSON.parse(frame.body) as ChatMessage | ChatReadEvent;
+        const payload = JSON.parse(frame.body) as ChatMessage | ChatReadEvent | QuizCardRejectedEvent;
         if ("type" in payload) {
           if (payload.type === "READ") handlers.onSelfRead?.(roomId, payload);
           return;

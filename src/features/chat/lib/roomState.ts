@@ -88,8 +88,10 @@ export function getLastMessagePreview(
   const last = room.lastMessage;
   if (!last) return undefined;
   if (last.messageType === "IMAGE") return "사진을 보냈어요.";
-  // 8.1 질문 보내기. 덧붙인 한마디가 있으면 그게 더 많이 말해 준다.
-  if (last.messageType === "QUIZ") return last.content.trim() || "질문을 보냈어요.";
+  // 8.1 퀴즈 메시지의 content 는 JSON 이라 그대로 보이면 안 된다. 카드에 덧붙인 한마디는 뒤따르는
+  // TEXT 메시지라 그쪽이 마지막이면 본문이 그대로 보인다. 카드 문구는 서버 푸시 본문과 같다.
+  if (last.messageType === "QUIZ_CARD") return "질문을 보냈어요.";
+  if (last.messageType === "QUIZ_HINT") return "첫 대화 힌트가 도착했어요";
   return last.content;
 }
 

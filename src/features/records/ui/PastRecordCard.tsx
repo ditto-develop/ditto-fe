@@ -3,11 +3,11 @@
 import styled from "styled-components";
 
 import { formatRecordMeta, pastRecordLabel } from "@/features/records/lib/recordFormat";
-import type { QuizRecordItem } from "@/features/records/model/types";
+import type { QuizHistoryWeek } from "@/features/records/model/types";
 import { Icon } from "@/shared/ui";
 
 type PastRecordCardProps = {
-  record: QuizRecordItem;
+  record: QuizHistoryWeek;
   onOpen: (quizSetId: number) => void;
 };
 

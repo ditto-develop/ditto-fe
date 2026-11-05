@@ -1,39 +1,38 @@
 import type {
-  QuizRecordDetail,
-  QuizRecordsResponse,
-  RoomQuizAnswers,
-  ShareQuizRequest,
+  QuizCompareResponse,
+  QuizDistributionResponse,
+  QuizHistoryDetail,
+  QuizHistoryResponse,
 } from "@/features/records/model/types";
-import type { ChatMessage } from "@/features/chat/model/types";
 import { externalApiFetch } from "@/shared/lib/api/externalClient";
 
 /*
- * 8.1 퀴즈 기록 API. 2026-11-03 기준 운영 BE 에 없다 — 요청서는 ditto-fe 위키
- * BE-Request-Quiz-Records. 화면이 테스터 모드 뒤에 있는 동안만 부른다.
+ * 8.1 퀴즈 기록 · 대화방 답변 비교 API(서버 IMP-1, ditto-server #366).
+ * 화면이 테스터 모드(`records` 플래그) 뒤에 있는 동안만 부른다.
+ * 질문 카드 전송은 REST 가 아니라 STOMP 프레임이다(`useChatRoom.sendQuizCard`).
  */
 
-/** 기록 탭: 상단 요약 + 내가 끝까지 푼 퀴즈셋 목록(최신 주 먼저). */
-export function getQuizRecords(): Promise<QuizRecordsResponse> {
-  return externalApiFetch<QuizRecordsResponse>("/api/v1/quiz-records");
+/** 기록 탭: 상단 요약 + 이번 주 + 끝까지 푼 퀴즈셋 목록(최신 주 먼저). */
+export function getQuizHistory(): Promise<QuizHistoryResponse> {
+  return externalApiFetch<QuizHistoryResponse>("/api/v1/quiz-history");
 }
 
-/** 퀴즈셋 하나의 내 답과(공개 후에는) 선택 비율. 내가 끝까지 풀지 않은 퀴즈셋이면 404. */
-export function getQuizRecordDetail(quizSetId: number): Promise<QuizRecordDetail> {
-  return externalApiFetch<QuizRecordDetail>(`/api/v1/quiz-records/${quizSetId}`);
-}
-
-/** 대화방 멤버들의 답을 문항별로. 퀴즈로 만들어진 방이 아니면 404. */
-export function getRoomQuizAnswers(roomId: number): Promise<RoomQuizAnswers> {
-  return externalApiFetch<RoomQuizAnswers>(`/api/v1/chat/rooms/${roomId}/quiz-answers`);
+/** 퀴즈셋 하나의 내 답과(마감 뒤에는) 선택 비율. 끝까지 풀지 않은 퀴즈셋이면 404(4006). */
+export function getQuizHistoryDetail(quizSetId: number): Promise<QuizHistoryDetail> {
+  return externalApiFetch<QuizHistoryDetail>(`/api/v1/quiz-history/${quizSetId}`);
 }
 
 /**
- * 문항 하나를 대화방에 올린다. 서버가 `messageType: "QUIZ"` 메시지를 만들어 STOMP 로도
- * 방에 뿌린다 — 투표 생성이 SYSTEM 메시지를 남기는 것과 같은 방식이다.
+ * 1:1·재매칭 방의 문항별 답 비교. 끝난 방 409(7004), 상대 탈퇴·차단 409(7008), 그룹 방 400(7009),
+ * 방의 퀴즈셋 없음 404(7012).
  */
-export function shareQuizToRoom(roomId: number, body: ShareQuizRequest): Promise<ChatMessage> {
-  return externalApiFetch<ChatMessage>(`/api/v1/chat/rooms/${roomId}/quiz-shares`, {
-    method: "POST",
-    body,
-  });
+export function getQuizCompare(roomId: number): Promise<QuizCompareResponse> {
+  return externalApiFetch<QuizCompareResponse>(`/api/v1/chat/rooms/${roomId}/quiz-compare`);
+}
+
+/** 그룹 방의 문항별 답 분포(인원 수만). 오류 코드는 `getQuizCompare` 와 같다. */
+export function getQuizDistribution(roomId: number): Promise<QuizDistributionResponse> {
+  return externalApiFetch<QuizDistributionResponse>(
+    `/api/v1/chat/rooms/${roomId}/quiz-distribution`,
+  );
 }

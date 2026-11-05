@@ -16,7 +16,7 @@ import { AlertModal, Icon } from "@/shared/ui";
 
 /**
  * 8.1 "질문 보내기" 로 입력창 위에 붙인 문항(Figma 3279:35005). 붙어 있는 동안은
- * - 전송이 STOMP 텍스트 대신 `onSend` 로 간다(REST quiz-shares).
+ * - 전송이 텍스트 대신 `onSend` 로 간다(STOMP QUIZ_CARD 프레임 — 카드와 한마디를 한 번에).
  * - 글이 비어도 보낼 수 있다(Figma 주석 "텍스트 없어도 전송 버튼 활성").
  * - 사진 첨부는 숨긴다 — 문항 카드와 사진이 한 번에 나갈 수 없다.
  */

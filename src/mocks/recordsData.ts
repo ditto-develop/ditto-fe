@@ -1,20 +1,23 @@
-import type { ChatMessage } from "@/features/chat/model/types";
 import type {
-  ChatQuizCard,
-  QuizRecordDetail,
-  QuizRecordItem,
-  QuizRecordQuestion,
-  QuizRecordsResponse,
-  RoomQuizAnswers,
-  RoomQuizMember,
-  RoomQuizQuestion,
+  ChatMessage,
+  PairQuizCardContent,
+  QuizHintContent,
+} from "@/features/chat/model/types";
+import type {
+  QuizCompareResponse,
+  QuizDistributionResponse,
+  QuizHistoryAnswer,
+  QuizHistoryDetail,
+  QuizHistoryResponse,
+  QuizHistoryWeek,
 } from "@/features/records/model/types";
 
 /*
- * 8.1 퀴즈 기록 목업(MSW). 값은 Figma 8.1 [3240:35265] 시안을 따른다.
- * 운영 BE 에 아직 없는 API 라(위키 BE-Request-Quiz-Records) 화면 확인은 이 목업으로 한다.
+ * 8.1 퀴즈 기록 · 대화방 답변 비교 목업(MSW). 모양은 서버 IMP-1 계약(ditto-server #366), 값은 Figma 8.1
+ * [3240:35265] 시안을 따른다.
  *
- * 목업의 나는 member 1 이다(chat-messages.json 의 senderId 1).
+ * 목업의 나는 member 1 이다(chat-messages.json 의 senderId 1). 질문 카드 전송은 STOMP 라 MSW 로
+ * 흉내 낼 수 없다 — 대신 첫 대화 힌트와 상대가 올린 카드 한 장을 메시지 목록에 미리 넣어 둔다.
  */
 
 const ME = 1;
@@ -29,11 +32,12 @@ type SeedQuestion = {
   partner: number;
   /** 그룹 방(나 + 2·3·4) 멤버별 선택 index — [나, 2, 3, 4]. */
   group: [number, number, number, number];
+  /** 문항별 대화 힌트 질문(서버 `quiz.hint_question`). */
   prompt: string;
   topic: string;
 };
 
-/** "시간이 멈춘다면" 12문항. 소수 의견(비율 < 25%)은 Q3·Q6 두 개. */
+/** "시간이 멈춘다면" 12문항. 소수 의견(비율 ≤ 20%, 서버 `선택 수 × 5 ≤ 참여자`)은 Q3·Q6 두 개. */
 const SEED: SeedQuestion[] = [
   { question: "커튼을 열면 보이는 색은?", choices: [["하늘빛", 58], ["노을빛", 42]], mine: 1, partner: 0, group: [0, 0, 1, 1], prompt: "그 색을 보면 어떤 장면이 떠올라요?", topic: "커튼을 열면" },
   { question: "반려견 이름을 짓는다면?", choices: [["후추", 47], ["소금", 53]], mine: 0, partner: 0, group: [0, 0, 0, 0], prompt: "그 이름엔 어떤 사연이 있어요?", topic: "반려견 이름을 짓는다면" },
@@ -49,7 +53,8 @@ const SEED: SeedQuestion[] = [
   { question: "여행 가방에 꼭 넣는 건?", choices: [["책", 41], ["카메라", 59]], mine: 1, partner: 0, group: [1, 1, 1, 1], prompt: "최근에 다녀온 여행지는 어디예요?", topic: "여행 가방에" },
 ];
 
-const MINORITY_PERCENT = 25;
+/** 서버 규칙(`선택 수 × 5 ≤ 참여자 수`)을 비율로 옮긴 값. 목업 참여자는 20명이 넘는다. */
+const MINORITY_MAX_PERCENT = 20;
 
 function quizId(index: number): number {
   return 4200 + index + 1;
@@ -61,242 +66,210 @@ function choiceId(questionIndex: number, choiceIndex: number): number {
 
 /* ────────────────────────── 기록 탭 ────────────────────────── */
 
-const RECORD_ITEMS: QuizRecordItem[] = [
-  {
-    quizSetId: 42,
-    year: 2026,
-    month: 10,
-    week: 4,
-    weekStartedOn: "2026-10-26",
-    matchingType: "ONE_TO_ONE",
-    title: "시간이 멈춘다면",
-    answeredCount: 12,
-    totalCount: 12,
-    submittedAt: "2026-10-27 21:14:00",
-    statsRevealAt: "2026-10-29 00:00:00",
-    revealed: false,
-    isCurrentWeek: true,
-    minorityCount: null,
-  },
-  {
-    quizSetId: 41,
-    year: 2026,
-    month: 10,
-    week: 3,
-    weekStartedOn: "2026-10-19",
-    matchingType: "GROUP",
-    title: "가을 밤, 같이 볼 영화",
-    answeredCount: 12,
-    totalCount: 12,
-    submittedAt: "2026-10-20 22:03:00",
-    statsRevealAt: "2026-10-22 00:00:00",
-    revealed: true,
-    isCurrentWeek: false,
-    minorityCount: 2,
-  },
-  {
-    quizSetId: 40,
-    year: 2026,
-    month: 10,
-    week: 2,
-    weekStartedOn: "2026-10-12",
-    matchingType: "ONE_TO_ONE",
-    title: "비 오는 날의 기억",
-    answeredCount: 12,
-    totalCount: 12,
-    submittedAt: "2026-10-13 08:41:00",
-    statsRevealAt: "2026-10-15 00:00:00",
-    revealed: true,
-    isCurrentWeek: false,
-    minorityCount: 3,
-  },
+const WEEKS: QuizHistoryWeek[] = [
+  { quizSetId: 42, weekStartedOn: "2026-10-26", matchingType: "ONE_TO_ONE", title: "시간이 멈춘다면", minorityCount: null },
+  { quizSetId: 41, weekStartedOn: "2026-10-19", matchingType: "GROUP", title: "가을 밤, 같이 볼 영화", minorityCount: 2 },
+  { quizSetId: 40, weekStartedOn: "2026-10-12", matchingType: "ONE_TO_ONE", title: "비 오는 날의 기억", minorityCount: 3 },
 ];
 
-export const quizRecords: QuizRecordsResponse = {
-  summary: { participatedWeeks: 3, answeredQuestions: 36, minorityOpinions: 5 },
-  records: RECORD_ITEMS,
+export const quizHistory: QuizHistoryResponse = {
+  summary: { participatedWeeks: 3, answeredQuestions: 36, minorityCount: 5 },
+  currentWeek: { quizSetId: 42, resultOpen: false, resultOpensAt: "2026-10-29 00:00:00" },
+  weeks: WEEKS,
 };
 
-function recordQuestions(revealed: boolean): QuizRecordQuestion[] {
-  return SEED.map((seed, index) => {
-    const mine = choiceId(index, seed.mine);
+function historyAnswers(closed: boolean): QuizHistoryAnswer[] {
+  return SEED.map((seed, index) => ({
+    quizId: quizId(index),
+    order: index + 1,
+    question: seed.question,
+    // 마감 전에는 비율·소수 의견 키 자체가 없다(서버 계약).
+    choices: seed.choices.map(([content, percent], choiceIndex) =>
+      closed
+        ? { choiceId: choiceId(index, choiceIndex), content, percent, minority: percent <= MINORITY_MAX_PERCENT }
+        : { choiceId: choiceId(index, choiceIndex), content },
+    ),
+    myChoiceId: choiceId(index, seed.mine),
+  }));
+}
+
+/** 목록에 없는 id 면 null(→ 404 · 4006). */
+export function quizHistoryDetail(quizSetId: number): QuizHistoryDetail | null {
+  const week = WEEKS.find((item) => item.quizSetId === quizSetId);
+  if (!week) return null;
+  const closed = week.minorityCount !== null;
+  const base: QuizHistoryDetail = {
+    quizSetId: week.quizSetId,
+    title: week.title,
+    matchingType: week.matchingType,
+    weekStartedOn: week.weekStartedOn,
+    phase: closed ? "CLOSED" : "IN_PROGRESS",
+    resultOpensAt: "2026-10-29 00:00:00",
+    participantCount: closed ? 312 : 87,
+    answers: historyAnswers(closed),
+  };
+  return closed ? { ...base, result: { overlapThreshold: 8, overlapCount: 23, minorityCount: 2 } } : base;
+}
+
+/* ────────────────────────── 대화방 답변 보기 ────────────────────────── */
+
+/** 그룹 방 멤버 순서 — SEED.group 의 [나, 2, 3, 4]. */
+const GROUP_MEMBER_IDS = [ME, 2, 3, 4] as const;
+
+/** roomId → 이미 카드로 올린 문항. 1:1 방은 Q2 를 상대가 올린 상태로 시작한다(Figma 3257:52969). */
+const sentByRoom = new Map<number, Set<number>>([[1, new Set([quizId(1)])]]);
+
+function isSent(roomId: number, targetQuizId: number): boolean {
+  return sentByRoom.get(roomId)?.has(targetQuizId) ?? false;
+}
+
+/** 1:1 방(1)만. 그 밖은 null(→ 404). */
+export function roomQuizCompare(roomId: number): QuizCompareResponse | null {
+  if (roomId !== 1) return null;
+  const items = SEED.map((seed, index) => {
     const minePercent = seed.choices[seed.mine][1];
     return {
       quizId: quizId(index),
       order: index + 1,
       question: seed.question,
-      myChoiceId: mine,
-      isMinority: revealed ? minePercent < MINORITY_PERCENT : null,
       choices: seed.choices.map(([content, percent], choiceIndex) => ({
         choiceId: choiceId(index, choiceIndex),
         content,
-        order: choiceIndex + 1,
-        percent: revealed ? percent : null,
+        percent,
       })),
+      myChoiceId: choiceId(index, seed.mine),
+      peerChoiceId: choiceId(index, seed.partner),
+      same: seed.mine === seed.partner,
+      minority: minePercent <= MINORITY_MAX_PERCENT,
+      hintQuestion: seed.prompt,
+      sent: isSent(roomId, quizId(index)),
     };
   });
-}
-
-/** 목록에 없는 id 면 null(→ 404). */
-export function quizRecordDetail(quizSetId: number): QuizRecordDetail | null {
-  const item = RECORD_ITEMS.find((record) => record.quizSetId === quizSetId);
-  if (!item) return null;
+  const sameCount = items.filter((item) => item.same).length;
+  // 같은 답 중 소수 의견이고 내 선택 비율이 가장 낮은 문항(서버 규칙).
+  const highlight = items
+    .filter((item) => item.same && item.minority)
+    .sort((a, b) => {
+      const percentOf = (item: (typeof items)[number]) =>
+        item.choices.find((choice) => choice.choiceId === item.myChoiceId)?.percent ?? 100;
+      return percentOf(a) - percentOf(b) || a.order - b.order;
+    })[0];
   return {
-    ...item,
-    minorityCount: item.revealed ? 2 : null,
-    participantCount: item.revealed ? 312 : 87,
-    similarMemberCount: item.revealed ? 23 : null,
-    similarThreshold: 8,
-    questions: recordQuestions(item.revealed),
+    quizSetId: 42,
+    totalCount: items.length,
+    sameCount,
+    diffCount: items.length - sameCount,
+    highlightQuizId: highlight?.quizId ?? null,
+    canSendCard: true,
+    chatOpensAt: "2026-06-05 00:00:00",
+    items,
   };
 }
 
-/* ────────────────────────── 대화방 "우리의 답변" ────────────────────────── */
-
-const ONE_ON_ONE_MEMBERS: RoomQuizMember[] = [
-  { memberId: ME, nickname: "나", isMe: true },
-  { memberId: 2, nickname: "사부작사부작", isMe: false },
-];
-
-const GROUP_MEMBERS: RoomQuizMember[] = [
-  { memberId: ME, nickname: "나", isMe: true },
-  { memberId: 2, nickname: "사부작사부작", isMe: false },
-  { memberId: 3, nickname: "서준", isMe: false },
-  { memberId: 4, nickname: "도윤", isMe: false },
-];
-
-/** roomId → (quizId → 올린 시각). 1:1 방은 Q2 를 이미 올린 상태로 시작한다(Figma 3257:52969). */
-const sharedAtByRoom = new Map<number, Map<number, string>>([
-  [1, new Map([[quizId(1), "2026-06-05 16:40:00"]])],
-]);
-
-function roomQuestions(roomId: number, group: boolean): RoomQuizQuestion[] {
-  const shared = sharedAtByRoom.get(roomId);
-  return SEED.map((seed, index) => {
-    const pickers = (choiceIndex: number): number[] =>
-      group
-        ? GROUP_MEMBERS.filter((_, memberIndex) => seed.group[memberIndex] === choiceIndex).map(
-            (member) => member.memberId,
-          )
-        : [
-            ...(seed.mine === choiceIndex ? [ME] : []),
-            ...(seed.partner === choiceIndex ? [2] : []),
-          ];
-
+/** 그룹 방(3)만. 그 밖은 null(→ 404). */
+export function roomQuizDistribution(roomId: number): QuizDistributionResponse | null {
+  if (roomId !== 3) return null;
+  const items = SEED.map((seed, index) => {
+    const counts = seed.choices.map(
+      (_, choiceIndex) => seed.group.filter((picked) => picked === choiceIndex).length,
+    );
     return {
       quizId: quizId(index),
       order: index + 1,
       question: seed.question,
-      prompt: seed.prompt,
-      myChoiceId: choiceId(index, group ? seed.group[0] : seed.mine),
-      sharedAt: shared?.get(quizId(index)) ?? null,
-      choices: seed.choices.map(([content, percent], choiceIndex) => {
-        const memberIds = pickers(choiceIndex);
-        return {
-          choiceId: choiceId(index, choiceIndex),
-          content,
-          order: choiceIndex + 1,
-          memberCount: memberIds.length,
-          // 그룹은 누가 골랐는지 숨긴다(서버 계약).
-          memberIds: group ? null : memberIds,
-          percent,
-        };
-      }),
+      choices: seed.choices.map(([content], choiceIndex) => ({
+        choiceId: choiceId(index, choiceIndex),
+        content,
+        count: counts[choiceIndex],
+      })),
+      myChoiceId: choiceId(index, seed.group[0]),
+      unanimous: counts.some((count) => count === GROUP_MEMBER_IDS.length),
+      hintQuestion: seed.prompt,
+      sent: isSent(roomId, quizId(index)),
     };
   });
-}
-
-/** 퀴즈로 만든 방이 아니면 null(→ 404). 목업 방: 1(1:1), 3(그룹). */
-export function roomQuizAnswers(roomId: number): RoomQuizAnswers | null {
-  if (roomId !== 1 && roomId !== 3) return null;
-  const group = roomId === 3;
-
-  if (group) {
-    return {
-      roomId,
-      quizSetId: 41,
-      title: "가을 밤, 같이 볼 영화",
-      members: GROUP_MEMBERS,
-      questions: roomQuestions(roomId, true),
-      firstHint: {
-        quizId: quizId(7),
-        topic: "고민이 생기면",
-        choiceContent: "혼자 정리하기",
-        prompt: "요즘 정리하고 싶은 고민이 있어요?",
-        percent: 40,
-      },
-    };
-  }
-
+  // 인원 차(가장 많이 고른 선택지 − 가장 적게 고른 선택지)가 작은 순, 동률은 문항 순서(서버 규칙).
+  const gapOf = (item: (typeof items)[number]) => {
+    const counts = item.choices.map((choice) => choice.count);
+    return Math.max(...counts) - Math.min(...counts);
+  };
+  const unanimousCount = items.filter((item) => item.unanimous).length;
+  const splitQuizIds = items
+    .filter((item) => !item.unanimous)
+    .sort((a, b) => gapOf(a) - gapOf(b) || a.order - b.order)
+    .slice(0, 3)
+    .map((item) => item.quizId);
   return {
-    roomId,
-    quizSetId: 42,
-    title: "시간이 멈춘다면",
-    members: ONE_ON_ONE_MEMBERS,
-    questions: roomQuestions(roomId, false),
-    firstHint: {
-      quizId: quizId(2),
-      topic: "시간이 멈춘다면",
-      choiceContent: "새벽 2시",
-      prompt: "그 시간엔 주로 뭘 하세요?",
-      percent: 18,
-    },
+    quizSetId: 41,
+    memberCount: GROUP_MEMBER_IDS.length,
+    totalCount: items.length,
+    unanimousCount,
+    splitCount: items.length - unanimousCount,
+    splitQuizIds,
+    canSendCard: true,
+    chatOpensAt: "2026-06-05 00:00:00",
+    items,
   };
 }
 
-/* ────────────────────────── 질문 보내기 ────────────────────────── */
+/* ────────────────────────── 퀴즈 메시지(QUIZ_HINT · QUIZ_CARD) ────────────────────────── */
 
-export type MockQuizMessage = ChatMessage & { quiz: ChatQuizCard };
-
-const quizMessagesByRoom = new Map<number, MockQuizMessage[]>();
-let nextQuizMessageId = 9000;
-
-function nowServerString(): string {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-}
-
-/** 방에 문항을 올린다. 없는 문항이면 null(→ 404). */
-export function shareQuiz(roomId: number, targetQuizId: number, content: string): MockQuizMessage | null {
-  const answers = roomQuizAnswers(roomId);
-  const question = answers?.questions.find((q) => q.quizId === targetQuizId);
-  if (!answers || !question) return null;
-
-  const createdAt = nowServerString();
-  const shared = sharedAtByRoom.get(roomId) ?? new Map<number, string>();
-  shared.set(targetQuizId, createdAt);
-  sharedAtByRoom.set(roomId, shared);
-
-  const message: MockQuizMessage = {
-    id: nextQuizMessageId++,
+function hintMessage(id: number, roomId: number, hint: QuizHintContent): ChatMessage {
+  return {
+    id,
     roomId,
-    senderId: ME,
-    messageType: "QUIZ",
-    content,
+    senderId: null,
+    messageType: "QUIZ_HINT",
+    content: JSON.stringify(hint),
     imageUrl: null,
-    unreadCount: answers.members.length - 1,
-    createdAt,
-    quiz: {
-      quizId: question.quizId,
-      order: question.order,
-      question: question.question,
-      prompt: question.prompt,
-      choices: question.choices.map(({ choiceId: id, content: label, memberCount, memberIds }) => ({
-        choiceId: id,
-        content: label,
-        memberCount,
-        memberIds,
-      })),
-    },
+    unreadCount: 0,
+    createdAt: "2026-06-05 00:00:00",
   };
-
-  const list = quizMessagesByRoom.get(roomId) ?? [];
-  quizMessagesByRoom.set(roomId, [message, ...list]);
-  return message;
 }
 
-/** 메시지 목록 핸들러가 최신순 앞에 붙인다. */
-export function listQuizMessages(roomId: number): MockQuizMessage[] {
-  return quizMessagesByRoom.get(roomId) ?? [];
+const q2 = SEED[1];
+const PAIR_CARD: PairQuizCardContent = {
+  quizId: quizId(1),
+  question: q2.question,
+  choices: q2.choices.map(([content], choiceIndex) => ({ choiceId: choiceId(1, choiceIndex), content })),
+  // 상대(member 2)가 보냈다 — 보낸 사람 기준으로 싣는다.
+  senderChoiceId: choiceId(1, q2.partner),
+  peerChoiceId: choiceId(1, q2.mine),
+  hintQuestion: q2.prompt,
+};
+
+/** 방이 열릴 때 서버가 남긴 첫 대화 힌트 + (1:1) 상대가 올린 카드. 메시지 목록 핸들러가 섞는다. */
+const QUIZ_MESSAGES: Record<number, ChatMessage[]> = {
+  1: [
+    hintMessage(25, 1, {
+      quizId: quizId(2),
+      kind: "SAME",
+      question: SEED[2].question,
+      answer: "새벽 2시",
+      hintQuestion: SEED[2].prompt,
+    }),
+    {
+      id: 26,
+      roomId: 1,
+      senderId: 2,
+      messageType: "QUIZ_CARD",
+      content: JSON.stringify(PAIR_CARD),
+      imageUrl: null,
+      unreadCount: 0,
+      createdAt: "2026-06-05 16:40:00",
+    },
+  ],
+  3: [
+    hintMessage(39, 3, {
+      quizId: quizId(7),
+      kind: "UNANIMOUS",
+      question: SEED[7].question,
+      answer: "혼자 정리하기",
+      hintQuestion: SEED[7].prompt,
+    }),
+  ],
+};
+
+export function listQuizMessages(roomId: number): ChatMessage[] {
+  return QUIZ_MESSAGES[roomId] ?? [];
 }

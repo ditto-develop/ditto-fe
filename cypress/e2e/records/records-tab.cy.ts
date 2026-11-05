@@ -1,7 +1,7 @@
 /**
  * 8.1 퀴즈 기록 탭(/records) — 공개 전 기능이라 테스터 모드에서만 보인다(CLAUDE.md §9.1).
  *
- * 기록 API 는 2026-11-03 기준 운영 BE 에 없다(위키 BE-Request-Quiz-Records). 여기서는
+ * 서버 IMP-1 계약(GET /quiz-history, /quiz-history/{quizSetId}). 여기서는
  * cypress/fixtures/records/* (src/mocks/recordsData.ts 에서 뽑은 값)로 응답을 고정한다.
  */
 
@@ -12,14 +12,14 @@ function envelope(data: unknown): Envelope {
 }
 
 function mockRecordsApi() {
-  cy.fixture("records/quiz-records.json").then((data: unknown) => {
-    cy.intercept("GET", "**/api/v1/quiz-records", envelope(data)).as("getQuizRecords");
+  cy.fixture("records/quiz-history.json").then((data: unknown) => {
+    cy.intercept("GET", "**/api/v1/quiz-history", envelope(data)).as("getQuizRecords");
   });
-  cy.fixture("records/quiz-record-unrevealed.json").then((data: unknown) => {
-    cy.intercept("GET", "**/api/v1/quiz-records/42", envelope(data)).as("getQuizRecord42");
+  cy.fixture("records/quiz-history-in-progress.json").then((data: unknown) => {
+    cy.intercept("GET", "**/api/v1/quiz-history/42", envelope(data)).as("getQuizRecord42");
   });
-  cy.fixture("records/quiz-record-revealed.json").then((data: unknown) => {
-    cy.intercept("GET", "**/api/v1/quiz-records/41", envelope(data)).as("getQuizRecord41");
+  cy.fixture("records/quiz-history-closed.json").then((data: unknown) => {
+    cy.intercept("GET", "**/api/v1/quiz-history/41", envelope(data)).as("getQuizRecord41");
   });
 }
 
@@ -58,15 +58,17 @@ describe("퀴즈 기록 탭 — 테스터 모드", () => {
     cy.contains("답한 질문").next().should("have.text", "36");
     cy.contains("소수 의견").next().should("have.text", "5");
 
-    cy.contains("4주차 · 1:1 · 10월 26일 주").should("be.visible");
+    // 주차는 서버 OperationWeek 규칙(1일이 든 월~일 주가 1주차) — 2026-10-26 주는 10월 5주차다.
+    cy.contains("5주차 · 1:1 · 10월 26일 주").should("be.visible");
     cy.contains("이번 주").should("be.visible");
     cy.contains("h2", "시간이 멈춘다면").should("be.visible");
-    cy.contains("제출 완료 · 12개 답변").should("be.visible");
+    // 기록 목록 응답에 답변 수가 없어 "제출 완료" 만 쓴다.
+    cy.contains("제출 완료").should("be.visible");
     cy.contains("통계는 목요일 0시에 공개돼요").should("be.visible");
 
     cy.contains("h2", "지난 퀴즈").should("be.visible");
     cy.contains("button", "가을 밤, 같이 볼 영화").within(() => {
-      cy.contains("3주차 · 그룹 · 10월 19일 주");
+      cy.contains("4주차 · 그룹 · 10월 19일 주");
       cy.contains("결과 보기 · 소수 의견 2개");
     });
     cy.contains("button", "비 오는 날의 기억").should("contain.text", "결과 보기 · 소수 의견 3개");
@@ -75,10 +77,11 @@ describe("퀴즈 기록 탭 — 테스터 모드", () => {
     cy.location("pathname").should("match", /^\/records\/42\/?$/);
     cy.wait("@getQuizRecord42", { timeout: 15000 });
 
-    cy.contains("4주차 퀴즈").should("be.visible");
+    cy.contains("5주차 퀴즈").should("be.visible");
     cy.contains("결과 공개 전").should("be.visible");
     cy.contains("1:1 · 10월 26일 주").should("be.visible");
-    cy.contains("10월 27일 21:14 제출").should("be.visible");
+    // 응답에 제출 시각이 없어 "10월 27일 21:14 제출" 줄은 그리지 않는다.
+    cy.contains("21:14 제출").should("not.exist");
     cy.get('[data-testid="record-reveal-countdown"]').should("have.text", "10:49:25");
     cy.contains("지금까지 참여한 사람").next().should("have.text", "50명+");
     cy.contains("다른 사람들의 선택은 퀴즈가 끝난 뒤에 보여드려요.").should("be.visible");
@@ -102,7 +105,7 @@ describe("퀴즈 기록 탭 — 테스터 모드", () => {
     cy.location("pathname").should("match", /^\/records\/41\/?$/);
     cy.wait("@getQuizRecord41", { timeout: 15000 });
 
-    cy.contains("3주차 퀴즈 결과").should("be.visible");
+    cy.contains("4주차 퀴즈 결과").should("be.visible");
     cy.contains("결과 공개").should("be.visible");
     cy.contains("그룹 · 10월 19일 주 · 312명 참여").should("be.visible");
     cy.contains("답이 겹친 사람").next().should("have.text", "23명");

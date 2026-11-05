@@ -1,11 +1,14 @@
-import type { ChatQuizCard } from "@/features/records/model/types";
-
 /**
- * `QUIZ` 는 8.1 "질문 보내기"(퀴즈 문항 카드)다 — 아직 운영 BE 에 없다(위키 BE-Request-Quiz-Records).
- * 서버가 보내기 시작하면 테스터 모드와 상관없이 그려야 한다: 테스터가 보낸 카드를 같은 방의
- * 일반 회원도 받는다.
+ * 8.1(서버 IMP-1) 퀴즈 메시지 두 종류. 서버 기능 플래그 `QUIZ_CHAT` 이 켜져 있을 때만 생긴다.
+ * - `QUIZ_HINT`: 방이 열리는 순간 서버가 남기는 첫 대화 힌트. 보낸 사람이 없다(`senderId: null`).
+ * - `QUIZ_CARD`: 회원이 문항을 올린 질문 카드. 덧붙인 한마디는 바로 뒤 TEXT 메시지로 따로 온다.
+ * 둘 다 content 가 JSON 이다(`QuizHintContent`·`QuizCardContent`). FE 테스터 모드와 상관없이 그린다 —
+ * 서버 플래그가 켜지면 모든 회원의 방에 온다.
  */
-export type ChatMessageType = "TEXT" | "IMAGE" | "SYSTEM" | "QUIZ";
+export type ChatMessageType = "TEXT" | "IMAGE" | "SYSTEM" | "QUIZ_HINT" | "QUIZ_CARD";
+
+/** 회원이 STOMP 로 보낼 수 있는 유형(서버 `ChatMessageType.CLIENT_SENDABLE`). 그 밖은 7010. */
+export type ChatSendableMessageType = Extract<ChatMessageType, "TEXT" | "IMAGE" | "QUIZ_CARD">;
 
 /**
  * 방의 원본 유형. 1:1·그룹·재매칭 모두 같은 방 계약을 쓴다.
@@ -77,9 +80,10 @@ export type ChatReadEvent = {
 export type ChatMessage = {
   id: number;
   roomId: number;
-  senderId: number;
+  /** 서버가 만든 첫 대화 힌트(`QUIZ_HINT`)만 null. */
+  senderId: number | null;
   messageType: ChatMessageType;
-  /** TEXT는 본문, IMAGE는 S3 objectKey. */
+  /** TEXT는 본문, IMAGE는 S3 objectKey, QUIZ_HINT·QUIZ_CARD는 JSON 문자열. */
   content: string;
   /** IMAGE 열람용 presigned URL. 그 외에는 null. 표시는 항상 이 값을 쓴다. */
   imageUrl: string | null;
@@ -87,11 +91,63 @@ export type ChatMessage = {
   unreadCount: number;
   /** yyyy-MM-dd HH:mm:ss */
   createdAt: string;
-  /**
-   * `QUIZ` 메시지의 문항 카드. 그 밖의 타입은 null. 이 필드를 내려주기 전 서버(2026-11-03 운영)는
-   * 키 자체가 없어서 optional 이다.
-   */
-  quiz?: ChatQuizCard | null;
+};
+
+export type QuizHintKind = "SAME" | "DIFFERENT" | "UNANIMOUS" | "SPLIT";
+
+/**
+ * `QUIZ_HINT` content(서버 `QuizHintContent`). 문장이 아니라 재료만 온다 — 문구는 FE 가 만든다.
+ * 보낸 시점 값으로 굳는다.
+ */
+export type QuizHintContent = {
+  quizId: number;
+  /** SAME·DIFFERENT 는 두 사람 방, UNANIMOUS·SPLIT 은 그룹 방. */
+  kind: QuizHintKind;
+  question: string;
+  /** SAME·UNANIMOUS 일 때 함께 고른 답. DIFFERENT·SPLIT 은 null. */
+  answer: string | null;
+  hintQuestion: string | null;
+};
+
+export type QuizCardChoice = {
+  choiceId: number;
+  content: string;
+  /** 그룹 카드만. 1:1 카드에는 키가 없다. */
+  count?: number;
+};
+
+/** `QUIZ_CARD` content — 1:1·재매칭 방(서버 `PairQuizCard`). 보는 사람 기준으로 "나/상대" 를 바꿔 그린다. */
+export type PairQuizCardContent = {
+  quizId: number;
+  question: string;
+  choices: QuizCardChoice[];
+  senderChoiceId: number | null;
+  peerChoiceId: number | null;
+  hintQuestion: string | null;
+};
+
+/** `QUIZ_CARD` content — 그룹 방(서버 `GroupQuizCard`). 인원 수만 오고 보낸 사람의 선택도 없다. */
+export type GroupQuizCardContent = {
+  quizId: number;
+  question: string;
+  choices: QuizCardChoice[];
+  hintQuestion: string | null;
+};
+
+export type QuizCardContent = PairQuizCardContent | GroupQuizCardContent;
+
+/**
+ * 이미 올라온 문항을 다시 카드로 보냈을 때 방 토픽으로 오는 이벤트(서버 `QuizCardRejectedEvent`).
+ * 카드는 버려졌고 덧붙인 한마디는 저장됐다. `memberId` 가 나일 때만 토스트를 띄운다.
+ */
+export type QuizCardRejectedEvent = {
+  type: "QUIZ_CARD_REJECTED";
+  roomId: number;
+  memberId: number;
+  quizId: number;
+  /** "7007" */
+  code: string;
+  message: string;
 };
 
 export type ChatMessagesPage = {
@@ -167,19 +223,27 @@ export type ChatImageUploadUrlsResponse = {
 };
 
 /** STOMP SEND /pub/chat/rooms/{roomId} body. */
-export type ChatOutgoingMessage = {
-  /** TEXT는 본문(공백 불가·최대 1000자), IMAGE는 업로드한 objectKey. */
-  content: string;
-  messageType: Extract<ChatMessageType, "TEXT" | "IMAGE">;
-};
+export type ChatOutgoingMessage =
+  | {
+      /** TEXT는 본문(공백 불가·최대 1000자), IMAGE는 업로드한 objectKey. */
+      content: string;
+      messageType: Extract<ChatSendableMessageType, "TEXT" | "IMAGE">;
+    }
+  | {
+      /** 덧붙인 한마디. 빈 문자열이면 카드만 올라간다. */
+      content: string;
+      messageType: "QUIZ_CARD";
+      /** 올릴 문항. 그 방의 퀴즈셋 문항이어야 한다(아니면 7011). */
+      quizId: number;
+    };
 
 export type ChatConnectionStatus = "idle" | "connecting" | "connected" | "disconnected";
 
 export type ChatOptimisticMessage = {
   localId: string;
   content: string;
-  /** STOMP 로 보내는 타입만. `QUIZ` 는 REST(quiz-shares)로 보내 낙관적 메시지가 없다. */
-  messageType: ChatOutgoingMessage["messageType"];
+  /** 낙관적으로 그리는 건 글·사진뿐이다. 질문 카드는 서버가 만든 메시지가 돌아와야 그린다. */
+  messageType: Extract<ChatSendableMessageType, "TEXT" | "IMAGE">;
   createdAt: string;
   status: "sending" | "failed";
 };

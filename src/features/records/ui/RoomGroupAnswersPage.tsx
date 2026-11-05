@@ -2,9 +2,12 @@
 
 import styled from "styled-components";
 
-import type { GroupQuestionView } from "@/features/records/lib/roomAnswers";
-import { toGroupViews } from "@/features/records/lib/roomAnswers";
-import type { RoomQuizAnswers, RoomQuizQuestion } from "@/features/records/model/types";
+import { groupGroupAnswers } from "@/features/records/lib/roomAnswers";
+import type {
+  QuizDistributionItem,
+  QuizDistributionResponse,
+  RoomQuizMember,
+} from "@/features/records/model/types";
 import {
   RoomAnswersHeaderCard,
   RoomAnswersPageShell,
@@ -13,44 +16,47 @@ import {
   RoomQuestionLabel,
   RoomSameAnswerRow,
   RoomShareButton,
+  shareStateOf,
 } from "@/features/records/ui/RoomAnswersPageParts";
 import { Icon } from "@/shared/ui";
 
 type RoomGroupAnswersPageProps = {
-  data: RoomQuizAnswers;
-  canShare: boolean;
+  data: QuizDistributionResponse;
+  /** 머리 카드 원. 서버 분포 API 에는 멤버가 없다(누가 무엇을 골랐는지 잇지 않으려고). */
+  members: RoomQuizMember[];
+  share: { canSend: boolean; lockedMessage: string };
   onClose: () => void;
-  onShare: (question: RoomQuizQuestion) => void;
+  onShare: (item: QuizDistributionItem) => void;
+  onLockedTap: (message: string) => void;
 };
 
 const SHARE_LABEL = "대화방에 이 질문 올리기";
 
 /**
- * 8.1.2 그룹 대화방 > 우리 그룹의 답변(Figma 3258:54028).
+ * 8.1.2 그룹 대화방 > 우리 그룹의 답변(Figma 3258:54028). 서버 `quiz-distribution` 값 그대로다.
  *
  * 누가 무엇을 골랐는지는 숨기고 선택지별 인원만 점으로 보인다. 내 선택지에만 체크·검은 점.
- * 묶음 순서: 반반 갈린 질문(이야기거리 1순위) → 다 같이 고른 답 → 나머지 질문. 빈 묶음은 숨긴다.
+ * 묶음 순서: 반반 갈린 질문(서버 `splitQuizIds`, 최대 3개) → 다 같이 고른 답 → 나머지 질문. 빈 묶음은 숨긴다.
  */
 export function RoomGroupAnswersPage({
   data,
-  canShare,
+  members,
+  share,
   onClose,
   onShare,
+  onLockedTap,
 }: RoomGroupAnswersPageProps) {
-  const views = toGroupViews(data);
-  const split = views.filter((view) => view.agreement === "SPLIT");
-  const allSame = views.filter((view) => view.agreement === "ALL_SAME");
-  const other = views.filter((view) => view.agreement === "OTHER");
-  const memberCount = data.members.length;
+  const { split, unanimous, other } = groupGroupAnswers(data);
+  const memberCount = data.memberCount;
 
-  const renderChoiceBlock = ({ question }: GroupQuestionView) => (
-    <RoomQuestionBlock key={question.quizId} data-cy="room-group-question">
-      <RoomQuestionLabel order={question.order} question={question.question} />
+  const renderChoiceBlock = (item: QuizDistributionItem) => (
+    <RoomQuestionBlock key={item.quizId} data-cy="room-group-question">
+      <RoomQuestionLabel order={item.order} question={item.question} />
       <ChoiceRows>
-        {question.choices
-          .filter((choice) => choice.memberCount > 0)
+        {item.choices
+          .filter((choice) => choice.count > 0)
           .map((choice) => {
-            const isMine = choice.choiceId === question.myChoiceId;
+            const isMine = choice.choiceId === item.myChoiceId;
             return (
               <ChoiceRow key={choice.choiceId}>
                 <ChoiceName $isMine={isMine}>
@@ -62,26 +68,30 @@ export function RoomGroupAnswersPage({
                     {Array.from({ length: memberCount }, (_, index) => (
                       <Dot
                         key={index}
-                        $state={index < choice.memberCount ? (isMine ? "mine" : "other") : "empty"}
+                        $state={index < choice.count ? (isMine ? "mine" : "other") : "empty"}
                       />
                     ))}
                   </Dots>
-                  <CountText>{choice.memberCount}명</CountText>
+                  <CountText>{choice.count}명</CountText>
                 </ChoiceCount>
               </ChoiceRow>
             );
           })}
       </ChoiceRows>
-      <RoomShareButton label={SHARE_LABEL} disabled={!canShare} onClick={() => onShare(question)} />
+      <RoomShareButton
+        label={SHARE_LABEL}
+        state={shareStateOf(item, share)}
+        onClick={() => onShare(item)}
+      />
     </RoomQuestionBlock>
   );
 
   return (
     <RoomAnswersPageShell title="우리 그룹의 답변" onClose={onClose}>
       <RoomAnswersHeaderCard
-        members={data.members}
-        caption={`${memberCount}명이 ${views.length}개 질문 중`}
-        headline={`${allSame.length}개를 다 같이 골랐어요`}
+        members={members}
+        caption={`${memberCount}명이 ${data.totalCount}개 질문 중`}
+        headline={`${data.unanimousCount}개를 다 같이 골랐어요`}
         note="누가 어떤 답을 골랐는지는 보이지 않아요. 내 답만 표시돼요."
       />
 
@@ -91,17 +101,18 @@ export function RoomGroupAnswersPage({
         </RoomAnswersSection>
       )}
 
-      {allSame.length > 0 && (
-        <RoomAnswersSection title={`다 같이 고른 답 ${allSame.length}`}>
-          {allSame.map(({ question }) => (
+      {unanimous.length > 0 && (
+        <RoomAnswersSection title={`다 같이 고른 답 ${unanimous.length}`}>
+          {unanimous.map((item) => (
             <RoomSameAnswerRow
-              key={question.quizId}
-              order={question.order}
-              question={question.question}
-              answer={question.choices.find((choice) => choice.memberCount > 0)?.content ?? ""}
+              key={item.quizId}
+              order={item.order}
+              question={item.question}
+              answer={item.choices.find((choice) => choice.count > 0)?.content ?? ""}
               shareLabel={SHARE_LABEL}
-              shareDisabled={!canShare}
-              onShare={() => onShare(question)}
+              shareState={shareStateOf(item, share)}
+              onShare={() => onShare(item)}
+              onLockedTap={onLockedTap}
             />
           ))}
         </RoomAnswersSection>

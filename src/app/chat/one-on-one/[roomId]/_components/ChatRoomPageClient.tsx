@@ -19,13 +19,11 @@ import {
 } from "@/features/chat/hooks/useChatKeyboardInset";
 import { useChatRoomMuteToggle } from "@/features/chat/hooks/useChatRoomMuteToggle";
 import { useSystemPeriod } from "@/features/system/hooks/useSystemPeriod";
-import { shareQuizToRoom } from "@/features/records/api/recordsApi";
-import { useRoomQuizAnswers } from "@/features/records/hooks/useRoomQuizAnswers";
-import { summarizeRoomAnswers } from "@/features/records/lib/roomAnswers";
-import { formatAnswersSummary, toQuizChips } from "@/features/records/lib/roomAnswerText";
-import type { RoomQuizQuestion } from "@/features/records/model/types";
+import { useRoomQuizCompare } from "@/features/records/hooks/useRoomQuizAnswers";
+import { formatPairSummary, toRoomQuizMembers } from "@/features/records/lib/roomAnswers";
+import { formatSendOpensAt, pairChips } from "@/features/records/lib/roomAnswerText";
+import type { QuizCompareItem } from "@/features/records/model/types";
 import { RoomAnswersSummaryBar } from "@/features/records/ui/RoomAnswersSummaryBar";
-import { RoomFirstHintCard } from "@/features/records/ui/RoomFirstHintCard";
 import { RoomOneOnOneAnswersPage } from "@/features/records/ui/RoomOneOnOneAnswersPage";
 import { RoomQuizAttachmentPreview } from "@/features/records/ui/RoomQuizAttachmentPreview";
 import { useFeatureFlag } from "@/shared/lib/hooks/useFeatureFlag";
@@ -64,7 +62,7 @@ export function ChatRoomPageClient() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   /** 8.1 "우리의 답변" 화면과, 거기서 골라 입력창 위에 붙인 문항. */
   const [isAnswersOpen, setIsAnswersOpen] = useState(false);
-  const [pendingQuiz, setPendingQuiz] = useState<RoomQuizQuestion | null>(null);
+  const [pendingQuiz, setPendingQuiz] = useState<QuizCompareItem | null>(null);
 
   const {
     messages,
@@ -81,7 +79,7 @@ export function ChatRoomPageClient() {
     retrySend,
     sendError,
     clearSendError,
-    receiveMessages,
+    sendQuizCard,
   } = useChatRoom(roomId, { optimisticSending: true, roomType: "one_on_one" });
   const { room, members, refresh: refreshRoom } = useChatRoomMeta(roomId);
   // 개방 판정의 기준. 어드민 시각 오버라이드가 반영된 서버 기간이다.
@@ -89,11 +87,16 @@ export function ChatRoomPageClient() {
   const { showToast } = useToast();
   const keyboardInset = useChatKeyboardInset();
   /*
-   * 8.1 퀴즈 기록(공개 전, 테스터 모드). 운영 BE 에 API 가 없는 동안은 404 → null 이라
-   * 요약 바·힌트·문서 아이콘이 모두 빠지고 방은 예전 그대로다.
+   * 8.1 답변 비교(공개 전, 테스터 모드). 끝난 방(7004)·상대 탈퇴/차단(7008)·서버에 API 가 없음(404)이면
+   * null 이라 요약 바·문서 아이콘이 모두 빠지고 방은 예전 그대로다. 첫 대화 힌트(QUIZ_HINT)는 메시지라
+   * 테스터 모드와 상관없이 목록에 그려진다.
    */
   const recordsEnabled = useFeatureFlag("records");
-  const { data: quizAnswers, markShared } = useRoomQuizAnswers(roomId, recordsEnabled);
+  const [roomEndedForQuiz, setRoomEndedForQuiz] = useState(false);
+  const { data: quizCompare, markSent } = useRoomQuizCompare(
+    roomId,
+    recordsEnabled && !roomEndedForQuiz,
+  );
 
   const counterpart = members[0] ?? null;
 
@@ -133,6 +136,10 @@ export function ChatRoomPageClient() {
       ? "ENDED"
       : deriveRoomState(room, undefined, serverPeriod);
   const isEnded = roomState === "ENDED";
+  // 방이 끝나면 답변 비교도 닫힌다(서버도 7004 로 막는다). 끝나는 순간 다시 묻지 않고 숨긴다.
+  useEffect(() => {
+    if (isEnded) setRoomEndedForQuiz(true);
+  }, [isEnded]);
   const expiresAt = useMemo(() => parseServerDateTime(room?.expiresAt), [room?.expiresAt]);
   const timer = useTimer(expiresAt, isEnded);
   const urgentNoticeStorageKey = `chat-room-${roomId}-urgent-notice-dismissed`;
@@ -146,18 +153,18 @@ export function ChatRoomPageClient() {
     setIsUrgentNoticeDismissed(true);
   };
 
-  /** 문항 카드를 올린다. 실패하면 ChatInput 이 이 문구로 토스트를 띄우고 입력값을 남긴다. */
+  /**
+   * 질문 카드를 보낸다(STOMP 프레임 하나 — 카드와 한마디의 순서는 서버가 정한다). 실패하면 ChatInput 이
+   * 그 문구로 토스트를 띄우고 입력값·담긴 문항을 남긴다. 이미 올라온 문항이면(7007) 한마디는 서버가
+   * 저장했으므로 담긴 문항을 비우고 안내만 한다.
+   */
   const handleShareQuiz = async (content: string) => {
     if (!pendingQuiz) return;
     const quizId = pendingQuiz.quizId;
-    try {
-      const message = await shareQuizToRoom(roomId, content ? { quizId, content } : { quizId });
-      receiveMessages([message]);
-      markShared(quizId, message.createdAt);
-      setPendingQuiz(null);
-    } catch {
-      throw new Error("질문을 보내지 못했어요. 잠시 후 다시 시도해주세요.");
-    }
+    const result = await sendQuizCard(quizId, content);
+    markSent(quizId);
+    setPendingQuiz(null);
+    if (result === "duplicate") showToast("이미 올라온 질문이에요.", "error");
   };
 
   const handleEndChat = async () => {
@@ -207,8 +214,15 @@ export function ChatRoomPageClient() {
         : null;
   const showUrgentNotice =
     !isEnded && timer.isUrgent && !timer.isExpired && !isUrgentNoticeDismissed;
-  const answersSummary = quizAnswers ? summarizeRoomAnswers(quizAnswers) : null;
-  const canShareQuiz = roomState === "OPEN";
+  const quizAnswers = isEnded ? null : quizCompare;
+  const quizShare = {
+    canSend: (quizAnswers?.canSendCard ?? false) && roomState === "OPEN",
+    // 열린 방인데 못 보내면 서버 QUIZ_CHAT 플래그가 꺼진 것이다 — 열리는 시각을 안내하면 틀린다.
+    lockedMessage:
+      roomState === "BEFORE_OPEN" && quizAnswers
+        ? formatSendOpensAt(quizAnswers.chatOpensAt)
+        : "지금은 질문을 보낼 수 없어요",
+  };
 
   return (
     <PageContainer $keyboardInset={keyboardInset} data-cy="chat-room">
@@ -221,9 +235,9 @@ export function ChatRoomPageClient() {
         onAnswersClick={quizAnswers ? () => setIsAnswersOpen(true) : undefined}
       />
 
-      {answersSummary && (
+      {quizAnswers && (
         <RoomAnswersSummaryBar
-          label={formatAnswersSummary(answersSummary)}
+          label={formatPairSummary(quizAnswers)}
           tone="light"
           onOpen={() => setIsAnswersOpen(true)}
         />
@@ -247,13 +261,8 @@ export function ChatRoomPageClient() {
         onRetrySend={retrySend}
         onImageClick={setViewerImageUrl}
         onPartnerClick={counterpart ? () => setIsProfileOpen(true) : undefined}
-        leadingCard={
-          quizAnswers?.firstHint ? (
-            <RoomFirstHintCard
-              hint={quizAnswers.firstHint}
-              memberCount={quizAnswers.members.length}
-            />
-          ) : null
+        quizOrderOf={(quizId) =>
+          quizAnswers?.items.find((item) => item.quizId === quizId)?.order ?? null
         }
       />
 
@@ -276,11 +285,7 @@ export function ChatRoomPageClient() {
                       <RoomQuizAttachmentPreview
                         order={pendingQuiz.order}
                         question={pendingQuiz.question}
-                        chips={toQuizChips(pendingQuiz.choices, {
-                          myUserId,
-                          nameOf: () => partnerNickname,
-                          myChoiceId: pendingQuiz.myChoiceId,
-                        })}
+                        chips={pairChips(pendingQuiz, partnerNickname)}
                         onRemove={() => setPendingQuiz(null)}
                       />
                     ),
@@ -316,12 +321,15 @@ export function ChatRoomPageClient() {
       {isAnswersOpen && quizAnswers && (
         <RoomOneOnOneAnswersPage
           data={quizAnswers}
-          canShare={canShareQuiz}
+          members={toRoomQuizMembers(myUserId, counterpart ? [counterpart] : [])}
+          partnerName={partnerNickname}
+          share={quizShare}
           onClose={() => setIsAnswersOpen(false)}
-          onShare={(question) => {
-            setPendingQuiz(question);
+          onShare={(item) => {
+            setPendingQuiz(item);
             setIsAnswersOpen(false);
           }}
+          onLockedTap={(message) => showToast(message, "info")}
         />
       )}
 

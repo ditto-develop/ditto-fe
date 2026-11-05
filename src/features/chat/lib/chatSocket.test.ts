@@ -71,6 +71,24 @@ describe("room frame dispatch", () => {
     receive({ body: JSON.stringify(message) });
     expect(onMessage).toHaveBeenCalledWith(message);
   });
+
+  it("routes QUIZ_CARD_REJECTED to its own handler, never as a message", () => {
+    const onMessage = vi.fn();
+    const onQuizCardRejected = vi.fn();
+    createChatSocket(3, { onMessage, onQuizCardRejected });
+    const client = stomp.clients.at(-1)!;
+    client.onConnect();
+    const receive = client.subscribe.mock.calls[0][1] as (frame: { body: string }) => void;
+    const rejected = {
+      type: "QUIZ_CARD_REJECTED", roomId: 3, memberId: 7, quizId: 301,
+      code: "7007", message: "이미 올라온 질문이에요.",
+    };
+    receive({ body: JSON.stringify(rejected) });
+    receive({ body: JSON.stringify({ ...rejected, roomId: 4 }) });
+    expect(onQuizCardRejected).toHaveBeenCalledTimes(1);
+    expect(onQuizCardRejected).toHaveBeenCalledWith(rejected);
+    expect(onMessage).not.toHaveBeenCalled();
+  });
 });
 
 describe("dead connection escape", () => {

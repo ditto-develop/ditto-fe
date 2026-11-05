@@ -1,0 +1,35 @@
+{
+  "summary": {
+    "participatedWeeks": 3,
+    "answeredQuestions": 36,
+    "minorityCount": 5
+  },
+  "currentWeek": {
+    "quizSetId": 42,
+    "resultOpen": false,
+    "resultOpensAt": "2026-10-29 00:00:00"
+  },
+  "weeks": [
+    {
+      "quizSetId": 42,
+      "weekStartedOn": "2026-10-26",
+      "matchingType": "ONE_TO_ONE",
+      "title": "시간이 멈춘다면",
+      "minorityCount": null
+    },
+    {
+      "quizSetId": 41,
+      "weekStartedOn": "2026-10-19",
+      "matchingType": "GROUP",
+      "title": "가을 밤, 같이 볼 영화",
+      "minorityCount": 2
+    },
+    {
+      "quizSetId": 40,
+      "weekStartedOn": "2026-10-12",
+      "matchingType": "ONE_TO_ONE",
+      "title": "비 오는 날의 기억",
+      "minorityCount": 3
+    }
+  ]
+}

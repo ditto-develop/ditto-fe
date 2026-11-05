@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { getQuizRecordDetail, getQuizRecords } from "@/features/records/api/recordsApi";
-import type { QuizRecordDetail, QuizRecordsResponse } from "@/features/records/model/types";
+import { getQuizHistory, getQuizHistoryDetail } from "@/features/records/api/recordsApi";
+import type { QuizHistoryDetail, QuizHistoryResponse } from "@/features/records/model/types";
 import { describeError } from "@/shared/lib/api/apiError";
 
 type AsyncState<T> = {
@@ -51,17 +51,17 @@ function useFetchOnce<T>(load: (() => Promise<T>) | null, label: string): AsyncS
   return { data, loading, error, reload };
 }
 
-/** 기록 탭: 상단 요약 + 끝까지 푼 퀴즈셋 목록. */
-export function useQuizRecords(): AsyncState<QuizRecordsResponse> {
-  return useFetchOnce(getQuizRecords, "useQuizRecords");
+/** 기록 탭: 상단 요약 + 이번 주 + 끝까지 푼 퀴즈셋 목록. */
+export function useQuizRecords(): AsyncState<QuizHistoryResponse> {
+  return useFetchOnce(getQuizHistory, "useQuizRecords");
 }
 
 /** 퀴즈셋 하나의 내 답(공개 후에는 선택 비율까지). id 가 숫자가 아니면 부르지 않고 오류로 둔다. */
-export function useQuizRecordDetail(quizSetId: number): AsyncState<QuizRecordDetail> & {
+export function useQuizRecordDetail(quizSetId: number): AsyncState<QuizHistoryDetail> & {
   invalidId: boolean;
 } {
   const invalidId = !Number.isInteger(quizSetId) || quizSetId <= 0;
-  const load = useCallback(() => getQuizRecordDetail(quizSetId), [quizSetId]);
+  const load = useCallback(() => getQuizHistoryDetail(quizSetId), [quizSetId]);
   const state = useFetchOnce(invalidId ? null : load, "useQuizRecordDetail");
   return { ...state, invalidId };
 }

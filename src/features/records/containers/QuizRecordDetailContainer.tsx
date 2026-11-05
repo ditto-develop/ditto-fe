@@ -7,6 +7,7 @@ import styled from "styled-components";
 import { MainBottomNav } from "@/app/home/MainBottomNav";
 import { useQuizRecordDetail } from "@/features/records/hooks/useQuizRecords";
 import { useRevealCountdown } from "@/features/records/hooks/useRevealCountdown";
+import { formatWeekLabel } from "@/features/records/lib/recordFormat";
 import { RecordAnswerList } from "@/features/records/ui/RecordAnswerList";
 import { RecordDetailHeaderCard } from "@/features/records/ui/RecordDetailHeaderCard";
 import { RecordResultList } from "@/features/records/ui/RecordResultList";
@@ -22,7 +23,7 @@ type QuizRecordDetailContainerProps = {
 };
 
 /**
- * 퀴즈셋 하나의 기록. 서버 `revealed` 로 두 화면이 갈린다.
+ * 퀴즈셋 하나의 기록. 서버 `phase` 로 두 화면이 갈린다(기기 시계로 판정하지 않는다).
  * - 공개 전: "N주차 퀴즈" — 내 답변 보기 [3254:37938]
  * - 공개 후: "N주차 퀴즈 결과" — 마감 후 퀴즈 결과 [3255:37086]
  *
@@ -33,8 +34,8 @@ export function QuizRecordDetailContainer({ quizSetId }: QuizRecordDetailContain
   const { data, loading, error, reload, invalidId } = useQuizRecordDetail(quizSetId);
 
   const hasData = data !== null;
-  const revealed = data?.revealed ?? false;
-  const countdown = useRevealCountdown(hasData && !revealed ? data.statsRevealAt : null);
+  const revealed = data?.phase === "CLOSED";
+  const countdown = useRevealCountdown(hasData && !revealed ? data.resultOpensAt : null);
 
   useEffect(() => {
     if (!hasData || revealed || !countdown.expired) return undefined;
@@ -43,7 +44,7 @@ export function QuizRecordDetailContainer({ quizSetId }: QuizRecordDetailContain
     return () => clearInterval(id);
   }, [hasData, revealed, countdown.expired, reload]);
 
-  const title = data ? `${data.week}주차 퀴즈${data.revealed ? " 결과" : ""}` : "";
+  const title = data ? `${formatWeekLabel(data.weekStartedOn)} 퀴즈${revealed ? " 결과" : ""}` : "";
 
   return (
     <Page>
@@ -68,9 +69,9 @@ export function QuizRecordDetailContainer({ quizSetId }: QuizRecordDetailContain
               />
             </Padded>
 
-            {data.revealed ? (
+            {revealed ? (
               <ListSlot>
-                <RecordResultList questions={data.questions} />
+                <RecordResultList questions={data.answers} />
               </ListSlot>
             ) : (
               <>
@@ -85,7 +86,7 @@ export function QuizRecordDetailContainer({ quizSetId }: QuizRecordDetailContain
                   </LockNotice>
                 </Padded>
                 <ListSlot>
-                  <RecordAnswerList questions={data.questions} />
+                  <RecordAnswerList questions={data.answers} />
                 </ListSlot>
                 <Footnote>제출한 답변은 바꿀 수 없어요</Footnote>
               </>

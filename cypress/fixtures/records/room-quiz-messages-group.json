@@ -1,0 +1,12 @@
+[
+  {
+    "id": 39,
+    "roomId": 3,
+    "senderId": null,
+    "messageType": "QUIZ_HINT",
+    "content": "{\"quizId\":4208,\"kind\":\"UNANIMOUS\",\"question\":\"고민이 생기면?\",\"answer\":\"혼자 정리하기\",\"hintQuestion\":\"요즘 정리하고 싶은 고민이 있어요?\"}",
+    "imageUrl": null,
+    "unreadCount": 0,
+    "createdAt": "2026-06-05 00:00:00"
+  }
+]

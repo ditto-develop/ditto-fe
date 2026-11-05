@@ -2,9 +2,13 @@
 
 import styled from "styled-components";
 
-import { findPartner, toOneOnOneViews } from "@/features/records/lib/roomAnswers";
+import { groupPairAnswers } from "@/features/records/lib/roomAnswers";
 import { topicParticle } from "@/features/records/lib/roomAnswerText";
-import type { RoomQuizAnswers, RoomQuizQuestion } from "@/features/records/model/types";
+import type {
+  QuizCompareItem,
+  QuizCompareResponse,
+  RoomQuizMember,
+} from "@/features/records/model/types";
 import {
   RoomAnswersHeaderCard,
   RoomAnswersPageShell,
@@ -13,50 +17,59 @@ import {
   RoomQuestionLabel,
   RoomSameAnswerRow,
   RoomShareButton,
+  shareStateOf,
 } from "@/features/records/ui/RoomAnswersPageParts";
 import { Icon } from "@/shared/ui";
 
 type RoomOneOnOneAnswersPageProps = {
-  data: RoomQuizAnswers;
-  /** 방이 열려 있고 내가 보낼 수 있을 때만 true. 아니면 말 걸기 버튼이 모두 꺼진다. */
-  canShare: boolean;
+  data: QuizCompareResponse;
+  /** 머리 카드 원. 서버 비교 API 에 멤버가 없어 방 멤버로 만든다. */
+  members: RoomQuizMember[];
+  partnerName: string;
+  /** 보낼 수 있는지(서버 `canSendCard` + 방 상태)와, 못 보낼 때 버튼에 쓸 문구. */
+  share: { canSend: boolean; lockedMessage: string };
   onClose: () => void;
   /** 문항을 고르면 이 화면을 닫고 입력창 위에 미리보기를 붙인다(Figma 3279:35005). */
-  onShare: (question: RoomQuizQuestion) => void;
+  onShare: (item: QuizCompareItem) => void;
+  onLockedTap: (message: string) => void;
 };
 
 const SHARE_LABEL = "이 질문으로 말 걸기";
 
-/** 8.1.1 1:1 대화방 > 우리의 답변(Figma 3257:52969). */
+/** 8.1.1 1:1 대화방 > 우리의 답변(Figma 3257:52969). 숫자·묶음은 서버 `quiz-compare` 값 그대로다. */
 export function RoomOneOnOneAnswersPage({
   data,
-  canShare,
+  members,
+  partnerName,
+  share,
   onClose,
   onShare,
+  onLockedTap,
 }: RoomOneOnOneAnswersPageProps) {
-  const partner = findPartner(data.members);
-  const views = toOneOnOneViews(data);
-  const same = views.filter((view) => view.same);
-  const different = views.filter((view) => !view.same);
-  const hint = data.firstHint;
-  const showHintBox = hint !== null && hint.percent !== null && same.some((v) => v.question.quizId === hint.quizId);
+  const { same, different } = groupPairAnswers(data);
+  const highlight = same.find((item) => item.quizId === data.highlightQuizId) ?? null;
+  const highlightChoice =
+    highlight?.choices.find((choice) => choice.choiceId === highlight.myChoiceId) ?? null;
+
+  const choiceOf = (item: QuizCompareItem, choiceId: number | null) =>
+    item.choices.find((choice) => choice.choiceId === choiceId)?.content ?? null;
 
   return (
     <RoomAnswersPageShell title="우리의 답변" onClose={onClose}>
       <RoomAnswersHeaderCard
-        members={data.members}
-        caption={`${views.length}개 질문 중`}
-        headline={`${same.length}개가 같아요`}
+        members={members}
+        caption={`${data.totalCount}개 질문 중`}
+        headline={`${data.sameCount}개가 같아요`}
       >
-        {showHintBox && hint && (
+        {highlightChoice && (
           <HintBox>
             <HintIcon aria-hidden>
               <Icon name="content.lightbulb" size={20} />
             </HintIcon>
             <HintText>
-              <strong>{hint.choiceContent}</strong>
-              {topicParticle(hint.choiceContent)} 전체의 {hint.percent}%만 고른 답이에요. 두 분 다
-              이 답을 골랐어요.
+              <strong>{highlightChoice.content}</strong>
+              {topicParticle(highlightChoice.content)} 전체의 {highlightChoice.percent}%만 고른
+              답이에요. 두 분 다 이 답을 골랐어요.
             </HintText>
           </HintBox>
         )}
@@ -64,17 +77,18 @@ export function RoomOneOnOneAnswersPage({
 
       {same.length > 0 && (
         <RoomAnswersSection title={`같은 답 ${same.length}`}>
-          {same.map(({ question, mine }) => (
+          {same.map((item) => (
             <RoomSameAnswerRow
-              key={question.quizId}
-              order={question.order}
-              question={question.question}
-              answer={mine?.content ?? ""}
-              highlighted={hint?.quizId === question.quizId}
+              key={item.quizId}
+              order={item.order}
+              question={item.question}
+              answer={choiceOf(item, item.myChoiceId) ?? ""}
+              highlighted={item.quizId === data.highlightQuizId}
               shareLabel={SHARE_LABEL}
               // 보낸 이력이 있는 문항은 보냄 버튼 비활성(Figma 주석 3276:34949).
-              shareDisabled={!canShare || question.sharedAt !== null}
-              onShare={() => onShare(question)}
+              shareState={shareStateOf(item, share)}
+              onShare={() => onShare(item)}
+              onLockedTap={onLockedTap}
             />
           ))}
         </RoomAnswersSection>
@@ -82,23 +96,23 @@ export function RoomOneOnOneAnswersPage({
 
       {different.length > 0 && (
         <RoomAnswersSection title={`다른 답 ${different.length}`} aside="대화거리는 여기 많아요">
-          {different.map(({ question, mine, partner: theirs }) => (
-            <RoomQuestionBlock key={question.quizId} data-cy="room-different-answer">
-              <RoomQuestionLabel order={question.order} question={question.question} />
+          {different.map((item) => (
+            <RoomQuestionBlock key={item.quizId} data-cy="room-different-answer">
+              <RoomQuestionLabel order={item.order} question={item.question} />
               <Tiles>
                 <Tile $tone="mine">
                   <TileName $tone="mine">나</TileName>
-                  <TileAnswer $tone="mine">{mine?.content ?? "-"}</TileAnswer>
+                  <TileAnswer $tone="mine">{choiceOf(item, item.myChoiceId) ?? "-"}</TileAnswer>
                 </Tile>
                 <Tile $tone="other">
-                  <TileName $tone="other">{partner?.nickname ?? "상대방"}</TileName>
-                  <TileAnswer $tone="other">{theirs?.content ?? "-"}</TileAnswer>
+                  <TileName $tone="other">{partnerName}</TileName>
+                  <TileAnswer $tone="other">{choiceOf(item, item.peerChoiceId) ?? "-"}</TileAnswer>
                 </Tile>
               </Tiles>
               <RoomShareButton
                 label={SHARE_LABEL}
-                disabled={!canShare || question.sharedAt !== null}
-                onClick={() => onShare(question)}
+                state={shareStateOf(item, share)}
+                onClick={() => onShare(item)}
               />
             </RoomQuestionBlock>
           ))}

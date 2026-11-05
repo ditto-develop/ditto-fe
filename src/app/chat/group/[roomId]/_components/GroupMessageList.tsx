@@ -18,7 +18,9 @@ import {
 } from "@/features/chat/hooks/useStayAtBottom";
 import { useKeepScrollOnPrepend } from "@/features/chat/hooks/useKeepScrollOnPrepend";
 import { useVisibleMessageRead } from "@/features/chat/hooks/useVisibleMessageRead";
-import type { RoomQuizAnswers } from "@/features/records/model/types";
+import { isServerGeneratedMessage, parseQuizCard, parseQuizHint } from "@/features/chat/lib/quizMessage";
+import type { QuizDistributionResponse } from "@/features/records/model/types";
+import { RoomFirstHintCard } from "@/features/records/ui/RoomFirstHintCard";
 import { GroupMessageBubble } from "./GroupMessageBubble";
 import { VoteCreatedMessageBubble } from "./VoteCreatedMessageBubble";
 import { VoteResultMessageBubble } from "./VoteResultMessageBubble";
@@ -40,13 +42,11 @@ interface GroupMessageListProps {
   onVoteClick?: (voteId: number) => void;
   /** 보낸 사람 아바타를 누르면 그 사람 프로필을 연다. */
   onSenderClick?: (member: CounterpartProfile) => void;
-  /** 목록 맨 위에 한 번 놓이는 카드(8.1 첫 대화 힌트, Figma 3270:36280). */
-  leadingCard?: React.ReactNode;
   /**
-   * 8.1 방 답변(테스터 모드에서만 값이 있다). QUIZ 카드에 내 선택지·이어서 던질 질문을 붙일 때 쓴다 —
-   * 카드 스냅샷에는 둘 다 없다.
+   * 8.1 방 답변 분포(테스터 모드에서만 값이 있다). 질문 카드에 문항 번호·내 선택지를 붙일 때 쓴다 —
+   * 서버 그룹 카드에는 둘 다 없다.
    */
-  quizAnswers?: RoomQuizAnswers | null;
+  quizDistribution?: QuizDistributionResponse | null;
 }
 
 /** `"성수 카페거리 외 2개"`. 선택지가 없으면 빈 문자열이라 호출부가 대체 문구를 쓴다. */
@@ -86,8 +86,7 @@ export function GroupMessageList({
   getVoteById,
   onVoteClick,
   onSenderClick,
-  leadingCard,
-  quizAnswers = null,
+  quizDistribution = null,
 }: GroupMessageListProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const isInitialLoad = useRef(true);
@@ -209,6 +208,22 @@ export function GroupMessageList({
       }
 
       const isMine = myUserId !== null && message.senderId === myUserId;
+      // 첫 대화 힌트(QUIZ_HINT)만 보낸 사람이 없다.
+      const senderOf = (memberId: number | null) =>
+        memberId === null ? undefined : memberById.get(memberId);
+
+      // 8.1 첫 대화 힌트 — 서버 메시지라 가운데 카드로 둔다. 읽지 못하면 원문 JSON 을 보이지 않게 건너뛴다.
+      if (message.messageType === "QUIZ_HINT") {
+        const hint = parseQuizHint(message.content);
+        if (hint) {
+          items.push(
+            <HintRow key={message.id} data-chat-message-id={message.id}>
+              <RoomFirstHintCard hint={hint} />
+            </HintRow>,
+          );
+        }
+        return;
+      }
 
       if (message.messageType === "SYSTEM") {
         // 투표 코드만 `:{voteId}` 접미가 붙는다. 카드로 그려야 하므로 먼저 가른다.
@@ -216,7 +231,7 @@ export function GroupMessageList({
 
         if (voteEvent?.code === "VOTE_CREATED") {
           const vote = getVoteById?.(voteEvent.voteId) ?? null;
-          const creator = memberById.get(message.senderId);
+          const creator = senderOf(message.senderId);
 
           items.push(
             <VoteCreatedMessageBubble
@@ -258,7 +273,7 @@ export function GroupMessageList({
           }
 
           const closerId = vote?.closedBy ?? message.senderId;
-          const closer = memberById.get(closerId);
+          const closer = senderOf(closerId);
 
           items.push(
             <VoteResultMessageBubble
@@ -284,7 +299,7 @@ export function GroupMessageList({
         const systemText = getSystemMessageText(
           message,
           isMine,
-          memberById.get(message.senderId)?.nickname,
+          senderOf(message.senderId)?.nickname,
         );
         if (systemText) {
           items.push(
@@ -301,22 +316,23 @@ export function GroupMessageList({
 
       const isFirstInGroup =
         !previous ||
-        previous.messageType === "SYSTEM" ||
+        isServerGeneratedMessage(previous) ||
         previous.senderId !== message.senderId ||
         !isSameDay(toDate(previous.createdAt), messageDate);
 
       const isLastInGroup =
         !next ||
-        next.messageType === "SYSTEM" ||
+        isServerGeneratedMessage(next) ||
         next.senderId !== message.senderId ||
         !isSameDay(toDate(next.createdAt), messageDate);
 
-      const sender = memberById.get(message.senderId);
-      const quizQuestion =
-        message.messageType === "QUIZ" && message.quiz
-          ? (quizAnswers?.questions.find((question) => question.quizId === message.quiz?.quizId) ??
-            null)
-          : null;
+      const sender = senderOf(message.senderId);
+      const cardQuizId =
+        message.messageType === "QUIZ_CARD" ? (parseQuizCard(message.content)?.quizId ?? null) : null;
+      const quizItem =
+        cardQuizId === null
+          ? null
+          : (quizDistribution?.items.find((item) => item.quizId === cardQuizId) ?? null);
 
       items.push(
         <GroupMessageBubble
@@ -330,19 +346,17 @@ export function GroupMessageList({
           onImageClick={onImageClick}
           // 나간 회원은 memberById 에 없다 — 열 프로필이 없으니 누를 수 없게 둔다.
           onAvatarClick={sender && onSenderClick ? () => onSenderClick(sender) : undefined}
-          myUserId={myUserId}
-          nameOf={(memberId) => memberById.get(memberId)?.nickname ?? "알 수 없음"}
-          quizMyChoiceId={quizQuestion?.myChoiceId ?? null}
-          quizPrompt={quizQuestion?.prompt ?? null}
+          quizOrder={quizItem?.order ?? null}
+          quizMyChoiceId={quizItem?.myChoiceId ?? null}
         />,
       );
 
       /**
        * 링크·금전 요구 주의 카드. 1:1 방에만 있었는데 같은 수법이 그룹 방에도 그대로
-       * 들어온다(2026-09-15 QA). IMAGE 의 content 는 objectKey 라 TEXT 만 본다.
-       * QUIZ 의 content 는 사용자가 덧붙인 한마디라 같이 본다.
+       * 들어온다(2026-09-15 QA). IMAGE 의 content 는 objectKey, 퀴즈 메시지는 JSON 이라 TEXT 만 본다.
+       * 질문 카드에 덧붙인 한마디는 서버가 따로 TEXT 로 저장해 여기서 같이 걸린다.
        */
-      if (message.messageType === "TEXT" || message.messageType === "QUIZ") {
+      if (message.messageType === "TEXT") {
         items.push(...renderChatSafetyWarnings(message.content, String(message.id)));
       }
     });
@@ -352,7 +366,6 @@ export function GroupMessageList({
 
   return (
     <ListContainer ref={listRef} data-cy="message-list">
-      {leadingCard && <LeadingCardSlot>{leadingCard}</LeadingCardSlot>}
       {loadingOlder && <LoadingOlder>이전 메시지를 불러오는 중...</LoadingOlder>}
       {renderMessages()}
       {notice && (
@@ -368,9 +381,10 @@ export function GroupMessageList({
   );
 }
 
-/* 힌트 카드와 첫 날짜 사이 24px(Figma Body gap 3270:34370). 목록 gap 10px 를 뺀 값. */
-const LeadingCardSlot = styled.div`
-  margin-bottom: calc(var(--space-3) + var(--spacing-2px));
+/* 첫 대화 힌트 — 메시지 목록 안 가운데 카드(Figma 3270:36280). 위아래로 띄워 말풍선 묶음과 떨어뜨린다. */
+const HintRow = styled.div`
+  width: 100%;
+  margin: var(--spacing-6px) 0;
 `;
 
 const LoadingOlder = styled.div`

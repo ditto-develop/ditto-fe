@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import styled from "styled-components";
 import {
@@ -18,17 +18,15 @@ import {
   useChatKeyboardInset,
 } from "@/features/chat/hooks/useChatKeyboardInset";
 import { useSystemPeriod } from "@/features/system/hooks/useSystemPeriod";
-import { shareQuizToRoom } from "@/features/records/api/recordsApi";
-import { useRoomQuizAnswers } from "@/features/records/hooks/useRoomQuizAnswers";
-import { summarizeRoomAnswers } from "@/features/records/lib/roomAnswers";
-import { formatAnswersSummary, toQuizChips } from "@/features/records/lib/roomAnswerText";
-import type { RoomQuizQuestion } from "@/features/records/model/types";
+import { useRoomQuizDistribution } from "@/features/records/hooks/useRoomQuizAnswers";
+import { formatGroupSummary, toRoomQuizMembers } from "@/features/records/lib/roomAnswers";
+import { formatSendOpensAt, groupChips } from "@/features/records/lib/roomAnswerText";
+import type { QuizDistributionItem } from "@/features/records/model/types";
 import { RoomAnswersSummaryBar } from "@/features/records/ui/RoomAnswersSummaryBar";
 import {
   RoomAnswersTooltip,
   useGroupAnswersTooltip,
 } from "@/features/records/ui/RoomAnswersTooltip";
-import { RoomFirstHintCard } from "@/features/records/ui/RoomFirstHintCard";
 import { RoomGroupAnswersPage } from "@/features/records/ui/RoomGroupAnswersPage";
 import { RoomQuizAttachmentPreview } from "@/features/records/ui/RoomQuizAttachmentPreview";
 import { useFeatureFlag } from "@/shared/lib/hooks/useFeatureFlag";
@@ -98,7 +96,7 @@ export function GroupChatRoomPageClient() {
   const [leaving, setLeaving] = useState(false);
   /** 8.1 "우리 그룹의 답변" 화면과, 거기서 골라 입력창 위에 붙인 문항. */
   const [isAnswersOpen, setIsAnswersOpen] = useState(false);
-  const [pendingQuiz, setPendingQuiz] = useState<RoomQuizQuestion | null>(null);
+  const [pendingQuiz, setPendingQuiz] = useState<QuizDistributionItem | null>(null);
   const keyboardInset = useChatKeyboardInset();
 
   const {
@@ -113,7 +111,7 @@ export function GroupChatRoomPageClient() {
     sendImages,
     sendError,
     clearSendError,
-    receiveMessages,
+    sendQuizCard,
   } = useChatRoom(roomId, { roomType: "group" });
   const { room, members, memberById, loading: metaLoading, refresh: refreshRoom } =
     useChatRoomMeta(roomId);
@@ -128,11 +126,25 @@ export function GroupChatRoomPageClient() {
   const { showToast } = useToast();
   const toggleMute = useChatRoomMuteToggle(roomId, room?.isMuted ?? false, refreshRoom);
   /*
-   * 8.1 퀴즈 기록(공개 전, 테스터 모드). 운영 BE 에 API 가 없는 동안은 404 → null 이라
-   * 요약 바·힌트·문서 아이콘·툴팁이 모두 빠지고 방은 예전 그대로다.
+   * 8.1 답변 분포(공개 전, 테스터 모드). 끝난 방(7004)·서버에 API 가 없음(404)이면 null 이라
+   * 요약 바·문서 아이콘·툴팁이 모두 빠지고 방은 예전 그대로다. 첫 대화 힌트(QUIZ_HINT)는 메시지라
+   * 테스터 모드와 상관없이 목록에 그려진다.
    */
   const recordsEnabled = useFeatureFlag("records");
-  const { data: quizAnswers, markShared } = useRoomQuizAnswers(roomId, recordsEnabled);
+  const [roomEndedForQuiz, setRoomEndedForQuiz] = useState(false);
+  const {
+    data: quizDistribution,
+    markSent,
+    refetch: refetchQuizDistribution,
+  } = useRoomQuizDistribution(roomId, recordsEnabled && !roomEndedForQuiz);
+  // 분포는 남아 있는 멤버 기준 실시간이다 — 누가 나가거나(MEMBER_LEFT) 늦게 들어오면 다시 읽는다.
+  const memberCount = members.length;
+  const previousMemberCountRef = useRef(memberCount);
+  useEffect(() => {
+    if (previousMemberCountRef.current === memberCount) return;
+    previousMemberCountRef.current = memberCount;
+    refetchQuizDistribution();
+  }, [memberCount, refetchQuizDistribution]);
   const answersTooltip = useGroupAnswersTooltip();
 
   /** 문서 아이콘을 누르면 툴팁도 다시 안 뜬다(Figma 주석 3269:34323). */
@@ -157,6 +169,11 @@ export function GroupChatRoomPageClient() {
   const roomState = room ? deriveRoomState(room, undefined, serverPeriod) : "OPEN";
   const isEnded = roomState === "ENDED";
   const hasLeft = room?.hasLeft ?? false;
+  // 방이 끝나면 답변 보기도 닫힌다(서버도 7004 로 막는다). 끝나는 순간 다시 묻지 않고 숨긴다.
+  useEffect(() => {
+    if (isEnded) setRoomEndedForQuiz(true);
+  }, [isEnded]);
+  const quizAnswers = isEnded ? null : quizDistribution;
   const expiresAt = useMemo(() => parseServerDateTime(room?.expiresAt), [room?.expiresAt]);
 
   const memberNames = members.map((member) => member.nickname);
@@ -229,18 +246,18 @@ export function GroupChatRoomPageClient() {
     }
   };
 
-  /** 문항 카드를 올린다. 실패하면 ChatInput 이 이 문구로 토스트를 띄우고 입력값을 남긴다. */
+  /**
+   * 질문 카드를 보낸다(STOMP 프레임 하나). 실패하면 ChatInput 이 그 문구로 토스트를 띄우고 입력값을 남긴다.
+   * 이미 올라온 문항이면(7007 — 다른 멤버가 먼저 올렸을 수 있다) 한마디는 서버가 저장했으므로 담긴
+   * 문항을 비우고 안내만 한다.
+   */
   const handleShareQuiz = async (content: string) => {
     if (!pendingQuiz) return;
     const quizId = pendingQuiz.quizId;
-    try {
-      const message = await shareQuizToRoom(roomId, content ? { quizId, content } : { quizId });
-      receiveMessages([message]);
-      markShared(quizId, message.createdAt);
-      setPendingQuiz(null);
-    } catch {
-      throw new Error("질문을 보내지 못했어요. 잠시 후 다시 시도해주세요.");
-    }
+    const result = await sendQuizCard(quizId, content);
+    markSent(quizId);
+    setPendingQuiz(null);
+    if (result === "duplicate") showToast("이미 올라온 질문이에요.", "error");
   };
 
   const handleLeave = async () => {
@@ -283,8 +300,15 @@ export function GroupChatRoomPageClient() {
         ? "연결이 끊겼어요. 다시 연결되면 놓친 메시지를 불러올게요."
         : undefined;
 
-  const answersSummary = quizAnswers ? summarizeRoomAnswers(quizAnswers) : null;
-  const canShareQuiz = roomState === "OPEN" && !hasLeft;
+  const answersSummary = quizAnswers ? formatGroupSummary(quizAnswers) : null;
+  const quizShare = {
+    canSend: (quizAnswers?.canSendCard ?? false) && roomState === "OPEN" && !hasLeft,
+    // 열린 방인데 못 보내면 서버 QUIZ_CHAT 플래그가 꺼졌거나 내가 나간 방이다.
+    lockedMessage:
+      roomState === "BEFORE_OPEN" && quizAnswers
+        ? formatSendOpensAt(quizAnswers.chatOpensAt)
+        : "지금은 질문을 보낼 수 없어요",
+  };
 
   return (
     <PageContainer $keyboardInset={keyboardInset} data-cy="chat-room">
@@ -320,7 +344,7 @@ export function GroupChatRoomPageClient() {
       */}
       {!openVote && answersSummary && (
         <RoomAnswersSummaryBar
-          label={formatAnswersSummary(answersSummary)}
+          label={answersSummary}
           tone="dark"
           onOpen={openAnswers}
         />
@@ -347,15 +371,7 @@ export function GroupChatRoomPageClient() {
         getVoteById={getVoteById}
         onVoteClick={openVoteView}
         onSenderClick={setSelectedMember}
-        quizAnswers={quizAnswers}
-        leadingCard={
-          quizAnswers?.firstHint ? (
-            <RoomFirstHintCard
-              hint={quizAnswers.firstHint}
-              memberCount={quizAnswers.members.length}
-            />
-          ) : null
-        }
+        quizDistribution={quizAnswers}
       />
 
       {/* 나간 방은 읽기 전용이다. 입력창도 평가 버튼도 띄우지 않는다. */}
@@ -371,11 +387,7 @@ export function GroupChatRoomPageClient() {
                     <RoomQuizAttachmentPreview
                       order={pendingQuiz.order}
                       question={pendingQuiz.question}
-                      chips={toQuizChips(pendingQuiz.choices, {
-                        myUserId,
-                        nameOf: (memberId) => memberById.get(memberId)?.nickname ?? "알 수 없음",
-                        myChoiceId: pendingQuiz.myChoiceId,
-                      })}
+                      chips={groupChips(pendingQuiz.choices, pendingQuiz.myChoiceId)}
                       onRemove={() => setPendingQuiz(null)}
                     />
                   ),
@@ -436,12 +448,14 @@ export function GroupChatRoomPageClient() {
       {isAnswersOpen && quizAnswers && (
         <RoomGroupAnswersPage
           data={quizAnswers}
-          canShare={canShareQuiz}
+          members={toRoomQuizMembers(myUserId, members)}
+          share={quizShare}
           onClose={() => setIsAnswersOpen(false)}
-          onShare={(question) => {
-            setPendingQuiz(question);
+          onShare={(item) => {
+            setPendingQuiz(item);
             setIsAnswersOpen(false);
           }}
+          onLockedTap={(message) => showToast(message, "info")}
         />
       )}
 

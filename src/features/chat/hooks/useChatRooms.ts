@@ -142,13 +142,15 @@ export function useChatRooms(): UseChatRoomsResult {
    *
    * 안읽음은 **보낸 사람과 무관하게** 올린다 — 서버의 방 단위 안읽음이 `id > 커서` 의 개수라
    * 내 메시지도 SYSTEM 메시지도 함께 세기 때문이다. 목록에서는 내가 보낼 수 없으므로 실제로는
-   * 상대·시스템 메시지만 들어온다.
+   * 상대·시스템 메시지만 들어온다. 단 8.1 첫 대화 힌트(QUIZ_HINT)는 서버도 세지 않는다(IMP-1 BE-4) —
+   * 미리보기만 바꾸고 배지는 그대로 둔다.
    */
   const applyIncoming = useCallback((roomId: number, message: ChatMessage) => {
+    const counts = message.messageType !== "QUIZ_HINT";
     setRooms((previous) =>
       previous.map((room) =>
         room.roomId === roomId
-          ? { ...room, lastMessage: message, unreadCount: room.unreadCount + 1 }
+          ? { ...room, lastMessage: message, unreadCount: room.unreadCount + (counts ? 1 : 0) }
           : room,
       ),
     );

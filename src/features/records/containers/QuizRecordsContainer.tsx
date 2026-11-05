@@ -15,7 +15,7 @@ import { EmptyState } from "@/shared/ui";
  * 8.1 기록 탭 [3254:37041] — 상단 요약 3칸, 이번 주 카드, 지난 퀴즈 목록.
  *
  * 공개 전 기능이라 라우트(`/records`)에서 테스터 모드로 막고 들어온다(CLAUDE.md §9.1).
- * 목록은 서버가 최신 주부터 주고, 맨 위 카드는 서버가 `isCurrentWeek` 로 고른 것이다 —
+ * 목록은 서버가 최신 주부터 주고, 맨 위 카드는 서버의 `currentWeek` 가 가리키는 주다 —
  * 운영 주의 경계(월 00:00)를 FE 시계로 판정하지 않는다.
  */
 export function QuizRecordsContainer() {
@@ -24,8 +24,11 @@ export function QuizRecordsContainer() {
 
   const openRecord = (quizSetId: number) => router.push(`/records/${quizSetId}`);
 
-  const current = data?.records.find((record) => record.isCurrentWeek) ?? null;
-  const past = data?.records.filter((record) => !record.isCurrentWeek) ?? [];
+  const currentWeek = data?.currentWeek ?? null;
+  const current = currentWeek
+    ? (data?.weeks.find((week) => week.quizSetId === currentWeek.quizSetId) ?? null)
+    : null;
+  const past = data?.weeks.filter((week) => week.quizSetId !== currentWeek?.quizSetId) ?? [];
 
   return (
     <Page>
@@ -43,10 +46,12 @@ export function QuizRecordsContainer() {
           <>
             <Top>
               <RecordSummaryTiles summary={data.summary} />
-              {current && <ThisWeekRecordCard record={current} onOpen={openRecord} />}
+              {current && currentWeek && (
+                <ThisWeekRecordCard record={current} currentWeek={currentWeek} onOpen={openRecord} />
+              )}
             </Top>
 
-            {data.records.length === 0 && (
+            {data.weeks.length === 0 && (
               <EmptySlot>
                 <EmptyState
                   icon="content.documentText"

@@ -21,8 +21,9 @@ export type FeatureStage = "tester" | "all";
  */
 export const FEATURES = {
   /**
-   * 8.1 퀴즈 기록 — 하단 "기록" 탭(/records)과 대화방의 "우리의 답변"(요약 바·첫 대화 힌트·질문 보내기).
-   * 부르는 BE API 는 BE 위키 [BE-Request-Quiz-Records] 로 요청해 둔 것이다(2026-11-03).
+   * 8.1 퀴즈 기록 — 하단 "기록" 탭(/records)과 대화방의 "우리의 답변"(요약 바·문서 아이콘·질문 보내기).
+   * 부르는 BE API 는 서버 IMP-1(ditto-server #366, 서버 위키 IMP-1-Quiz-History-Answer-Compare)이다.
+   * 첫 대화 힌트·질문 카드 메시지는 이 플래그와 무관하다 — 서버 `QUIZ_CHAT` 플래그가 켜지면 모두에게 온다.
    */
   records: "tester",
 } as const satisfies Record<string, FeatureStage>;

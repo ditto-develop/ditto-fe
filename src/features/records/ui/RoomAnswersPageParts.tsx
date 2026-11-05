@@ -100,15 +100,38 @@ export function RoomAnswersSection({ title, aside, children }: RoomAnswersSectio
   );
 }
 
+/**
+ * 질문 보내기 버튼 상태(IMP-1 FE-4).
+ * - `ready`: 보낼 수 있다.
+ * - `sent`: 이 방에 이미 올린 문항 — 비활성.
+ * - `locked`: 아직 보낼 수 없다(채팅 개방 전 등). 딤드 + 안내 문구.
+ */
+export type RoomShareState =
+  | { kind: "ready" }
+  | { kind: "sent" }
+  | { kind: "locked"; message: string };
+
+/** 문항 하나의 버튼 상태. 보낼 수 있는지는 서버 `canSendCard` 와 방 상태로 호출부가 정한다. */
+export function shareStateOf(
+  item: { sent: boolean },
+  share: { canSend: boolean; lockedMessage: string },
+): RoomShareState {
+  if (item.sent) return { kind: "sent" };
+  if (!share.canSend) return { kind: "locked", message: share.lockedMessage };
+  return { kind: "ready" };
+}
+
 type RoomSameAnswerRowProps = {
   order: number;
   question: string;
   answer: string;
-  /** 첫 대화 힌트 문항 — 빨간 글씨(Figma 3273:37181). */
+  /** 강조 문항(같은 답 중 가장 드문 답) — 빨간 글씨(Figma 3273:37181). */
   highlighted?: boolean;
   shareLabel: string;
-  shareDisabled: boolean;
+  shareState: RoomShareState;
   onShare: () => void;
+  /** 딤드 말풍선을 눌렀을 때 — 버튼 문구 대신 같은 안내를 토스트로 띄운다(IMP-1 FE-4). */
+  onLockedTap: (message: string) => void;
 };
 
 /** 같은 답 한 줄 — 문항 + 답 + 오른쪽 말풍선 버튼(Chip/Action, Figma 3272:36852). */
@@ -118,9 +141,11 @@ export function RoomSameAnswerRow({
   answer,
   highlighted = false,
   shareLabel,
-  shareDisabled,
+  shareState,
   onShare,
+  onLockedTap,
 }: RoomSameAnswerRowProps) {
+  const locked = shareState.kind === "locked";
   return (
     <Row data-cy="room-same-answer">
       <RowTexts>
@@ -132,8 +157,14 @@ export function RoomSameAnswerRow({
       <ChipAction
         type="button"
         aria-label={`Q${order} ${shareLabel}`}
-        disabled={shareDisabled}
-        onClick={onShare}
+        // 개방 전 딤드는 눌러서 이유를 볼 수 있어야 해 disabled 대신 aria-disabled 로 둔다.
+        aria-disabled={locked || undefined}
+        $dimmed={locked}
+        disabled={shareState.kind === "sent"}
+        onClick={() => {
+          if (shareState.kind === "locked") onLockedTap(shareState.message);
+          else onShare();
+        }}
       >
         <Icon name="action.message" size={14} />
       </ChipAction>
@@ -151,16 +182,20 @@ export function RoomQuestionLabel({ order, question }: { order: number; question
 
 type RoomShareButtonProps = {
   label: string;
-  disabled: boolean;
+  state: RoomShareState;
   onClick: () => void;
 };
 
-/** "이 질문으로 말 걸기" · "대화방에 이 질문 올리기" 외곽선 버튼(Figma 3258:53465). */
-export function RoomShareButton({ label, disabled, onClick }: RoomShareButtonProps) {
+/**
+ * "이 질문으로 말 걸기" · "대화방에 이 질문 올리기" 외곽선 버튼(Figma 3258:53465).
+ * 보낸 문항은 "보냄", 열리기 전에는 버튼 안 문구가 "{열리는 시각}부터 보낼 수 있어요" 로 바뀐다.
+ */
+export function RoomShareButton({ label, state, onClick }: RoomShareButtonProps) {
+  const text = state.kind === "sent" ? "보냄" : state.kind === "locked" ? state.message : label;
   return (
-    <ShareButton type="button" disabled={disabled} onClick={onClick}>
-      <Icon name="action.bubble" size={16} />
-      {label}
+    <ShareButton type="button" disabled={state.kind !== "ready"} onClick={onClick}>
+      {state.kind === "ready" && <Icon name="action.bubble" size={16} />}
+      {text}
     </ShareButton>
   );
 }
@@ -371,7 +406,7 @@ const SameAnswer = styled.p<{ $highlighted: boolean }>`
 `;
 
 /* Chip/Action — 36px 정사각, line/solid/alternative 바탕(Figma 3272:36852). 보낸 문항은 흐리게(3276:34950). */
-const ChipAction = styled.button`
+const ChipAction = styled.button<{ $dimmed: boolean }>`
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
@@ -382,7 +417,8 @@ const ChipAction = styled.button`
   border-radius: var(--spacing-10px);
   cursor: pointer;
   background-color: var(--color-semantic-line-solid-alternative);
-  color: var(--color-semantic-label-normal);
+  color: ${({ $dimmed }) =>
+    $dimmed ? "var(--color-semantic-label-disable)" : "var(--color-semantic-label-normal)"};
 
   &:disabled {
     cursor: default;

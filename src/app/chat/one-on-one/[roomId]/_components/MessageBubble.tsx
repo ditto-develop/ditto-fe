@@ -7,7 +7,9 @@ import { ChatMessageText } from "@/app/chat/_components/ChatMessageText";
 
 import { getSystemMessageText } from "@/features/chat";
 import type { ChatMessage, ChatOptimisticMessage } from "@/features/chat";
+import { parseQuizCard, parseQuizHint } from "@/features/chat/lib/quizMessage";
 import { ChatQuizCardView } from "@/features/records/ui/ChatQuizCardView";
+import { RoomFirstHintCard } from "@/features/records/ui/RoomFirstHintCard";
 import { RoomNoticeCard } from "./RoomNoticeCard";
 
 interface MessageBubbleProps {
@@ -21,8 +23,8 @@ interface MessageBubbleProps {
   /** 상대 아바타를 누르면 상대 프로필을 연다. */
   onPartnerClick?: () => void;
   onRetry?: () => void;
-  /** QUIZ 카드 칩에서 "나" 를 가리려면 필요하다. */
-  myUserId?: number | null;
+  /** 질문 카드의 문항 번호. 카드에는 없어 방 답변을 읽었을 때만(테스터 모드) 안다. */
+  quizOrderOf?: (quizId: number) => number | null;
 }
 
 function formatTime(date: string): string {
@@ -41,7 +43,7 @@ export function MessageBubble({
   onImageClick,
   onPartnerClick,
   onRetry,
-  myUserId = null,
+  quizOrderOf,
 }: MessageBubbleProps) {
   const messageId = "id" in message ? message.id : undefined;
 
@@ -53,6 +55,18 @@ export function MessageBubble({
     if (!systemText) return null;
 
     return <RoomNoticeCard messageId={messageId}>{systemText}</RoomNoticeCard>;
+  }
+
+  // 8.1 첫 대화 힌트 — 보낸 사람 없는 서버 메시지라 SYSTEM 처럼 가운데에 둔다. content 는 JSON 이라
+  // 읽지 못하면 아무것도 그리지 않는다(원문을 말풍선에 보이면 안 된다).
+  if (message.messageType === "QUIZ_HINT") {
+    const hint = parseQuizHint(message.content);
+    if (!hint) return null;
+    return (
+      <HintRow data-chat-message-id={messageId}>
+        <RoomFirstHintCard hint={hint} />
+      </HintRow>
+    );
   }
 
   const deliveryStatus = "status" in message ? message.status : null;
@@ -78,12 +92,18 @@ export function MessageBubble({
     );
 
   /*
-   * 8.1 질문 보내기(QUIZ). 문항 카드 아래에 덧붙인 한마디를 일반 말풍선으로 잇는다(Figma 3256:38421).
-   * 테스터 모드와 상관없이 그린다. 카드 스냅샷이 없으면(예전 서버) 본문만 글로 남는다.
+   * 8.1 질문 카드(QUIZ_CARD). content 는 서버가 만든 카드 JSON 이다. 덧붙인 한마디는 바로 뒤 TEXT
+   * 메시지로 따로 와 일반 말풍선으로 이어진다(Figma 3256:38421). 테스터 모드와 상관없이 그린다.
    */
-  const quiz = message.messageType === "QUIZ" && "quiz" in message ? (message.quiz ?? null) : null;
+  const quiz = message.messageType === "QUIZ_CARD" ? parseQuizCard(message.content) : null;
+  if (message.messageType === "QUIZ_CARD" && !quiz) return null;
   const quizCard = quiz ? (
-    <ChatQuizCardView card={quiz} myUserId={myUserId} nameOf={() => partnerNickname} />
+    <ChatQuizCardView
+      card={quiz}
+      sentByMe={isMine}
+      partnerName={partnerNickname}
+      order={quizOrderOf?.(quiz.quizId) ?? null}
+    />
   ) : null;
 
   if (isMine) {
@@ -96,14 +116,7 @@ export function MessageBubble({
             )}
             <TimeLabel>{formatTime(message.createdAt)}</TimeLabel>
           </SentMeta>
-          <QuizStack $align="end">
-            {quizCard}
-            {message.content && (
-              <SentBubble $isFirstInGroup={false} $isImage={false}>
-                {body}
-              </SentBubble>
-            )}
-          </QuizStack>
+          <QuizStack $align="end">{quizCard}</QuizStack>
         </SentRow>
       );
     }
@@ -155,14 +168,7 @@ export function MessageBubble({
         {isFirstInGroup && <NicknameLabel>{partnerNickname}</NicknameLabel>}
         <ReceivedBubbleRow>
           {quizCard ? (
-            <QuizStack $align="start">
-              {quizCard}
-              {message.content && (
-                <ReceivedBubble $isFirstInGroup={false} $isImage={false}>
-                  {body}
-                </ReceivedBubble>
-              )}
-            </QuizStack>
+            <QuizStack $align="start">{quizCard}</QuizStack>
           ) : (
             <ReceivedBubble
               $isFirstInGroup={isFirstInGroup}
@@ -200,7 +206,13 @@ const ReceivedRow = styled.div<{ $isFirstInGroup: boolean }>`
   padding-left: ${({ $isFirstInGroup }) => ($isFirstInGroup ? "0" : "52px")};
 `;
 
-/* 문항 카드 + 덧붙인 한마디. 둘 사이 10px(Figma 3256:38421). */
+/* 첫 대화 힌트 — 메시지 목록 안 가운데 카드(Figma 3256:51233). 위아래로 띄워 말풍선 묶음과 떨어뜨린다. */
+const HintRow = styled.div`
+  width: 100%;
+  margin: var(--spacing-6px) 0;
+`;
+
+/* 문항 카드. 덧붙인 한마디는 다음 TEXT 말풍선이다(Figma 3256:38421). */
 const QuizStack = styled.div<{ $align: "start" | "end" }>`
   display: flex;
   flex-direction: column;

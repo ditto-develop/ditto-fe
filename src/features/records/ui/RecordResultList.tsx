@@ -2,16 +2,23 @@
 
 import styled from "styled-components";
 
-import type { QuizRecordChoice, QuizRecordQuestion } from "@/features/records/model/types";
+import type { QuizHistoryAnswer, QuizHistoryChoice } from "@/features/records/model/types";
 import { RecordQuestionSection } from "@/features/records/ui/RecordQuestionSection";
 import { Icon } from "@/shared/ui";
 
 type RecordResultListProps = {
-  questions: QuizRecordQuestion[];
+  questions: QuizHistoryAnswer[];
 };
 
 function byOrder<T extends { order: number }>(items: T[]): T[] {
   return [...items].sort((a, b) => a.order - b.order);
+}
+
+/** 내 선택지가 소수 의견인지. 서버는 선택지마다 `minority` 를 준다. */
+function isMinorityAnswer(question: QuizHistoryAnswer): boolean {
+  return question.choices.some(
+    (choice) => choice.choiceId === question.myChoiceId && choice.minority === true,
+  );
 }
 
 /** 공개 후 "질문별 선택" — 선택지마다 비율 막대, 내 답은 테두리·체크·초록 막대(Figma 3255:37133). */
@@ -27,10 +34,11 @@ export function RecordResultList({ questions }: RecordResultListProps) {
               <Question>
                 Q{question.order}. {question.question}
               </Question>
-              {question.isMinority && <MinorityBadge>소수 의견</MinorityBadge>}
+              {isMinorityAnswer(question) && <MinorityBadge>소수 의견</MinorityBadge>}
             </HeadingRow>
             <Choices>
-              {byOrder(question.choices).map((choice) => (
+              {/* 선택지는 서버가 준 순서 그대로다(응답에 선택지 순서 값이 없다). */}
+              {question.choices.map((choice) => (
                 <ChoiceBar
                   key={choice.choiceId}
                   choice={choice}
@@ -45,7 +53,7 @@ export function RecordResultList({ questions }: RecordResultListProps) {
   );
 }
 
-function ChoiceBar({ choice, mine }: { choice: QuizRecordChoice; mine: boolean }) {
+function ChoiceBar({ choice, mine }: { choice: QuizHistoryChoice; mine: boolean }) {
   const percent = Math.min(100, Math.max(0, choice.percent ?? 0));
 
   return (
@@ -57,7 +65,7 @@ function ChoiceBar({ choice, mine }: { choice: QuizRecordChoice; mine: boolean }
           {mine && <Icon name="status.check" size={16} label="내 답" />}
           {choice.content}
         </ChoiceLabel>
-        <Percent>{choice.percent === null ? "-" : `${percent}%`}</Percent>
+        <Percent>{choice.percent === undefined ? "-" : `${percent}%`}</Percent>
       </BarContent>
     </Bar>
   );

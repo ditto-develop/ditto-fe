@@ -158,7 +158,8 @@ export interface AnalyticsEventMap {
   auth_refresh: { result: "ok" | "rejected" | "unreachable"; code: string };
 
   /** 메시지를 보냈다. 대화가 실제로 일어났는지 보는 핵심 참여 지표다. */
-  chat_message_send: { room_type: ChatRoomType; message_type: "TEXT" | "IMAGE" };
+  /** `QUIZ_CARD` 는 8.1 질문 카드(IMP-1 성공 지표 "카드 전송 수"). */
+  chat_message_send: { room_type: ChatRoomType; message_type: "TEXT" | "IMAGE" | "QUIZ_CARD" };
 
   /** 그룹 투표. 만남 성사로 이어지는 마지막 단계라 따로 본다. */
   vote_create: { option_count: number };

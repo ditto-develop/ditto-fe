@@ -11,6 +11,7 @@ import {
 import { trackEvent } from "@/shared/lib/analytics";
 import type { ChatRoomType } from "@/shared/lib/analytics";
 import { createChatSocket, type ChatSocket } from "@/features/chat/lib/chatSocket";
+import { isServerGeneratedMessage, parseQuizCard } from "@/features/chat/lib/quizMessage";
 import { useReconnectOnResume } from "@/features/chat/hooks/useReconnectOnResume";
 import { deriveRoomState } from "@/features/chat/lib/roomState";
 import { getSystemPeriod } from "@/features/system/api/systemStateApi";
@@ -18,7 +19,6 @@ import { CHAT_TEXT_MAX_LENGTH } from "@/features/chat/model/constants";
 import type {
   ChatConnectionStatus,
   ChatMessage,
-  ChatOutgoingMessage,
   ChatReadEvent,
   ChatOptimisticMessage,
 } from "@/features/chat/model/types";
@@ -38,6 +38,18 @@ const MAX_RESUME_PAGES = 5;
 const SEND_ECHO_TIMEOUT_MS = 5000;
 /** 끊긴 상태에서 재시도를 누르면 다시 붙을 때까지 기다린다. 이만큼 지나도 못 붙으면 실패로 되돌린다. */
 const RETRY_RECONNECT_TIMEOUT_MS = 15000;
+
+/**
+ * 질문 카드 전송 결과. `duplicate` 는 이미 올라온 문항이라 서버가 카드를 버렸다는 뜻이다(7007) —
+ * 덧붙인 한마디는 서버가 이미 저장했으므로 다시 보내지 않는다.
+ */
+export type QuizCardSendResult = "sent" | "duplicate";
+
+type PendingQuizCard = {
+  resolve: (result: QuizCardSendResult) => void;
+  reject: (error: Error) => void;
+  timeoutId: ReturnType<typeof setTimeout>;
+};
 
 type PendingSend = {
   localId: string;
@@ -66,10 +78,11 @@ type UseChatRoomResult = {
   sendError: string | null;
   clearSendError: () => void;
   /**
-   * REST 응답으로 받은 메시지를 목록에 넣는다(8.1 "질문 보내기" — 서버가 만든 QUIZ 메시지).
-   * 같은 메시지가 STOMP 로도 오지만 id 로 합치므로 두 번 쌓이지 않는다.
+   * 8.1 질문 카드를 보낸다 — 카드와 덧붙인 한마디를 STOMP 프레임 하나로 싣고, 둘의 순서는 서버가 정한다.
+   * 서버가 만든 카드 메시지가 돌아오면 `sent`, 이미 올라온 문항이면 `duplicate` 로 끝난다.
+   * 연결이 없거나 에코가 오지 않으면 실패한다(입력값은 호출부가 남긴다).
    */
-  receiveMessages: (messages: ChatMessage[]) => void;
+  sendQuizCard: (quizId: number, comment: string) => Promise<QuizCardSendResult>;
 };
 
 type UseChatRoomOptions = {
@@ -104,7 +117,7 @@ export function applyReadEvent(messages: ChatMessage[], event: ChatReadEvent): C
   return messages.map((message) =>
     message.roomId === event.roomId &&
     message.senderId !== event.memberId &&
-    message.messageType !== "SYSTEM" &&
+    !isServerGeneratedMessage(message) &&
     message.id > (event.previousLastReadMessageId ?? 0) &&
     message.id <= event.lastReadMessageId &&
     message.unreadCount > 0
@@ -135,6 +148,8 @@ export function useChatRoom(
   const latestIdRef = useRef<number>(0);
   const lastReadSentRef = useRef<number>(0);
   const pendingSendsRef = useRef<Map<string, PendingSend>>(new Map());
+  /** 에코를 기다리는 질문 카드(quizId → 대기). 같은 문항은 한 번에 하나만 기다린다. */
+  const pendingQuizCardsRef = useRef<Map<number, PendingQuizCard>>(new Map());
   const optimisticMessagesRef = useRef<ChatOptimisticMessage[]>([]);
   const myMemberIdRef = useRef<number | null>(null);
   const localIdSequenceRef = useRef(0);
@@ -239,7 +254,7 @@ export function useChatRoom(
   );
 
   const createOptimisticMessage = useCallback(
-    (content: string, messageType: ChatOutgoingMessage["messageType"]) => {
+    (content: string, messageType: ChatOptimisticMessage["messageType"]) => {
       localIdSequenceRef.current += 1;
       return {
         localId: `${roomId}-${Date.now()}-${localIdSequenceRef.current}`,
@@ -253,7 +268,7 @@ export function useChatRoom(
   );
 
   const addOptimisticMessage = useCallback(
-    (content: string, messageType: ChatOutgoingMessage["messageType"]) => {
+    (content: string, messageType: ChatOptimisticMessage["messageType"]) => {
       const message = createOptimisticMessage(content, messageType);
 
       updateOptimisticMessages((previous) => [...previous, message]);
@@ -283,17 +298,41 @@ export function useChatRoom(
     });
   }, [clearPendingSend, updateOptimisticMessages]);
 
+  /** 기다리던 질문 카드를 끝낸다. 기다리는 게 없으면(시간 초과 뒤 늦게 온 에코 등) 아무것도 안 한다. */
+  const settleQuizCard = useCallback((quizId: number, result: QuizCardSendResult) => {
+    const pending = pendingQuizCardsRef.current.get(quizId);
+    if (!pending) return;
+    clearTimeout(pending.timeoutId);
+    pendingQuizCardsRef.current.delete(quizId);
+    pending.resolve(result);
+  }, []);
+
+  /** 내가 보낸 질문 카드가 브로드캐스트로 돌아오면 그 문항의 대기를 푼다. */
+  const resolvePendingQuizCards = useCallback(
+    (incoming: ChatMessage[]) => {
+      const myMemberId = myMemberIdRef.current;
+      if (myMemberId === null || pendingQuizCardsRef.current.size === 0) return;
+      incoming.forEach((message) => {
+        if (message.messageType !== "QUIZ_CARD" || message.senderId !== myMemberId) return;
+        const card = parseQuizCard(message.content);
+        if (card) settleQuizCard(card.quizId, "sent");
+      });
+    },
+    [settleQuizCard],
+  );
+
   const applyIncoming = useCallback(
     (incoming: ChatMessage[]) => {
       if (incoming.length === 0) return;
       resolvePendingSend(incoming);
+      resolvePendingQuizCards(incoming);
       setMessages((previous) => {
         const merged = mergeAscending(previous, incoming);
         latestIdRef.current = merged.length > 0 ? merged[merged.length - 1].id : 0;
         return merged;
       });
     },
-    [resolvePendingSend],
+    [resolvePendingQuizCards, resolvePendingSend],
   );
 
   useEffect(() => {
@@ -307,6 +346,8 @@ export function useChatRoom(
       pendingSendsRef.current.clear();
       retryOnConnectRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
       retryOnConnectRef.current.clear();
+      pendingQuizCardsRef.current.forEach((pending) => clearTimeout(pending.timeoutId));
+      pendingQuizCardsRef.current.clear();
     },
     [],
   );
@@ -381,6 +422,10 @@ export function useChatRoom(
       onRead: (event) => {
         setMessages((previous) => applyReadEvent(previous, event));
       },
+      onQuizCardRejected: (event) => {
+        // 방 토픽으로 와서 남의 거부도 받는다. 내가 보낸 것만 끝낸다.
+        if (event.memberId === myMemberIdRef.current) settleQuizCard(event.quizId, "duplicate");
+      },
       onConnect: () => {
         setStatus("connected");
         flushRetryOnConnectRef.current();
@@ -400,7 +445,7 @@ export function useChatRoom(
       void socket.deactivate();
       setStatus("idle");
     };
-  }, [applyIncoming, resumeFrom, roomId]);
+  }, [applyIncoming, resumeFrom, roomId, settleQuizCard]);
 
   const markReadThrough = useCallback(
     (messageId: number) => {
@@ -459,6 +504,38 @@ export function useChatRoom(
       roomType,
       trackPendingSend,
     ],
+  );
+
+  const sendQuizCard = useCallback(
+    (quizId: number, comment: string) =>
+      new Promise<QuizCardSendResult>((resolve, reject) => {
+        // 한마디는 서버가 TEXT 와 같은 규칙(trim·1000자)으로 따로 저장한다.
+        const content = comment.trim().slice(0, CHAT_TEXT_MAX_LENGTH);
+        if (roomType) {
+          trackEvent("chat_message_send", { room_type: roomType, message_type: "QUIZ_CARD" });
+        }
+
+        // 같은 문항을 이미 기다리는 중이면 앞 요청은 실패로 끝내고 새 요청을 기다린다.
+        const previous = pendingQuizCardsRef.current.get(quizId);
+        if (previous) {
+          clearTimeout(previous.timeoutId);
+          pendingQuizCardsRef.current.delete(quizId);
+          previous.reject(new Error("질문을 다시 보냈어요."));
+        }
+
+        if (!socketRef.current?.publish({ messageType: "QUIZ_CARD", quizId, content })) {
+          reject(new Error("연결이 끊겨 질문을 보내지 못했어요."));
+          return;
+        }
+
+        // 서버는 검증에 걸린 전송(방 미개방·기능 꺼짐 0006·다른 셋 문항 7011)을 조용히 버린다. 에코로만 판정한다.
+        const timeoutId = setTimeout(() => {
+          pendingQuizCardsRef.current.delete(quizId);
+          reject(new Error("질문을 보내지 못했어요. 잠시 후 다시 시도해주세요."));
+        }, SEND_ECHO_TIMEOUT_MS);
+        pendingQuizCardsRef.current.set(quizId, { resolve, reject, timeoutId });
+      }),
+    [roomType],
   );
 
   const sendImages = useCallback(
@@ -561,6 +638,6 @@ export function useChatRoom(
     retrySend,
     sendError,
     clearSendError,
-    receiveMessages: applyIncoming,
+    sendQuizCard,
   };
 }

@@ -1,4 +1,4 @@
-import type { QuizMatchingType, QuizRecordItem } from "@/features/records/model/types";
+import type { QuizHistoryWeek, QuizMatchingType } from "@/features/records/model/types";
 import { parseServerDateTime } from "@/shared/lib/serverDateTime";
 
 /*
@@ -13,11 +13,35 @@ export function matchingTypeLabel(type: QuizMatchingType): string {
   return type === "GROUP" ? "그룹" : "1:1";
 }
 
+function parseDate(value: string): { year: number; month: number; day: number } | null {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  return { year, month, day };
+}
+
 /** "2026-10-26" → "10월 26일 주". 시간대 영향을 받지 않게 문자열을 직접 자른다. */
 export function formatWeekOf(weekStartedOn: string): string {
-  const [, month, day] = weekStartedOn.split("-").map(Number);
-  if (!month || !day) return "";
-  return `${month}월 ${day}일 주`;
+  const date = parseDate(weekStartedOn);
+  if (!date) return "";
+  return `${date.month}월 ${date.day}일 주`;
+}
+
+/**
+ * 그 주 월요일 → "몇째 주". 서버 `OperationWeek.weekOfMonth`(`WeekFields.of(MONDAY, 1)`)와 같은 규칙이다 —
+ * 그 달 1일이 든 월~일 주가 1주차다. 기록 응답에 주차가 없어 `weekStartedOn` 에서 계산한다.
+ */
+export function weekOfMonth(weekStartedOn: string): number | null {
+  const date = parseDate(weekStartedOn);
+  if (!date) return null;
+  // 1일 앞에 그 주의 며칠이 지난달에 있는지(월=0 … 일=6).
+  const daysBeforeFirst = (new Date(Date.UTC(date.year, date.month - 1, 1)).getUTCDay() + 6) % 7;
+  return Math.floor((date.day + daysBeforeFirst - 1) / 7) + 1;
+}
+
+/** "11월 2주차 퀴즈"·"2주차" 처럼 쓰는 주차 라벨. 날짜를 못 읽으면 빈 문자열. */
+export function formatWeekLabel(weekStartedOn: string): string {
+  const week = weekOfMonth(weekStartedOn);
+  return week === null ? "" : `${week}주차`;
 }
 
 type RecordMetaOptions = {
@@ -29,11 +53,11 @@ type RecordMetaOptions = {
 
 /** "4주차 · 1:1 · 10월 26일 주" (Figma 3254:37528 · 3254:37958 · 3255:37092). */
 export function formatRecordMeta(
-  record: Pick<QuizRecordItem, "week" | "matchingType" | "weekStartedOn">,
+  record: { matchingType: QuizMatchingType; weekStartedOn: string },
   { withWeek = false, participantCount }: RecordMetaOptions = {},
 ): string {
   return [
-    withWeek ? `${record.week}주차` : null,
+    withWeek ? formatWeekLabel(record.weekStartedOn) : null,
     matchingTypeLabel(record.matchingType),
     formatWeekOf(record.weekStartedOn),
     participantCount === undefined ? null : `${participantCount.toLocaleString("ko-KR")}명 참여`,
@@ -46,16 +70,9 @@ function pad2(value: number): string {
   return String(value).padStart(2, "0");
 }
 
-/** "2026-10-27 21:14:00" → "10월 27일 21:14 제출". 값이 없으면 null. */
-export function formatSubmittedAt(submittedAt: string | null): string | null {
-  const date = parseServerDateTime(submittedAt);
-  if (!date) return null;
-  return `${date.getMonth() + 1}월 ${date.getDate()}일 ${pad2(date.getHours())}:${pad2(date.getMinutes())} 제출`;
-}
-
 /** "2026-10-29 00:00:00" → "목요일 0시" (분이 있으면 "목요일 0시 30분"). */
-export function formatRevealMoment(statsRevealAt: string): string | null {
-  const date = parseServerDateTime(statsRevealAt);
+export function formatRevealMoment(resultOpensAt: string): string | null {
+  const date = parseServerDateTime(resultOpensAt);
   if (!date) return null;
   const minutes = date.getMinutes();
   return `${WEEKDAYS[date.getDay()]}요일 ${date.getHours()}시${minutes ? ` ${minutes}분` : ""}`;
@@ -75,6 +92,11 @@ export function formatCountdown(remainingMs: number): string {
   return days > 0 ? `${days}일 ${clock}` : clock;
 }
 
+/** 결과가 공개된 주인지. 서버는 공개 전 주의 `minorityCount` 를 null 로 준다. */
+export function isWeekRevealed(week: Pick<QuizHistoryWeek, "minorityCount">): boolean {
+  return week.minorityCount !== null;
+}
+
 export type PastRecordLabel = {
   text: string;
   /** `positive` = 결과 공개(초록, Figma 3254:37738). `neutral` = 공개 전. */
@@ -82,11 +104,9 @@ export type PastRecordLabel = {
 };
 
 /** 지난 퀴즈 카드 아랫줄. 소수 의견이 없으면 개수를 빼고 "결과 보기" 만 둔다("0개" 는 어색하다). */
-export function pastRecordLabel(
-  record: Pick<QuizRecordItem, "revealed" | "minorityCount">,
-): PastRecordLabel {
-  if (!record.revealed) return { text: "통계 공개 전 · 내 답변 보기", tone: "neutral" };
-  const count = record.minorityCount ?? 0;
+export function pastRecordLabel(week: Pick<QuizHistoryWeek, "minorityCount">): PastRecordLabel {
+  if (week.minorityCount === null) return { text: "통계 공개 전 · 내 답변 보기", tone: "neutral" };
+  const count = week.minorityCount;
   return {
     text: count > 0 ? `결과 보기 · 소수 의견 ${count}개` : "결과 보기",
     tone: "positive",

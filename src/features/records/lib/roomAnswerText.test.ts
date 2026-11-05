@@ -2,12 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import {
   avatarLabel,
-  formatAnswersSummary,
+  DEFAULT_HINT_QUESTION,
+  describeHint,
+  formatSendOpensAt,
+  groupChips,
   objectParticle,
-  peopleHonorific,
-  toQuizChips,
+  pairCardChips,
+  pairChips,
   topicParticle,
-  unanimousChoice,
+  unanimousGroupChoice,
 } from "@/features/records/lib/roomAnswerText";
 
 describe("조사", () => {
@@ -29,75 +32,105 @@ describe("조사", () => {
   });
 });
 
-describe("이름·인원", () => {
+describe("이름", () => {
   it("원 안 이름은 앞 두 글자, 나는 '나'", () => {
     expect(avatarLabel({ memberId: 2, nickname: "사부작사부작", isMe: false })).toBe("사부");
     expect(avatarLabel({ memberId: 1, nickname: "홍길동", isMe: true })).toBe("나");
   });
+});
 
-  it("두 분·네 분", () => {
-    expect(peopleHonorific(2)).toBe("두 분");
-    expect(peopleHonorific(4)).toBe("네 분");
-    expect(peopleHonorific(12)).toBe("12 분");
+describe("첫 대화 힌트 문장", () => {
+  const base = { quizId: 1, question: "시간이 멈춘다면 그 시각은?", hintQuestion: "그 시간엔 주로 뭘 하세요?" };
+
+  it("같은 답·만장일치는 함께 고른 답을 굵게 넣는다", () => {
+    expect(describeHint({ ...base, kind: "SAME", answer: "새벽 2시" })).toEqual({
+      lead: "두 분 모두 ",
+      answer: "새벽 2시",
+      tail: "를 골랐어요.",
+      follow: "그 시간엔 주로 뭘 하세요?",
+    });
+    expect(describeHint({ ...base, kind: "UNANIMOUS", answer: "열린 결말" })).toMatchObject({
+      lead: "다 같이 ",
+      answer: "열린 결말",
+      tail: "을 골랐어요.",
+    });
   });
 
-  it("요약 문구", () => {
-    expect(formatAnswersSummary({ kind: "ONE_ON_ONE", same: 7, different: 5 })).toBe(
-      "같은 답 7 · 다른 답 5",
-    );
-    expect(formatAnswersSummary({ kind: "GROUP", allSame: 4, split: 2, other: 6 })).toBe(
-      "다 같은 답 4 · 반반 2",
-    );
+  it("갈린 답·반반은 답 없이, 힌트 질문이 없으면 공통 문구", () => {
+    expect(describeHint({ ...base, kind: "DIFFERENT", answer: null, hintQuestion: null })).toEqual({
+      lead: "두 분의 답이 갈렸어요.",
+      answer: null,
+      tail: "",
+      follow: DEFAULT_HINT_QUESTION,
+    });
+    expect(describeHint({ ...base, kind: "SPLIT", answer: null }).lead).toBe("의견이 반반 갈렸어요.");
   });
 });
 
-describe("문항 카드 칩", () => {
-  const nameOf = (id: number) => (id === 2 ? "사부작사부작" : `회원${id}`);
+describe("질문 카드 칩", () => {
+  const choices = [
+    { choiceId: 1, content: "하늘빛" },
+    { choiceId: 2, content: "노을빛" },
+  ];
 
-  it("1:1 은 나를 먼저, 이름 · 선택지로 그린다", () => {
-    const chips = toQuizChips(
-      [
-        { choiceId: 10, content: "하늘빛", memberCount: 1, memberIds: [2] },
-        { choiceId: 11, content: "노을빛", memberCount: 1, memberIds: [1] },
-      ],
-      { myUserId: 1, nameOf },
-    );
-    expect(chips).toEqual([
-      { key: "11-1", label: "나 · 노을빛", tone: "mine" },
-      { key: "10-2", label: "사부작사부작 · 하늘빛", tone: "other" },
+  it("1:1 은 나를 먼저, 같은 답이면 '둘 다' 하나", () => {
+    expect(pairChips({ choices, myChoiceId: 2, peerChoiceId: 1 }, "사부작")).toEqual([
+      { key: "me-2", label: "나 · 노을빛", tone: "mine" },
+      { key: "peer-1", label: "사부작 · 하늘빛", tone: "other" },
+    ]);
+    expect(pairChips({ choices, myChoiceId: 2, peerChoiceId: 2 }, "사부작")).toEqual([
+      { key: "both-2", label: "둘 다 노을빛", tone: "mine" },
+    ]);
+  });
+
+  it("1:1 카드는 보낸 사람 기준이라 받은 쪽은 두 선택을 맞바꾼다", () => {
+    const card = { quizId: 1, question: "Q", choices, senderChoiceId: 1, peerChoiceId: 2, hintQuestion: null };
+    expect(pairCardChips(card, true, "상대").map((chip) => chip.label)).toEqual([
+      "나 · 하늘빛",
+      "상대 · 노을빛",
+    ]);
+    expect(pairCardChips(card, false, "상대").map((chip) => chip.label)).toEqual([
+      "나 · 노을빛",
+      "상대 · 하늘빛",
     ]);
   });
 
   it("그룹은 선택지 · 인원, 내 선택지를 알 때만 나머지를 어둡게", () => {
-    const choices = [
-      { choiceId: 10, content: "열린 결말", memberCount: 2, memberIds: null },
-      { choiceId: 11, content: "닫힌 결말", memberCount: 2, memberIds: null },
-      { choiceId: 12, content: "모름", memberCount: 0, memberIds: null },
+    const counted = [
+      { choiceId: 5, content: "열린 결말", count: 2 },
+      { choiceId: 6, content: "닫힌 결말", count: 2 },
+      { choiceId: 7, content: "안 봄", count: 0 },
     ];
-    expect(toQuizChips(choices, { myUserId: 1, nameOf }).map((c) => c.tone)).toEqual([
-      "mine",
-      "mine",
-    ]);
-    expect(
-      toQuizChips(choices, { myUserId: 1, nameOf, myChoiceId: 11 }).map((c) => [c.label, c.tone]),
-    ).toEqual([
-      ["열린 결말 2명", "other"],
+    expect(groupChips(counted).map((chip) => [chip.label, chip.tone])).toEqual([
+      ["열린 결말 2명", "mine"],
       ["닫힌 결말 2명", "mine"],
     ]);
+    expect(groupChips(counted, 6).map((chip) => chip.tone)).toEqual(["other", "mine"]);
   });
 
-  it("모두 같은 답이면 그 선택지를 돌려준다", () => {
+  it("모두 같은 답이면 그 선택지와 인원", () => {
     expect(
-      unanimousChoice([
-        { choiceId: 10, content: "끝까지 본다", memberCount: 4, memberIds: null },
-        { choiceId: 11, content: "바로 나간다", memberCount: 0, memberIds: null },
-      ])?.content,
-    ).toBe("끝까지 본다");
+      unanimousGroupChoice([
+        { choiceId: 5, content: "끝까지 본다", count: 4 },
+        { choiceId: 6, content: "중간에 끈다", count: 0 },
+      ]),
+    ).toEqual({ content: "끝까지 본다", count: 4 });
     expect(
-      unanimousChoice([
-        { choiceId: 10, content: "a", memberCount: 3, memberIds: null },
-        { choiceId: 11, content: "b", memberCount: 1, memberIds: null },
+      unanimousGroupChoice([
+        { choiceId: 5, content: "a", count: 2 },
+        { choiceId: 6, content: "b", count: 1 },
       ]),
     ).toBeNull();
+  });
+});
+
+describe("보내기 버튼 개방 시각", () => {
+  it("이번 주면 요일만, 그 뒤 주면 날짜까지", () => {
+    const thursday = new Date("2026-11-05T13:00:00");
+    expect(formatSendOpensAt("2026-11-06 00:00:00", thursday)).toBe("금요일 0시부터 보낼 수 있어요");
+    expect(formatSendOpensAt("2026-11-13 00:00:00", thursday)).toBe(
+      "11월 13일(금) 0시부터 보낼 수 있어요",
+    );
+    expect(formatSendOpensAt("", thursday)).toBe("채팅이 열리면 보낼 수 있어요");
   });
 });

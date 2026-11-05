@@ -2,10 +2,10 @@
 
 import styled from "styled-components";
 
-import type { QuizRecordSummary } from "@/features/records/model/types";
+import type { QuizHistorySummary } from "@/features/records/model/types";
 
 type RecordSummaryTilesProps = {
-  summary: QuizRecordSummary;
+  summary: QuizHistorySummary;
 };
 
 /** 기록 탭 상단 3칸 — 참여한 주 · 답한 질문 · 소수 의견(Figma 3254:37727). */
@@ -14,7 +14,7 @@ export function RecordSummaryTiles({ summary }: RecordSummaryTilesProps) {
     { label: "참여한 주", value: summary.participatedWeeks, negative: false },
     { label: "답한 질문", value: summary.answeredQuestions, negative: false },
     // 소수 의견은 결과 화면의 "소수 의견" 칩과 같은 빨강이다.
-    { label: "소수 의견", value: summary.minorityOpinions, negative: true },
+    { label: "소수 의견", value: summary.minorityCount, negative: true },
   ];
 
   return (

@@ -3,15 +3,15 @@
 import styled from "styled-components";
 
 import { formatParticipantCount } from "@/components/home/_parts/participantCount";
-import { formatRecordMeta, formatSubmittedAt } from "@/features/records/lib/recordFormat";
-import type { QuizRecordDetail } from "@/features/records/model/types";
+import { formatRecordMeta } from "@/features/records/lib/recordFormat";
+import type { QuizHistoryDetail } from "@/features/records/model/types";
 import { NotebookCard } from "@/features/records/ui/NotebookCard";
 import { RecordCardHeading } from "@/features/records/ui/RecordCardHeading";
 import { RecordStatusChip } from "@/features/records/ui/RecordStatusChip";
 import { Icon } from "@/shared/ui";
 
 type RecordDetailHeaderCardProps = {
-  record: QuizRecordDetail;
+  record: QuizHistoryDetail;
   /** 공개 전 카운트다운 문구("10:49:25"). 공개 후에는 쓰지 않는다. */
   countdownLabel: string;
   /** 이 기기 시계로 공개 시각이 지났지만 서버가 아직 공개 전이라고 할 때. */
@@ -28,8 +28,9 @@ export function RecordDetailHeaderCard({
   countdownLabel,
   countdownExpired,
 }: RecordDetailHeaderCardProps) {
+  const result = record.phase === "CLOSED" ? (record.result ?? null) : null;
   const meta = formatRecordMeta(record, {
-    participantCount: record.revealed ? record.participantCount : undefined,
+    participantCount: result ? record.participantCount : undefined,
   });
 
   return (
@@ -37,9 +38,10 @@ export function RecordDetailHeaderCard({
       <RecordCardHeading
         meta={meta}
         title={record.title}
-        subtitle={formatSubmittedAt(record.submittedAt)}
+        // 시안의 "10월 27일 21:14 제출" 은 응답에 제출 시각이 없어 뺀다(IMP-1 BE-2).
+        subtitle={null}
         chip={
-          record.revealed ? (
+          result ? (
             <RecordStatusChip tone="positive">결과 공개</RecordStatusChip>
           ) : (
             <RecordStatusChip tone="neutral">결과 공개 전</RecordStatusChip>
@@ -47,15 +49,15 @@ export function RecordDetailHeaderCard({
         }
       />
 
-      {record.revealed ? (
+      {result ? (
         <TileRow>
           <Tile>
             <TileLabel>
-              나와 {record.similarThreshold}개 이상
+              나와 {result.overlapThreshold}개 이상
               <br />
               답이 겹친 사람
             </TileLabel>
-            <TileValue>{(record.similarMemberCount ?? 0).toLocaleString("ko-KR")}명</TileValue>
+            <TileValue>{result.overlapCount.toLocaleString("ko-KR")}명</TileValue>
           </Tile>
           <Tile>
             <TileLabel>
@@ -63,7 +65,7 @@ export function RecordDetailHeaderCard({
               <br />
               소수 의견
             </TileLabel>
-            <TileValue $negative>{record.minorityCount ?? 0}개</TileValue>
+            <TileValue $negative>{result.minorityCount}개</TileValue>
           </Tile>
         </TileRow>
       ) : (
