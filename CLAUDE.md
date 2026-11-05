@@ -449,8 +449,16 @@ after the first release, at which point a second workflow will be added.
   release's prefix → CloudFront `/*` invalidation → prunes old releases and abandoned chunks.
 - **Rollback** = run the workflow manually with `rollback_to=<release id>` (no build, seconds).
   Candidates: `aws s3 ls s3://ditto-pics-247842832483-ap-northeast-2/releases-meta/` (last 5).
-- [`.github/workflows/e2e.yml`](.github/workflows/e2e.yml) is **pull-request only**. The push
-  path's E2E lives in the deploy workflow's `verify` job, so it can block the deploy.
+- [`.github/workflows/e2e.yml`](.github/workflows/e2e.yml) runs on pull requests **and on push to
+  `feat/s3-migration`**, split into 4 parallel shards (`scripts/cypress-shard.mjs`, balanced by
+  `cypress/spec-timings.json`) plus an aggregate `cypress` job. The push run exists for the deploy
+  gate: a squash merge creates a commit the PR never tested, and `deploy` fast-forwards to exactly
+  that commit.
+- **The gate is not weakened — it reuses a result for the identical commit.** `verify` always runs
+  lint, typecheck and unit tests. For Cypress it first looks up e2e.yml **push** runs for `github.sha` (a PR run tests a temporary merge commit, not this one): a
+  successful run → skip; one still running → wait (up to 20 min); none, failed or cancelled → run
+  Cypress right there as before. Code that has not passed E2E can never deploy. Releasing a commit
+  that is not the tip of `feat/s3-migration` simply runs Cypress in `verify`.
 - `ditto.pics` and `www.ditto.pics` are routed to the current `releases/<id>/` S3 prefix, chunks to
   the shared `prod/_next/static/` (`www` 301s to the apex).
 - **Uncommitted or unpushed changes are NEVER deployed.** Working-tree edits and local
