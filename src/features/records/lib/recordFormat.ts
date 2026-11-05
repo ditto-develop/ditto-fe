@@ -47,20 +47,17 @@ export function formatWeekLabel(weekStartedOn: string): string {
 type RecordMetaOptions = {
   /** 맨 앞에 "4주차" 를 붙인다(기록 탭 카드). 상세 화면은 제목이 "4주차 퀴즈" 라 뺀다. */
   withWeek?: boolean;
-  /** 끝에 "312명 참여" 를 붙인다(퀴즈 결과). */
-  participantCount?: number;
 };
 
 /** "4주차 · 1:1 · 10월 26일 주" (Figma 3254:37528 · 3254:37958 · 3255:37092). */
 export function formatRecordMeta(
   record: { matchingType: QuizMatchingType; weekStartedOn: string },
-  { withWeek = false, participantCount }: RecordMetaOptions = {},
+  { withWeek = false }: RecordMetaOptions = {},
 ): string {
   return [
     withWeek ? formatWeekLabel(record.weekStartedOn) : null,
     matchingTypeLabel(record.matchingType),
     formatWeekOf(record.weekStartedOn),
-    participantCount === undefined ? null : `${participantCount.toLocaleString("ko-KR")}명 참여`,
   ]
     .filter(Boolean)
     .join(" · ");
