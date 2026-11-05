@@ -195,7 +195,7 @@ describe("8.1 대화방 우리의 답변 — 채팅 열리기 전(목요일)", (
   });
 });
 
-describe("8.1 대화방 우리의 답변 — 테스터 모드 꺼짐", () => {
+describe("8.1 대화방 우리의 답변 — 공개 후 테스터 모드 없이", () => {
   beforeEach(() => {
     cy.clockPeriod("CHATTING");
     cy.mockApi();
@@ -203,21 +203,14 @@ describe("8.1 대화방 우리의 답변 — 테스터 모드 꺼짐", () => {
     mockRoomQuizApis();
   });
 
-  it("1:1·그룹 방 어디에도 진입점이 없고 답변 API 도 부르지 않는다", () => {
+  it("1:1·그룹 방 모두 진입점이 보이고 답변 API 를 부른다", () => {
     cy.visit("/chat/one-on-one/1");
-    cy.wait("@getChatMessages");
-    cy.contains("안녕하세요, 반가워요!", { timeout: 8000 }).should("exist");
-    cy.get('[data-cy="room-answers-summary"]').should("not.exist");
-    cy.get('[data-cy="room-answers-button"]').should("not.exist");
+    cy.wait("@getQuizCompare");
+    cy.get('[data-cy="room-answers-button"]', { timeout: 8000 }).should("be.visible");
 
     cy.visit("/chat/group/3");
-    cy.wait("@getChatMessages");
-    cy.contains("다들 안녕하세요!", { timeout: 8000 }).should("exist");
-    cy.get('[data-cy="room-answers-tooltip"]').should("not.exist");
-    cy.get('[data-cy="room-answers-button"]').should("not.exist");
-
-    cy.get("@getQuizCompare.all").should("have.length", 0);
-    cy.get("@getQuizDistribution.all").should("have.length", 0);
+    cy.wait("@getQuizDistribution");
+    cy.get('[data-cy="room-answers-button"]', { timeout: 8000 }).should("be.visible");
   });
 
   it("서버가 남긴 첫 대화 힌트와 상대가 올린 질문 카드는 테스터 모드와 상관없이 그린다", () => {

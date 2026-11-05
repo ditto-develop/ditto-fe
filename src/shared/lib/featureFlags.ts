@@ -24,8 +24,9 @@ export const FEATURES = {
    * 8.1 퀴즈 기록 — 하단 "기록" 탭(/records)과 대화방의 "우리의 답변"(요약 바·문서 아이콘·질문 보내기).
    * 부르는 BE API 는 서버 IMP-1(ditto-server #366, 서버 위키 IMP-1-Quiz-History-Answer-Compare)이다.
    * 첫 대화 힌트·질문 카드 메시지는 이 플래그와 무관하다 — 서버 `QUIZ_CHAT` 플래그가 켜지면 모두에게 온다.
+   * 2026-11-05 공개("all"). 다음 정리 때 키와 분기를 함께 지운다.
    */
-  records: "tester",
+  records: "all",
 } as const satisfies Record<string, FeatureStage>;
 
 export type FeatureFlag = keyof typeof FEATURES;
