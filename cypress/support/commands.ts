@@ -121,6 +121,16 @@ function interceptFeatureFlags(overrides: Record<string, boolean>) {
   }).as("getFeatureFlags");
 }
 
+/**
+ * 테스터 모드를 켠다 — 서버 플래그가 꺼진 기능도 보인다(src/shared/lib/featureFlags.ts).
+ * cy.login 처럼 cy.visit 전에 부른다. 키는 TESTER_MODE_STORAGE_KEY 와 같아야 한다.
+ */
+Cypress.Commands.add("enableTesterMode", () => {
+  return cy.window().then((win) => {
+    win.localStorage.setItem("ditto.testerMode", "on");
+  });
+});
+
 Cypress.Commands.add("mockFeatureFlags", (overrides: Record<string, boolean>) => {
   interceptFeatureFlags(overrides);
 });

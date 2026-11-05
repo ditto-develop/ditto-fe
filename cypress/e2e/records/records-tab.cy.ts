@@ -1,5 +1,5 @@
 /**
- * 8.1 퀴즈 기록 탭(/records) — 서버 기능 플래그 `RECORDS` 뒤에 있다(CLAUDE.md §9.1).
+ * 8.1 퀴즈 기록 탭(/records) — 서버 기능 플래그 `RECORDS` 가 켜져 있거나 테스터 모드면 보인다(CLAUDE.md §9.1).
  * cy.mockApi 는 물어본 플래그를 모두 켜서 답한다. 꺼짐은 cy.mockFeatureFlags 로 덮는다.
  *
  * 서버 IMP-1 계약(GET /quiz-history, /quiz-history/{quizSetId}). 여기서는
@@ -24,7 +24,7 @@ function mockRecordsApi() {
   });
 }
 
-describe("퀴즈 기록 탭 — 서버 RECORDS 켜짐", () => {
+describe("퀴즈 기록 탭 — 서버 RECORDS 켜짐(테스터 모드 아님)", () => {
   beforeEach(() => {
     cy.mockApi();
     mockRecordsApi();
@@ -127,7 +127,7 @@ describe("퀴즈 기록 탭 — 서버 RECORDS 켜짐", () => {
   });
 });
 
-describe("퀴즈 기록 탭 — 서버 RECORDS 꺼짐", () => {
+describe("퀴즈 기록 탭 — 서버 RECORDS 꺼짐(테스터 모드 아님)", () => {
   beforeEach(() => {
     cy.mockApi();
     cy.mockFeatureFlags({ RECORDS: false });
@@ -163,5 +163,27 @@ describe("퀴즈 기록 탭 — 서버 RECORDS 꺼짐", () => {
     cy.visit("/home");
 
     cy.wait("@getFeatureFlags").its("request.url").should("include", "keys=RECORDS");
+  });
+});
+
+describe("퀴즈 기록 탭 — 서버 RECORDS 꺼짐 + 테스터 모드", () => {
+  beforeEach(() => {
+    cy.mockApi();
+    cy.mockFeatureFlags({ RECORDS: false });
+    mockRecordsApi();
+    cy.login();
+    cy.enableTesterMode();
+  });
+
+  it("서버가 꺼 두어도 테스터 기기에는 '기록' 탭이 보이고 기록 화면이 열린다", () => {
+    cy.visit("/home");
+
+    cy.contains("nav a", "기록", { timeout: 8000 }).should("be.visible");
+    cy.get("nav a").should("have.length", 4);
+
+    cy.visit("/records");
+    cy.wait("@getQuizRecords");
+    cy.location("pathname").should("match", /^\/records\/?$/);
+    cy.contains("퀴즈 기록", { timeout: 8000 }).should("be.visible");
   });
 });

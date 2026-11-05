@@ -3,9 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   FEATURE_FLAGS_STORAGE_KEY,
   FEATURE_FLAGS_TTL_MS,
+  INITIAL_TAP_STATE,
+  SECRET_TAP_COUNT,
+  SECRET_TAP_GAP_MS,
   getFeatureFlagSnapshot,
+  nextTapState,
   refreshFeatureFlags,
   resetFeatureFlagsForTest,
+  resolveFeatureVisibility,
   subscribeFeatureFlags,
 } from "@/shared/lib/featureFlags";
 
@@ -147,5 +152,43 @@ describe("서버 기능 플래그 캐시", () => {
     await refreshFeatureFlags(["RECORDS"], 1_000);
 
     expect(listener).toHaveBeenCalled();
+  });
+});
+
+describe("resolveFeatureVisibility — 서버 플래그 OR 테스터 모드", () => {
+  it("서버가 켰으면 테스터 모드와 상관없이 보인다", () => {
+    expect(resolveFeatureVisibility(true, false)).toBe(true);
+    expect(resolveFeatureVisibility(true, true)).toBe(true);
+  });
+
+  it("서버가 껐으면 테스터 기기에서만 보인다", () => {
+    expect(resolveFeatureVisibility(false, false)).toBe(false);
+    expect(resolveFeatureVisibility(false, true)).toBe(true);
+  });
+
+  it("서버 값을 아직 모르면 테스터 기기는 바로 보이고, 아니면 모름(null)이다", () => {
+    expect(resolveFeatureVisibility(null, true)).toBe(true);
+    expect(resolveFeatureVisibility(null, false)).toBeNull();
+  });
+});
+
+describe("nextTapState", () => {
+  it("간격 안에서 연달아 누르면 센다", () => {
+    let state = INITIAL_TAP_STATE;
+    for (let index = 0; index < SECRET_TAP_COUNT; index += 1) {
+      state = nextTapState(state, 10_000 + index * 200);
+    }
+    expect(state.count).toBe(SECRET_TAP_COUNT);
+  });
+
+  it("같은 시각에 누른 것도 연달아 누른 것으로 센다(Cypress 가 Date 를 멈춘 경우)", () => {
+    const state = nextTapState(nextTapState(INITIAL_TAP_STATE, 5_000), 5_000);
+    expect(state.count).toBe(2);
+  });
+
+  it("간격을 넘기면 1부터 다시 센다", () => {
+    const first = nextTapState(nextTapState(INITIAL_TAP_STATE, 1_000), 1_200);
+    expect(first.count).toBe(2);
+    expect(nextTapState(first, 1_200 + SECRET_TAP_GAP_MS + 1).count).toBe(1);
   });
 });
