@@ -1,5 +1,5 @@
 /**
- * 8.1 퀴즈 기록 탭(/records) — 공개 전 기능이라 테스터 모드에서만 보인다(CLAUDE.md §9.1).
+ * 8.1 퀴즈 기록 탭(/records) — 2026-11-05 공개. 테스터 모드와 상관없이 보인다(CLAUDE.md §9.1).
  *
  * 서버 IMP-1 계약(GET /quiz-history, /quiz-history/{quizSetId}). 여기서는
  * cypress/fixtures/records/* (src/mocks/recordsData.ts 에서 뽑은 값)로 응답을 고정한다.
@@ -127,33 +127,25 @@ describe("퀴즈 기록 탭 — 테스터 모드", () => {
   });
 });
 
-describe("퀴즈 기록 탭 — 테스터 모드 꺼짐", () => {
+describe("퀴즈 기록 탭 — 공개 후 테스터 모드 없이", () => {
   beforeEach(() => {
     cy.mockApi();
     mockRecordsApi();
     cy.login();
   });
 
-  it("홈 하단 탭에 '기록' 이 없다", () => {
+  it("홈 하단 탭에 '기록' 이 보인다", () => {
     cy.visit("/home");
 
-    cy.contains("nav a", "대화방", { timeout: 8000 }).should("be.visible");
-    cy.contains("nav a", "기록").should("not.exist");
-    cy.get("nav a").should("have.length", 3);
+    cy.contains("nav a", "기록", { timeout: 8000 }).should("be.visible");
+    cy.get("nav a").should("have.length", 4);
   });
 
-  it("주소로 /records 에 들어와도 /home 으로 보내고 기록 API 를 부르지 않는다", () => {
+  it("주소로 /records 에 들어오면 기록 API 를 부르고 기록 화면을 보여 준다", () => {
     cy.visit("/records");
 
-    cy.location("pathname", { timeout: 15000 }).should("match", /^\/home\/?$/);
-    cy.contains("퀴즈 기록").should("not.exist");
-    cy.get("@getQuizRecords.all").should("have.length", 0);
-  });
-
-  it("상세 주소(/records/42)로 들어와도 /home 으로 보낸다", () => {
-    cy.visit("/records/42");
-
-    cy.location("pathname", { timeout: 15000 }).should("match", /^\/home\/?$/);
-    cy.get("@getQuizRecord42.all").should("have.length", 0);
+    cy.wait("@getQuizRecords");
+    cy.location("pathname").should("match", /^\/records\/?$/);
+    cy.contains("퀴즈 기록", { timeout: 8000 }).should("be.visible");
   });
 });
