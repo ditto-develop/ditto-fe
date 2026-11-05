@@ -43,9 +43,8 @@ describe("recordFormat", () => {
   it("메타 줄 — 카드·상세·결과", () => {
     expect(formatRecordMeta(record, { withWeek: true })).toBe("2주차 · 1:1 · 11월 2일 주");
     expect(formatRecordMeta(record)).toBe("1:1 · 11월 2일 주");
-    expect(formatRecordMeta({ ...record, matchingType: "GROUP" }, { participantCount: 1312 })).toBe(
-      "그룹 · 11월 2일 주 · 1,312명 참여",
-    );
+    // 퀴즈 결과에도 참여자 수를 붙이지 않는다.
+    expect(formatRecordMeta({ ...record, matchingType: "GROUP" })).toBe("그룹 · 11월 2일 주");
   });
 
   it("통계 공개 시점", () => {

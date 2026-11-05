@@ -107,7 +107,8 @@ describe("퀴즈 기록 탭 — 테스터 모드", () => {
 
     cy.contains("4주차 퀴즈 결과").should("be.visible");
     cy.contains("결과 공개").should("be.visible");
-    cy.contains("그룹 · 10월 19일 주 · 312명 참여").should("be.visible");
+    cy.contains("그룹 · 10월 19일 주").should("be.visible");
+    cy.contains("312명 참여").should("not.exist");
     cy.contains("답이 겹친 사람").next().should("have.text", "23명");
     cy.contains("소수 의견").parent().find("strong").should("have.text", "2개");
 

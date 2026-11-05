@@ -29,9 +29,7 @@ export function RecordDetailHeaderCard({
   countdownExpired,
 }: RecordDetailHeaderCardProps) {
   const result = record.phase === "CLOSED" ? (record.result ?? null) : null;
-  const meta = formatRecordMeta(record, {
-    participantCount: result ? record.participantCount : undefined,
-  });
+  const meta = formatRecordMeta(record);
 
   return (
     <Card>
