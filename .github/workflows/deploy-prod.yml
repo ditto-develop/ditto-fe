@@ -34,6 +34,10 @@ jobs:
   verify:
     if: github.event_name != 'workflow_dispatch' || inputs.rollback_to == ''
     runs-on: ubuntu-latest
+    # 아래 'Reuse a passing E2E result' 단계가 같은 커밋의 e2e.yml 실행 결과를 읽는다.
+    permissions:
+      contents: read
+      actions: read
     env:
       # BE는 시각을 'yyyy-MM-dd HH:mm:ss' KST 벽시계로 내려주고 parseServerDateTime은
       # 이를 브라우저 로컬로 파싱한다(한국 전용 서비스). 러너 기본 UTC로는 9시간 어긋나
@@ -65,7 +69,34 @@ jobs:
       - name: Unit tests
         run: npm run test
 
+      - name: Reuse a passing E2E result for this exact commit
+        id: e2e
+        # 게이트는 그대로다 — 이 커밋(github.sha)이 e2e.yml 에서 이미 통과했을 때만 Cypress 를 건너뛴다.
+        # deploy 는 feat/s3-migration 을 그대로 올리므로, 그 브랜치 푸시 때 e2e.yml 이 같은 커밋을 테스트해 둔다.
+        # 그 실행이 아직 돌고 있으면 기다리고(최대 20분), 없거나 실패·취소됐으면 아래에서 직접 돌린다.
+        # 푸시 실행만 본다 — PR 실행은 base 와 합친 임시 머지 커밋을 테스트하므로 이 커밋 그대로가 아니다.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for attempt in $(seq 1 40); do
+            runs=$(gh api "repos/${{ github.repository }}/actions/workflows/e2e.yml/runs?head_sha=${{ github.sha }}&event=push&per_page=20" \
+              --jq '[.workflow_runs[] | {status, conclusion}]')
+            if echo "$runs" | jq -e 'any(.[]; .status == "completed" and .conclusion == "success")' >/dev/null; then
+              echo "이 커밋의 E2E 가 이미 통과했다 — Cypress 를 다시 돌리지 않는다."
+              echo "passed=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            if ! echo "$runs" | jq -e 'any(.[]; .status != "completed")' >/dev/null; then
+              break
+            fi
+            echo "이 커밋의 E2E 가 아직 도는 중이다 — 30초 뒤 다시 본다 ($attempt/40)."
+            sleep 30
+          done
+          echo "이 커밋의 통과한 E2E 가 없다 — 여기서 직접 돌린다."
+          echo "passed=false" >> "$GITHUB_OUTPUT"
+
       - name: Cypress E2E
+        if: steps.e2e.outputs.passed != 'true'
         run: npm run test:e2e:cypress
 
   deploy:
