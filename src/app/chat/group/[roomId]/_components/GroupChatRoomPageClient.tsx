@@ -126,11 +126,11 @@ export function GroupChatRoomPageClient() {
   const { showToast } = useToast();
   const toggleMute = useChatRoomMuteToggle(roomId, room?.isMuted ?? false, refreshRoom);
   /*
-   * 8.1 답변 분포(공개 전, 테스터 모드). 끝난 방(7004)·서버에 API 가 없음(404)이면 null 이라
+   * 8.1 답변 분포(서버 `RECORDS` 플래그). 끝난 방(7004)·서버에 API 가 없음(404)이면 null 이라
    * 요약 바·문서 아이콘·툴팁이 모두 빠지고 방은 예전 그대로다. 첫 대화 힌트(QUIZ_HINT)는 메시지라
-   * 테스터 모드와 상관없이 목록에 그려진다.
+   * 플래그와 상관없이 목록에 그려진다.
    */
-  const recordsEnabled = useFeatureFlag("records");
+  const recordsEnabled = useFeatureFlag("RECORDS");
   const [roomEndedForQuiz, setRoomEndedForQuiz] = useState(false);
   const {
     data: quizDistribution,
@@ -340,7 +340,7 @@ export function GroupChatRoomPageClient() {
       {/*
         8.1 진행 중 투표가 없으면 그 자리에 "우리의 답변" 요약 바를 띄운다(Figma 주석 3270:36279
         "조건에 따라 노출 배너 차이" — 진행 중 3270:36243 / 미진행 3270:36278). 마감된 투표
-        배너는 요약 바가 없을 때(테스터 모드가 아니거나 방 답변을 못 읽음)만 그대로 뜬다.
+        배너는 요약 바가 없을 때(`RECORDS` 플래그가 꺼져 있거나 방 답변을 못 읽음)만 그대로 뜬다.
       */}
       {!openVote && answersSummary && (
         <RoomAnswersSummaryBar

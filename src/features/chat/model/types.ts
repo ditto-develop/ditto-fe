@@ -2,7 +2,7 @@
  * 8.1(서버 IMP-1) 퀴즈 메시지 두 종류. 서버 기능 플래그 `QUIZ_CHAT` 이 켜져 있을 때만 생긴다.
  * - `QUIZ_HINT`: 방이 열리는 순간 서버가 남기는 첫 대화 힌트. 보낸 사람이 없다(`senderId: null`).
  * - `QUIZ_CARD`: 회원이 문항을 올린 질문 카드. 덧붙인 한마디는 바로 뒤 TEXT 메시지로 따로 온다.
- * 둘 다 content 가 JSON 이다(`QuizHintContent`·`QuizCardContent`). FE 테스터 모드와 상관없이 그린다 —
+ * 둘 다 content 가 JSON 이다(`QuizHintContent`·`QuizCardContent`). FE `RECORDS` 플래그와 상관없이 그린다 —
  * 서버 플래그가 켜지면 모든 회원의 방에 온다.
  */
 export type ChatMessageType = "TEXT" | "IMAGE" | "SYSTEM" | "QUIZ_HINT" | "QUIZ_CARD";

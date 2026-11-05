@@ -307,29 +307,47 @@ process.env.NODE_ENV === 'development'
 
 ---
 
-## 9.1 Unreleased Features — Tester Mode Flags
+## 9.1 Unreleased Features — Server Feature Flags + Tester Mode
 
-There is no staging (§13.0), so a new screen ships to production **hidden** and the team checks it
-there first. Tapping the home logo 7 times toggles "tester mode" on that device (localStorage);
-features at stage `"tester"` are visible only in tester mode. Source: `src/shared/lib/featureFlags.ts`.
+There is no staging (§13.0), so a new screen ships to production **hidden**. Visibility is
+**server flag on OR tester mode on**:
+
+- **Server flag on** (ditto-server admin "시스템 → 기능 플래그", ADR 0051) → every user sees it. No FE deploy.
+- **Server flag off** → only devices in **tester mode** see it. Tapping the home logo 7 times toggles tester
+  mode on that device (localStorage `ditto.testerMode`), so the team can check the screen in prod first.
+
+Sources: `src/shared/lib/featureFlags.ts` (server-flag store, tester mode, `resolveFeatureVisibility`) and
+`src/shared/lib/hooks/useFeatureFlag.ts`. The FE has no static stage map of its own.
+
+- API: `GET /api/v1/feature-flags?keys=RECORDS&keys=…` (X-API-Key only, works before login). The
+  response holds exactly the asked keys; a key the server does not know comes back `false`.
+- Cache: per key, 1 minute (the server also caches 1 minute), so a toggle reaches screens within
+  about 2 minutes. Keys needed in the same microtask are batched into one request; keys already in
+  flight are not asked again. Refetch happens on hook mount and when the app becomes visible again.
+- Fallback: the last value per key is kept in localStorage (`ditto.featureFlags`) for the first
+  paint and when the request fails. A key never received is **off** (testers still see it).
 
 When building a new screen or feature that must not be public yet:
 
-1. Register it in `FEATURES` in `src/shared/lib/featureFlags.ts`: `records: "tester",`.
+1. Add the key to the server `FeatureFlagKey` enum first (ditto-server, it starts off), then to the
+   `FeatureFlag` union in `src/shared/lib/featureFlags.ts`. Use the server enum name, e.g. `"RECORDS"`.
 2. **Gate every entry point** (tab, button, banner, link) with
-   `useFeatureFlag("records")` from `@/shared/lib/hooks/useFeatureFlag`.
+   `useFeatureFlag("RECORDS")` from `@/shared/lib/hooks/useFeatureFlag`.
 3. **Gate the route itself.** Static export uploads the page HTML regardless of the flag, so a URL,
    push or deep link still opens it. At the top of the page component:
-   `const allowed = useFeatureGate("records"); if (!allowed) return null;`
-   (redirects to `/home` when off; waits while the flag is still unknown during hydration).
-4. Cypress (§12.1): call `cy.enableTesterMode()` before `cy.visit` in the new screen's tests. Also
-   assert that the entry point is **absent** without it.
-5. **Release** = change the value to `"all"` and deploy. Later cleanup removes the key and the
-   branches together — deleting the key makes every remaining `useFeatureFlag("records")` a type error.
+   `const allowed = useFeatureGate("RECORDS"); if (!allowed) return null;`
+   (redirects to `/home` when the server flag is off and the device is not in tester mode; waits while
+   the server value is still unknown; a tester device is allowed immediately).
+4. Cypress (§12.1): `cy.mockApi()` answers every asked flag as **on**. Cover three cases:
+   server on → visible; `cy.mockFeatureFlags({ RECORDS: false })` → entry point **absent**, route
+   redirects, no API call; server off + `cy.enableTesterMode()` (before `cy.visit`) → visible.
+5. **Release** = turn the flag on in the server admin. To retire a flag, delete the FE key and branches
+   first, then the server enum value and its row.
 
-Limits: this hides UI only. It is not access control (the code is in the bundle) and it does not
-gate APIs — any BE API the feature calls must already be live in the production BE. Changes to
-existing code paths (bug fixes, refactors) cannot be hidden this way.
+Limits: this hides UI only. It is not access control (the code is in the bundle, and anyone who knows
+the 7 taps can turn tester mode on) and it does not gate APIs — any BE API the feature calls must
+already be live in the production BE. Changes to existing code paths (bug fixes, refactors) cannot be
+hidden this way.
 
 ---
 

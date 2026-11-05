@@ -20,7 +20,7 @@ interface GroupMessageBubbleProps {
   /** 보낸 사람 아바타를 누르면 그 사람 프로필을 연다. 보낸 사람을 못 찾으면 비운다. */
   onAvatarClick?: () => void;
   /**
-   * 질문 카드에 붙일 문항 번호·내 선택지. 카드에는 없어 방 답변을 읽었을 때만(테스터 모드) 안다 —
+   * 질문 카드에 붙일 문항 번호·내 선택지. 카드에는 없어 방 답변을 읽었을 때만(`RECORDS` 플래그) 안다 —
    * 서버 그룹 카드는 보낸 사람 것까지 아무의 선택도 싣지 않는다.
    */
   quizOrder?: number | null;
@@ -66,7 +66,7 @@ export function GroupMessageBubble({
   /*
    * 8.1 질문 카드(QUIZ_CARD) — 문항 + 인원 칩 + 힌트 질문 한 줄(Figma 그룹 카드 3273:37755 · 3273:37774).
    * content 는 서버가 만든 카드 JSON 이고, 덧붙인 한마디는 바로 뒤 TEXT 메시지로 따로 온다.
-   * 테스터 모드와 상관없이 그린다. 읽지 못하면 원문 JSON 을 보이지 않게 통째로 건너뛴다.
+   * `RECORDS` 플래그와 상관없이 그린다. 읽지 못하면 원문 JSON 을 보이지 않게 통째로 건너뛴다.
    */
   const quiz = message.messageType === "QUIZ_CARD" ? parseQuizCard(message.content) : null;
   if (message.messageType === "QUIZ_CARD" && !quiz) return null;

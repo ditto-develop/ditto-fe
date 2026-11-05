@@ -16,8 +16,8 @@ type NavItemConfig = {
   label: string;
   path: string;
   iconName: IconName;
-  /** 공개 전 기능의 탭이면 그 플래그. 테스터 모드에서만 보인다(CLAUDE.md §9.1). */
-  feature?: 'records';
+  /** 서버 기능 플래그 뒤에 있는 탭이면 그 키. 서버에서 켜져 있을 때만 보인다(CLAUDE.md §9.1). */
+  feature?: 'RECORDS';
 };
 
 const NAV_ITEMS = [
@@ -27,11 +27,11 @@ const NAV_ITEMS = [
     iconName: 'tab.home',
   },
   {
-    // 8.1 퀴즈 기록 [3254:37114]. 공개 전이라 테스터 모드에서만 홈과 대화방 사이에 끼운다.
+    // 8.1 퀴즈 기록 [3254:37114]. 서버 `RECORDS` 플래그가 켜져 있으면 홈과 대화방 사이에 끼운다.
     label: '기록',
     path: '/records',
     iconName: 'content.documentText',
-    feature: 'records',
+    feature: 'RECORDS',
   },
   {
     label: '대화방',
@@ -48,9 +48,9 @@ const NAV_ITEMS = [
 const MainBottomNav = () => {
   const pathname = usePathname(); // 현재 경로 가져오기
   const chatUnreadTotal = useChatUnreadTotal();
-  const recordsVisible = useFeatureFlag('records');
+  const recordsVisible = useFeatureFlag('RECORDS');
   const items: NavItemConfig[] = NAV_ITEMS.filter(
-    (item: NavItemConfig) => item.feature !== 'records' || recordsVisible,
+    (item: NavItemConfig) => item.feature !== 'RECORDS' || recordsVisible,
   );
 
   return (

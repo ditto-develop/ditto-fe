@@ -87,11 +87,11 @@ export function ChatRoomPageClient() {
   const { showToast } = useToast();
   const keyboardInset = useChatKeyboardInset();
   /*
-   * 8.1 답변 비교(공개 전, 테스터 모드). 끝난 방(7004)·상대 탈퇴/차단(7008)·서버에 API 가 없음(404)이면
+   * 8.1 답변 비교(서버 `RECORDS` 플래그). 끝난 방(7004)·상대 탈퇴/차단(7008)·서버에 API 가 없음(404)이면
    * null 이라 요약 바·문서 아이콘이 모두 빠지고 방은 예전 그대로다. 첫 대화 힌트(QUIZ_HINT)는 메시지라
-   * 테스터 모드와 상관없이 목록에 그려진다.
+   * 플래그와 상관없이 목록에 그려진다.
    */
-  const recordsEnabled = useFeatureFlag("records");
+  const recordsEnabled = useFeatureFlag("RECORDS");
   const [roomEndedForQuiz, setRoomEndedForQuiz] = useState(false);
   const { data: quizCompare, markSent } = useRoomQuizCompare(
     roomId,

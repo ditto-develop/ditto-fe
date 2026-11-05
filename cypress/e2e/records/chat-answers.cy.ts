@@ -1,5 +1,5 @@
 /**
- * 8.1.1 · 8.1.2 대화방 "우리의 답변"(공개 전 — 테스터 모드, src/shared/lib/featureFlags.ts 의 records).
+ * 8.1.1 · 8.1.2 대화방 "우리의 답변"(서버 기능 플래그 `RECORDS` 또는 테스터 모드, src/shared/lib/featureFlags.ts).
  *
  * 서버 IMP-1 계약(ditto-server #366): GET quiz-compare(1:1) · quiz-distribution(그룹), 질문 카드는 STOMP
  * `QUIZ_CARD` 프레임, 첫 대화 힌트는 서버 메시지 `QUIZ_HINT`. 픽스처(cypress/fixtures/records/*)는
@@ -56,13 +56,12 @@ function mockQuizMessages(roomId: 1 | 3) {
   });
 }
 
-describe("8.1 대화방 우리의 답변 — 테스터 모드", () => {
+describe("8.1 대화방 우리의 답변 — 서버 RECORDS 켜짐(테스터 모드 아님)", () => {
   beforeEach(() => {
     cy.clockPeriod("CHATTING");
     cy.mockApi();
     cy.login({ accessToken: MEMBER_1_TOKEN });
     mockRoomQuizApis();
-    cy.enableTesterMode();
   });
 
   it("1:1 방: 요약 바 → 우리의 답변 → 이 질문으로 말 걸기 → 연결이 없으면 담긴 질문을 남긴다", () => {
@@ -173,7 +172,6 @@ describe("8.1 대화방 우리의 답변 — 채팅 열리기 전(목요일)", (
     cy.login({ accessToken: MEMBER_1_TOKEN });
     // 방이 SCHEDULED 면 서버가 canSendCard=false 와 개방 시각(chatOpensAt)을 준다.
     mockRoomQuizApis((compare) => ({ ...compare, canSendCard: false }));
-    cy.enableTesterMode();
   });
 
   it("1:1 방: 채팅이 열리기 전에는 버튼이 딤드되고 열리는 시각을 알린다", () => {
@@ -195,25 +193,33 @@ describe("8.1 대화방 우리의 답변 — 채팅 열리기 전(목요일)", (
   });
 });
 
-describe("8.1 대화방 우리의 답변 — 공개 후 테스터 모드 없이", () => {
+describe("8.1 대화방 우리의 답변 — 서버 RECORDS 꺼짐(테스터 모드 아님)", () => {
   beforeEach(() => {
     cy.clockPeriod("CHATTING");
     cy.mockApi();
+    cy.mockFeatureFlags({ RECORDS: false });
     cy.login({ accessToken: MEMBER_1_TOKEN });
     mockRoomQuizApis();
   });
 
-  it("1:1·그룹 방 모두 진입점이 보이고 답변 API 를 부른다", () => {
+  it("1:1·그룹 방 어디에도 진입점이 없고 답변 API 도 부르지 않는다", () => {
     cy.visit("/chat/one-on-one/1");
-    cy.wait("@getQuizCompare");
-    cy.get('[data-cy="room-answers-button"]', { timeout: 8000 }).should("be.visible");
+    cy.wait("@getChatMessages");
+    cy.contains("안녕하세요, 반가워요!", { timeout: 8000 }).should("exist");
+    cy.get('[data-cy="room-answers-summary"]').should("not.exist");
+    cy.get('[data-cy="room-answers-button"]').should("not.exist");
 
     cy.visit("/chat/group/3");
-    cy.wait("@getQuizDistribution");
-    cy.get('[data-cy="room-answers-button"]', { timeout: 8000 }).should("be.visible");
+    cy.wait("@getChatMessages");
+    cy.contains("다들 안녕하세요!", { timeout: 8000 }).should("exist");
+    cy.get('[data-cy="room-answers-tooltip"]').should("not.exist");
+    cy.get('[data-cy="room-answers-button"]').should("not.exist");
+
+    cy.get("@getQuizCompare.all").should("have.length", 0);
+    cy.get("@getQuizDistribution.all").should("have.length", 0);
   });
 
-  it("서버가 남긴 첫 대화 힌트와 상대가 올린 질문 카드는 테스터 모드와 상관없이 그린다", () => {
+  it("서버가 남긴 첫 대화 힌트와 상대가 올린 질문 카드는 RECORDS 가 꺼져도 그린다", () => {
     mockQuizMessages(1);
     cy.visit("/chat/one-on-one/1");
     cy.wait("@quizMessages");
@@ -240,5 +246,26 @@ describe("8.1 대화방 우리의 답변 — 공개 후 테스터 모드 없이"
       .should("contain", "“고민이 생기면?”")
       .and("contain", "다 같이 혼자 정리하기를 골랐어요. 요즘 정리하고 싶은 고민이 있어요?");
     cy.contains('"quizId"').should("not.exist");
+  });
+});
+
+describe("8.1 대화방 우리의 답변 — 서버 RECORDS 꺼짐 + 테스터 모드", () => {
+  beforeEach(() => {
+    cy.clockPeriod("CHATTING");
+    cy.mockApi();
+    cy.mockFeatureFlags({ RECORDS: false });
+    cy.login({ accessToken: MEMBER_1_TOKEN });
+    mockRoomQuizApis();
+    cy.enableTesterMode();
+  });
+
+  it("서버가 꺼 두어도 테스터 기기에는 1:1·그룹 방 진입점이 보이고 답변 API 를 부른다", () => {
+    cy.visit("/chat/one-on-one/1");
+    cy.wait("@getQuizCompare");
+    cy.get('[data-cy="room-answers-button"]', { timeout: 8000 }).should("be.visible");
+
+    cy.visit("/chat/group/3");
+    cy.wait("@getQuizDistribution");
+    cy.get('[data-cy="room-answers-button"]', { timeout: 8000 }).should("be.visible");
   });
 });

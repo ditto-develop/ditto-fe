@@ -110,13 +110,29 @@ Cypress.Commands.add("login", (options: LoginOptions = {}) => {
 });
 
 /**
- * 테스터 모드를 켠다 — 공개 전 기능(src/shared/lib/featureFlags.ts 의 "tester" 단계)이 보인다.
+ * 서버 기능 플래그(`GET /api/v1/feature-flags?keys=A&keys=B`). 요청 주소의 `keys` 를 읽어
+ * 물어본 키만 답한다 — 서버와 같다. `overrides` 에 없는 키는 켜짐이다.
+ */
+function interceptFeatureFlags(overrides: Record<string, boolean>) {
+  cy.intercept({ method: "GET", url: "**/api/v1/feature-flags*" }, (req) => {
+    const keys = new URL(req.url).searchParams.getAll("keys");
+    const flags = Object.fromEntries(keys.map((key) => [key, overrides[key] ?? true]));
+    req.reply({ statusCode: 200, body: { success: true, data: { flags } } });
+  }).as("getFeatureFlags");
+}
+
+/**
+ * 테스터 모드를 켠다 — 서버 플래그가 꺼진 기능도 보인다(src/shared/lib/featureFlags.ts).
  * cy.login 처럼 cy.visit 전에 부른다. 키는 TESTER_MODE_STORAGE_KEY 와 같아야 한다.
  */
 Cypress.Commands.add("enableTesterMode", () => {
   return cy.window().then((win) => {
     win.localStorage.setItem("ditto.testerMode", "on");
   });
+});
+
+Cypress.Commands.add("mockFeatureFlags", (overrides: Record<string, boolean>) => {
+  interceptFeatureFlags(overrides);
 });
 
 Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
@@ -134,6 +150,8 @@ Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
       },
     });
   }).as("apiPreflight");
+
+  interceptFeatureFlags({});
 
   mockFixture("GET", ["**/api/v1/quiz-sets/current-week", "**/api/quiz-sets/current-week"], "quiz-current.json", "getCurrentWeekQuiz");
   mockFixture("GET", ["**/api/v1/quiz-progress/current", "**/api/quiz-progress/current"], "quiz-progress-current.json", "getQuizProgress");
