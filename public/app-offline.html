@@ -99,10 +99,117 @@
      * 웹뷰가 reload 하는데 네트워크가 아직 안 붙었거나, 문서 로드 도중 다른 이동이
      * 끼어들면 멀쩡한 망에서도 여기로 온다. 그래서 사용자가 버튼을 누르기 전에
      * 연결이 돌아오면 스스로 원래 화면으로 돌아간다.
+     *
+     * 네이티브 셸이 이 화면을 열 때 실패 정보를 쿼리로 넘긴다(code·domain·desc·url —
+     * ios SceneDelegate.swift 의 OfflineAwareNavigationDelegate, android MainActivity 의
+     * OfflineAwareWebViewClient). 그 셸들은 취소(-999)·이동 중단(WebKit 102)은 아예 이 화면으로
+     * 보내지 않는다. 이전 앱 빌드는 쿼리 없이 열고 취소도 여기로 보낸다 — 쿼리가 없으면 "알 수 없음"
+     * 으로 기록한다.
      */
+
+    /*
+     * 진단 기록기 — Grafana Faro 수집 주소로 "언제·왜 이 화면이 떴고 얼마 만에 돌아갔는지"를 보낸다.
+     *
+     * 이 화면은 앱 번들 안의 별도 origin(capacitor://localhost, https://localhost)이라 웹의
+     * Faro SDK(src/shared/lib/observability/faro.ts)를 쓸 수 없고, 외부 스크립트도 받을 수 없다
+     * (맨 위 주석). 그래서 Faro 수집 형식({meta, events})을 직접 만들어 보낸다.
+     * 망이 끊긴 채로 뜨는 화면이라 바로 보내지 않고 localStorage 에 쌓아 두었다가, 서버에 닿는다고
+     * 확인된 순간(떠나기 직전) 한 번에 보낸다.
+     *
+     * 수집 주소는 빌드할 때 scripts/inject-offline-faro.mjs 가 아래 자리표시자를 바꿔 넣는다.
+     * 자리표시자 그대로면(next dev, 주소 미설정 빌드) 기록기는 아무것도 하지 않는다.
+     */
+    var FARO_URL = "__FARO_COLLECTOR_URL__";
+    var FARO_APP_VERSION = "__FARO_APP_VERSION__";
+    var DIAG_QUEUE_KEY = "ditto:offline-diagnostics";
+    // 오래 오프라인이어도 저장소를 채우지 않게 최근 것만 남긴다.
+    var DIAG_QUEUE_MAX = 50;
+    var diagEnabled = FARO_URL.indexOf("https://") === 0;
+    var diagSessionId = String(Date.now()) + Math.random().toString(36).slice(2, 10);
+    var shownAt = Date.now();
+    var probeCount = 0;
+
+    function stripQuery(url) {
+      var cut = url.search(/[?#]/);
+      return cut === -1 ? url : url.slice(0, cut);
+    }
+
+    function readDiagQueue() {
+      try {
+        var queue = JSON.parse(window.localStorage.getItem(DIAG_QUEUE_KEY) || "[]");
+        return Array.isArray(queue) ? queue : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function writeDiagQueue(queue) {
+      try {
+        window.localStorage.setItem(DIAG_QUEUE_KEY, JSON.stringify(queue.slice(-DIAG_QUEUE_MAX)));
+      } catch (e) {}
+    }
+
+    /* Faro 이벤트 하나를 쌓는다. 속성 값은 Faro 형식상 전부 문자열이어야 한다. */
+    function record(name, attributes) {
+      if (!diagEnabled) return;
+      var attrs = { platform: /Android/i.test(navigator.userAgent) ? "android" : "ios" };
+      Object.keys(attributes).forEach(function (key) { attrs[key] = String(attributes[key]); });
+      var queue = readDiagQueue();
+      queue.push({ name: name, domain: "app_offline", attributes: attrs, timestamp: new Date().toISOString() });
+      writeDiagQueue(queue);
+    }
+
+    /*
+     * 쌓인 기록을 보낸다. 바로 뒤에 화면을 떠나므로 keepalive 로 이동 중에도 요청이 살아 있게 한다.
+     * 보내기 전에 큐를 비우고, 실패가 확인되면 되돌려 놓는다 — 이동으로 결과를 못 받으면 그 묶음은
+     * 잃는다(중복 전송보다 낫다).
+     */
+    function flushDiagnostics() {
+      if (!diagEnabled) return;
+      var queue = readDiagQueue();
+      if (queue.length === 0) return;
+      writeDiagQueue([]);
+      var body = JSON.stringify({
+        meta: {
+          app: { name: "ditto-fe", version: FARO_APP_VERSION, environment: "production" },
+          session: { id: diagSessionId },
+          page: { url: window.location.origin + window.location.pathname },
+          browser: { userAgent: navigator.userAgent },
+        },
+        events: queue,
+      });
+      var restore = function () { writeDiagQueue(queue.concat(readDiagQueue())); };
+      try {
+        fetch(FARO_URL, {
+          method: "POST",
+          keepalive: true,
+          headers: { "Content-Type": "application/json" },
+          body: body,
+        })
+          .then(function (res) { if (!res.ok) restore(); })
+          .catch(restore);
+      } catch (e) {
+        restore();
+      }
+    }
+
+    (function recordShown() {
+      var params = new URLSearchParams(window.location.search);
+      record("offline_page_shown", {
+        error_code: params.get("code") || "unknown",
+        error_domain: params.get("domain") || "unknown",
+        error_desc: params.get("desc") || "",
+        failing_url: stripQuery(params.get("url") || ""),
+        online: navigator.onLine,
+        history_length: window.history.length,
+      });
+    })();
 
     // 앱이 원래 열어야 할 주소. capacitor.config.ts 의 server.url 과 같아야 한다.
     var HOME = "https://ditto.pics/";
+
+    // HOME 으로 직접 갈 때 붙이는 표식. 웹(src/shared/lib/observability/faro.ts)이 읽고 지운다.
+    var FROM_OFFLINE_QUERY = "?from=offline-page";
 
     // HOME 으로 직접 갔다가 다시 여기로 떨어졌는지 표시한다. 그 경우 바로 앞 기록이
     // 이 화면 자신이라 history.back() 이 같은 화면만 되풀이하므로 HOME 을 다시 연다.
@@ -146,9 +253,16 @@
      * 사용자가 보던(또는 열려던) 화면이다. 앱을 처음 켜다 실패한 경우처럼 앞 기록이
      * 없으면 HOME 으로 간다.
      */
-    function leave() {
+    function leave(trigger) {
       if (leaving) return;
       leaving = true;
+      record("offline_page_left", {
+        trigger: trigger,
+        elapsed_ms: Date.now() - shownAt,
+        probes: probeCount,
+        online: navigator.onLine,
+      });
+      flushDiagnostics();
       clearTimeout(timer);
       button.disabled = true;
       button.textContent = "연결하는 중…";
@@ -160,7 +274,7 @@
         return;
       }
       try { window.sessionStorage.setItem(VIA_HOME_KEY, String(Date.now())); } catch (e) {}
-      window.location.replace(HOME);
+      window.location.replace(HOME + FROM_OFFLINE_QUERY);
     }
 
     /*
@@ -169,6 +283,7 @@
      * 오류가 아니면 resolve 되므로 "닿는다"를 판단하기에 충분하다.
      */
     function probe() {
+      probeCount += 1;
       if (navigator.onLine === false) return Promise.resolve(false);
       var controller = typeof AbortController === "function" ? new AbortController() : null;
       var abortTimer = setTimeout(function () {
@@ -193,7 +308,7 @@
         if (leaving || document.visibilityState === "hidden") return;
         probe().then(function (ok) {
           if (ok) {
-            leave();
+            leave("probe");
             return;
           }
           attempt = Math.min(attempt + 1, RETRY_DELAYS_MS.length - 1);
@@ -203,7 +318,7 @@
     }
 
     // 버튼은 확인 없이 바로 간다 — 사용자가 직접 누른 시도까지 막지 않는다.
-    button.addEventListener("click", leave);
+    button.addEventListener("click", function () { leave("button"); });
 
     // 망이 돌아오거나 앱이 다시 앞으로 오면 기다리지 않고 바로 확인한다.
     window.addEventListener("online", function () {
