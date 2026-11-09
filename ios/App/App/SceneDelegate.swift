@@ -35,7 +35,9 @@ final class MainViewController: CAPBridgeViewController {
         webView?.allowsBackForwardNavigationGestures = true
 
         if let webView, let original = webView.navigationDelegate {
-            let proxy = CancelTolerantNavigationDelegate(wrapping: original)
+            let proxy = CancelTolerantNavigationDelegate(wrapping: original) { [weak self] in
+                self?.bridge?.config.errorPathURL
+            }
             navigationProxy = proxy
             webView.navigationDelegate = proxy
         }
@@ -51,7 +53,9 @@ final class MainViewController: CAPBridgeViewController {
  * 푸시 탭·뒤로가기처럼 문서가 바뀌는 순간에 이동이 겹치면 "연결할 수 없어요"가 떴다(2026-10-26, 2026-11 QA).
  * 취소된 이동은 그 뒤의 이동이 이어 받으므로 오류 화면을 띄울 이유가 없다.
  *
- * 걸러 내는 것은 두 가지뿐이다. 나머지(실제 오프라인·DNS·타임아웃 등)는 그대로 Capacitor 가 처리한다.
+ * 걸러 내는 것은 두 가지뿐이다. 나머지(실제 오프라인·DNS·타임아웃 등)는 오프라인 화면으로 보내되, 에러 코드·도메인·
+ * 실패 주소를 쿼리로 붙인다. Capacitor 는 무슨 실패였는지 화면에 넘기지 않아 원인을 알 수 없었다 — 오프라인 화면이
+ * 이 값을 Faro 로 보낸다.
  *  - NSURLErrorCancelled(-999): 다른 이동이 끼어들어 취소됨
  *  - WebKitErrorFrameLoadInterruptedByPolicyChange(102): 이동 정책이 로드를 멈춤(외부 앱으로 연 링크 등)
  *
@@ -61,9 +65,11 @@ final class MainViewController: CAPBridgeViewController {
  */
 final class CancelTolerantNavigationDelegate: NSObject, WKNavigationDelegate {
     private let wrapped: WKNavigationDelegate
+    private let errorPathURL: () -> URL?
 
-    init(wrapping wrapped: WKNavigationDelegate) {
+    init(wrapping wrapped: WKNavigationDelegate, errorPathURL: @escaping () -> URL?) {
         self.wrapped = wrapped
+        self.errorPathURL = errorPathURL
         super.init()
     }
 
@@ -88,7 +94,9 @@ final class CancelTolerantNavigationDelegate: NSObject, WKNavigationDelegate {
             CAPLog.print("⚡️  Ignored cancelled provisional navigation (no offline page): \(error.localizedDescription)")
             return
         }
-        wrapped.webView?(webView, didFailProvisionalNavigation: navigation, withError: error)
+        // 커밋 전 실패. 원본은 에러 화면을 열고 로그만 남기므로 정보를 붙여 통째로 대신한다.
+        CAPLog.print("⚡️  WebView failed provisional navigation: \(error.localizedDescription)")
+        showOfflinePage(in: webView, for: error)
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -96,7 +104,30 @@ final class CancelTolerantNavigationDelegate: NSObject, WKNavigationDelegate {
             CAPLog.print("⚡️  Ignored cancelled navigation (no offline page): \(error.localizedDescription)")
             return
         }
+        // 커밋된 뒤의 실패. 원본은 첫 로드였다면 웹뷰 불투명도를 되돌린다(내부 상태라 여기서 흉내 낼 수 없다).
+        // 그래서 원본을 먼저 부르고, 원본이 연 에러 화면을 정보가 붙은 주소로 곧바로 덮는다. 덮으면서 원본의
+        // 이동은 취소(-999)로 끝나고 위에서 무시된다.
         wrapped.webView?(webView, didFail: navigation, withError: error)
+        showOfflinePage(in: webView, for: error)
+    }
+
+    private func showOfflinePage(in webView: WKWebView, for error: Error) {
+        guard let base = errorPathURL(), var components = URLComponents(url: base, resolvingAgainstBaseURL: false) else {
+            return
+        }
+        let nsError = error as NSError
+        var items = [
+            URLQueryItem(name: "code", value: String(nsError.code)),
+            URLQueryItem(name: "domain", value: nsError.domain),
+        ]
+        if let failing = nsError.userInfo[NSURLErrorFailingURLStringErrorKey] as? String {
+            // 실패 주소의 쿼리에는 OAuth code 같은 값이 실릴 수 있다. 경로까지만 넘긴다.
+            items.append(URLQueryItem(name: "url", value: failing.components(separatedBy: CharacterSet(charactersIn: "?#")).first))
+        }
+        components.queryItems = items
+        if let url = components.url {
+            webView.load(URLRequest(url: url))
+        }
     }
 }
 
