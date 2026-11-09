@@ -16,6 +16,7 @@ import { getExternalSystemState } from "@/shared/lib/api/externalApi";
 import { API_ERROR_CODE, describeError, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { getGtagScriptSrc, useAnalytics } from "@/shared/lib/analytics";
 import { initChunkReloadGuard } from "@/shared/lib/chunkReload";
+import { initFaro } from "@/shared/lib/observability/faro";
 // 부수효과 import: 모듈을 읽는 순간 DB 초기화 전의 id 기록을 비운다(staleLocalIds 주석).
 import "@/shared/lib/staleLocalIds";
 import { isBootSplashPath, normalizePathname } from "@/shared/lib/routePath";
@@ -165,6 +166,14 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
    * 인증·경로와 무관하므로 가장 먼저, 한 번만 건다.
    */
   useEffect(() => initChunkReloadGuard(), []);
+
+  /**
+   * 프런트엔드 관측(Grafana Faro). 수집 주소가 없거나 운영 빌드가 아니면 no-op 이다.
+   * 인증과 무관하게 첫 화면부터 켠다 — 로그인 전 화면에서 난 오류도 봐야 한다.
+   */
+  useEffect(() => {
+    void initFaro();
+  }, []);
 
   // 네이티브 앱 셸(Capacitor) 초기화. 웹 브라우저에서는 전부 no-op이다.
   // Android 하드웨어 뒤로가기 · 상태바 · 딥링크만 담당한다.
