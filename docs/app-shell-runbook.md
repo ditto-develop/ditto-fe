@@ -1173,14 +1173,11 @@ Organizer 를 열어 **Distribute App → App Store Connect → Upload**.
 | 1.0 (5) | 2026-10-04 | 베타 앱 아이콘(하단 BETA 띠)·런치 스플래시(BETA 배지), 홈 화면 이름 `ditto`. 오프라인 폴백은 (4)와 같은 파일 |
 | 1.0 (6) | 2026-10-06 | 앱 아이콘·런치 스플래시에서 BETA 제거(가이드라인 2.2 — 웹 스플래시 배지도 앱 안에서는 숨긴다). 프라이버시 매니페스트에 GA4 분석 수집(사용 데이터·대략적 위치·ID 의 분석 목적) 신고 |
 | 1.0 (7) | 2026-10-07 | **1.0 출시 빌드.** 앱 아이콘 배지 플러그인(`@capawesome/capacitor-badge`) — 알림을 읽으면 아이콘 숫자가 미읽음 수로 내려간다(§2.2). 그 외는 (6)과 같다 |
-| 1.0.1 (8) | 2026-10-19 | **앱 언어를 한국어로**(`CFBundleDevelopmentRegion`·`CFBundleLocalizations`·pbxproj `developmentRegion`) — (7)까지는 템플릿 기본값 `en` 이라 App Store 에 "영어"로 표시됐다. **기기 정보 플러그인**(`@capacitor/device`) — 의견 보내기에 정확한 OS 버전·모델 식별자를 싣는다. `SystemBars.style: LIGHT`(스플래시부터 어두운 상태바 아이콘 — 웹이 넣던 값과 같다). 1.0 이 출시돼 같은 버전에 빌드를 더할 수 없어 1.0.1 로 올렸다 |
+| 1.0.1 (8) | 2026-10-19 | **앱 언어를 한국어로**(`CFBundleDevelopmentRegion`·`CFBundleLocalizations`·pbxproj `developmentRegion`) — (7)까지는 템플릿 기본값 `en` 이라 App Store 에 "영어"로 표시됐다. **기기 정보 플러그인**(`@capacitor/device`) — 의견 보내기에 정확한 OS 버전·모델 식별자를 싣는다. `SystemBars.style: LIGHT`(스플래시부터 어두운 상태바 아이콘 — 웹이 넣던 값과 같다). 1.0 이 출시돼 같은 버전에 빌드를 더할 수 없어 1.0.1 로 올렸다. **⚠️ 이 빌드는 아카이브·export 만 하고 업로드되지 않았다**(2026-11-16 ASC 빌드 목록으로 확인 — 최신이 7). 내용은 (9) 에 그대로 들어갔다 |
+| 1.0.1 (9) | 2026-11-16 | (8) 의 내용 전부 + **설정 앱 알림 화면 열기 플러그인**(`native-plugins/capacitor-app-settings`) — 퀴즈 완료 화면의 "설정에서 알림 켜기". 알림을 거절한 사람에게 OS 는 시스템 창을 다시 띄우지 않는다(iOS 설치당 1회). 옛 바이너리는 버튼 대신 문구로 안내한다. **로드 취소(-999)·정책 중단(102)에 오프라인 폴백을 띄우지 않는다**(`SceneDelegate.swift` 의 `CancelTolerantNavigationDelegate`) — 푸시 탭·뒤로가기에서 멀쩡한 망에도 "연결할 수 없어요"가 뜨던 원인. 웹은 같은 날 `305517a` 로 프로덕션 배포. 1.0.1 버전으로 심사 제출 |
 
-> **다음 빌드에 들어갈 것 (코드 반영 2026-11-16, 아직 업로드 전 — 올릴 때 위 표에 행으로 옮긴다)**
-> - 설정 앱 알림 화면 열기 플러그인 `native-plugins/capacitor-app-settings` — 퀴즈 완료 화면의 "설정에서 알림 켜기".
->   알림을 거절한 사람에게 OS 는 시스템 창을 다시 띄우지 않는다(iOS 설치당 1회). 옛 바이너리는 버튼 대신 문구로 안내한다.
-> - 문서 로드가 **취소(-999)·정책 중단(102)** 으로 끝나면 오프라인 폴백을 띄우지 않는다(`SceneDelegate.swift` 의
->   `CancelTolerantNavigationDelegate`). 푸시 탭·뒤로가기에서 멀쩡한 망에도 "연결할 수 없어요"가 뜨던 원인이다.
-> - Android 는 같은 플러그인만 들어간다(오프라인 폴백 변경은 iOS 만).
+> Android 는 같은 플러그인만 들어간다(오프라인 폴백 변경은 iOS 만). 이 맥에서 `~/Library/Android/sdk` 가 지워져 있어
+> 2026-11-16 에는 Android 번들을 만들지 못했다 — §9 대로 SDK 를 다시 깐 뒤 `versionCode` 2 로 만든다.
 
 #### 처리 상태를 CLI 로 보는 법
 
