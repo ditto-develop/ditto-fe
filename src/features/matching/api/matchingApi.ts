@@ -23,6 +23,12 @@ export interface ScoreBreakdownDto {
     reasons: string[];
 }
 
+/**
+ * 1:1 후보가 어느 라운드에서 나왔는지(ditto-server #382 `match_candidate.candidate_origin`).
+ * REGULAR = 목요일 정규 매칭, SECRET_FIRST/SECOND = 금·토 20:00 시크릿 매칭(IMP-2).
+ */
+export type CandidateOrigin = "REGULAR" | "SECRET_FIRST" | "SECRET_SECOND";
+
 export interface MatchCandidateDto {
     userId: string;
     nickname: string;
@@ -33,6 +39,11 @@ export interface MatchCandidateDto {
     profileImageUrl?: string | null;
     matchRate: number;           // 0~100 percentage (= quizMatchRate)
     scoreBreakdown: ScoreBreakdownDto;
+    /**
+     * 1:1 후보만. 서버가 응답에 싣기 전(시크릿 매칭 화면 API 전)과 그룹 구성원에는 없다 —
+     * 없으면 정규 후보로 본다.
+     */
+    candidateOrigin?: CandidateOrigin;
 }
 
 export type MatchRequestStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELLED" | "EXPIRED";

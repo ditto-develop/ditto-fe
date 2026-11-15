@@ -10,6 +10,7 @@ import {
 } from "@/features/matching/api/matchingApi";
 import type { MatchProfile } from "@/features/matching/model/types";
 import { toLocationLabel } from "@/shared/lib/profileLabels";
+import { isSecretCandidate } from "@/features/matching/model/secretMatching";
 
 export interface MatchItem {
     profile: MatchProfile;
@@ -29,6 +30,8 @@ export interface MatchItem {
      */
     wasCancelled: boolean;
     matchRequestId?: string;
+    /** 금·토 20:00 시크릿 매칭 라운드가 준 후보(`candidateOrigin`). 결과 화면 머리글을 바꾼다. */
+    isSecret: boolean;
 }
 
 function toGenderKo(gender: string): string {
@@ -94,6 +97,7 @@ function mergeWithStatus(
             didRejectThem,
             wasCancelled,
             matchRequestId: sent?.id ?? received?.id,
+            isSecret: isSecretCandidate(c),
         };
     });
 }

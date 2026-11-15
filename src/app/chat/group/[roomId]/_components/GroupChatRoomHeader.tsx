@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { goBackFromEntryScreen } from "@/shared/lib/navigation";
 import styled from "styled-components";
 import { Icon } from "@/shared/ui";
 import { getGroupRoomTitle } from "@/features/chat";
@@ -37,7 +38,7 @@ export function GroupChatRoomHeader({
   return (
     <HeaderContainer>
       <NavRow>
-        <IconButton onClick={() => router.back()}>
+        <IconButton onClick={() => goBackFromEntryScreen(router, "/chat")}>
           <img src="/icons/navigation/arrow-left.svg" alt="뒤로가기" width={24} height={24} />
         </IconButton>
         {/* 오른쪽에 문서 아이콘이 붙은 만큼 왼쪽도 비워 제목을 화면 가운데에 둔다. */}

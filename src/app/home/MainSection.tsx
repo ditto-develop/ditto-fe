@@ -27,6 +27,10 @@ import { useToast } from "@/context/ToastContext";
 import { describeError } from "@/shared/lib/api/apiError";
 import { useGroupName } from "@/features/matching/hooks/useGroupName";
 import { isGroupMatchFailed } from "@/features/matching/model/groupMatchState";
+import { useSecretMatchingStatus } from "@/features/matching/hooks/useSecretMatchingStatus";
+import { isSecretMatchingCardState } from "@/features/matching/model/secretMatching";
+import { SecretMatchingHome } from "@/components/home/SecretMatchingHome";
+import { useFeatureFlag } from "@/shared/lib/hooks/useFeatureFlag";
 
 const MainSectionContainer = styled.div`
   /**
@@ -64,6 +68,22 @@ async function getLatestChatRoom(): Promise<ChatRoom | undefined> {
   return rooms[0];
 }
 
+/**
+ * 그룹 주인데 1:1 도 늦게 푼 경우(시크릿 매칭, BE ADR 0053 — 그룹 미성사자는 금 00:00 부터 1:1 을 풀 수 있다)의
+ * 1:1 쪽 데이터. 그룹 화면 상태(`candidates`·`hasAcceptedMatch`)와 섞지 않으려고 따로 든다 — 섞으면 그룹 주의
+ * 매칭 카드가 1:1 수락 카드로 바뀐다. 시크릿 상태가 1:1 을 가리킬 때(CANDIDATES·MATCHED)만 쓴다.
+ */
+type LateOneToOne = {
+  quizSetId: string;
+  candidates: MatchCandidateDto[];
+  hasAcceptedMatch: boolean;
+  acceptedCandidate?: MatchCandidateDto;
+};
+
+const ACCEPTED_TOAST_BEFORE_CHAT = "대화를 수락했어요! 대화는 금요일에 시작돼요.";
+/** 대화 기간(금~일)의 수락 — 시크릿 매칭처럼 성사 즉시 방이 열린다. */
+const ACCEPTED_TOAST_IN_CHAT = "대화를 수락했어요! 지금 바로 대화를 시작해 보세요.";
+
 export function MainSection() {
   const [period, setPeriod] = useState<Period | null>(null);
   const [isQuizComplete, setIsQuizComplete] = useState(false);
@@ -83,11 +103,15 @@ export function MainSection() {
   const [isGroupWeek, setIsGroupWeek] = useState(false);
   const [groups, setGroups] = useState<GroupCandidateGroupDto[]>([]);
   const [chatRoom, setChatRoom] = useState<ChatRoom | undefined>(undefined);
+  const [lateOneToOne, setLateOneToOne] = useState<LateOneToOne | null>(null);
   const [loading, setLoading] = useState(true);
+  const [acceptedToastPending, setAcceptedToastPending] = useState(false);
   const { setHomeReady } = useHomeReady();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { showToast } = useToast();
+  const secretMatchingEnabled = useFeatureFlag("SECRET_MATCHING");
+  const { status: secretStatus, reload: reloadSecretStatus } = useSecretMatchingStatus(secretMatchingEnabled);
 
   // 대화 수락 후 홈으로 돌아왔을 때 스낵바 표시
   useEffect(() => {
@@ -95,9 +119,19 @@ export function MainSection() {
     // MatchingDay의 매칭 완료 알림과 같은 내용이므로, 본 것으로 마킹해 중복 toast를 막는다
     const storedQuizSetId = sessionStorage.getItem("currentQuizSetId");
     if (storedQuizSetId) localStorage.setItem(matchAcceptedNotifKey(storedQuizSetId), "1");
-    showToast("대화를 수락했어요! 대화는 금요일에 시작돼요.", "success");
+    setAcceptedToastPending(true);
     router.replace("/home");
-  }, [searchParams, showToast, router]);
+  }, [searchParams, router]);
+
+  /**
+   * 수락 토스트는 기간을 안 뒤에 띄운다. 매칭 기간(목)의 수락은 금요일에 방이 열리지만, 대화 기간(금~일)의
+   * 수락 — 시크릿 매칭이 그렇다 — 은 방이 바로 열린다. 기간 조회가 실패하면 예전 문구로 띄운다.
+   */
+  useEffect(() => {
+    if (!acceptedToastPending || loading) return;
+    setAcceptedToastPending(false);
+    showToast(period === "CHATTING" ? ACCEPTED_TOAST_IN_CHAT : ACCEPTED_TOAST_BEFORE_CHAT, "success");
+  }, [acceptedToastPending, loading, period, showToast]);
 
 
   /**
@@ -159,9 +193,25 @@ export function MainSection() {
           setIsGroupWeek(true);
           setQuizSetId(groupThisWeek.quizSetId);
           setGroups(groupThisWeek.groups);
-          if (fetchedPeriod === "CHATTING") {
-            const latestChatRoom = await getLatestChatRoom().catch(() => undefined);
-            if (latestChatRoom) setChatRoom(latestChatRoom);
+          const [latestChatRoom, lateStatus] = await Promise.all([
+            fetchedPeriod === "CHATTING"
+              ? getLatestChatRoom().catch(() => undefined)
+              : Promise.resolve(undefined),
+            // 같은 주에 1:1 도 늦게 풀었을 때만 있다(LateOneToOne 주석). 실패해도 그룹 화면은 그대로다.
+            candidateThisWeek
+              ? getMatchingStatus(candidateThisWeek.quizSetId).catch(() => null)
+              : Promise.resolve(null),
+          ]);
+          if (latestChatRoom) setChatRoom(latestChatRoom);
+          if (candidateThisWeek) {
+            setLateOneToOne({
+              quizSetId: candidateThisWeek.quizSetId,
+              candidates: candidateThisWeek.candidates,
+              hasAcceptedMatch: lateStatus?.hasAcceptedMatch ?? false,
+              acceptedCandidate: lateStatus?.acceptedMatchUserId
+                ? candidateThisWeek.candidates.find((c) => c.userId === lateStatus.acceptedMatchUserId)
+                : undefined,
+            });
           }
           return;
         }
@@ -223,11 +273,13 @@ export function MainSection() {
    */
   const inFlightRef = useRef<Promise<void> | null>(null);
   const refresh = useCallback(() => {
-    inFlightRef.current ??= load().finally(() => {
-      inFlightRef.current = null;
-    });
+    inFlightRef.current ??= Promise.all([load(), reloadSecretStatus()])
+      .then(() => undefined)
+      .finally(() => {
+        inFlightRef.current = null;
+      });
     return inFlightRef.current;
-  }, [load]);
+  }, [load, reloadSecretStatus]);
 
   useOnAppResume(() => {
     void refresh();
@@ -236,9 +288,13 @@ export function MainSection() {
   // 그룹 카드·모달의 그룹 이름. 훅이라 아래 조기 반환보다 위에 둔다.
   const groupName = useGroupName(isGroupWeek ? quizSetId : null);
 
-  // 로딩 중에는 카드 자리를 스켈레톤으로 잡아둔다. 스플래시가 2.5초에 먼저 걷혀도
-  // 타임라인만 덩그러니 남았다가 카드가 뒤늦게 밀고 들어오는 일이 없다.
-  if (loading) {
+  /*
+   * 로딩 중에는 카드 자리를 스켈레톤으로 잡아둔다. 스플래시가 2.5초에 먼저 걷혀도
+   * 타임라인만 덩그러니 남았다가 카드가 뒤늦게 밀고 들어오는 일이 없다.
+   * 시크릿 매칭 상태를 묻는 중이면(퀴즈 기간 제외) 그것도 기다린다 — 안 기다리면 기존 카드가 떴다가 바뀐다.
+   */
+  const secretPending = secretStatus === undefined && period !== "QUIZ";
+  if (loading || secretPending) {
     return (
       <MainSectionContainer>
         <TimeLine />
@@ -295,12 +351,60 @@ export function MainSection() {
     setGroups(result?.groups ?? []);
   };
 
+  /**
+   * 시크릿 매칭(IMP-2). 금·토 20:00 1:1 추가 라운드. 서버 `SECRET_MATCHING` 플래그(또는 테스터 모드) 뒤에 있고,
+   * 상태는 서버가 KST 로 정해 준다. 상단 타임라인은 그대로 둔다.
+   *  - TARGET·WAITING·AUTO_JOINED·CLOSED → 시크릿 카드(시안 A~D)
+   *  - CANDIDATES → 기존 1:1 후보 카드(남은 시간은 월요일까지) → 결과 화면
+   *  - MATCHED → 그룹 주면 1:1 대화 카드로 바꿔 그린다(1:1 주는 기존 흐름이 이미 그린다)
+   *  - NONE·실패 → 지금 화면 그대로
+   */
+  const renderSecretMatching = (isChatTime: boolean, onStartChat?: () => void) => {
+    if (!secretStatus) return null;
+    const { state } = secretStatus;
+    if (isSecretMatchingCardState(state)) {
+      return <SecretMatchingHome state={state} status={secretStatus} introNoteCount={introNoteCount} />;
+    }
+    const oneToOne: LateOneToOne | null = isGroupWeek
+      ? lateOneToOne
+      : { quizSetId, candidates, hasAcceptedMatch, acceptedCandidate };
+    if (!oneToOne) return null;
+    if (state === "CANDIDATES" && !oneToOne.hasAcceptedMatch) {
+      return (
+        <MatchingDay
+          isChatTime={false}
+          secretRound
+          matchType="one"
+          buttonState="primary"
+          candidates={oneToOne.candidates}
+          quizSetId={oneToOne.quizSetId}
+        />
+      );
+    }
+    if (state === "MATCHED" && isGroupWeek && oneToOne.hasAcceptedMatch) {
+      return (
+        <MatchingDay
+          isChatTime={isChatTime}
+          matchType="one"
+          buttonState="primary"
+          candidates={oneToOne.candidates}
+          hasAcceptedMatch
+          acceptedCandidate={oneToOne.acceptedCandidate}
+          chatRoom={chatRoom}
+          quizSetId={oneToOne.quizSetId}
+          onStartChat={onStartChat}
+        />
+      );
+    }
+    return null;
+  };
+
   const ControlSection = () => {
     switch (period) {
       case "QUIZ":
         return <ThisWeekQuiz iscomplete={isQuizComplete} introNoteCount={introNoteCount} participantCount={participantCount} />;
       case "MATCHING":
-        return (
+        return renderSecretMatching(false) ?? (
           <MatchingDay
             isChatTime={false}
             matchType={resolvedMatchType}
@@ -340,7 +444,7 @@ export function MainSection() {
             showToast("채팅방을 열 수 없어요. 잠시 후 다시 시도해주세요.", "error");
           }
         };
-        return (
+        return renderSecretMatching(true, handleStartChat) ?? (
           <MatchingDay
             isChatTime={true}
             matchType={resolvedMatchType}

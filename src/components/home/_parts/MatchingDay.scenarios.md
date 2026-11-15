@@ -12,6 +12,7 @@
 - `chatRoom`: latest chat-room preview, unread count, and CTA state
 - `quizSetId`: localStorage notification key suffix
 - `onStartChat`, `onGroupAccepted`, `onGroupDeclined`, `onGroupStale`: parent callbacks
+- `secretRound`: the candidates came from a Fri/Sat 20:00 secret-matching round (IMP-2). Rendered with `isChatTime=false` (candidate card → `/matching`) but the countdown targets Monday 00:00 because it is already the chatting period. The secret-matching states without candidates (TARGET/WAITING/AUTO_JOINED/CLOSED) are not drawn here — `MainSection` renders `SecretMatchingHome` instead
 
 ## State Transitions
 

@@ -7,7 +7,9 @@ import {
 import { API_ERROR_CODE, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { externalApiFetch } from "@/shared/lib/api/externalClient";
 import { trackEvent } from "@/shared/lib/analytics";
+import { markPushEntry } from "@/shared/lib/navigation";
 import { clearAppBadge, syncAppBadge } from "@/shared/lib/native/appBadge";
+import { openNotificationSettings } from "@/shared/lib/native/appSettings";
 import { toInternalPath } from "@/shared/lib/native/appShell";
 import {
     clearForegroundNotifications,
@@ -169,6 +171,80 @@ export async function registerDeviceToken(): Promise<void> {
         await postDeviceToken(token);
     } catch (err: unknown) {
         console.error("[push] 디바이스 토큰 등록 실패:", err);
+    }
+}
+
+/**
+ * 이 기기의 OS 알림 권한.
+ *
+ * - `prompt`: 아직 묻지 않았다. 시스템 권한 창을 띄울 수 있다(Android 의 `prompt-with-rationale` 포함).
+ * - `denied`: 거절했다. **OS 가 시스템 창을 다시 띄우지 않는다** — iOS 는 설치당 한 번, Android 13+ 는
+ *   두 번 거절하면 끝이다. 켤 길은 설정 앱뿐이다(`appSettings.ts`).
+ * - `unsupported`: 웹이거나 푸시 플래그가 꺼져 있거나 권한을 읽지 못했다. 물을 대상이 아니다.
+ */
+export type PushPermission = "granted" | "denied" | "prompt" | "unsupported";
+
+function toPushPermission(receive: string): Exclude<PushPermission, "unsupported"> {
+    if (receive === "granted") return "granted";
+    if (receive === "denied") return "denied";
+    return "prompt";
+}
+
+/** OS 알림 권한을 읽는다. 묻지 않는다(창이 뜨지 않는다). 던지지 않는다. */
+export async function getPushPermission(): Promise<PushPermission> {
+    if (!isNativeApp() || !isPushEnabled()) return "unsupported";
+    try {
+        const { FirebaseMessaging } = await loadMessaging();
+        const { receive } = await FirebaseMessaging.checkPermissions();
+        return toPushPermission(receive);
+    } catch (err: unknown) {
+        console.error("[push] 알림 권한 확인 실패:", err);
+        return "unsupported";
+    }
+}
+
+/**
+ * `requestPushPermission` 의 결과.
+ * - `granted`: 이미 허용이었거나 방금 허용했다. 토큰 등록까지 마쳤다.
+ * - `denied`: 시스템 창에서 방금 거절했다.
+ * - `opened_settings`: 이미 거절 상태라 설정 앱을 열었다. 결과는 앱으로 돌아온 뒤에 다시 읽어야 안다
+ *   (돌아오면 `initPushNotifications` 의 `appStateChange` 가 토큰을 다시 등록한다).
+ * - `settings_unavailable`: 거절 상태인데 설정을 열 플러그인이 없다(옛 앱 바이너리). 안내 문구만 보여 준다.
+ * - `unsupported`: 웹 등 물을 대상이 아니다.
+ */
+export type PushPermissionRequestOutcome =
+    | "granted"
+    | "denied"
+    | "opened_settings"
+    | "settings_unavailable"
+    | "unsupported";
+
+/**
+ * 알림을 켜려고 할 때 지금 할 수 있는 일을 한다. 아직 안 물었으면 시스템 창, 거절했으면 설정 앱이다.
+ * 로그인 이후에만 부른다(토큰 등록 API 가 인증을 요구한다). 던지지 않는다.
+ */
+export async function requestPushPermission(): Promise<PushPermissionRequestOutcome> {
+    const current = await getPushPermission();
+    if (current === "unsupported") return "unsupported";
+    if (current === "granted") {
+        await registerDeviceToken();
+        return "granted";
+    }
+    if (current === "denied") {
+        return (await openNotificationSettings()) ? "opened_settings" : "settings_unavailable";
+    }
+
+    try {
+        const { FirebaseMessaging } = await loadMessaging();
+        const permission = await FirebaseMessaging.requestPermissions();
+        const granted = permission.receive === "granted";
+        trackEvent("push_permission_result", { granted });
+        if (!granted) return "denied";
+        await registerDeviceToken();
+        return "granted";
+    } catch (err: unknown) {
+        console.error("[push] 알림 권한 요청 실패:", err);
+        return "denied";
     }
 }
 
@@ -414,6 +490,8 @@ export function openNotification(data: unknown, navigate: (path: string) => void
     trackEvent("notification_open", { has_deep_link: path !== null });
     if (!path) return;
     notificationNavigationPending = true;
+    // 그 화면의 뒤로 버튼이 이전 문서 대신 홈으로 가게 표시한다(navigation.goBackFromEntryScreen).
+    markPushEntry(path);
     void waitAtMost(whenDocumentLoaded(), NAVIGATE_AFTER_LOAD_MAX_MS).then(() => navigate(path));
 }
 

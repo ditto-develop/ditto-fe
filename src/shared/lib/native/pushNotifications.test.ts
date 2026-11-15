@@ -75,6 +75,11 @@ vi.mock("@/features/notification/api/notificationApi", () => ({
   markChatRoomNotificationsRead: (...a: unknown[]) => markChatRoomNotificationsRead(...(a as [])),
 }));
 
+const openNotificationSettings = vi.fn(async (): Promise<boolean> => true);
+vi.mock("@/shared/lib/native/appSettings", () => ({
+  openNotificationSettings: () => openNotificationSettings(),
+}));
+
 const syncAppBadge = vi.fn(async () => {});
 const clearAppBadge = vi.fn(async () => {});
 vi.mock("@/shared/lib/native/appBadge", () => ({
@@ -649,5 +654,77 @@ describe("디바이스 재등록 복구", () => {
     await vi.waitFor(() => expect(checkPermissions).toHaveBeenCalled());
     expect(externalApiFetch).not.toHaveBeenCalled();
     dispose();
+  });
+});
+
+/**
+ * 알림 권한 재요청(퀴즈 완료 화면). OS 가 거절 상태면 시스템 창은 다시 뜨지 않으므로 설정 앱을 연다.
+ */
+describe("getPushPermission / requestPushPermission", () => {
+  async function onNative() {
+    isNativePlatform.mockReturnValue(true);
+    getPlatform.mockReturnValue("ios");
+    process.env.NEXT_PUBLIC_PUSH_ENABLED = "true";
+    return import("@/shared/lib/native/pushNotifications");
+  }
+
+  it("웹이나 플래그 꺼짐이면 묻지도 읽지도 않는다", async () => {
+    isNativePlatform.mockReturnValue(false);
+    const push = await import("@/shared/lib/native/pushNotifications");
+    expect(await push.getPushPermission()).toBe("unsupported");
+    expect(await push.requestPushPermission()).toBe("unsupported");
+    expect(checkPermissions).not.toHaveBeenCalled();
+    expect(requestPermissions).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["granted", "granted"],
+    ["denied", "denied"],
+    ["prompt", "prompt"],
+    ["prompt-with-rationale", "prompt"],
+  ])("OS %s → %s", async (receive, expected) => {
+    const push = await onNative();
+    checkPermissions.mockResolvedValueOnce({ receive });
+    expect(await push.getPushPermission()).toBe(expected);
+  });
+
+  it("아직 안 물었으면 시스템 창을 띄우고, 허용하면 토큰을 등록한다", async () => {
+    const push = await onNative();
+    checkPermissions.mockResolvedValueOnce({ receive: "prompt" });
+    requestPermissions.mockResolvedValueOnce({ receive: "granted" });
+
+    expect(await push.requestPushPermission()).toBe("granted");
+    expect(requestPermissions).toHaveBeenCalledTimes(1);
+    expect(externalApiFetch).toHaveBeenCalledWith(
+      "/api/v1/notifications/devices",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(openNotificationSettings).not.toHaveBeenCalled();
+  });
+
+  it("시스템 창에서 거절하면 denied 이고 토큰을 등록하지 않는다", async () => {
+    const push = await onNative();
+    checkPermissions.mockResolvedValueOnce({ receive: "prompt" });
+    requestPermissions.mockResolvedValueOnce({ receive: "denied" });
+
+    expect(await push.requestPushPermission()).toBe("denied");
+    expect(externalApiFetch).not.toHaveBeenCalled();
+  });
+
+  it("이미 거절 상태면 시스템 창 대신 설정 앱을 연다", async () => {
+    const push = await onNative();
+    checkPermissions.mockResolvedValueOnce({ receive: "denied" });
+
+    expect(await push.requestPushPermission()).toBe("opened_settings");
+    expect(requestPermissions).not.toHaveBeenCalled();
+    expect(openNotificationSettings).toHaveBeenCalledTimes(1);
+  });
+
+  it("거절 상태인데 옛 앱이라 설정을 못 열면 settings_unavailable", async () => {
+    const push = await onNative();
+    checkPermissions.mockResolvedValueOnce({ receive: "denied" });
+    openNotificationSettings.mockResolvedValueOnce(false);
+
+    expect(await push.requestPushPermission()).toBe("settings_unavailable");
   });
 });

@@ -178,6 +178,15 @@ export interface AnalyticsEventMap {
    * 푸시로 알리기 때문에, 권한이 없으면 사용자가 돌아올 계기 자체가 사라진다.
    */
   push_permission_result: { granted: boolean };
+  /**
+   * 퀴즈 완료 화면의 알림 안내. OS 알림을 거절한 사람에게 매주 다시 묻는 자리다(시스템 창은 OS 가 다시
+   * 안 띄우므로 거절 상태면 설정 앱으로 보낸다). `action` 은 그 안내가 하려는 일이다.
+   * 노출 → 클릭 → 결과 순으로 보면 "다시 물어서 몇 명이 켰나"가 나온다.
+   */
+  notify_prompt_view: { action: NotifyPromptAction };
+  notify_prompt_click: { action: NotifyPromptAction };
+  /** `outcome` 은 `requestPushPermission` 결과이거나, 서버 설정만 켠 경우 `enabled` 다. */
+  notify_prompt_result: { action: NotifyPromptAction; outcome: string };
   /** 알림을 눌러 앱으로 들어왔다. 딥링크 유무로 어디로 보냈는지 구분한다. */
   notification_open: { has_deep_link: boolean };
 
@@ -186,6 +195,12 @@ export interface AnalyticsEventMap {
   /** 탈퇴 완료. `reason` 은 정해진 선택지 값이며, 자유 입력(reasonDetail)은 싣지 않는다. */
   withdraw_complete: { reason: string };
 }
+
+/**
+ * 퀴즈 완료 화면 알림 안내가 하려는 일.
+ * `enable` 서버 매칭 알림만 켠다 · `request` 시스템 권한 창 · `settings` 설정 앱 열기 · `guide` 옛 앱 문구 안내.
+ */
+export type NotifyPromptAction = "enable" | "request" | "settings" | "guide";
 
 /** 채팅방 종류. 1:1 과 그룹은 참여 양상이 전혀 달라 반드시 나눠 본다. */
 export type ChatRoomType = "one_on_one" | "group";

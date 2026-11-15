@@ -57,6 +57,7 @@ export function MatchingDay({
   quizSetId = "",
   groupName,
   onStartChat,
+  secretRound = false,
 }: {
   matchType: MatchingCardType;
   buttonState: ButtonStateType;
@@ -76,6 +77,11 @@ export function MatchingDay({
   /** 그룹 결과 모달의 그룹 이름("같은 {주제} 그룹"). 비우면 기본 문구를 쓴다. */
   groupName?: string;
   onStartChat?: () => void;
+  /**
+   * 시크릿 매칭(IMP-2) 라운드가 준 후보를 기존 후보 카드로 보여 줄 때. 금~일이라 `isChatTime` 은 false 로 넘기고,
+   * 남은 시간은 대화가 끝나는 월요일 00:00 까지로 센다(후보 카드의 기본 목표는 목요일 매칭 기간의 금요일).
+   */
+  secretRound?: boolean;
 }) {
   const router = useRouter();
   const [profileSelect, setProfileSelect] = useState(false);
@@ -108,6 +114,7 @@ export function MatchingDay({
     if (hasAcceptedMatch && acceptedCandidate && !isChatTime) return "accepted";
     if (matchType === "beforematch") return "beforematch";
     if (matchType === "failmatch") return "failmatch";
+    if (secretRound) return `secret_${matchType}`;
     return isChatTime ? `chat_${matchType}` : matchType;
   })();
 
@@ -138,9 +145,9 @@ export function MatchingDay({
    * 남은 시간의 목표일은 기기 요일이 아니라 **서버 기간**을 따른다.
    * 매칭 기간이면 대화가 열리는 금요일까지, 대화 기간이면 다음 퀴즈가 열리는 월요일까지.
    * 요일로 정하면 어드민 '시간 임시 조정'으로 기간을 바꿔도 카운트다운은 실제 요일 기준으로
-   * 남아 화면의 기간과 어긋났다(QA 2026-09-09).
+   * 남아 화면의 기간과 어긋났다(QA 2026-09-09). 시크릿 라운드 후보는 대화 기간이라 월요일까지다.
    */
-  const timeLeft = useTargetDayCountdown(isChatTime ? 1 : 5);
+  const timeLeft = useTargetDayCountdown(isChatTime || secretRound ? 1 : 5);
 
   /**
    * 매칭은 됐지만 아직 대화 기간이 아닐 때의 잠긴 버튼.

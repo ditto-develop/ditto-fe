@@ -70,6 +70,11 @@ export const API_ERROR_CODE = {
   /** 제재로 이번 주 퀴즈 참여 불가 */
   SANCTION_QUIZ_BLOCKED: "6008",
   /**
+   * 시크릿 매칭 늦은 응시 마감(BE #380 `QUIZ_SECRET_MATCHING_CLOSED`, ADR 0053).
+   * 토 20:00 ~ 일요일에 1:1 셋 답을 내거나 문항을 조회하면 온다. **그 답은 저장되지 않는다.**
+   */
+  QUIZ_SECRET_MATCHING_CLOSED: "4007",
+  /**
    * 탈퇴 거부. 남은 1:1 매칭 / 끝나지 않은 채팅방 / 재매칭 성사 후 방 미생성 셋 다
    * 같은 코드·메시지라 서버 응답만으로는 원인을 가릴 수 없다.
    */

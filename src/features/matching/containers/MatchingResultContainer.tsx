@@ -13,6 +13,7 @@ import { getMatchBadgeInfo, type MatchProfile } from "@/features/matching";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import { useMatchCandidates } from "@/features/matching/hooks/useMatchCandidates";
 import type { IntroNoteState } from "@/features/profile";
+import { useFeatureFlag } from "@/shared/lib/hooks/useFeatureFlag";
 
 type MatchTab = "request" | "accept";
 
@@ -64,6 +65,12 @@ export function MatchingResultContainer({
 }) {
     const { quizSetId, candidates, hasAcceptedMatch, acceptedMatchUserId, loading, error } = useMatchCandidates();
     const [activeTab, setActiveTab] = useState<MatchTab>("request");
+    /**
+     * 시크릿 매칭(IMP-2) 라운드 후보가 하나라도 있으면 머리글을 시안 F 로 바꾼다. 목요일 정규 후보도 그대로 함께
+     * 보인다(기획: "목요일 후보 유지"). 화면에 '패자부활전'을 쓰지 않는다.
+     */
+    const secretMatchingEnabled = useFeatureFlag("SECRET_MATCHING");
+    const isSecretResult = secretMatchingEnabled && candidates.some((candidate) => candidate.isSecret);
 
     /*
      * 매칭 퍼널의 분모. 화면 진입이 아니라 **후보를 실제로 받은 시점**에 센다 —
@@ -91,11 +98,20 @@ export function MatchingResultContainer({
                     <MatchIcon />
                     <MatchLabelText>1:1 매칭</MatchLabelText>
                 </MatchLabel>
-                <SectionHeader title="이번 주 매칭 결과" />
+                <SectionHeader title={isSecretResult ? "시크릿 매칭 결과" : "이번 주 매칭 결과"} />
                 <HeaderDescription>
-                    나와 가장 비슷한 답을 한 사람들을 찾았어요.{"\n"}
+                    {isSecretResult
+                        ? "나와 비슷한 답을 한 사람들을 다시 찾았어요."
+                        : "나와 가장 비슷한 답을 한 사람들을 찾았어요."}
+                    {"\n"}
                     서로를 선택한 단 한사람과 대화를 나눌 수 있어요.
                 </HeaderDescription>
+                {isSecretResult && (
+                    <SecretNotice data-testid="secret-matching-notice">
+                        <SecretNoticeIcon src="/icons/status/time.svg" alt="" />
+                        서로 선택하면 바로 대화가 열려요 · 일요일 밤까지
+                    </SecretNotice>
+                )}
                 <SegmentedControl
                     tabs={TABS}
                     value={activeTab}
@@ -250,6 +266,28 @@ const MatchIcon = styled.span`
 const MatchLabelText = styled.span`
   font-size: var(--typography-label-1-normal-font-size);
   color: var(--color-semantic-accent-foreground-vintagePink);
+`;
+
+/** 시안 F 의 안내 칩. 정규 결과 화면에는 없다. */
+const SecretNotice = styled.div`
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--spacing-6px);
+  background-color: var(--color-semantic-fill-normal);
+  color: var(--color-semantic-label-neutral);
+  font-size: var(--typography-label-2-font-size);
+  line-height: var(--typography-label-2-line-height);
+  letter-spacing: var(--typography-label-2-letter-spacing);
+  font-weight: var(--typography-label-2-font-weight);
+`;
+
+const SecretNoticeIcon = styled.img`
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 `;
 
 const HeaderDescription = styled.p`

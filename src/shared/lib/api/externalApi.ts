@@ -11,6 +11,7 @@ import type {
 } from "@/shared/lib/api/generated";
 import { externalApiFetch } from "@/shared/lib/api/externalClient";
 import type {
+    CandidateOrigin,
     GetGroupCandidatesResponse,
     GetMatchCandidatesResponse,
     GetMatchingStatusResponse,
@@ -45,6 +46,8 @@ type ExternalMatchCandidate = {
     profileImageUrl?: string | null;
     matchRate?: number;
     scoreBreakdown: ScoreBreakdownDto;
+    /** IMP-2 시크릿 매칭(BE #382). 옛 서버·그룹 후보에는 없다. */
+    candidateOrigin?: CandidateOrigin;
 };
 
 /**
@@ -159,6 +162,8 @@ const toMatchCandidate = (candidate: ExternalMatchCandidate): MatchCandidateDto 
     profileImageUrl: toAvatarImageUrl(candidate.profileImageUrl ?? null),
     matchRate: candidate.matchRate ?? candidate.scoreBreakdown.quizMatchRate,
     scoreBreakdown: candidate.scoreBreakdown,
+    // 값이 없으면 키도 만들지 않는다 — 정규 후보와 그룹 후보는 지금과 같은 모양이다.
+    ...(candidate.candidateOrigin ? { candidateOrigin: candidate.candidateOrigin } : {}),
 });
 
 function getStoredQuizSetId(): string {

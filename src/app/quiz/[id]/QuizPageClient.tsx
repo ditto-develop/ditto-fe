@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
 import { Label1Normal, Label2, Title2, Title3 } from "@/shared/ui";
 import { Nav } from "@/shared/ui";
-import { ActionButton, ActionSheet } from "@/components/input/Action";
+import { ActionButton } from "@/components/input/Action";
 import { useRouter, useParams } from "next/navigation";
 import { QuizModal } from "@/components/quiz/QuizModal";
 import type { QuizWithAnswerDto } from "@/shared/lib/api/generated";
@@ -14,7 +14,7 @@ import {
   submitExternalQuizAnswer,
 } from "@/shared/lib/api/externalApi";
 import { getQuizSanctionMessage } from "@/features/sanction";
-import { useMatchingNotifyPrompt } from "@/features/settings/hooks/useMatchingNotifyPrompt";
+import { QuizNotifyPrompt } from "@/components/quiz/QuizNotifyPrompt";
 import { useToast } from "@/context/ToastContext";
 import { trackEvent } from "@/shared/lib/analytics";
 import { useBackClose } from "@/shared/hooks/useBackClose";
@@ -451,7 +451,6 @@ const getRandomImage = () => {
 function FinishView(){
   const router = useRouter();
   const [imgSrc] = useState(getRandomImage);
-  const { needsPrompt, notifying, enableMatchingNotify } = useMatchingNotifyPrompt();
 
     return(
         <PageContainer>
@@ -480,24 +479,8 @@ function FinishView(){
               <RandomImg src={imgSrc} />
             </MiddleContainer>
 
-            {/* 매칭 알림이 꺼져 있을 때만 묻는다(useMatchingNotifyPrompt). */}
-            {needsPrompt && (
-              <ActionSheet
-                  caption="결과를 놓치지 않도록 알려드릴게요"
-                  layout="column"
-              >
-                  <ActionButton
-                    variant={notifying ? "disabled" : "primary"}
-                    disabled={notifying}
-                    onClick={enableMatchingNotify}
-                  >
-                    알림받기
-                  </ActionButton>
-                  <ActionButton
-                    onClick={()=>{router.push('/home')}}
-                    variant="tertiary">다음에 하기</ActionButton>
-              </ActionSheet>
-            )}
+            {/* 매칭 알림이나 OS 알림 권한이 꺼져 있을 때만 묻는다(QuizNotifyPrompt). */}
+            <QuizNotifyPrompt defaultCaption="결과를 놓치지 않도록 알려드릴게요" />
         </PageContainer>
     )
 }

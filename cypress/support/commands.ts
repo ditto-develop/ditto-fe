@@ -9,6 +9,11 @@ type MockApiOptions = {
   groupMatchesFixture?: string;
   matchingStatusFixture?: string;
   memberReviewsFixture?: string;
+  /**
+   * 시크릿 매칭 홈 상태(GET /matching/secret-status). 기본은 대상 아님(NONE)이라 기존 화면이 그대로 뜬다.
+   * mockApi 는 서버 플래그를 전부 켜진 것으로 답하므로, 이 기본값이 없으면 모든 홈 테스트가 실서버를 부른다.
+   */
+  secretMatchingFixture?: string;
   /** 진행 중 투표(group-votes.json 의 OPEN)의 필드를 덮어쓴다. 만든 사람·참여 수 분기용. */
   openVoteOverrides?: { createdBy?: number; votedCount?: number };
 };
@@ -161,6 +166,12 @@ Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
   mockFixture("GET", ["**/api/v1/matches/1on1*", "**/api/matches/1on1*"], options.matchesFixture ?? "matches-one-on-one.json", "getMatchesOneOnOne");
   mockFixture("GET", ["**/api/v1/matching/status/**", "**/api/matching/status/**"], options.matchingStatusFixture ?? "matching-status.json", "getMatchingStatus");
   mockFixture("POST", ["**/api/v1/matches/request*", "**/api/matches/request*"], "match-request.json", "sendMatchRequest");
+  mockFixture(
+    "GET",
+    ["**/api/v1/matching/secret-status*"],
+    options.secretMatchingFixture ?? "secret-matching-none.json",
+    "getSecretMatchingStatus",
+  );
   mockStatic(
     "POST",
     ["**/api/v1/matches/request/*/accept", "**/api/matches/request/*/accept"],

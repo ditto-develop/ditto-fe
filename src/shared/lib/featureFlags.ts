@@ -14,7 +14,7 @@
 import { fetchFeatureFlags } from "@/shared/lib/api/featureFlagsApi";
 
 /** FE 가 쓰는 서버 플래그 키. 서버 `FeatureFlagKey` 에 먼저 추가한 뒤 여기에 넣는다. */
-export type FeatureFlag = "QUIZ_CHAT" | "RECORDS";
+export type FeatureFlag = "QUIZ_CHAT" | "RECORDS" | "SECRET_MATCHING";
 
 export const FEATURE_FLAGS_TTL_MS = 60_000;
 

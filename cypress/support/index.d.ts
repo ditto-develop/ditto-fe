@@ -19,6 +19,8 @@ declare global {
         matchesFixture?: string;
         matchingStatusFixture?: string;
         memberReviewsFixture?: string;
+        /** 시크릿 매칭 홈 상태 fixture. 기본은 secret-matching-none.json(대상 아님). */
+        secretMatchingFixture?: string;
         /** 진행 중 투표(group-votes.json 의 OPEN)의 필드를 덮어쓴다. */
         openVoteOverrides?: { createdBy?: number; votedCount?: number };
       }): Chainable<void>;

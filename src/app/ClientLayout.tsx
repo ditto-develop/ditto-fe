@@ -19,6 +19,7 @@ import { initChunkReloadGuard } from "@/shared/lib/chunkReload";
 // 부수효과 import: 모듈을 읽는 순간 DB 초기화 전의 id 기록을 비운다(staleLocalIds 주석).
 import "@/shared/lib/staleLocalIds";
 import { isBootSplashPath, normalizePathname } from "@/shared/lib/routePath";
+import { clearPushEntryUnless } from "@/shared/lib/navigation";
 import { shouldShowWebDownload } from "@/shared/lib/webGate";
 import { initAppShell } from "@/shared/lib/native/appShell";
 import {
@@ -222,8 +223,10 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   }, [isLoggedIn, router]);
 
   // 채팅방에 들어오면 알림 센터에 남은 그 방 알림을 지운다. 웹·채팅방 밖에서는 no-op 이다.
+  // 알림으로 들어온 화면을 벗어났으면 그 표시도 지운다(navigation.clearPushEntryUnless).
   useEffect(() => {
     void clearChatRoomNotifications(pathname);
+    clearPushEntryUnless(pathname);
   }, [pathname]);
 
   // 쓰레기 토큰 감시: 주기적 + 탭 간 storage 변경 시 제거·동기화

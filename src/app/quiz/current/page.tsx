@@ -1,20 +1,24 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import styled, { css, keyframes } from "styled-components";
-import { EmptyState, Label1Normal, Label2, Title2, Title3 } from "@/shared/ui";
+import { AlertModal, EmptyState, Label1Normal, Label2, Title2, Title3 } from "@/shared/ui";
 import { Nav } from "@/shared/ui";
 import { ActionButton, ActionSheet } from "@/components/input/Action";
 import { useRouter, useSearchParams } from "next/navigation";
 import { QuizModal, QUIZ_SELECT_HOME_PATH } from "@/components/quiz/QuizModal";
+import { QuizNotifyPrompt } from "@/components/quiz/QuizNotifyPrompt";
 import {
   getExternalCurrentWeekQuizSets,
   getExternalQuizSetWithProgress,
   resetExternalQuizProgress,
   submitExternalQuizAnswer,
 } from "@/shared/lib/api/externalApi";
+import { API_ERROR_CODE, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { getQuizSanctionMessage } from "@/features/sanction";
-import { useMatchingNotifyPrompt } from "@/features/settings/hooks/useMatchingNotifyPrompt";
+import { getSecretMatchingStatus } from "@/features/matching/api/secretMatchingApi";
+import type { SecretRoundDay } from "@/features/matching/model/secretMatching";
+import { LATE_QUIZ_SET_QUERY_KEY, toSecretRoundDay } from "@/features/matching/model/secretMatching";
 import { useToast } from "@/context/ToastContext";
 import { trackEvent } from "@/shared/lib/analytics";
 import { useBackClose } from "@/shared/hooks/useBackClose";
@@ -46,11 +50,24 @@ function pickQuizSet(
   return quizSets.find((quizSet) => quizSet.matchingType === matchingType);
 }
 
+/** 늦은 응시 제출이 토 20:00 마감에 걸렸을 때(4007). 그 답은 서버에 저장되지 않았다. */
+const SECRET_CLOSED_TOAST = "이번 주 시크릿 매칭 참여가 마감됐어요.";
+
+function isSecretMatchingClosed(err: unknown): boolean {
+  return hasApiErrorCode(err, API_ERROR_CODE.QUIZ_SECRET_MATCHING_CLOSED);
+}
+
 function QuizContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showToast } = useToast();
   const matchingType = searchParams.get("type"); // 'ONE_TO_ONE' | 'GROUP' | null
+  /**
+   * 시크릿 매칭 늦은 응시(목~토 19:59). 홈 시크릿 카드의 [퀴즈 풀어보기]만 이 값을 싣는다.
+   * 목~일에는 `quiz-sets/current-week` 가 비어 있어 셋을 직접 읽는다(BE ADR 0053).
+   */
+  const lateQuizSetId = searchParams.get(LATE_QUIZ_SET_QUERY_KEY) || null;
+  const isLate = lateQuizSetId !== null;
 
   // --- State for API data, loading, and error ---
   const [quizData, setQuizData] = useState<CurrentWeekQuizSetsResponseDto | null>(null);
@@ -64,9 +81,36 @@ function QuizContent() {
   const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [restarting, setRestarting] = useState(false);
+  const [lateQuizzes, setLateQuizzes] = useState<QuizDto[] | null>(null);
+  /** 늦은 응시 셋을 열려는데 이미 마감(4007)이었다. 안내 모달을 띄우고 홈으로 보낸다. */
+  const [lateClosed, setLateClosed] = useState(false);
+  /** 제출이 마감(4007)에 걸렸다. 예약된 다음 문항·완료 화면 전환을 멈춘다. */
+  const submitClosedRef = useRef(false);
 
   useEffect(() => {
     let ignore = false;
+
+    /*
+     * 늦은 응시는 이어풀기 안내(QuizModal) 없이 첫 미응답 문항부터 이어 푼다 — 안내의 "새로 풀기"(reset)를
+     * 이 구간에서는 서버가 받아 주지 않는다(BE #380).
+     */
+    const fetchLateQuiz = async (quizSetId: string) => {
+      try {
+        setLoading(true);
+        const progress = await getExternalQuizSetWithProgress(quizSetId);
+        if (ignore) return;
+        setLateQuizzes(progress.quizzes);
+        const firstUnanswered = progress.quizzes.findIndex((quiz) => !quiz.userAnswer);
+        if (progress.quizzes.length > 0 && firstUnanswered === -1) setIsFinish(true);
+        else if (firstUnanswered > 0) setCurrentStep(firstUnanswered);
+      } catch (err: unknown) {
+        if (ignore) return;
+        if (isSecretMatchingClosed(err)) setLateClosed(true);
+        else setError("퀴즈를 불러오지 못했어요.");
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    };
 
     const fetchQuizData = async () => {
       try {
@@ -106,18 +150,20 @@ function QuizContent() {
       }
     };
 
-    fetchQuizData();
+    if (lateQuizSetId) void fetchLateQuiz(lateQuizSetId);
+    else fetchQuizData();
 
     return () => {
       ignore = true;
     };
-  }, [matchingType]);
+  }, [matchingType, lateQuizSetId]);
 
   // --- Derived State ---
   const selectedQuizSet = quizData ? pickQuizSet(quizData, matchingType) : undefined;
-  // 머리글 태그는 사용자가 홈에서 고른 종류(type 쿼리)를 우선한다.
-  const matchingLabel = (matchingType ?? selectedQuizSet?.matchingType) === "GROUP" ? "그룹 매칭" : "1:1 매칭";
-  const quizzes: QuizDto[] = selectedQuizSet?.quizzes || [];
+  // 머리글 태그는 사용자가 홈에서 고른 종류(type 쿼리)를 우선한다. 늦은 응시는 1:1 뿐이다.
+  const matchingLabel =
+    !isLate && (matchingType ?? selectedQuizSet?.matchingType) === "GROUP" ? "그룹 매칭" : "1:1 매칭";
+  const quizzes: QuizDto[] = isLate ? lateQuizzes ?? [] : selectedQuizSet?.quizzes || [];
   const currentQuiz = quizzes[currentStep];
   const isLastQuiz = currentStep === quizzes.length - 1;
 
@@ -129,14 +175,24 @@ function QuizContent() {
 
     // 서버에 답변 제출 (비동기, 실패해도 UI 진행)
     // 단, 제재(6008)는 답변이 저장되지 않으므로 사용자에게 알린다.
+    // 시크릿 매칭 마감(4007)도 답이 저장되지 않는다 — 더 풀어도 소용없으니 멈추고 홈으로 보낸다.
     submitExternalQuizAnswer(currentQuiz.id, choiceId).catch((err: unknown) => {
+      if (isSecretMatchingClosed(err)) {
+        if (submitClosedRef.current) return;
+        submitClosedRef.current = true;
+        showToast(SECRET_CLOSED_TOAST, "error");
+        router.replace("/home");
+        return;
+      }
       const sanctionMessage = getQuizSanctionMessage(err);
       if (sanctionMessage) showToast(sanctionMessage, "error");
     });
 
     setTimeout(() => {
+      if (submitClosedRef.current) return;
       setIsFadingOut(true);
       setTimeout(() => {
+        if (submitClosedRef.current) return;
         if (!isLastQuiz) {
           setCurrentStep((prev) => prev + 1);
           setSelectedChoiceId(null);
@@ -200,8 +256,30 @@ function QuizContent() {
     return <div>Error: {error}</div>; // Or a proper error component
   }
 
+  // 늦은 응시 셋을 열려는데 토 20:00 마감이 지났다(4007). 홈 카드보다 늦게 들어온 경우라 모달로 분명히 알린다.
+  if (lateClosed) {
+    return (
+      <Page>
+        <Nav prev={() => router.replace("/home")} label={matchingLabel} />
+        <AlertModal
+          isOpen
+          title="시크릿 매칭이 마감됐어요"
+          message={
+            <>
+              이번 주 매칭은 토요일 저녁 8시에 모두 끝났어요.
+              <br />
+              다음 주 월요일에 새 퀴즈로 다시 만나요!
+            </>
+          }
+          confirmParams={{ text: "홈으로", onClick: () => router.replace("/home") }}
+          onClose={() => router.replace("/home")}
+        />
+      </Page>
+    );
+  }
+
   // 고른 종류의 세트가 이번 주에 없다. 다른 종류로 바꿔치기하지 않고 그대로 알린다.
-  if (matchingType && !selectedQuizSet) {
+  if (!isLate && matchingType && !selectedQuizSet) {
     return (
       <Page>
         <Nav prev={() => goBackOr(router, "/home")} label={matchingLabel} />
@@ -237,7 +315,7 @@ function QuizContent() {
         />
       )}
       {isFinish ? (
-        <FinishView matchingLabel={matchingLabel} />
+        <FinishView matchingLabel={matchingLabel} isLate={isLate} />
       ) : (
         <Page>
           <Nav
@@ -511,11 +589,36 @@ const getRandomImage = () => {
   return `/quiz/img/${num}.svg`;
 };
 
-function FinishView({ matchingLabel }: { matchingLabel: string }) {
+/**
+ * 늦은 응시 완료 화면의 라운드 요일. 서버가 준 다음 라운드 시각으로 정한다 — 제출이 금 20:00 을 넘겼으면
+ * 토요일이다. 못 읽으면 null 이고 화면은 "금·토"로 쓴다.
+ */
+function useNextSecretRoundDay(enabled: boolean): SecretRoundDay | null {
+  const [roundDay, setRoundDay] = useState<SecretRoundDay | null>(null);
+  useEffect(() => {
+    if (!enabled) return;
+    let alive = true;
+    getSecretMatchingStatus()
+      .then((status) => {
+        if (alive) setRoundDay(toSecretRoundDay(status.nextRoundAt));
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [enabled]);
+  return roundDay;
+}
+
+function FinishView({ matchingLabel, isLate }: { matchingLabel: string; isLate: boolean }) {
   const router = useRouter();
   const [imgSrc] = useState(getRandomImage);
-  const { needsPrompt, notifying, enableMatchingNotify } = useMatchingNotifyPrompt();
   const isGroup = matchingLabel === "그룹 매칭";
+  const roundDay = useNextSecretRoundDay(isLate);
+  // 시안 E: 늦은 참여는 목요일 정규 결과가 아니라 금·토 저녁 8시 시크릿 매칭 결과를 기다린다.
+  const revealLine = isLate
+    ? `${roundDay ?? "금·토"} 저녁 8시에 시크릿 매칭 결과가 공개돼요.`
+    : "목요일에 매칭 결과가 공개돼요.";
 
     return(
         <PageContainer>
@@ -544,7 +647,7 @@ function FinishView({ matchingLabel }: { matchingLabel: string }) {
                   </CircleIconWrapper>
                 </LabelContainer>
                 <div>
-                  <Label1Normal>목요일에 매칭 결과가 공개돼요.</Label1Normal>
+                  <Label1Normal>{revealLine}</Label1Normal>
                   <Label1Normal>나와 같은 선택을 한 사람을 만날 수 있어요.</Label1Normal>
                   <Label1Normal>조금만 기다려주세요!</Label1Normal>
                 </div>
@@ -554,24 +657,10 @@ function FinishView({ matchingLabel }: { matchingLabel: string }) {
               <RandomImg src={imgSrc} />
             </MiddleContainer>
 
-            {/* 매칭 알림이 꺼져 있을 때만 묻는다(useMatchingNotifyPrompt). */}
-            {needsPrompt && (
-              <ActionSheet
-                  caption="결과를 놓치지 않도록 알려드릴게요"
-                  layout="column"
-              >
-                  <ActionButton
-                    variant={notifying ? "disabled" : "primary"}
-                    disabled={notifying}
-                    onClick={enableMatchingNotify}
-                  >
-                    알림받기
-                  </ActionButton>
-                  <ActionButton
-                    onClick={()=>{router.push('/home')}}
-                    variant="tertiary">다음에 하기</ActionButton>
-              </ActionSheet>
-            )}
+            {/* 매칭 알림이나 OS 알림 권한이 꺼져 있을 때만 묻는다(QuizNotifyPrompt). */}
+            <QuizNotifyPrompt
+              defaultCaption={isLate ? "매칭되면 바로 알려드릴게요" : "결과를 놓치지 않도록 알려드릴게요"}
+            />
         </PageContainer>
     )
 }

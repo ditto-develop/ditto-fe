@@ -33,6 +33,8 @@ import localLogin from "@/mocks/fixtures/local-login.json";
 import matchRequest from "@/mocks/fixtures/match-request.json";
 import matchesOneOnOne from "@/mocks/fixtures/matches-one-on-one.json";
 import matchingStatus from "@/mocks/fixtures/matching-status.json";
+import secretMatchingStatus from "@/mocks/fixtures/secret-matching-status.json";
+import { SECRET_MATCHING_STATUS_PATH } from "@/features/matching/api/secretMatchingApi";
 import myProfile from "@/mocks/fixtures/my-profile.json";
 import myRatings from "@/mocks/fixtures/my-ratings.json";
 import myStats from "@/mocks/fixtures/my-stats.json";
@@ -223,6 +225,8 @@ export const handlers = [
 
   http.get(apiPath("/matches/1on1"), () => HttpResponse.json(success(matchesOneOnOne))),
   http.get(apiPath("/matching/status/[^/]+"), () => HttpResponse.json(success(matchingStatus))),
+  // 시크릿 매칭 홈 상태(IMP-2). 기본은 대상 아님 — fixture 의 state 를 바꿔 홈 카드 A~D 를 본다.
+  http.get(apiPath(SECRET_MATCHING_STATUS_PATH), () => HttpResponse.json(success(secretMatchingStatus))),
   http.post(apiPath("/matches/request"), () => HttpResponse.json(success(matchRequest))),
   http.post(apiPath("/matches/request/[^/]+/accept"), () => HttpResponse.json(success(matchRequest))),
   http.post(apiPath("/matches/request/[^/]+/reject"), () => HttpResponse.json(success(matchRequest))),
