@@ -71,7 +71,7 @@ export function QuizRecordDetailContainer({ quizSetId }: QuizRecordDetailContain
 
             {revealed ? (
               <ListSlot>
-                <RecordResultList questions={data.answers} />
+                <RecordResultList questions={data.answers} participantCount={data.participantCount} />
               </ListSlot>
             ) : (
               <>

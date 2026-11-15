@@ -3,12 +3,16 @@
 import styled from "styled-components";
 
 import type { QuizHistoryAnswer, QuizHistoryChoice } from "@/features/records/model/types";
+import { formatResultBasis } from "@/features/records/lib/recordFormat";
 import { RecordQuestionSection } from "@/features/records/ui/RecordQuestionSection";
 import { Icon } from "@/shared/ui";
 
 type RecordResultListProps = {
   questions: QuizHistoryAnswer[];
+  /** 마감 통계의 참여자 수(공개 후 응답의 `participantCount`). 선택 비율이 이 사람들 기준이다. */
+  participantCount: number;
 };
+
 
 function byOrder<T extends { order: number }>(items: T[]): T[] {
   return [...items].sort((a, b) => a.order - b.order);
@@ -22,10 +26,11 @@ function isMinorityAnswer(question: QuizHistoryAnswer): boolean {
 }
 
 /** 공개 후 "질문별 선택" — 선택지마다 비율 막대, 내 답은 테두리·체크·초록 막대(Figma 3255:37133). */
-export function RecordResultList({ questions }: RecordResultListProps) {
+export function RecordResultList({ questions, participantCount }: RecordResultListProps) {
   return (
     <RecordQuestionSection
       heading="질문별 선택"
+      caption={formatResultBasis(participantCount)}
       items={byOrder(questions).map((question) => ({
         key: question.quizId,
         node: (

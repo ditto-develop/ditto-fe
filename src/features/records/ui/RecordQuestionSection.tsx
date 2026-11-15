@@ -6,6 +6,8 @@ import styled from "styled-components";
 type RecordQuestionSectionProps = {
   /** "내가 고른 답 12" / "질문별 선택" */
   heading: string;
+  /** 제목 아래 한 줄 안내. 공개 후 결과에서 비율의 기준을 밝힌다. */
+  caption?: string;
   /** 문항 하나씩. 사이마다 점선 구분선이 들어간다. */
   items: Array<{ key: string | number; node: ReactNode }>;
 };
@@ -14,10 +16,13 @@ type RecordQuestionSectionProps = {
  * 문항 목록 카드 — 제목 아래 카드 하나에 문항을 점선으로 나눠 쌓는다
  * (Figma 내 답변 3254:37988 · 퀴즈 결과 3255:37130).
  */
-export function RecordQuestionSection({ heading, items }: RecordQuestionSectionProps) {
+export function RecordQuestionSection({ heading, caption, items }: RecordQuestionSectionProps) {
   return (
     <Section>
-      <Heading>{heading}</Heading>
+      <HeadingBlock>
+        <Heading>{heading}</Heading>
+        {caption && <Caption data-testid="record-section-caption">{caption}</Caption>}
+      </HeadingBlock>
       <Card>
         {items.map((item, index) => (
           <Fragment key={item.key}>
@@ -36,6 +41,21 @@ const Section = styled.section`
   gap: calc(var(--space-3) + var(--spacing-2px));
   width: 100%;
   padding-top: var(--spacing-6px);
+`;
+
+const HeadingBlock = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+`;
+
+const Caption = styled.p`
+  margin: 0;
+  font-size: var(--typography-label-2-font-size);
+  font-weight: var(--typography-label-2-font-weight);
+  line-height: var(--typography-label-2-line-height);
+  letter-spacing: var(--typography-label-2-letter-spacing);
+  color: var(--color-semantic-label-alternative);
 `;
 
 const Heading = styled.h2`

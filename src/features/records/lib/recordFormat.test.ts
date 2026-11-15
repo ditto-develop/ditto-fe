@@ -73,3 +73,11 @@ describe("recordFormat", () => {
     expect(pastRecordLabel({ minorityCount: null }).tone).toBe("neutral");
   });
 });
+
+describe("formatResultBasis", () => {
+  it("마감 통계 참여자 수를 천 단위로 끊어 쓴다", async () => {
+    const { formatResultBasis } = await import("@/features/records/lib/recordFormat");
+    expect(formatResultBasis(312)).toBe("선택 비율은 퀴즈 참여자 312명 기준이에요");
+    expect(formatResultBasis(1204)).toBe("선택 비율은 퀴즈 참여자 1,204명 기준이에요");
+  });
+});

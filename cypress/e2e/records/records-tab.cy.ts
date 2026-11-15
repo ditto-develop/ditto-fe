@@ -113,6 +113,8 @@ describe("퀴즈 기록 탭 — 서버 RECORDS 켜짐(테스터 모드 아님)",
     cy.contains("소수 의견").parent().find("strong").should("have.text", "2개");
 
     cy.contains("질문별 선택").should("be.visible");
+    // 비율은 마감 통계 기준이다 — 늦게 푼 사람(시크릿 매칭)도 같은 숫자를 보므로 모두에게 기준을 밝힌다.
+    cy.get('[data-testid="record-section-caption"]').should("have.text", "선택 비율은 퀴즈 참여자 312명 기준이에요");
     cy.get('[data-testid="record-result"]').should("have.length", 12);
     cy.get('[data-testid="record-result"]')
       .eq(2)

@@ -68,7 +68,7 @@ export function RoomOneOnOneAnswersPage({
             </HintIcon>
             <HintText>
               <strong>{highlightChoice.content}</strong>
-              {topicParticle(highlightChoice.content)} 전체의 {highlightChoice.percent}%만 고른
+              {topicParticle(highlightChoice.content)} 퀴즈 참여자의 {highlightChoice.percent}%만 고른
               답이에요. 두 분 다 이 답을 골랐어요.
             </HintText>
           </HintBox>
@@ -122,7 +122,7 @@ export function RoomOneOnOneAnswersPage({
   );
 }
 
-/* 전체의 n%만 고른 답 안내 — fill/normal 바탕(Figma 3257:53278). */
+/* 퀴즈 참여자의 n%만 고른 답 안내 — fill/normal 바탕(Figma 3257:53278). */
 const HintBox = styled.div`
   display: flex;
   align-items: flex-start;

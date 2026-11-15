@@ -77,7 +77,7 @@ describe("8.1 대화방 우리의 답변 — 서버 RECORDS 켜짐(테스터 모
       cy.contains("12개 질문 중").should("be.visible");
       cy.contains("7개가 같아요").should("be.visible");
       // highlightQuizId(Q3) — 같은 답 중 가장 드문 답.
-      cy.contains("는 전체의 18%만 고른 답이에요").should("exist");
+      cy.contains("는 퀴즈 참여자의 18%만 고른 답이에요").should("exist");
       cy.contains("같은 답 7").should("exist");
       cy.contains("다른 답 5").should("exist");
       // 이 방에 이미 올라온 문항(Q2, sent)은 말 걸기가 꺼져 있다.

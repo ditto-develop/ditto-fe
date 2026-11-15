@@ -109,3 +109,11 @@ export function pastRecordLabel(week: Pick<QuizHistoryWeek, "minorityCount">): P
     tone: "positive",
   };
 }
+
+/**
+ * 선택 비율의 기준. 비율은 응답 마감 때 굳힌 통계(마감까지 완주한 사람)라, 마감 뒤에 푼 사람(시크릿 매칭 늦은
+ * 응시)은 자기가 빠진 숫자를 본다. 그래서 누구 기준인지 모든 사람에게 밝힌다(IMP-2, 2026-11-16 결정).
+ */
+export function formatResultBasis(participantCount: number): string {
+  return `선택 비율은 퀴즈 참여자 ${participantCount.toLocaleString("ko-KR")}명 기준이에요`;
+}
