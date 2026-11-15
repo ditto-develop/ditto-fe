@@ -42,6 +42,7 @@
     "@capacitor/status-bar": "^8.0.3",
     "@capawesome/capacitor-badge": "^8.0.3",
     "@stomp/stompjs": "^7.3.0",
+    "capacitor-app-settings": "file:native-plugins/capacitor-app-settings",
     "capacitor-apple-login": "file:native-plugins/capacitor-apple-login",
     "capacitor-kakao-login": "file:native-plugins/capacitor-kakao-login",
     "firebase": "^12.18.0",

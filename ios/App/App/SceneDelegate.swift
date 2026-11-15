@@ -26,10 +26,77 @@ import Capacitor
  * `ROOT_PATHS` 같은 방어가 iOS 에는 적용되지 않는다.
  */
 final class MainViewController: CAPBridgeViewController {
+    /// `navigationDelegate` 는 weak 라 여기서 붙잡아 둔다. 놓치면 바로 해제되고 Capacitor 처리까지 같이 끊긴다.
+    private var navigationProxy: CancelTolerantNavigationDelegate?
+
     override func viewDidLoad() {
         // 웹뷰는 loadView() 에서 만들어지므로 이 시점에는 이미 존재한다.
         super.viewDidLoad()
         webView?.allowsBackForwardNavigationGestures = true
+
+        if let webView, let original = webView.navigationDelegate {
+            let proxy = CancelTolerantNavigationDelegate(wrapping: original)
+            navigationProxy = proxy
+            webView.navigationDelegate = proxy
+        }
+    }
+}
+
+/**
+ * 문서 로드가 **취소**로 끝났을 때 Capacitor 가 오프라인 화면(`app-offline.html`)을 띄우지 않게 한다.
+ *
+ * Capacitor 의 `WebViewDelegationHandler` 는 `didFail` · `didFailProvisionalNavigation` 에서 에러 종류를 보지
+ * 않고 `server.errorPath` 를 연다(node_modules/@capacitor/ios/.../WebViewDelegationHandler.swift). 그런데
+ * iOS 는 "다른 이동에 밀려 취소됨"(NSURLErrorCancelled, -999)도 이 콜백으로 알린다. 그래서 망이 멀쩡해도
+ * 푸시 탭·뒤로가기처럼 문서가 바뀌는 순간에 이동이 겹치면 "연결할 수 없어요"가 떴다(2026-10-26, 2026-11 QA).
+ * 취소된 이동은 그 뒤의 이동이 이어 받으므로 오류 화면을 띄울 이유가 없다.
+ *
+ * 걸러 내는 것은 두 가지뿐이다. 나머지(실제 오프라인·DNS·타임아웃 등)는 그대로 Capacitor 가 처리한다.
+ *  - NSURLErrorCancelled(-999): 다른 이동이 끼어들어 취소됨
+ *  - WebKitErrorFrameLoadInterruptedByPolicyChange(102): 이동 정책이 로드를 멈춤(외부 앱으로 연 링크 등)
+ *
+ * Capacitor 는 핸들러를 `loadView()` 안에서 private 하게 만들어 갈아 끼울 수 없다. 그래서 감싼다 — 위 두 콜백만
+ * 여기서 받고, 나머지 `WKNavigationDelegate` 메서드는 `forwardingTarget(for:)` 로 원래 핸들러에 그대로 넘긴다.
+ * WebKit 은 델리게이트를 붙일 때 `responds(to:)` 로 메서드 목록을 한 번 읽어 두므로 그 답도 원래 핸들러를 따른다.
+ */
+final class CancelTolerantNavigationDelegate: NSObject, WKNavigationDelegate {
+    private let wrapped: WKNavigationDelegate
+
+    init(wrapping wrapped: WKNavigationDelegate) {
+        self.wrapped = wrapped
+        super.init()
+    }
+
+    override func responds(to aSelector: Selector!) -> Bool {
+        super.responds(to: aSelector) || wrapped.responds(to: aSelector)
+    }
+
+    override func forwardingTarget(for aSelector: Selector!) -> Any? {
+        wrapped.responds(to: aSelector) ? wrapped : super.forwardingTarget(for: aSelector)
+    }
+
+    static func isCancellation(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled { return true }
+        // WebKitErrorFrameLoadInterruptedByPolicyChange. 상수가 공개 헤더에 없어 값으로 비교한다.
+        if nsError.domain == "WebKitErrorDomain" && nsError.code == 102 { return true }
+        return false
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        if Self.isCancellation(error) {
+            CAPLog.print("⚡️  Ignored cancelled provisional navigation (no offline page): \(error.localizedDescription)")
+            return
+        }
+        wrapped.webView?(webView, didFailProvisionalNavigation: navigation, withError: error)
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        if Self.isCancellation(error) {
+            CAPLog.print("⚡️  Ignored cancelled navigation (no offline page): \(error.localizedDescription)")
+            return
+        }
+        wrapped.webView?(webView, didFail: navigation, withError: error)
     }
 }
 
