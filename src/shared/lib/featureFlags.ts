@@ -4,7 +4,7 @@
  * 서버 플래그는 어드민 "시스템 → 기능 플래그"에서 켜고 끈다(ditto-server ADR 0051). 공개 전 화면은 플래그를
  * 끈 채 배포하고, 그동안은 홈 로고를 7번 누른 테스터 기기에서만 보인다. 서버에서 켜는 순간 모든 사용자에게
  * 보인다(재배포 없음).
- * - 화면이 쓰는 키만 서버에 묻는다(`?keys=RECORDS&keys=…`). 같은 순간 여러 화면이 물으면 한 요청으로 묶는다.
+ * - 화면이 쓰는 키만 서버에 묻는다(`?keys=SECRET_MATCHING&keys=…`). 같은 순간 여러 화면이 물으면 한 요청으로 묶는다.
  * - 키마다 1분 캐시한다(서버도 1분 캐시). 켠 뒤 화면에 퍼지기까지 최대 2분 정도 걸린다.
  * - 키마다 마지막으로 받은 값을 기기(localStorage)에 남겨 첫 화면과 조회 실패 때 쓴다. 받은 적이 없으면 꺼진 것이다.
  * - 화면을 가릴 뿐 접근 제어가 아니다. API 는 서버가 따로 막는다.
@@ -14,7 +14,7 @@
 import { fetchFeatureFlags } from "@/shared/lib/api/featureFlagsApi";
 
 /** FE 가 쓰는 서버 플래그 키. 서버 `FeatureFlagKey` 에 먼저 추가한 뒤 여기에 넣는다. */
-export type FeatureFlag = "QUIZ_CHAT" | "RECORDS" | "SECRET_MATCHING";
+export type FeatureFlag = "SECRET_MATCHING";
 
 export const FEATURE_FLAGS_TTL_MS = 60_000;
 

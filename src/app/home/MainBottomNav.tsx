@@ -8,7 +8,6 @@ import { Caption2 } from '@/shared/ui';
 import { Icon, type IconName } from '@/shared/ui';
 import { useChatUnreadTotal } from '@/features/chat/hooks/useChatUnreadTotal';
 import { isPathActive } from '@/shared/lib/routePath';
-import { useFeatureFlag } from '@/shared/lib/hooks/useFeatureFlag';
 
 // 1. 네비게이션 아이템 설정 (경로, 라벨, 아이콘 경로 등)
 // 실제 프로젝트에 있는 이미지 경로로 교체해주세요.
@@ -16,8 +15,6 @@ type NavItemConfig = {
   label: string;
   path: string;
   iconName: IconName;
-  /** 서버 기능 플래그 뒤에 있는 탭이면 그 키. 서버에서 켜져 있을 때만 보인다(CLAUDE.md §9.1). */
-  feature?: 'RECORDS';
 };
 
 const NAV_ITEMS = [
@@ -27,11 +24,10 @@ const NAV_ITEMS = [
     iconName: 'tab.home',
   },
   {
-    // 8.1 퀴즈 기록 [3254:37114]. 서버 `RECORDS` 플래그가 켜져 있으면 홈과 대화방 사이에 끼운다.
+    // 8.1 퀴즈 기록 [3254:37114]. 홈과 대화방 사이.
     label: '기록',
     path: '/records',
     iconName: 'content.documentText',
-    feature: 'RECORDS',
   },
   {
     label: '대화방',
@@ -48,10 +44,7 @@ const NAV_ITEMS = [
 const MainBottomNav = () => {
   const pathname = usePathname(); // 현재 경로 가져오기
   const chatUnreadTotal = useChatUnreadTotal();
-  const recordsVisible = useFeatureFlag('RECORDS');
-  const items: NavItemConfig[] = NAV_ITEMS.filter(
-    (item: NavItemConfig) => item.feature !== 'RECORDS' || recordsVisible,
-  );
+  const items: NavItemConfig[] = NAV_ITEMS;
 
   return (
     <NavContainer>

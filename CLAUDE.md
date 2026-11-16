@@ -319,7 +319,7 @@ There is no staging (§13.0), so a new screen ships to production **hidden**. Vi
 Sources: `src/shared/lib/featureFlags.ts` (server-flag store, tester mode, `resolveFeatureVisibility`) and
 `src/shared/lib/hooks/useFeatureFlag.ts`. The FE has no static stage map of its own.
 
-- API: `GET /api/v1/feature-flags?keys=RECORDS&keys=…` (X-API-Key only, works before login). The
+- API: `GET /api/v1/feature-flags?keys=SECRET_MATCHING&keys=…` (X-API-Key only, works before login). The
   response holds exactly the asked keys; a key the server does not know comes back `false`.
 - Cache: per key, 1 minute (the server also caches 1 minute), so a toggle reaches screens within
   about 2 minutes. Keys needed in the same microtask are batched into one request; keys already in
@@ -330,19 +330,20 @@ Sources: `src/shared/lib/featureFlags.ts` (server-flag store, tester mode, `reso
 When building a new screen or feature that must not be public yet:
 
 1. Add the key to the server `FeatureFlagKey` enum first (ditto-server, it starts off), then to the
-   `FeatureFlag` union in `src/shared/lib/featureFlags.ts`. Use the server enum name, e.g. `"RECORDS"`.
+   `FeatureFlag` union in `src/shared/lib/featureFlags.ts`. Use the server enum name, e.g. `"SECRET_MATCHING"`.
 2. **Gate every entry point** (tab, button, banner, link) with
-   `useFeatureFlag("RECORDS")` from `@/shared/lib/hooks/useFeatureFlag`.
+   `useFeatureFlag("SECRET_MATCHING")` from `@/shared/lib/hooks/useFeatureFlag`.
 3. **Gate the route itself.** Static export uploads the page HTML regardless of the flag, so a URL,
    push or deep link still opens it. At the top of the page component:
-   `const allowed = useFeatureGate("RECORDS"); if (!allowed) return null;`
+   `const allowed = useFeatureGate("SECRET_MATCHING"); if (!allowed) return null;`
    (redirects to `/home` when the server flag is off and the device is not in tester mode; waits while
    the server value is still unknown; a tester device is allowed immediately).
 4. Cypress (§12.1): `cy.mockApi()` answers every asked flag as **on**. Cover three cases:
-   server on → visible; `cy.mockFeatureFlags({ RECORDS: false })` → entry point **absent**, route
+   server on → visible; `cy.mockFeatureFlags({ SECRET_MATCHING: false })` → entry point **absent**, route
    redirects, no API call; server off + `cy.enableTesterMode()` (before `cy.visit`) → visible.
 5. **Release** = turn the flag on in the server admin. To retire a flag, delete the FE key and branches
-   first, then the server enum value and its row.
+   first, then the server enum value and its row. The server keeps answering `true` for retired keys
+   (`RECORDS`, `QUIZ_CHAT` since 2026-11) so a tab or webview still running an older build keeps the screen.
 
 Limits: this hides UI only. It is not access control (the code is in the bundle, and anyone who knows
 the 7 taps can turn tester mode on) and it does not gate APIs — any BE API the feature calls must

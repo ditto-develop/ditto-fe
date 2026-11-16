@@ -39,7 +39,7 @@ describe("scrubTransportItem", () => {
       payload: {
         name: "faro.performance.resource",
         timestamp: "t",
-        attributes: { name: "https://api.ditto.pics/api/v1/feature-flags?keys=RECORDS" },
+        attributes: { name: "https://api.ditto.pics/api/v1/feature-flags?keys=SECRET_MATCHING" },
       },
     } as unknown as TransportItem;
 
