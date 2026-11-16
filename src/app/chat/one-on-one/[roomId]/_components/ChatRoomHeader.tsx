@@ -12,7 +12,7 @@ interface ChatRoomHeaderProps {
   expiresAt: Date | null;
   isEnded?: boolean;
   onMenuClick: () => void;
-  /** 8.1 "우리의 답변" 문서 아이콘. `RECORDS` 플래그가 켜져 방 답변을 읽었을 때만 넘긴다(Figma 3270:34759). */
+  /** 8.1 "우리의 답변" 문서 아이콘. 방 답변을 읽었을 때만 넘긴다(Figma 3270:34759). */
   onAnswersClick?: () => void;
 }
 

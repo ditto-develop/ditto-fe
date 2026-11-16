@@ -137,7 +137,7 @@ export type QuizCompareResponse = {
   diffCount: number;
   /** 같은 답 중 소수 의견이고 내 선택 비율이 가장 낮은 문항. 없으면 null. */
   highlightQuizId: number | null;
-  /** 방이 ACTIVE 이고 서버 QUIZ_CHAT 플래그가 켜져 있을 때만 true. */
+  /** 방이 ACTIVE 일 때만 true. */
   canSendCard: boolean;
   /** 방 개방 시각. 열리기 전 딤드 버튼 문구에 쓴다. yyyy-MM-dd HH:mm:ss */
   chatOpensAt: string;

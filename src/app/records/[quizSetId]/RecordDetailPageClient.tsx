@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 
 import { QuizRecordDetailContainer } from "@/features/records/containers/QuizRecordDetailContainer";
-import { useFeatureGate } from "@/shared/lib/hooks/useFeatureFlag";
 import { resolveStaticRouteParam } from "@/shared/lib/staticRouteParam";
 
 function RecordDetailContent() {
@@ -17,12 +16,7 @@ function RecordDetailContent() {
   return <QuizRecordDetailContainer quizSetId={quizSetId} />;
 }
 
-/**
- * 8.1 내 답변 보기 / 퀴즈 결과. 서버 `RECORDS` 플래그가 꺼져 있으면 /home 으로 보낸다
- * (CLAUDE.md §9.1) — 푸시·딥링크로 바로 들어와도 막힌다.
- */
+/** 8.1 내 답변 보기 / 퀴즈 결과. */
 export function RecordDetailPageClient() {
-  const allowed = useFeatureGate("RECORDS");
-  if (!allowed) return null;
   return <RecordDetailContent />;
 }

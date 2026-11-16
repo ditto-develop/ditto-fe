@@ -12,7 +12,14 @@ import {
   resetFeatureFlagsForTest,
   resolveFeatureVisibility,
   subscribeFeatureFlags,
+  type FeatureFlag,
 } from "@/shared/lib/featureFlags";
+
+/**
+ * 묶음·TTL 은 키가 둘 이상이어야 드러나는데, 지금 쓰는 서버 플래그는 하나뿐이다.
+ * 캐시는 키 이름을 해석하지 않으므로 테스트 전용 키를 하나 더 쓴다.
+ */
+const OTHER = "TEST_OTHER" as FeatureFlag;
 
 const fetchFeatureFlags = vi.fn();
 
@@ -56,47 +63,47 @@ describe("서버 기능 플래그 캐시", () => {
 
   it("받은 적이 없으면 모름(null)이고, 받으면 그 값이다", async () => {
     answerAll(true);
-    expect(getFeatureFlagSnapshot("RECORDS")).toBeNull();
+    expect(getFeatureFlagSnapshot("SECRET_MATCHING")).toBeNull();
 
-    await refreshFeatureFlags(["RECORDS"], 1_000);
+    await refreshFeatureFlags(["SECRET_MATCHING"], 1_000);
 
-    expect(getFeatureFlagSnapshot("RECORDS")).toBe(true);
-    expect(fetchFeatureFlags).toHaveBeenCalledWith(["RECORDS"]);
+    expect(getFeatureFlagSnapshot("SECRET_MATCHING")).toBe(true);
+    expect(fetchFeatureFlags).toHaveBeenCalledWith(["SECRET_MATCHING"]);
   });
 
   it("서버가 빠뜨린 키는 꺼짐이다", async () => {
     fetchFeatureFlags.mockResolvedValue({ flags: {} });
 
-    await refreshFeatureFlags(["RECORDS"], 1_000);
+    await refreshFeatureFlags(["SECRET_MATCHING"], 1_000);
 
-    expect(getFeatureFlagSnapshot("RECORDS")).toBe(false);
+    expect(getFeatureFlagSnapshot("SECRET_MATCHING")).toBe(false);
   });
 
   it("키마다 1분 동안은 다시 묻지 않고, 1분이 지나면 그 키만 다시 묻는다", async () => {
     answerAll(true);
-    await refreshFeatureFlags(["RECORDS"], 1);
-    await refreshFeatureFlags(["QUIZ_CHAT"], 30_000);
+    await refreshFeatureFlags(["SECRET_MATCHING"], 1);
+    await refreshFeatureFlags([OTHER], 30_000);
     fetchFeatureFlags.mockClear();
 
-    await refreshFeatureFlags(["RECORDS", "QUIZ_CHAT"], FEATURE_FLAGS_TTL_MS);
+    await refreshFeatureFlags(["SECRET_MATCHING", OTHER], FEATURE_FLAGS_TTL_MS);
     expect(fetchFeatureFlags).not.toHaveBeenCalled();
 
-    await refreshFeatureFlags(["RECORDS", "QUIZ_CHAT"], FEATURE_FLAGS_TTL_MS + 2);
+    await refreshFeatureFlags(["SECRET_MATCHING", OTHER], FEATURE_FLAGS_TTL_MS + 2);
     expect(fetchFeatureFlags).toHaveBeenCalledTimes(1);
-    expect(fetchFeatureFlags).toHaveBeenCalledWith(["RECORDS"]);
+    expect(fetchFeatureFlags).toHaveBeenCalledWith(["SECRET_MATCHING"]);
   });
 
   it("같은 순간 여러 곳이 물으면 키를 모아 한 번만 묻는다", async () => {
     answerAll(true);
 
     await Promise.all([
-      refreshFeatureFlags(["RECORDS"], 1_000),
-      refreshFeatureFlags(["QUIZ_CHAT"], 1_000),
-      refreshFeatureFlags(["RECORDS"], 1_000),
+      refreshFeatureFlags(["SECRET_MATCHING"], 1_000),
+      refreshFeatureFlags([OTHER], 1_000),
+      refreshFeatureFlags(["SECRET_MATCHING"], 1_000),
     ]);
 
     expect(fetchFeatureFlags).toHaveBeenCalledTimes(1);
-    expect([...fetchFeatureFlags.mock.calls[0][0]].sort()).toEqual(["QUIZ_CHAT", "RECORDS"]);
+    expect([...fetchFeatureFlags.mock.calls[0][0]].sort()).toEqual(["SECRET_MATCHING", OTHER]);
   });
 
   it("묻는 중인 키는 다시 묻지 않고 그 응답을 기다린다", async () => {
@@ -108,40 +115,40 @@ describe("서버 기능 플래그 캐시", () => {
         }),
     );
 
-    const first = refreshFeatureFlags(["RECORDS"], 1_000);
+    const first = refreshFeatureFlags(["SECRET_MATCHING"], 1_000);
     await Promise.resolve();
-    const second = refreshFeatureFlags(["RECORDS"], 1_000 + FEATURE_FLAGS_TTL_MS + 1);
-    answer({ flags: { RECORDS: true } });
+    const second = refreshFeatureFlags(["SECRET_MATCHING"], 1_000 + FEATURE_FLAGS_TTL_MS + 1);
+    answer({ flags: { SECRET_MATCHING: true } });
     await Promise.all([first, second]);
 
     expect(fetchFeatureFlags).toHaveBeenCalledTimes(1);
-    expect(getFeatureFlagSnapshot("RECORDS")).toBe(true);
+    expect(getFeatureFlagSnapshot("SECRET_MATCHING")).toBe(true);
   });
 
   it("받은 값을 기기에 남기고, 다음 실행의 첫 화면은 그 값으로 그린다", async () => {
     answerAll(true);
-    await refreshFeatureFlags(["RECORDS"], 1_000);
-    expect(JSON.parse(fakeWindow.stored.get(FEATURE_FLAGS_STORAGE_KEY) ?? "{}")).toEqual({ RECORDS: true });
+    await refreshFeatureFlags(["SECRET_MATCHING"], 1_000);
+    expect(JSON.parse(fakeWindow.stored.get(FEATURE_FLAGS_STORAGE_KEY) ?? "{}")).toEqual({ SECRET_MATCHING: true });
 
     resetFeatureFlagsForTest();
 
-    expect(getFeatureFlagSnapshot("RECORDS")).toBe(true);
+    expect(getFeatureFlagSnapshot("SECRET_MATCHING")).toBe(true);
   });
 
   it("조회에 실패하면 남겨 둔 값을 쓰고, 남긴 값도 없으면 꺼짐으로 확정한다", async () => {
-    vi.stubGlobal("window", createFakeWindow({ [FEATURE_FLAGS_STORAGE_KEY]: JSON.stringify({ RECORDS: true }) }));
+    vi.stubGlobal("window", createFakeWindow({ [FEATURE_FLAGS_STORAGE_KEY]: JSON.stringify({ SECRET_MATCHING: true }) }));
     fetchFeatureFlags.mockRejectedValue(new Error("network"));
 
-    await refreshFeatureFlags(["RECORDS", "QUIZ_CHAT"], 1_000);
+    await refreshFeatureFlags(["SECRET_MATCHING", OTHER], 1_000);
 
-    expect(getFeatureFlagSnapshot("RECORDS")).toBe(true);
-    expect(getFeatureFlagSnapshot("QUIZ_CHAT")).toBe(false);
+    expect(getFeatureFlagSnapshot("SECRET_MATCHING")).toBe(true);
+    expect(getFeatureFlagSnapshot(OTHER)).toBe(false);
   });
 
   it("저장된 값이 깨져 있으면 없는 것으로 본다", () => {
     vi.stubGlobal("window", createFakeWindow({ [FEATURE_FLAGS_STORAGE_KEY]: "not json" }));
 
-    expect(getFeatureFlagSnapshot("RECORDS")).toBeNull();
+    expect(getFeatureFlagSnapshot("SECRET_MATCHING")).toBeNull();
   });
 
   it("값이 바뀌면 구독자에게 알린다", async () => {
@@ -149,7 +156,7 @@ describe("서버 기능 플래그 캐시", () => {
     const listener = vi.fn();
     subscribeFeatureFlags(listener);
 
-    await refreshFeatureFlags(["RECORDS"], 1_000);
+    await refreshFeatureFlags(["SECRET_MATCHING"], 1_000);
 
     expect(listener).toHaveBeenCalled();
   });
