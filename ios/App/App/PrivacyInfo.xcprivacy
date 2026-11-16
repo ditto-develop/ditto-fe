@@ -133,6 +133,39 @@
 				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
 			</array>
 		</dict>
+		<!--
+		  Grafana Faro(src/shared/lib/observability/faro.ts, PR #33, 2026-11-16) — 웹 바이탈·리소스 타이밍.
+		  회원 정보(user 메타)를 붙이지 않고 세션에는 실행 환경만 달아 연결(Linked)이 아니다.
+		  주소의 쿼리·해시는 보내기 전에 지운다(scrub.ts). ASC 영양성분표 "진단"에도 같은 값으로 신고한다.
+		-->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypePerformanceData</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!--
+		  Grafana Faro — JS 오류·콘솔 로그·오프라인 화면 기록(에러 코드, 실패 경로, 복구까지 걸린 시간).
+		  위와 같은 이유로 연결이 아니다.
+		-->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherDiagnosticData</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
 		<!-- 프로필 사진, 채팅·신고 첨부 이미지. -->
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
