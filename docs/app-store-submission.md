@@ -36,9 +36,13 @@
 Apple ID 는 2단계 인증이 필수라 코드가 계정 주인 기기로 간다. 리뷰어는 그 코드를 받을 수
 없어 로그인에서 막히고(2.1 리젝), 개인 계정의 iCloud·결제 정보까지 넘기게 된다.
 
-**심사 전용 카카오 계정**을 쓴다. 2단계 인증을 끄고, 매칭 결과·1:1 방·그룹 방이 있는 상태로
-만들어 둔다(§3-5). 리뷰어 기기에는 카카오톡이 없으므로 카카오 계정 웹 로그인(아이디·비밀번호)
-으로 들어온다.
+**1.0.1 부터는 심사용 로그인을 쓴다(2026-11-16).** 첫 화면 `ditto` 로고를 5번 연달아 누르면 "심사용 로그인"
+시트가 열리고, 서버에 설정된 아이디·비밀번호(`REVIEW_LOGIN_ID`·`REVIEW_LOGIN_PASSWORD_HASH`, 서버 #305 · FE #24)로
+심사 계정에 바로 들어간다. 카카오·애플 인증을 거치지 않으므로 해외 기기의 추가 인증에 막히지 않는다.
+숨긴 진입점이라 심사 노트에 여는 법을 적는다(가이드라인 2.3.1). **아이디·비밀번호는 ASC 로그인 정보 칸에만 둔다** —
+이 저장소는 공개다.
+
+1.0 은 심사 전용 카카오 계정으로 냈다(2단계 인증을 끄고 카카오 계정 웹 로그인). 그 계정의 데이터 준비는 §3-5 그대로다.
 
 ---
 
@@ -87,8 +91,7 @@ App Store Connect → 가격 및 사용 가능 여부 → 가격 일정 → 기�
 - **연락처**: 이름·전화(`+82 10 …` 형식)·이메일. API 는 이 셋이 없으면 노트도 저장하지 않는다.
 - **로그인 정보**: 심사용 카카오 계정의 아이디·비밀번호. **비밀번호는 App Store Connect 에만
   입력하고 채팅·문서·커밋에 남기지 않는다.**
-- **메모**: 아래 원문을 그대로 붙여넣는다. 카카오 계정이면 DEMO ACCOUNT 단락 끝에
-  `Tap "카카오로 계속하기" and sign in with the Kakao ID and password above.` 한 줄을 더한다.
+- **메모**: 아래 원문을 그대로 붙여넣는다. 1.0.1 부터는 DEMO ACCOUNT 단락에 심사용 로그인 여는 법을 넣었다(§8 원문).
 
 ```text
 ABOUT THE APP
@@ -284,3 +287,15 @@ ASC 버전 1.0.1 은 API 로 만들었다 — 출시 방식은 1.0 과 같은 **
 ```
 
 **심사 결과가 나올 때까지 `deploy` 푸시를 멈춘다**(§3-6). 승인되면 출시 방식이 수동이라 ASC 에서 [이 버전 출시]를 눌러야 나간다.
+
+### 로그인 안내 교체 (제출 뒤, 2026-11-16)
+
+1.0 의 노트를 그대로 이어받아 "카카오 버튼으로 로그인"이라고 나가 있었다. 심사 대기 중에 API 로 고쳤다(제출 취소 없이 반영됨).
+
+- 로그인 정보: 심사용 로그인 값으로 교체. 운영 `POST /api/v1/users/review-login` 로 로그인되는 것을 먼저 확인했다
+  (가입 완료 · 제재 없음).
+- DEMO ACCOUNT 단락의 로그인 문장:
+
+```text
+HOW TO SIGN IN: Kakao and Apple sign-in need the account owner's phone for verification, so we provide a dedicated review sign-in. On the first screen, tap the "ditto" logo 5 times in a row. A "심사용 로그인" (review sign-in) sheet opens. Enter the ID ("아이디") and password ("비밀번호") from the Sign-In Information section and tap "로그인". This entry point is hidden on purpose because regular users do not need it; it only signs in to this review account. The account already has matching results, a 1:1 chat room and a group chat room.
+```
