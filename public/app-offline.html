@@ -181,6 +181,8 @@
       writeDiagQueue([]);
       var body = JSON.stringify({
         meta: {
+          // 수집 서버는 sdk.version 이 없으면 400("No SDK version")을 준다. 웹 SDK 와 구분되게 이름을 따로 단다.
+          sdk: { name: "ditto-offline-page", version: "1" },
           app: { name: "ditto-fe", version: FARO_APP_VERSION, environment: "production" },
           session: { id: diagSessionId },
           page: { url: window.location.origin + window.location.pathname },
@@ -193,7 +195,8 @@
         fetch(FARO_URL, {
           method: "POST",
           keepalive: true,
-          headers: { "Content-Type": "application/json" },
+          // 세션 헤더가 없으면 수집 서버가 400 을 준다(SDK 는 SessionInstrumentation 이 붙인다).
+          headers: { "Content-Type": "application/json", "X-Faro-Session-Id": diagSessionId },
           body: body,
         })
           .then(function (res) { if (!res.ok) restore(); })
