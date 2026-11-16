@@ -101,7 +101,7 @@
      * 연결이 돌아오면 스스로 원래 화면으로 돌아간다.
      *
      * 네이티브 셸이 이 화면을 열 때 실패 정보를 쿼리로 넘긴다(code·domain·desc·url —
-     * ios SceneDelegate.swift 의 OfflineAwareNavigationDelegate, android MainActivity 의
+     * ios SceneDelegate.swift 의 CancelTolerantNavigationDelegate, android MainActivity 의
      * OfflineAwareWebViewClient). 그 셸들은 취소(-999)·이동 중단(WebKit 102)은 아예 이 화면으로
      * 보내지 않는다. 이전 앱 빌드는 쿼리 없이 열고 취소도 여기로 보낸다 — 쿼리가 없으면 "알 수 없음"
      * 으로 기록한다.
@@ -116,6 +116,11 @@
      * 망이 끊긴 채로 뜨는 화면이라 바로 보내지 않고 localStorage 에 쌓아 두었다가, 서버에 닿는다고
      * 확인된 순간(떠나기 직전) 한 번에 보낸다.
      *
+     * iOS 는 직접 못 보낸다. 이 화면의 origin 이 capacitor://localhost 인데 Faro 는 허용 출처에
+     * http·https 만 받아 CORS 에 막힌다. 그래서 iOS 에서는 떠날 때 쌓인 기록을 돌아갈 주소의
+     * 쿼리(DIAG_PARAM)에 실어 넘기고, 웹(faro.ts)이 받아서 대신 보낸다. Android(https://localhost)는
+     * 허용 출처에 넣을 수 있어 직접 보낸다.
+     *
      * 수집 주소는 빌드할 때 scripts/inject-offline-faro.mjs 가 아래 자리표시자를 바꿔 넣는다.
      * 자리표시자 그대로면(next dev, 주소 미설정 빌드) 기록기는 아무것도 하지 않는다.
      */
@@ -125,6 +130,11 @@
     // 오래 오프라인이어도 저장소를 채우지 않게 최근 것만 남긴다.
     var DIAG_QUEUE_MAX = 50;
     var diagEnabled = FARO_URL.indexOf("https://") === 0;
+    // 직접 보낼 수 있는 origin 인지. 아니면(iOS) 주소에 실어 웹에 넘긴다.
+    var canPostDirectly = window.location.protocol === "https:";
+    // 주소에 싣는 기록 수 상한. 주소가 길어지지 않게 최근 것만 넘긴다.
+    var DIAG_PARAM = "offline_diag";
+    var DIAG_PARAM_MAX = 10;
     var diagSessionId = String(Date.now()) + Math.random().toString(36).slice(2, 10);
     var shownAt = Date.now();
     var probeCount = 0;
@@ -165,7 +175,7 @@
      * 잃는다(중복 전송보다 낫다).
      */
     function flushDiagnostics() {
-      if (!diagEnabled) return;
+      if (!diagEnabled || !canPostDirectly) return;
       var queue = readDiagQueue();
       if (queue.length === 0) return;
       writeDiagQueue([]);
@@ -210,6 +220,24 @@
 
     // HOME 으로 직접 갈 때 붙이는 표식. 웹(src/shared/lib/observability/faro.ts)이 읽고 지운다.
     var FROM_OFFLINE_QUERY = "?from=offline-page";
+
+    /*
+     * iOS 에서 쌓인 기록을 돌아갈 주소에 싣는다(위 진단 기록기 주석). 실은 기록은 큐에서 지운다 —
+     * 웹이 못 받으면 그 묶음은 잃는다(중복 전송보다 낫다). 싣지 않으면 빈 문자열.
+     */
+    function takeDiagQuery() {
+      if (!diagEnabled || canPostDirectly) return "";
+      var queue = readDiagQueue();
+      if (queue.length === 0) return "";
+      writeDiagQueue([]);
+      return "&" + DIAG_PARAM + "=" + encodeURIComponent(JSON.stringify(queue.slice(-DIAG_PARAM_MAX)));
+    }
+
+    /* iOS 가 넘겨준 실패 주소가 우리 화면이면 그리로, 아니면 HOME 으로. 쿼리는 버린다. */
+    function returnTarget() {
+      var failing = stripQuery(new URLSearchParams(window.location.search).get("url") || "");
+      return failing.indexOf(HOME) === 0 ? failing : HOME;
+    }
 
     // HOME 으로 직접 갔다가 다시 여기로 떨어졌는지 표시한다. 그 경우 바로 앞 기록이
     // 이 화면 자신이라 history.back() 이 같은 화면만 되풀이하므로 HOME 을 다시 연다.
@@ -267,6 +295,13 @@
       button.disabled = true;
       button.textContent = "연결하는 중…";
       stuckTimer = setTimeout(reset, LEAVE_STUCK_MS);
+
+      // iOS 는 기록을 주소에 실어야 해서 history.back() 을 쓸 수 없다. 실패했던 화면을 다시 연다.
+      var diagQuery = takeDiagQuery();
+      if (diagQuery) {
+        window.location.replace(returnTarget() + FROM_OFFLINE_QUERY + diagQuery);
+        return;
+      }
 
       if (window.history.length > 1 && !cameViaHome()) {
         try { window.sessionStorage.removeItem(VIA_HOME_KEY); } catch (e) {}

@@ -36,6 +36,35 @@ function getAppVersion(): string {
 /** 오프라인 화면이 HOME 으로 되돌아올 때 붙이는 표식. app-offline.html 의 FROM_OFFLINE_PARAM 과 같아야 한다. */
 export const FROM_OFFLINE_PARAM = "from";
 export const FROM_OFFLINE_VALUE = "offline-page";
+/** iOS 오프라인 화면이 직접 못 보낸 기록을 실어 오는 쿼리. app-offline.html 의 DIAG_PARAM 과 같아야 한다. */
+export const OFFLINE_DIAG_PARAM = "offline_diag";
+const OFFLINE_DIAG_MAX = 10;
+
+export type OfflineDiagEvent = {
+  name: string;
+  attributes: Record<string, string>;
+  timestamp?: string;
+};
+
+/** 주소에 실려 온 기록을 읽는다. 사용자가 손댈 수 있는 값이라 모양이 맞는 것만 받는다. */
+export function parseOfflineDiag(raw: string | null): OfflineDiagEvent[] {
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.slice(-OFFLINE_DIAG_MAX).flatMap((item: unknown) => {
+      if (typeof item !== "object" || item === null) return [];
+      const { name, attributes, timestamp } = item as Record<string, unknown>;
+      if (typeof name !== "string" || typeof attributes !== "object" || attributes === null) return [];
+      const attrs = Object.fromEntries(
+        Object.entries(attributes as Record<string, unknown>).map(([k, v]) => [k, String(v)]),
+      );
+      return [{ name, attributes: attrs, timestamp: typeof timestamp === "string" ? timestamp : undefined }];
+    });
+  } catch {
+    return [];
+  }
+}
 
 const LIFECYCLE_DOMAIN = "app_lifecycle";
 
@@ -49,13 +78,16 @@ export function isFaroEnabled(): boolean {
  * 오프라인 화면에서 넘어왔는지 읽고 주소에서 표식을 지운다.
  * 지우지 않으면 새로고침·공유 때마다 "복귀"로 다시 집계된다.
  */
-export function consumeFromOfflineMark(): boolean {
-  if (typeof window === "undefined") return false;
+export function consumeFromOfflineMark(): { fromOffline: boolean; diagnostics: OfflineDiagEvent[] } {
+  const none = { fromOffline: false, diagnostics: [] };
+  if (typeof window === "undefined") return none;
   const url = new URL(window.location.href);
-  if (url.searchParams.get(FROM_OFFLINE_PARAM) !== FROM_OFFLINE_VALUE) return false;
+  if (url.searchParams.get(FROM_OFFLINE_PARAM) !== FROM_OFFLINE_VALUE) return none;
+  const diagnostics = parseOfflineDiag(url.searchParams.get(OFFLINE_DIAG_PARAM));
   url.searchParams.delete(FROM_OFFLINE_PARAM);
+  url.searchParams.delete(OFFLINE_DIAG_PARAM);
   window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
-  return true;
+  return { fromOffline: true, diagnostics };
 }
 
 /** 문서가 어떻게 열렸는지(navigate/reload/back_forward). 웹뷰가 스스로 reload 했는지 가른다. */
@@ -76,7 +108,7 @@ export async function initFaro(): Promise<void> {
   started = true;
 
   // 표식은 SDK 를 받기 전에 지운다 — 느린 망에서 사용자가 그사이 주소를 공유할 수 있다.
-  const fromOffline = consumeFromOfflineMark();
+  const { fromOffline, diagnostics } = consumeFromOfflineMark();
   const platform = getNativePlatform();
 
   try {
@@ -112,6 +144,11 @@ export async function initFaro(): Promise<void> {
       // 첫 로드의 pageshow 는 app_load 와 겹친다. bfcache 복원만 남긴다.
       if (event.persisted) push("pageshow_restored");
     });
+    // iOS 오프라인 화면이 직접 못 보낸 기록. 화면에서 붙인 속성(platform 등)을 그대로 쓴다.
+    diagnostics.forEach((event) => {
+      faro.api.pushEvent(event.name, { ...event.attributes, recorded_at: event.timestamp ?? "" }, "app_offline");
+    });
+
     window.addEventListener("online", () => push("online"));
     window.addEventListener("offline", () => push("offline"));
   } catch (err: unknown) {
