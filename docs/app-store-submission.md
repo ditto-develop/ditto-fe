@@ -299,3 +299,13 @@ ASC 버전 1.0.1 은 API 로 만들었다 — 출시 방식은 1.0 과 같은 **
 ```text
 HOW TO SIGN IN: Kakao and Apple sign-in need the account owner's phone for verification, so we provide a dedicated review sign-in. On the first screen, tap the "ditto" logo 5 times in a row. A "심사용 로그인" (review sign-in) sheet opens. Enter the ID ("아이디") and password ("비밀번호") from the Sign-In Information section and tap "로그인". This entry point is hidden on purpose because regular users do not need it; it only signs in to this review account. The account already has matching results, a 1:1 chat room and a group chat room.
 ```
+
+### 빌드 10 으로 교체 (2026-11-16 18:05 KST)
+
+심사 시작 전에 PR #33(Faro 오프라인 화면 진단)을 같이 내기로 해서, 빌드 9 의 제출을 API 로 취소하고(심사 대기 → 개발자 거부)
+빌드 10 을 붙여 다시 제출했다. 로그인 정보·노트·새로운 기능 문구는 그대로 이어졌다.
+
+- 빌드 10 은 Faro 가 모으는 진단 데이터(성능·기타 진단, 회원과 연결 안 함)를 `PrivacyInfo.xcprivacy` 에 신고한다.
+  **ASC 앱 개인정보(영양성분표)의 "진단"도 같은 값으로 맞춘다** — 공개 API 가 없어 웹 화면에서 한다.
+- Faro 웹 수집은 같은 날 14:42 웹 배포(`2efcbe9`)로 이미 켜져 있었다(빌드 9 심사 대기 중이었지만 심사 전이었다).
+
