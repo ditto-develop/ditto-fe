@@ -10,7 +10,7 @@ type MockApiOptions = {
   matchingStatusFixture?: string;
   memberReviewsFixture?: string;
   /**
-   * 시크릿 매칭 홈 상태(GET /matching/secret-status). 기본은 대상 아님(NONE)이라 기존 화면이 그대로 뜬다.
+   * 시크릿 매칭 홈 상태(GET /matching/secret-state). 기본은 대상 아님(NONE)이라 기존 화면이 그대로 뜬다.
    * mockApi 는 서버 플래그를 전부 켜진 것으로 답하므로, 이 기본값이 없으면 모든 홈 테스트가 실서버를 부른다.
    */
   secretMatchingFixture?: string;
@@ -168,7 +168,7 @@ Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
   mockFixture("POST", ["**/api/v1/matches/request*", "**/api/matches/request*"], "match-request.json", "sendMatchRequest");
   mockFixture(
     "GET",
-    ["**/api/v1/matching/secret-status*"],
+    ["**/api/v1/matching/secret-state*"],
     options.secretMatchingFixture ?? "secret-matching-none.json",
     "getSecretMatchingStatus",
   );

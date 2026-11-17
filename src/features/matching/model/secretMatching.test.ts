@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   isSecretCandidate,
@@ -21,17 +21,42 @@ describe("toSecretRoundDay", () => {
     expect(toSecretRoundDay("2026-11-19T20:00:00Z")).toBe("금요일");
   });
 
-  it.each([null, undefined, "", "not-a-date", "2026-11-22T20:00:00+09:00"])("금·토가 아니거나 모르면 null (%s)", (value) => {
-    expect(toSecretRoundDay(value)).toBeNull();
+  it.each([null, undefined, "", "not-a-date", "2026-11-22T20:00:00+09:00", "2026-11-22 20:00:00"])(
+    "금·토가 아니거나 모르면 null (%s)",
+    (value) => {
+      expect(toSecretRoundDay(value)).toBeNull();
+    },
+  );
+
+  describe("서버 형식(yyyy-MM-dd HH:mm:ss, 시간대 표기 없는 KST)", () => {
+    const originalTz = process.env.TZ;
+    afterEach(() => {
+      process.env.TZ = originalTz;
+    });
+
+    it.each([
+      ["2026-11-20 20:00:00", "금요일"],
+      ["2026-11-21 20:00:00", "토요일"],
+    ])("%s → %s", (nextRoundAt, expected) => {
+      expect(toSecretRoundDay(nextRoundAt)).toBe(expected);
+    });
+
+    it("해외 시간대 기기에서도 KST 날짜의 요일로 읽는다", () => {
+      // 기기 시간대로 읽으면 KST 금 20:00 = 하와이 금 01:00 이지만, 시각을 옮겨 KST 로 되읽으면 토 01:00 이 된다.
+      process.env.TZ = "Pacific/Honolulu";
+      expect(toSecretRoundDay("2026-11-20 20:00:00")).toBe("금요일");
+      process.env.TZ = "Asia/Tokyo";
+      expect(toSecretRoundDay("2026-11-21 20:00:00")).toBe("토요일");
+    });
   });
 });
 
 describe("isSecretMatchingCardState", () => {
-  it.each(["TARGET", "WAITING", "AUTO_JOINED", "CLOSED"] as const)("%s 는 시크릿 카드가 그린다", (state) => {
+  it.each(["ELIGIBLE", "WAITING", "AUTO_ENTERED", "ENDED"] as const)("%s 는 시크릿 카드가 그린다", (state) => {
     expect(isSecretMatchingCardState(state)).toBe(true);
   });
 
-  it.each(["NONE", "CANDIDATES", "MATCHED"] as const)("%s 는 기존 카드가 그린다", (state) => {
+  it.each(["NONE", "SECRET_RESULT"] as const)("%s 는 기존 카드가 그린다", (state) => {
     expect(isSecretMatchingCardState(state)).toBe(false);
   });
 });

@@ -26,10 +26,10 @@ type CardCopy = {
 function copyOf(state: SecretMatchingCardState, roundDay: SecretRoundDay | null): CardCopy {
   const when = `${roundDay ?? "금·토"} 저녁 8시`;
   switch (state) {
-    case "TARGET":
+    case "ELIGIBLE":
       return {
         title: "시크릿 매칭 기회가 있어요",
-        lines: ["이번 주 1:1 퀴즈를 풀면", "금·토 저녁 8시 시크릿 매칭에 참여할 수 있어요."],
+        lines: ["이번 주 1:1 퀴즈를 풀면", `${when} 시크릿 매칭에 참여할 수 있어요.`],
         illustration: "/assets/illustration/quizstart.svg",
         cta: "퀴즈 풀어보기",
       };
@@ -39,13 +39,13 @@ function copyOf(state: SecretMatchingCardState, roundDay: SecretRoundDay | null)
         lines: [`${when}에 결과가 나와요.`, "매칭되면 바로 알려드릴게요."],
         illustration: "/assets/illustration/quizpeople.svg",
       };
-    case "AUTO_JOINED":
+    case "AUTO_ENTERED":
       return {
         title: "시크릿 매칭 기회가 있어요",
         lines: ["이번엔 인연이 닿지 않았지만", `${when} 시크릿 매칭에 자동으로 참여해요.`],
         illustration: "/assets/illustration/quizpeople.svg",
       };
-    case "CLOSED":
+    case "ENDED":
       return {
         title: "진행 중인 매칭이 없어요.",
         lines: ["이번 주 매칭은 모두 끝났어요.", "기다리는 동안 지난 퀴즈를 풀어보세요."],
@@ -57,10 +57,10 @@ function copyOf(state: SecretMatchingCardState, roundDay: SecretRoundDay | null)
 
 /** 클릭률 집계용 카드 상태 이름. 기존 matching 카드와 같은 축에 `secret_` 접두로 나란히 놓는다. */
 const CARD_STATE_NAME: Record<SecretMatchingCardState, string> = {
-  TARGET: "secret_target",
+  ELIGIBLE: "secret_eligible",
   WAITING: "secret_waiting",
-  AUTO_JOINED: "secret_auto_joined",
-  CLOSED: "secret_closed",
+  AUTO_ENTERED: "secret_auto_entered",
+  ENDED: "secret_ended",
 };
 
 export function SecretMatchingCard({
@@ -71,16 +71,16 @@ export function SecretMatchingCard({
 }: {
   state: SecretMatchingCardState;
   roundDay: SecretRoundDay | null;
-  /** TARGET 의 [퀴즈 풀어보기]. 바텀시트 없이 1:1 퀴즈로 바로 간다. */
+  /** ELIGIBLE 의 [퀴즈 풀어보기]. 바텀시트 없이 1:1 퀴즈로 바로 간다. */
   onStartQuiz?: () => void;
-  /** CLOSED 의 [지난 퀴즈 풀어보기] → 기록 탭. */
+  /** ENDED 의 [지난 퀴즈 풀어보기] → 기록 탭. */
   onOpenRecords?: () => void;
 }) {
   const copy = copyOf(state, roundDay);
   const cardState = CARD_STATE_NAME[state];
   useCardImpression("matching", cardState);
 
-  const onCta = state === "TARGET" ? onStartQuiz : state === "CLOSED" ? onOpenRecords : undefined;
+  const onCta = state === "ELIGIBLE" ? onStartQuiz : state === "ENDED" ? onOpenRecords : undefined;
 
   return (
     <CardContainer data-testid="secret-matching-card" data-state={state}>
@@ -101,7 +101,7 @@ export function SecretMatchingCard({
           <ActionContainer>
             <ActionButton
               onClick={() => {
-                trackCardClick("matching", cardState, state === "TARGET" ? "start_quiz" : "open_records");
+                trackCardClick("matching", cardState, state === "ELIGIBLE" ? "start_quiz" : "open_records");
                 onCta();
               }}
             >

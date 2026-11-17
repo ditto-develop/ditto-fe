@@ -71,7 +71,7 @@ async function getLatestChatRoom(): Promise<ChatRoom | undefined> {
 /**
  * 그룹 주인데 1:1 도 늦게 푼 경우(시크릿 매칭, BE ADR 0053 — 그룹 미성사자는 금 00:00 부터 1:1 을 풀 수 있다)의
  * 1:1 쪽 데이터. 그룹 화면 상태(`candidates`·`hasAcceptedMatch`)와 섞지 않으려고 따로 든다 — 섞으면 그룹 주의
- * 매칭 카드가 1:1 수락 카드로 바뀐다. 시크릿 상태가 1:1 을 가리킬 때(CANDIDATES·MATCHED)만 쓴다.
+ * 매칭 카드가 1:1 수락 카드로 바뀐다. 시크릿 결과(SECRET_RESULT)와 늦은 1:1 성사 때만 쓴다.
  */
 type LateOneToOne = {
   quizSetId: string;
@@ -353,50 +353,54 @@ export function MainSection() {
 
   /**
    * 시크릿 매칭(IMP-2). 금·토 20:00 1:1 추가 라운드. 서버 `SECRET_MATCHING` 플래그(또는 테스터 모드) 뒤에 있고,
-   * 상태는 서버가 KST 로 정해 준다. 상단 타임라인은 그대로 둔다.
-   *  - TARGET·WAITING·AUTO_JOINED·CLOSED → 시크릿 카드(시안 A~D)
-   *  - CANDIDATES → 기존 1:1 후보 카드(남은 시간은 월요일까지) → 결과 화면
-   *  - MATCHED → 그룹 주면 1:1 대화 카드로 바꿔 그린다(1:1 주는 기존 흐름이 이미 그린다)
+   * 상태는 서버가 KST 로 정해 준다(ditto-server 위키 Frontend-Secret-Matching-Guide §1). 상단 타임라인은 그대로 둔다.
+   *
+   * 시크릿 화면은 **"진행 중인 매칭이 없어요"(failmatch) 자리만** 갈아 끼운다. 기존 화면이 정규 후보·성사 카드를
+   * 그리고 있으면 그대로다 — 서버는 목요일 정규 후보가 있어도 아직 성사 전이면 목 00:00 부터 `AUTO_ENTERED` 를
+   * 주는데, 그 카드로 덮으면 목요일 정규 결과로 가는 길이 사라진다(기획: 월~수 정규 매칭은 건드리지 않는다).
+   *  - ELIGIBLE·WAITING·AUTO_ENTERED·ENDED → 시크릿 카드(시안 A~D)
+   *  - SECRET_RESULT → 기존 1:1 후보 카드(남은 시간은 월요일까지) → 결과 화면
    *  - NONE·실패 → 지금 화면 그대로
+   * 그룹 주에 늦게 푼 1:1 이 성사되면 서버는 `NONE` 을 준다. 그때는 상태와 상관없이 1:1 대화 카드로 바꿔 그린다
+   * (그룹 화면은 인원 미달이라 "매칭 없음"이다).
    */
   const renderSecretMatching = (isChatTime: boolean, onStartChat?: () => void) => {
-    if (!secretStatus) return null;
-    const { state } = secretStatus;
-    if (isSecretMatchingCardState(state)) {
-      return <SecretMatchingHome state={state} status={secretStatus} introNoteCount={introNoteCount} />;
-    }
-    const oneToOne: LateOneToOne | null = isGroupWeek
-      ? lateOneToOne
-      : { quizSetId, candidates, hasAcceptedMatch, acceptedCandidate };
-    if (!oneToOne) return null;
-    if (state === "CANDIDATES" && !oneToOne.hasAcceptedMatch) {
-      return (
-        <MatchingDay
-          isChatTime={false}
-          secretRound
-          matchType="one"
-          buttonState="primary"
-          candidates={oneToOne.candidates}
-          quizSetId={oneToOne.quizSetId}
-        />
-      );
-    }
-    if (state === "MATCHED" && isGroupWeek && oneToOne.hasAcceptedMatch) {
+    if (resolvedMatchType !== "failmatch") return null;
+    if (isGroupWeek && lateOneToOne?.hasAcceptedMatch) {
       return (
         <MatchingDay
           isChatTime={isChatTime}
           matchType="one"
           buttonState="primary"
-          candidates={oneToOne.candidates}
+          candidates={lateOneToOne.candidates}
           hasAcceptedMatch
-          acceptedCandidate={oneToOne.acceptedCandidate}
+          acceptedCandidate={lateOneToOne.acceptedCandidate}
           chatRoom={chatRoom}
-          quizSetId={oneToOne.quizSetId}
+          quizSetId={lateOneToOne.quizSetId}
           onStartChat={onStartChat}
         />
       );
     }
-    return null;
+    if (!secretStatus) return null;
+    const { state } = secretStatus;
+    if (isSecretMatchingCardState(state)) {
+      return <SecretMatchingHome state={state} status={secretStatus} introNoteCount={introNoteCount} />;
+    }
+    if (state !== "SECRET_RESULT") return null;
+    const oneToOne: LateOneToOne | null = isGroupWeek
+      ? lateOneToOne
+      : { quizSetId, candidates, hasAcceptedMatch, acceptedCandidate };
+    if (!oneToOne || oneToOne.hasAcceptedMatch) return null;
+    return (
+      <MatchingDay
+        isChatTime={false}
+        secretRound
+        matchType="one"
+        buttonState="primary"
+        candidates={oneToOne.candidates}
+        quizSetId={oneToOne.quizSetId}
+      />
+    );
   };
 
   const ControlSection = () => {

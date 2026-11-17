@@ -53,8 +53,21 @@ function pickQuizSet(
 /** 늦은 응시 제출이 토 20:00 마감에 걸렸을 때(4007). 그 답은 서버에 저장되지 않았다. */
 const SECRET_CLOSED_TOAST = "이번 주 시크릿 매칭 참여가 마감됐어요.";
 
+/**
+ * 이번 주에 다른 유형을 이미 완주했다(4005). 그룹 완주자는 금 00:00 전이거나 성사된 그룹에 수락했으면 1:1 을 못
+ * 푼다(서버 위키 Frontend-Secret-Matching-Guide §2). 그 답은 저장되지 않았다.
+ */
+const OTHER_TYPE_COMPLETED_TOAST = "이번 주에는 이미 다른 유형의 퀴즈를 완료했어요.";
+
 function isSecretMatchingClosed(err: unknown): boolean {
   return hasApiErrorCode(err, API_ERROR_CODE.QUIZ_SECRET_MATCHING_CLOSED);
+}
+
+/** 답이 저장되지 않아 더 풀어도 소용없는 제출 거절이면 안내 문구, 아니면 null. */
+function blockedSubmitMessage(err: unknown): string | null {
+  if (isSecretMatchingClosed(err)) return SECRET_CLOSED_TOAST;
+  if (hasApiErrorCode(err, API_ERROR_CODE.QUIZ_OTHER_TYPE_ALREADY_COMPLETED)) return OTHER_TYPE_COMPLETED_TOAST;
+  return null;
 }
 
 function QuizContent() {
@@ -84,8 +97,10 @@ function QuizContent() {
   const [lateQuizzes, setLateQuizzes] = useState<QuizDto[] | null>(null);
   /** 늦은 응시 셋을 열려는데 이미 마감(4007)이었다. 안내 모달을 띄우고 홈으로 보낸다. */
   const [lateClosed, setLateClosed] = useState(false);
-  /** 제출이 마감(4007)에 걸렸다. 예약된 다음 문항·완료 화면 전환을 멈춘다. */
-  const submitClosedRef = useRef(false);
+  /** 제출이 막혔다(4007·4005). 예약된 다음 문항·완료 화면 전환을 멈춘다. */
+  const submitBlockedRef = useRef(false);
+  /** 마지막 문항의 제출. 늦은 응시 완료 화면은 이게 끝난 뒤 다음 라운드를 다시 묻는다. */
+  const [lastSubmission, setLastSubmission] = useState<Promise<unknown> | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -175,12 +190,15 @@ function QuizContent() {
 
     // 서버에 답변 제출 (비동기, 실패해도 UI 진행)
     // 단, 제재(6008)는 답변이 저장되지 않으므로 사용자에게 알린다.
-    // 시크릿 매칭 마감(4007)도 답이 저장되지 않는다 — 더 풀어도 소용없으니 멈추고 홈으로 보낸다.
-    submitExternalQuizAnswer(currentQuiz.id, choiceId).catch((err: unknown) => {
-      if (isSecretMatchingClosed(err)) {
-        if (submitClosedRef.current) return;
-        submitClosedRef.current = true;
-        showToast(SECRET_CLOSED_TOAST, "error");
+    // 시크릿 매칭 마감(4007)·다른 유형 완주(4005)도 답이 저장되지 않는다 — 더 풀어도 소용없으니 멈추고 홈으로 보낸다.
+    const submission = submitExternalQuizAnswer(currentQuiz.id, choiceId);
+    if (isLastQuiz) setLastSubmission(submission);
+    submission.catch((err: unknown) => {
+      const blockedMessage = blockedSubmitMessage(err);
+      if (blockedMessage) {
+        if (submitBlockedRef.current) return;
+        submitBlockedRef.current = true;
+        showToast(blockedMessage, "error");
         router.replace("/home");
         return;
       }
@@ -189,10 +207,10 @@ function QuizContent() {
     });
 
     setTimeout(() => {
-      if (submitClosedRef.current) return;
+      if (submitBlockedRef.current) return;
       setIsFadingOut(true);
       setTimeout(() => {
-        if (submitClosedRef.current) return;
+        if (submitBlockedRef.current) return;
         if (!isLastQuiz) {
           setCurrentStep((prev) => prev + 1);
           setSelectedChoiceId(null);
@@ -315,7 +333,7 @@ function QuizContent() {
         />
       )}
       {isFinish ? (
-        <FinishView matchingLabel={matchingLabel} isLate={isLate} />
+        <FinishView matchingLabel={matchingLabel} isLate={isLate} lastSubmission={lastSubmission} />
       ) : (
         <Page>
           <Nav
@@ -592,13 +610,19 @@ const getRandomImage = () => {
 /**
  * 늦은 응시 완료 화면의 라운드 요일. 서버가 준 다음 라운드 시각으로 정한다 — 제출이 금 20:00 을 넘겼으면
  * 토요일이다. 못 읽으면 null 이고 화면은 "금·토"로 쓴다.
+ *
+ * 서버 가이드(Frontend-Secret-Matching-Guide §2): 답 제출 응답에는 라운드 정보가 없어 **마지막 문항 제출이 끝난 뒤**
+ * `secret-state` 를 다시 부른다. 제출보다 먼저 물으면 아직 완주 전 상태(ELIGIBLE)의 라운드를 읽는다.
+ * 이미 다 풀어 둔 셋을 다시 열었으면(`after` 없음) 바로 묻는다.
  */
-function useNextSecretRoundDay(enabled: boolean): SecretRoundDay | null {
+function useNextSecretRoundDay(enabled: boolean, after: Promise<unknown> | null): SecretRoundDay | null {
   const [roundDay, setRoundDay] = useState<SecretRoundDay | null>(null);
   useEffect(() => {
     if (!enabled) return;
     let alive = true;
-    getSecretMatchingStatus()
+    (after ?? Promise.resolve())
+      .catch(() => undefined)
+      .then(() => getSecretMatchingStatus())
       .then((status) => {
         if (alive) setRoundDay(toSecretRoundDay(status.nextRoundAt));
       })
@@ -606,15 +630,23 @@ function useNextSecretRoundDay(enabled: boolean): SecretRoundDay | null {
     return () => {
       alive = false;
     };
-  }, [enabled]);
+  }, [enabled, after]);
   return roundDay;
 }
 
-function FinishView({ matchingLabel, isLate }: { matchingLabel: string; isLate: boolean }) {
+function FinishView({
+  matchingLabel,
+  isLate,
+  lastSubmission,
+}: {
+  matchingLabel: string;
+  isLate: boolean;
+  lastSubmission: Promise<unknown> | null;
+}) {
   const router = useRouter();
   const [imgSrc] = useState(getRandomImage);
   const isGroup = matchingLabel === "그룹 매칭";
-  const roundDay = useNextSecretRoundDay(isLate);
+  const roundDay = useNextSecretRoundDay(isLate, lastSubmission);
   // 시안 E: 늦은 참여는 목요일 정규 결과가 아니라 금·토 저녁 8시 시크릿 매칭 결과를 기다린다.
   const revealLine = isLate
     ? `${roundDay ?? "금·토"} 저녁 8시에 시크릿 매칭 결과가 공개돼요.`

@@ -70,6 +70,11 @@ export const API_ERROR_CODE = {
   /** 제재로 이번 주 퀴즈 참여 불가 */
   SANCTION_QUIZ_BLOCKED: "6008",
   /**
+   * 이번 주에 다른 유형의 퀴즈를 이미 완주했다(BE `QUIZ_OTHER_TYPE_ALREADY_COMPLETED`, 답 제출 때만).
+   * 시크릿 매칭에서는 그룹 완주자가 금 00:00 전이거나 성사된 그룹에 수락했으면 1:1 을 못 푼다. **그 답은 저장되지 않는다.**
+   */
+  QUIZ_OTHER_TYPE_ALREADY_COMPLETED: "4005",
+  /**
    * 시크릿 매칭 늦은 응시 마감(BE #380 `QUIZ_SECRET_MATCHING_CLOSED`, ADR 0053).
    * 토 20:00 ~ 일요일에 1:1 셋 답을 내거나 문항을 조회하면 온다. **그 답은 저장되지 않는다.**
    */

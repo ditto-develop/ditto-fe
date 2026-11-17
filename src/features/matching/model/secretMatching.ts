@@ -10,37 +10,42 @@ import { parseServerDateTime } from "@/shared/lib/serverDateTime";
  */
 
 /**
- * 홈 상태 API 의 `state`. 정본은 ditto-fe 위키 `BE-Request-Secret-Matching` 이다.
+ * 홈 상태 API(`GET /api/v1/matching/secret-state`)의 `state`. 값은 서버 enum 그대로다 — 정본은 ditto-server 위키
+ * `Frontend-Secret-Matching-Guide` §1 과 서버 `SecretMatchingCard.kt`. 서버는 위에서부터 먼저 맞는 것을 준다.
  *
- * - `NONE`        대상 아님(플래그 꺼짐·정규 흐름 중). 홈은 지금 화면 그대로다.
- * - `TARGET`      1:1 퀴즈를 풀면 참여할 수 있다(목~토 신규 가입·월~수 미참여·그룹 미성사). 홈 CTA → 1:1 퀴즈.
- * - `WAITING`     늦게 풀어 제출했고 다음 라운드를 기다린다.
- * - `AUTO_JOINED` 1:1 미매칭(후보 0명·수락 없음). 다음 라운드에 자동으로 들어간다.
- * - `CANDIDATES`  시크릿 라운드가 후보를 줬고 아직 성사 전이다. 홈은 기존 후보 카드를 쓴다.
- * - `MATCHED`     성사됐다. 대화방이 열린다 — 홈은 기존 대화 카드다.
- * - `CLOSED`      토 20:00 라운드까지 끝났다. 이번 주 매칭 종료.
+ * - `NONE`          카드 없음. 플래그 꺼짐·월~수·1:1 또는 그룹 성사·경고 제재·그룹 완주자의 금 00:00 전.
+ * - `SECRET_RESULT` 시크릿 후보가 있고 아직 성사 전(일요일까지). 홈은 기존 1:1 후보 카드를 쓴다 → 결과 화면.
+ * - `WAITING`       늦게 완주했고 자기 라운드(`nextRoundAt`) 전.
+ * - `AUTO_ENTERED`  완주했고 성사가 없어 다음 라운드에 자동으로 들어간다(토 20:00 전).
+ * - `ELIGIBLE`      1:1 퀴즈를 아직 안 풀었다(중간에 멈춘 것 포함, 토 20:00 전). 홈 CTA → 1:1 퀴즈.
+ * - `ENDED`         토 20:00 라운드까지 끝났다. 이번 주 매칭 종료.
  */
-export type SecretMatchingState =
-  | "NONE"
-  | "TARGET"
-  | "WAITING"
-  | "AUTO_JOINED"
-  | "CANDIDATES"
-  | "MATCHED"
-  | "CLOSED";
+export type SecretMatchingState = "NONE" | "SECRET_RESULT" | "WAITING" | "AUTO_ENTERED" | "ELIGIBLE" | "ENDED";
+
+export const SECRET_MATCHING_STATES: readonly SecretMatchingState[] = [
+  "NONE",
+  "SECRET_RESULT",
+  "WAITING",
+  "AUTO_ENTERED",
+  "ELIGIBLE",
+  "ENDED",
+];
 
 export type SecretMatchingStatus = {
   state: SecretMatchingState;
   /** 이번 주 1:1 퀴즈셋. 늦은 응시는 목~일에 `quiz-sets/current-week` 가 비어 있어 이 값으로 연다. */
   quizSetId: string | null;
-  /** 다음 라운드 시각(서버 KST). 마지막 라운드가 지났으면 null. */
+  /**
+   * 다음 라운드 시각(서버 KST, `yyyy-MM-dd HH:mm:ss` — 시간대 표기 없음). `NONE`·`ENDED`, 그리고 토 라운드가 지난
+   * `SECRET_RESULT` 는 null.
+   */
   nextRoundAt: string | null;
 };
 
-/** 시크릿 매칭 홈 카드가 맡는 상태. 나머지(NONE·CANDIDATES·MATCHED)는 기존 카드가 그린다. */
-export type SecretMatchingCardState = Extract<SecretMatchingState, "TARGET" | "WAITING" | "AUTO_JOINED" | "CLOSED">;
+/** 시크릿 매칭 홈 카드가 맡는 상태. `NONE`·`SECRET_RESULT` 는 기존 카드가 그린다. */
+export type SecretMatchingCardState = Extract<SecretMatchingState, "ELIGIBLE" | "WAITING" | "AUTO_ENTERED" | "ENDED">;
 
-const CARD_STATES: ReadonlySet<SecretMatchingState> = new Set(["TARGET", "WAITING", "AUTO_JOINED", "CLOSED"]);
+const CARD_STATES: ReadonlySet<SecretMatchingState> = new Set(["ELIGIBLE", "WAITING", "AUTO_ENTERED", "ENDED"]);
 
 export function isSecretMatchingCardState(state: SecretMatchingState): state is SecretMatchingCardState {
   return CARD_STATES.has(state);
@@ -49,18 +54,35 @@ export function isSecretMatchingCardState(state: SecretMatchingState): state is 
 /** 라운드 요일 문구. 시안: "금요일 저녁 8시" / "토요일 저녁 8시". */
 export type SecretRoundDay = "금요일" | "토요일";
 
+/** 서버 벽시계 시각(KST, 시간대 표기 없음). 날짜 부분만으로 요일이 정해진다. */
+const SERVER_LOCAL_DATE_TIME = /^(\d{4})-(\d{2})-(\d{2})[ T]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/;
+
 const KST_WEEKDAY = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Seoul", weekday: "short" });
 
+const SHORT_WEEKDAY: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+/** KST 요일(0=일). 서버 문자열은 KST 벽시계라 **기기 시간대로 읽으면 안 된다**(해외 기기에서 요일이 밀린다). */
+function kstWeekday(value: string): number | null {
+  const local = SERVER_LOCAL_DATE_TIME.exec(value);
+  if (local) {
+    const [, year, month, day] = local;
+    return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day))).getUTCDay();
+  }
+  // 시간대가 붙은 ISO(…Z, …+09:00)는 그 시각을 KST 로 옮겨 읽는다.
+  const date = parseServerDateTime(value);
+  if (!date) return null;
+  return SHORT_WEEKDAY[KST_WEEKDAY.format(date)] ?? null;
+}
+
 /**
- * 다음 라운드 시각 → 요일 문구. 서버 시각을 KST 요일로만 읽는다(기기 시간대와 무관).
+ * 다음 라운드 시각 → 요일 문구(서버 가이드: `nextRoundAt` 요일로 문구를 고른다).
  * 금·토가 아니거나 시각을 모르면 null — 그때 화면은 "금·토 저녁 8시"처럼 요일 없이 쓴다.
  */
 export function toSecretRoundDay(nextRoundAt: string | null | undefined): SecretRoundDay | null {
-  const date = parseServerDateTime(nextRoundAt ?? null);
-  if (!date) return null;
-  const weekday = KST_WEEKDAY.format(date);
-  if (weekday === "Fri") return "금요일";
-  if (weekday === "Sat") return "토요일";
+  if (!nextRoundAt) return null;
+  const weekday = kstWeekday(nextRoundAt);
+  if (weekday === 5) return "금요일";
+  if (weekday === 6) return "토요일";
   return null;
 }
 

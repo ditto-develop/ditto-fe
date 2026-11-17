@@ -131,9 +131,17 @@ export function MatchingResultContainer({
                     return (
                         <MatchGroup key={match.profile.id}>
                             <BadgeRow>
-                                <ContentBadge variant={badge.variant} icon="">
-                                    {badge.label}
-                                </ContentBadge>
+                                <BadgeGroup>
+                                    <ContentBadge variant={badge.variant} icon="">
+                                        {badge.label}
+                                    </ContentBadge>
+                                    {/* 시크릿 라운드(금·토 20:00)가 준 후보(서버 가이드 SM-06). 목요일 정규 후보와 한 목록이다. */}
+                                    {secretMatchingEnabled && match.isSecret && (
+                                        <SecretBadge data-testid="secret-candidate-badge">
+                                            <ContentBadge variant="neutral">시크릿</ContentBadge>
+                                        </SecretBadge>
+                                    )}
+                                </BadgeGroup>
                                 <MatchCount>{badge.matchDescription}</MatchCount>
                             </BadgeRow>
                             <MatchSurfaceCard
@@ -316,6 +324,18 @@ const BadgeRow = styled.div`
   justify-content: space-between;
   align-items: center;
   width: 100%;
+`;
+
+const BadgeGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+`;
+
+const SecretBadge = styled.div`
+  display: flex;
+  flex-shrink: 0;
 `;
 
 const MatchCount = styled.span`

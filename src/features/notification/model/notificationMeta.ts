@@ -12,6 +12,9 @@ import type { IconName } from "@/shared/ui";
  */
 const NOTIFICATION_ICON: Record<string, IconName> = {
   MATCH_RESULT: "notification.heart",
+  // 시크릿 매칭(IMP-2). 서버 가이드: 새 type 에는 매칭 알림 아이콘을 쓴다. 리마인더는 deepLink 가 없어 앱만 연다.
+  SECRET_MATCH_RESULT: "notification.heart",
+  SECRET_MATCH_REMINDER: "notification.heart",
   GROUP_FORMED: "notification.people",
   REMATCH_MATCHED: "notification.rematch",
   REVIEW_REQUEST: "notification.star",
