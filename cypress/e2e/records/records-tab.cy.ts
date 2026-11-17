@@ -127,4 +127,50 @@ describe("퀴즈 기록 탭", () => {
     cy.get('[data-testid="record-result"]').eq(0).should("not.contain.text", "소수 의견");
     cy.contains("내가 고른 답").should("not.exist");
   });
+  it("같은 주에 그룹과 1:1 을 둘 다 완주하면 두 장 모두 이번 주 카드로 보인다(시크릿 매칭)", () => {
+    // 서버 currentWeek.quizSetId 는 둘 중 하나(42)만 가리킨다. 이번 주는 그 셋의 weekStartedOn 으로 고른다.
+    cy.fixture("records/quiz-history.json").then((data: { weeks: Record<string, unknown>[] }) => {
+      const lateOneToOne = {
+        quizSetId: 43,
+        weekStartedOn: "2026-10-26",
+        matchingType: "ONE_TO_ONE",
+        title: "금요일 밤의 선택",
+        lateCompletion: true,
+        minorityCount: null,
+      };
+      const weeks = [lateOneToOne, ...data.weeks];
+      cy.intercept("GET", "**/api/v1/quiz-history", envelope({ ...data, weeks })).as("getQuizRecordsTwoThisWeek");
+    });
+    cy.visit("/records");
+    cy.wait("@getQuizRecordsTwoThisWeek", { timeout: 15000 });
+
+    cy.contains("h2", "시간이 멈춘다면").should("be.visible");
+    cy.contains("h2", "금요일 밤의 선택").should("be.visible");
+    cy.get("button").filter(':contains("내 답변 보기")').should("have.length", 2);
+    // 지난 퀴즈에는 지난 주만 남는다.
+    cy.contains("h2", "지난 퀴즈")
+      .parent()
+      .within(() => {
+        cy.contains("금요일 밤의 선택").should("not.exist");
+        cy.contains("시간이 멈춘다면").should("not.exist");
+        cy.contains("가을 밤, 같이 볼 영화").should("be.visible");
+      });
+  });
+
+  it("마감 뒤에 늦게 완주한 주는 '나와 N개 이상 겹친 사람' 칸을 숨기고 소수 의견만 보인다", () => {
+    cy.fixture("records/quiz-history-closed.json").then((data: Record<string, unknown>) => {
+      cy.intercept(
+        "GET",
+        "**/api/v1/quiz-history/41",
+        envelope({ ...data, lateCompletion: true, result: { overlapThreshold: 8, overlapCount: 0, minorityCount: 2 } }),
+      ).as("getLateRecord41");
+    });
+    cy.visit("/records/41");
+    cy.wait("@getLateRecord41", { timeout: 15000 });
+
+    cy.contains("4주차 퀴즈 결과").should("be.visible");
+    cy.get('[data-testid="record-overlap-tile"]').should("not.exist");
+    cy.contains("답이 겹친 사람").should("not.exist");
+    cy.contains("소수 의견").parent().find("strong").should("have.text", "2개");
+  });
 });

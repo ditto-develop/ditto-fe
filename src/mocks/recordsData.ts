@@ -67,9 +67,9 @@ function choiceId(questionIndex: number, choiceIndex: number): number {
 /* ────────────────────────── 기록 탭 ────────────────────────── */
 
 const WEEKS: QuizHistoryWeek[] = [
-  { quizSetId: 42, weekStartedOn: "2026-10-26", matchingType: "ONE_TO_ONE", title: "시간이 멈춘다면", minorityCount: null },
-  { quizSetId: 41, weekStartedOn: "2026-10-19", matchingType: "GROUP", title: "가을 밤, 같이 볼 영화", minorityCount: 2 },
-  { quizSetId: 40, weekStartedOn: "2026-10-12", matchingType: "ONE_TO_ONE", title: "비 오는 날의 기억", minorityCount: 3 },
+  { quizSetId: 42, weekStartedOn: "2026-10-26", matchingType: "ONE_TO_ONE", title: "시간이 멈춘다면", lateCompletion: false, minorityCount: null },
+  { quizSetId: 41, weekStartedOn: "2026-10-19", matchingType: "GROUP", title: "가을 밤, 같이 볼 영화", lateCompletion: false, minorityCount: 2 },
+  { quizSetId: 40, weekStartedOn: "2026-10-12", matchingType: "ONE_TO_ONE", title: "비 오는 날의 기억", lateCompletion: false, minorityCount: 3 },
 ];
 
 export const quizHistory: QuizHistoryResponse = {
@@ -106,6 +106,7 @@ export function quizHistoryDetail(quizSetId: number): QuizHistoryDetail | null {
     phase: closed ? "CLOSED" : "IN_PROGRESS",
     resultOpensAt: "2026-10-29 00:00:00",
     participantCount: closed ? 312 : 87,
+    lateCompletion: week.lateCompletion,
     answers: historyAnswers(closed),
   };
   return closed ? { ...base, result: { overlapThreshold: 8, overlapCount: 23, minorityCount: 2 } } : base;

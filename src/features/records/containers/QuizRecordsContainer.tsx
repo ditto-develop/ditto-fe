@@ -16,6 +16,10 @@ import { EmptyState } from "@/shared/ui";
  *
  * 목록은 서버가 최신 주부터 주고, 맨 위 카드는 서버의 `currentWeek` 가 가리키는 주다 —
  * 운영 주의 경계(월 00:00)를 FE 시계로 판정하지 않는다.
+ *
+ * 같은 주에 그룹과 1:1 을 둘 다 완주하면(시크릿 매칭, 그룹 미성사 → 금요일 1:1) `weeks[]` 에 그 주가 두 장 오고
+ * `currentWeek.quizSetId` 는 그중 하나만 가리킨다. 그래서 이번 주 카드는 셋 id 가 아니라 그 셋의 주(`weekStartedOn`)로
+ * 고른다 — 나머지 한 장이 "지난 퀴즈"로 내려가지 않게.
  */
 export function QuizRecordsContainer() {
   const router = useRouter();
@@ -24,10 +28,12 @@ export function QuizRecordsContainer() {
   const openRecord = (quizSetId: number) => router.push(`/records/${quizSetId}`);
 
   const currentWeek = data?.currentWeek ?? null;
-  const current = currentWeek
-    ? (data?.weeks.find((week) => week.quizSetId === currentWeek.quizSetId) ?? null)
+  const weeks = data?.weeks ?? [];
+  const currentWeekStartedOn = currentWeek
+    ? (weeks.find((week) => week.quizSetId === currentWeek.quizSetId)?.weekStartedOn ?? null)
     : null;
-  const past = data?.weeks.filter((week) => week.quizSetId !== currentWeek?.quizSetId) ?? [];
+  const current = currentWeekStartedOn ? weeks.filter((week) => week.weekStartedOn === currentWeekStartedOn) : [];
+  const past = currentWeekStartedOn ? weeks.filter((week) => week.weekStartedOn !== currentWeekStartedOn) : weeks;
 
   return (
     <Page>
@@ -45,9 +51,15 @@ export function QuizRecordsContainer() {
           <>
             <Top>
               <RecordSummaryTiles summary={data.summary} />
-              {current && currentWeek && (
-                <ThisWeekRecordCard record={current} currentWeek={currentWeek} onOpen={openRecord} />
-              )}
+              {currentWeek &&
+                current.map((record) => (
+                  <ThisWeekRecordCard
+                    key={record.quizSetId}
+                    record={record}
+                    currentWeek={currentWeek}
+                    onOpen={openRecord}
+                  />
+                ))}
             </Top>
 
             {data.weeks.length === 0 && (

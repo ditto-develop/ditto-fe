@@ -26,6 +26,10 @@ export type QuizHistorySummary = {
 
 /** 이번 운영 주 퀴즈를 끝까지 풀었을 때만 온다. */
 export type QuizHistoryCurrentWeek = {
+  /**
+   * 이번 주에 완주한 셋 하나. 같은 주에 그룹과 1:1 을 둘 다 완주하면(시크릿 매칭) 둘 중 하나만 가리킨다 —
+   * 이번 주 카드는 이 셋의 `weekStartedOn` 으로 `weeks[]` 에서 고른다.
+   */
   quizSetId: number;
   /** 서버 시각 기준 결과 공개 시각이 지났는지. 기기 시계로 판정하지 않는다. */
   resultOpen: boolean;
@@ -40,6 +44,8 @@ export type QuizHistoryWeek = {
   weekStartedOn: string;
   matchingType: QuizMatchingType;
   title: string;
+  /** 응답 마감(수 23:59:59) 뒤에 완주했는가 — 시크릿 매칭 늦은 응시(IMP-2). */
+  lateCompletion: boolean;
   /** 결과 공개 전이면 null — 공개 여부도 이 값으로 가른다. */
   minorityCount: number | null;
 };
@@ -87,8 +93,13 @@ export type QuizHistoryDetail = {
   weekStartedOn: string;
   phase: QuizHistoryPhase;
   resultOpensAt: string;
-  /** IN_PROGRESS: 홈과 같은 지금까지 완주자 수. CLOSED: 스냅샷의 최종 참여자 수. */
+  /** IN_PROGRESS: 홈과 같은 지금까지 완주자 수. CLOSED: 스냅샷의 최종 참여자 수(늦게 푼 나는 빠져 있다). */
   participantCount: number;
+  /**
+   * 응답 마감 뒤에 완주했는가. true 면 `result.overlapCount` 는 세지 않은 0 이라 "나와 N개 이상 겹친 사람"을
+   * 숨긴다. `minorityCount` 는 내 답을 마감 통계에 대조해 센 값이다(서버 가이드 §4).
+   */
+  lateCompletion: boolean;
   answers: QuizHistoryAnswer[];
   /** CLOSED 일 때만. IN_PROGRESS 에는 키가 없다. */
   result?: QuizHistoryResult;

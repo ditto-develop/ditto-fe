@@ -15,6 +15,7 @@
       "weekStartedOn": "2026-10-26",
       "matchingType": "ONE_TO_ONE",
       "title": "시간이 멈춘다면",
+      "lateCompletion": false,
       "minorityCount": null
     },
     {
@@ -22,6 +23,7 @@
       "weekStartedOn": "2026-10-19",
       "matchingType": "GROUP",
       "title": "가을 밤, 같이 볼 영화",
+      "lateCompletion": false,
       "minorityCount": 2
     },
     {
@@ -29,6 +31,7 @@
       "weekStartedOn": "2026-10-12",
       "matchingType": "ONE_TO_ONE",
       "title": "비 오는 날의 기억",
+      "lateCompletion": false,
       "minorityCount": 3
     }
   ]

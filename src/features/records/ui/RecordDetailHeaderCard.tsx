@@ -48,15 +48,18 @@ export function RecordDetailHeaderCard({
       />
 
       {result ? (
-        <TileRow>
-          <Tile>
-            <TileLabel>
-              나와 {result.overlapThreshold}개 이상
-              <br />
-              답이 겹친 사람
-            </TileLabel>
-            <TileValue>{result.overlapCount.toLocaleString("ko-KR")}명</TileValue>
-          </Tile>
+        <TileRow $single={record.lateCompletion}>
+          {/* 늦게 완주한 주는 겹친 사람을 세지 않는다(서버가 0 을 준다) — 칸을 숨긴다(서버 가이드 §4). */}
+          {!record.lateCompletion && (
+            <Tile data-testid="record-overlap-tile">
+              <TileLabel>
+                나와 {result.overlapThreshold}개 이상
+                <br />
+                답이 겹친 사람
+              </TileLabel>
+              <TileValue>{result.overlapCount.toLocaleString("ko-KR")}명</TileValue>
+            </Tile>
+          )}
           <Tile>
             <TileLabel>
               나만의
@@ -133,9 +136,9 @@ const StatValue = styled.strong`
   font-variant-numeric: tabular-nums;
 `;
 
-const TileRow = styled.div`
+const TileRow = styled.div<{ $single?: boolean }>`
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: ${({ $single }) => ($single ? "minmax(0, 1fr)" : "repeat(2, minmax(0, 1fr))")};
   gap: var(--space-3);
 `;
 
