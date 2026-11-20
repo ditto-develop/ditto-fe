@@ -12,8 +12,15 @@ describe("isViewingDeepLink", () => {
     expect(isViewingDeepLink("/chat/one-on-one/12", "/chat/one-on-one/12/")).toBe(true);
   });
 
-  it("쿼리·해시는 떼고 비교한다", () => {
-    expect(isViewingDeepLink("/chat/group/7/?from=push", "/chat/group/7")).toBe(true);
+  it("해시와 지금 URL 에만 있는 쿼리는 무시한다", () => {
+    expect(isViewingDeepLink("/chat/group/7/#latest", "/chat/group/7")).toBe(true);
+    expect(isViewingDeepLink("/chat/group/7/", "/chat/group/7?member=3")).toBe(true);
+  });
+
+  it("딥링크 쿼리는 지금 URL 에도 같은 값이 있어야 같은 화면이다", () => {
+    expect(isViewingDeepLink("/matching/?tab=accept", "/matching/?tab=accept")).toBe(true);
+    expect(isViewingDeepLink("/matching/?tab=accept", "/matching/?tab=request")).toBe(false);
+    expect(isViewingDeepLink("/matching/?tab=accept", "/matching/")).toBe(false);
   });
 
   it("다른 방이면 false — 띄워야 한다", () => {

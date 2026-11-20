@@ -95,7 +95,7 @@ vi.mock("@/shared/lib/native/appBadge", () => ({
  */
 beforeAll(() => {
   Object.assign(globalThis, {
-    window: Object.assign(new EventTarget(), { location: { pathname: "/home/" } }),
+    window: Object.assign(new EventTarget(), { location: { pathname: "/home/", search: "" } }),
   });
 });
 
