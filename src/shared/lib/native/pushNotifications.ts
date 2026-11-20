@@ -291,10 +291,23 @@ export function extractNotificationId(data: unknown): number | null {
  * 전부 띄운다.
  *
  * 딥링크를 모르면 **띄운다** — 안 띄워서 놓치는 쪽이 중복으로 뜨는 쪽보다 나쁘다.
+ *
+ * 딥링크 쿼리는 화면 안의 상태(매칭 화면의 탭)를 고르므로 지금 URL 에도 같은 값이 있어야 같은 화면이다.
+ * 요청하기 탭을 보는 중에 온 대화 신청(`/matching/?tab=accept`)은 띄운다.
  */
-export function isViewingDeepLink(deepLink: string | null, currentPath: string): boolean {
+export function isViewingDeepLink(deepLink: string | null, currentUrl: string): boolean {
     if (!deepLink) return false;
-    return normalizePath(deepLink) === normalizePath(currentPath);
+    if (normalizePath(deepLink) !== normalizePath(currentUrl)) return false;
+    const currentQuery = new URLSearchParams(queryOf(currentUrl));
+    return [...new URLSearchParams(queryOf(deepLink))].every(([key, value]) => currentQuery.get(key) === value);
+}
+
+function queryOf(url: string): string {
+    return url.split("#")[0].split("?")[1] ?? "";
+}
+
+function currentUrlOf(location: Location): string {
+    return `${location.pathname}${location.search}`;
 }
 
 /** 쿼리·해시와 끝 슬래시를 떼어 경로끼리 비교할 수 있게 한다. */
@@ -394,8 +407,8 @@ function presentInForeground(notification: { title?: string; body?: string; data
     if (!title && !body) return;
 
     const deepLink = extractDeepLink(data);
-    const currentPath = typeof window === "undefined" ? "" : window.location.pathname;
-    if (isViewingDeepLink(deepLink, currentPath)) return;
+    const currentUrl = typeof window === "undefined" ? "" : currentUrlOf(window.location);
+    if (isViewingDeepLink(deepLink, currentUrl)) return;
 
     void showForegroundNotification({
         title: title ?? "ditto",
@@ -412,7 +425,7 @@ function presentInForeground(notification: { title?: string; body?: string; data
 async function markReadIfViewing(data: unknown): Promise<void> {
     const notificationId = extractNotificationId(data);
     if (notificationId === null || typeof window === "undefined") return;
-    if (!isViewingDeepLink(extractDeepLink(data), window.location.pathname)) return;
+    if (!isViewingDeepLink(extractDeepLink(data), currentUrlOf(window.location))) return;
     try {
         await markNotificationRead(notificationId);
         notifyPushReceived();

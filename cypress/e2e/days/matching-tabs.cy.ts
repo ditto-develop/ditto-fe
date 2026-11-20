@@ -91,6 +91,35 @@ describe("매칭 결과 탭 분리 - 요청하기 / 수락하기", () => {
     });
   });
 
+  describe("알림 deepLink 로 진입", () => {
+    // 수민은 나에게 신청한 후보라 수락하기 탭에만 보인다.
+    it("tab=accept 로 들어오면 수락하기 탭부터 연다", () => {
+      cy.mockApi({ matchesFixture: "matches-1on1-received.json", matchingStatusFixture: "matching-status-received.json" });
+      cy.visit("/matching/?tab=accept");
+
+      cy.contains("이번 주 매칭 결과", { timeout: 6000 }).should("be.visible");
+      cy.contains("수민").should("be.visible");
+      cy.contains("요청할 수 있는 후보가 없어요").should("not.exist");
+    });
+
+    it("모르는 tab 값이면 요청하기 탭으로 연다", () => {
+      cy.mockApi({ matchesFixture: "matches-1on1-received.json", matchingStatusFixture: "matching-status-received.json" });
+      cy.visit("/matching/?tab=unknown");
+
+      cy.contains("요청할 수 있는 후보가 없어요", { timeout: 6000 }).should("be.visible");
+      cy.contains("수민").should("not.exist");
+    });
+
+    it("탭을 바꾸면 URL 의 tab 도 바뀐다", () => {
+      cy.mockApi({ matchesFixture: "matches-1on1-received.json", matchingStatusFixture: "matching-status-received.json" });
+      cy.visit("/matching/?tab=accept");
+
+      cy.contains("요청하기", { timeout: 6000 }).click();
+      cy.location("search").should("eq", "?tab=request");
+      cy.contains("요청할 수 있는 후보가 없어요").should("be.visible");
+    });
+  });
+
   describe("탭 전환", () => {
     it("탭 전환 시 해당 탭의 후보 목록으로 즉시 교체된다", () => {
       // 수민이 received → 요청하기 탭은 비어있고, 수락하기 탭에 수민이 표시
