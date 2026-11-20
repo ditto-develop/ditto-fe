@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useRef } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import styled from "styled-components";
 import { trackEvent } from "@/shared/lib/analytics";
 import { TopNavigation } from "@/shared/ui";
@@ -23,7 +23,7 @@ const TABS: { value: MatchTab; label: string }[] = [
     { value: "accept", label: "수락하기" },
 ];
 
-/** 대화 신청 알림의 deepLink 가 `?tab=accept` 로 온다(ditto-server#395). 그 밖의 값은 요청하기 탭이다. */
+/** 대화 신청 알림의 deepLink 가 `?tab=accept` 로 온다(ditto-server#395). */
 function toMatchTab(tabQuery: string | null): MatchTab {
     return tabQuery === "accept" ? "accept" : "request";
 }
@@ -70,12 +70,12 @@ export function MatchingResultContainer({
     onProfileClick: (info: ProfileClickInfo) => void;
 }) {
     const { quizSetId, candidates, hasAcceptedMatch, acceptedMatchUserId, loading, error } = useMatchCandidates();
-    const tabFromUrl = toMatchTab(useSearchParams().get("tab"));
-    const [activeTab, setActiveTab] = useState<MatchTab>(tabFromUrl);
-    // 이 화면에 있는 채로 신청 알림을 누르면 라우트가 같아 다시 마운트되지 않는다. 쿼리가 바뀌면 탭을 맞춘다.
-    useEffect(() => {
-        setActiveTab(tabFromUrl);
-    }, [tabFromUrl]);
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    // 탭을 URL 에만 둔다. 이 화면에 있는 채로 신청 알림을 눌러도 탭이 바뀌고, 포그라운드 푸시가 지금 탭을 알 수 있다.
+    const activeTab = toMatchTab(searchParams.get("tab"));
+    const selectTab = (tab: MatchTab) => router.replace(`${pathname}?tab=${tab}`, { scroll: false });
     /**
      * 시크릿 매칭(IMP-2) 라운드 후보가 하나라도 있으면 머리글을 시안 F 로 바꾼다. 목요일 정규 후보도 그대로 함께
      * 보인다(기획: "목요일 후보 유지"). 화면에 '패자부활전'을 쓰지 않는다.
@@ -126,7 +126,7 @@ export function MatchingResultContainer({
                 <SegmentedControl
                     tabs={TABS}
                     value={activeTab}
-                    onChange={setActiveTab}
+                    onChange={selectTab}
                 />
             </Header>
 
