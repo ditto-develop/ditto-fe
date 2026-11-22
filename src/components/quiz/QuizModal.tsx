@@ -4,7 +4,8 @@ import { Body1Normal, Body2Normal, Heading1Bold } from "@/shared/ui";
 import { useBackClose } from "@/shared/hooks/useBackClose";
 
 /**
- * "새로 풀기"의 도착지. 홈으로 가되 퀴즈 종류 선택 시트를 바로 연 상태로 간다.
+ * 퀴즈 종류 선택 시트를 연 채로 여는 홈 주소. 종류 없이 들어온 퀴즈 화면(퀴즈 알림의 deepLink
+ * `/quiz/current/`)과 퀴즈 화면의 "다른 퀴즈 고르기"가 여기로 보낸다.
  * 홈(ThisWeekQuiz)이 이 쿼리를 읽어 시트를 띄운 뒤 주소에서 지운다 — 새로고침·뒤로가기로
  * 시트가 다시 튀어나오지 않게.
  */

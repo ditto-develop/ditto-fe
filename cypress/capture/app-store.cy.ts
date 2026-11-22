@@ -38,7 +38,7 @@ describe("App Store 스크린샷", () => {
     cy.mockApi();
     cy.login();
     mockProfileAndSettings();
-    visitScreen("/quiz/current", STORE_CAPTURE);
+    visitScreen("/quiz/current?type=ONE_TO_ONE", STORE_CAPTURE);
     cy.get("body", { timeout: 12000 }).should("be.visible");
     shoot("02-quiz");
   });

@@ -13,7 +13,7 @@ describe("protected routes", () => {
   });
 
   it("renders /quiz/current", () => {
-    cy.visit("/quiz/current");
+    cy.visit("/quiz/current?type=ONE_TO_ONE");
 
     cy.contains("처음 만난 사람과 가장 편한 대화 주제는?", { timeout: 6000 }).should("be.visible");
     cy.contains("가볍게 취미 이야기").should("be.visible");

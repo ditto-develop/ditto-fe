@@ -163,7 +163,7 @@ describe("카카오 심사 제출용 화면 캡처", () => {
     });
 
     it("11 주간 퀴즈", () => {
-      visitScreen("/quiz/current");
+      visitScreen("/quiz/current?type=ONE_TO_ONE");
       cy.get("body", { timeout: 12000 }).should("be.visible");
       shoot("11-주간퀴즈");
     });

@@ -42,6 +42,17 @@ describe("quiz intro-note gate", () => {
     cy.contains("소개 노트 작성하기", { timeout: 6000 }).should("be.visible");
   });
 
+  // 퀴즈 알림의 deepLink(종류 없는 /quiz/current/)는 홈 시트로 간다. 그 길도 같은 게이트를 지난다.
+  it("blocks the quiz push entry the same way when fewer than 3 notes are written", () => {
+    mockIntroNoteCount(1);
+    cy.login();
+    cy.visit("/quiz/current/");
+
+    cy.contains("소개 노트를 먼저 작성해주세요", { timeout: 8000 }).should("be.visible");
+    cy.location("pathname").should("match", /^\/home\/?$/);
+    cy.contains("퀴즈의 종류를 선택하세요").should("not.exist");
+  });
+
   it("lets the quiz start once 3 notes are written", () => {
     mockIntroNoteCount(3);
     cy.login();

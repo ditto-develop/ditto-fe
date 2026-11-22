@@ -131,10 +131,20 @@ export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: T
    * "결과 공개까지"의 뜻은 같다. 예전에는 기기 요일로 목표를 바꿔 오버라이드가 무시됐다.
    */
   const timeLeft = useTargetDayCountdown(4);
-  // 퀴즈 화면의 "새로 풀기"로 돌아온 경우(?quiz=select)에는 종류 선택 시트를 연 채로 시작한다.
-  const openedFromRestart = searchParams.get(QUIZ_SELECT_QUERY_KEY) === QUIZ_SELECT_QUERY_VALUE;
-  const [isQuizStart, setIsQuizStart] = useState(openedFromRestart);
-  const [isIntroNoteAlertOpen, setIsIntroNoteAlertOpen] = useState(false);
+  /** 온보딩에서 "다음에 할래요"로 건너뛴 사람은 여기서 소개 노트 작성으로 되돌린다. */
+  const canStartQuiz =
+    introNoteCount === null || introNoteCount >= MIN_INTRO_NOTE_ANSWERS;
+  /**
+   * `?quiz=select` 로 들어왔다 — 퀴즈 알림(QUIZ_SELECT_HOME_PATH 주석)이나 퀴즈 화면의 "다른 퀴즈 고르기"다.
+   * "시작하기"를 누른 것과 같게 연다: 소개 노트가 모자라면 시트 대신 안내다(알림으로 들어와도 게이트를 지난다).
+   * 이미 완주했으면 아래 완료 카드만 그리므로 아무것도 열지 않는다.
+   */
+  const hasSelectQuery = searchParams.get(QUIZ_SELECT_QUERY_KEY) === QUIZ_SELECT_QUERY_VALUE;
+  const opensFromSelectQuery = hasSelectQuery && !iscomplete;
+  const [isQuizStart, setIsQuizStart] = useState(opensFromSelectQuery && canStartQuiz);
+  const [isIntroNoteAlertOpen, setIsIntroNoteAlertOpen] = useState(
+    opensFromSelectQuery && !canStartQuiz,
+  );
   /**
    * 이번 주에 실제로 열린 퀴즈 종류. 시트가 열릴 때 읽는다.
    * null 이면 아직 모르거나 못 읽은 상태 — 그때는 두 종류를 모두 보여 준다(퀴즈 화면이
@@ -146,9 +156,9 @@ export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: T
 
   // 시트를 띄웠으면 쿼리는 지운다. 남겨 두면 새로고침·뒤로가기마다 시트가 다시 뜬다.
   useEffect(() => {
-    if (!openedFromRestart) return;
+    if (!hasSelectQuery) return;
     router.replace("/home");
-  }, [openedFromRestart, router]);
+  }, [hasSelectQuery, router]);
 
   useEffect(() => {
     if (!isQuizStart) return;
@@ -191,9 +201,6 @@ export function ThisWeekQuiz({ iscomplete, introNoteCount, participantCount }: T
   const noQuizThisWeek = availableTypes !== null && availableTypes.length === 0;
 
   const isIntroComplete = introNoteCount === INTRO_NOTE_FIELDS.length;
-  /** 온보딩에서 "다음에 할래요"로 건너뛴 사람은 여기서 소개 노트 작성으로 되돌린다. */
-  const canStartQuiz =
-    introNoteCount === null || introNoteCount >= MIN_INTRO_NOTE_ANSWERS;
 
   /**
    * 이 카드가 지금 어떤 모습인지. 아래 분기와 **같은 순서**로 판정해야 한다 —

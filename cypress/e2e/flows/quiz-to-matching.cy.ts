@@ -6,7 +6,7 @@ describe("quiz to matching flow", () => {
   });
 
   it("submits the current quiz and reaches the matching empty state", () => {
-    cy.visit("/quiz/current");
+    cy.visit("/quiz/current?type=ONE_TO_ONE");
 
     cy.contains("button", "가볍게 취미 이야기", { timeout: 6000 }).click();
     cy.wait("@submitAnswer");

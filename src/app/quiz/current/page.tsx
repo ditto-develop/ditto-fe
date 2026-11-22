@@ -39,15 +39,13 @@ export default function Quiz() {
 /**
  * 홈에서 고른 종류(type 쿼리)의 세트만 고른다. **다른 종류로 대체하지 않는다** —
  * 어드민이 그룹 세트만 활성화했을 때 1:1 을 고르면 그룹 퀴즈가 "1:1 매칭" 이름표를 달고
- * 나왔다(QA 2026-09-09). 종류를 지정하지 않고 들어오면 첫 세트다.
+ * 나왔다(QA 2026-09-09). 종류 없이 들어오면 이 함수까지 오지 않고 홈 시트로 간다(QuizContent).
  */
 function pickQuizSet(
   quizData: CurrentWeekQuizSetsResponseDto,
-  matchingType: string | null,
+  matchingType: string,
 ): CurrentWeekQuizSetDto | undefined {
-  const quizSets = quizData.quizSets ?? [];
-  if (!matchingType) return quizSets[0];
-  return quizSets.find((quizSet) => quizSet.matchingType === matchingType);
+  return (quizData.quizSets ?? []).find((quizSet) => quizSet.matchingType === matchingType);
 }
 
 /** 늦은 응시 제출이 토 20:00 마감에 걸렸을 때(4007). 그 답은 서버에 저장되지 않았다. */
@@ -81,6 +79,14 @@ function QuizContent() {
    */
   const lateQuizSetId = searchParams.get(LATE_QUIZ_SET_QUERY_KEY) || null;
   const isLate = lateQuizSetId !== null;
+  /**
+   * 종류도 늦은 응시 셋도 없이 들어왔다 = 퀴즈 알림(월 00:00 QUIZ_OPENED · 수 QUIZ_CLOSING_SOON)의 deepLink 다.
+   * 서버는 1:1·그룹을 가리지 않고 `/quiz/current/` 하나만 싣는다. 예전에는 여기서 첫 세트(1:1)를 바로 열어
+   * 종류를 고를 수 없었고, 그룹을 이미 완주한 사람에게도 1:1 문항이 떴다(제출은 4005 로 막힌다).
+   * 홈의 종류 선택 시트로 보낸다 — 홈이 이번 주 완주 여부와 소개 노트 개수를 보고 시트·완료 카드·안내를 고른다.
+   * 앱 안에서 이 화면으로 오는 길은 모두 type 을 싣는다(홈 시트, 늦은 응시).
+   */
+  const needsTypeSelection = !matchingType && !isLate;
 
   // --- State for API data, loading, and error ---
   const [quizData, setQuizData] = useState<CurrentWeekQuizSetsResponseDto | null>(null);
@@ -127,7 +133,7 @@ function QuizContent() {
       }
     };
 
-    const fetchQuizData = async () => {
+    const fetchQuizData = async (type: string) => {
       try {
         setLoading(true);
         const response = await getExternalCurrentWeekQuizSets();
@@ -139,7 +145,7 @@ function QuizContent() {
          * 다시 할지 묻는다(Figma 1112:8841). 모두 답했으면 참여 완료 화면이다.
          * 진행 상황을 못 읽으면 처음부터 — 답은 재제출로 덮어써지므로 잃는 것은 없다.
          */
-        const quizSet = pickQuizSet(response, matchingType);
+        const quizSet = pickQuizSet(response, type);
         if (!quizSet) return;
         try {
           const progress = await getExternalQuizSetWithProgress(quizSet.id);
@@ -166,18 +172,22 @@ function QuizContent() {
     };
 
     if (lateQuizSetId) void fetchLateQuiz(lateQuizSetId);
-    else fetchQuizData();
+    else if (matchingType) void fetchQuizData(matchingType);
 
     return () => {
       ignore = true;
     };
   }, [matchingType, lateQuizSetId]);
 
+  // replace — 뒤로가기로 이 빈 화면에 다시 오지 않게.
+  useEffect(() => {
+    if (needsTypeSelection) router.replace(QUIZ_SELECT_HOME_PATH);
+  }, [needsTypeSelection, router]);
+
   // --- Derived State ---
-  const selectedQuizSet = quizData ? pickQuizSet(quizData, matchingType) : undefined;
-  // 머리글 태그는 사용자가 홈에서 고른 종류(type 쿼리)를 우선한다. 늦은 응시는 1:1 뿐이다.
-  const matchingLabel =
-    !isLate && (matchingType ?? selectedQuizSet?.matchingType) === "GROUP" ? "그룹 매칭" : "1:1 매칭";
+  const selectedQuizSet = quizData && matchingType ? pickQuizSet(quizData, matchingType) : undefined;
+  // 머리글 태그는 사용자가 홈에서 고른 종류(type 쿼리)다. 늦은 응시는 1:1 뿐이다.
+  const matchingLabel = !isLate && matchingType === "GROUP" ? "그룹 매칭" : "1:1 매칭";
   const quizzes: QuizDto[] = isLate ? lateQuizzes ?? [] : selectedQuizSet?.quizzes || [];
   const currentQuiz = quizzes[currentStep];
   const isLastQuiz = currentStep === quizzes.length - 1;
@@ -266,6 +276,8 @@ function QuizContent() {
   };
 
   // --- Render logic ---
+  if (needsTypeSelection) return null;
+
   if (loading) {
     return <div>Loading...</div>; // Or a proper loading spinner component
   }

@@ -5,6 +5,7 @@
  * - 이어서/새로 풀기 안내는 답한 문항이 남아 있는 채로 다시 들어왔을 때만 뜬다(Figma 1112:8841).
  * - "새로 풀기"는 답변을 지우고 같은 퀴즈의 1번 문항부터 다시 푼다 — 화면을 벗어나지 않는다.
  * - 홈에서 고른 종류의 세트가 이번 주에 없으면 다른 종류로 대체하지 않는다.
+ * - 종류 없이 들어오면(퀴즈 알림 deepLink) 홈의 종류 선택 시트로 간다. 이미 풀었으면 완료 카드다.
  * - 참여 완료 화면의 "알림받기"는 매칭 알림을 켜고 홈으로 돌아간다. 이미 켜져 있으면 묻지 않는다.
  */
 
@@ -87,6 +88,45 @@ describe("quiz navigation", () => {
     cy.visit("/quiz/current?type=GROUP");
 
     cy.contains("이번 주 그룹 매칭 퀴즈가 아직 없어요", { timeout: 6000 }).should("be.visible");
+    cy.contains(FIRST_QUESTION).should("not.exist");
+  });
+
+  /**
+   * 퀴즈 알림(월 00:00 QUIZ_OPENED · 수 QUIZ_CLOSING_SOON)의 deepLink 는 종류 없는 `/quiz/current/` 다.
+   * 예전에는 첫 세트(1:1)를 바로 열어, 종류를 고를 수 없었고 이미 푼 사람에게도 문항이 떴다.
+   */
+  it("opens the quiz type sheet on home when the quiz push deepLink has no type", () => {
+    cy.visit("/quiz/current/");
+
+    cy.contains("퀴즈의 종류를 선택하세요", { timeout: 8000 }).should("be.visible");
+    cy.location("pathname").should("match", /^\/home\/?$/);
+    // 시트를 띄운 뒤 쿼리는 지운다 — 새로고침으로 다시 뜨지 않게.
+    cy.location("search").should("eq", "");
+    cy.contains(FIRST_QUESTION).should("not.exist");
+  });
+
+  it("shows the completed card, not a quiz, when this week's quiz is already done", () => {
+    // 그룹을 완주한 사람. 서버의 진행 상태는 이번 주 셋 전체를 본다.
+    ["**/api/v1/quiz-progress/current", "**/api/quiz-progress/current"].forEach((url) => {
+      cy.intercept("GET", url, {
+        success: true,
+        data: {
+          status: "COMPLETED",
+          quizSetId: "102",
+          quizSetTitle: "이번 주 그룹 매칭 퀴즈",
+          totalQuizzes: 2,
+          answeredQuizzes: 2,
+          participantCount: 12,
+        },
+      });
+    });
+
+    cy.visit("/quiz/current/");
+
+    cy.contains("참여 완료", { timeout: 8000 }).should("be.visible");
+    cy.location("pathname").should("match", /^\/home\/?$/);
+    cy.location("search").should("eq", "");
+    cy.contains("퀴즈의 종류를 선택하세요").should("not.exist");
     cy.contains(FIRST_QUESTION).should("not.exist");
   });
 
