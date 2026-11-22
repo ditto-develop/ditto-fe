@@ -129,7 +129,11 @@ export function GroupMatchingResultModal({
   const totalQ = group.totalQuestions;
   const topBadge = getMatchBadgeInfo(avgMatched, totalQ);
 
-  /** 수락은 했지만 아직 성사 전(수락자 3명 미만). 응답을 끝낸 상태라 버튼은 잠긴다. */
+  /**
+   * 수락은 했지만 아직 성사 전(수락자 3명 미만). 응답을 끝냈으니 하단 CTA 만 내린다.
+   * 그룹 카드(멤버 목록)는 계속 열린다 — 예전에는 카드까지 잠가, 수락한 뒤로는 같이 매칭된
+   * 사람들을 다시 볼 길이 없었다(2026-11-19 QA "수락 후 멤버 리스트를 볼 수 없음").
+   */
   const awaitingFormation = group.myStatus === "ACCEPTED";
   const hasResponded = group.myStatus !== "PENDING";
 
@@ -225,7 +229,7 @@ export function GroupMatchingResultModal({
               </BadgeRow>
 
               {/* Figma 1310:35601 — 그룹 카드 (tappable) */}
-              <GroupCard onClick={!awaitingFormation ? () => setProfileSelect(true) : undefined} $joined={awaitingFormation}>
+              <GroupCard onClick={() => setProfileSelect(true)}>
                 <AvatarGrid>
                   {shown.map((c, i) => (
                     <AvatarSlot key={c.userId}>
@@ -266,14 +270,12 @@ export function GroupMatchingResultModal({
                   )}
                 </GroupContent>
 
-                {!awaitingFormation && (
-                  <ChevronIcon
-                    src="/icons/navigation/chevron-right.svg"
-                    alt=""
-                    width={24}
-                    height={24}
-                  />
-                )}
+                <ChevronIcon
+                  src="/icons/navigation/chevron-right.svg"
+                  alt=""
+                  width={24}
+                  height={24}
+                />
               </GroupCard>
             </CardWrapper>
           )}
@@ -496,14 +498,14 @@ const Badge = styled.div<{ $bgColor: string }>`
 `;
 
 /* Figma 1310:35601 */
-const GroupCard = styled.div<{ $joined?: boolean }>`
+const GroupCard = styled.div`
   background-color: var(--color-semantic-fill-normal);
   border-radius: 12px;
   padding: 16px;
   display: flex;
   align-items: center;
   gap: 16px;
-  cursor: ${({ $joined }) => ($joined ? "default" : "pointer")};
+  cursor: pointer;
 `;
 
 const GroupContent = styled.div`

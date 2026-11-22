@@ -167,6 +167,17 @@ describe("3.1 매칭 결과 - 그룹 매칭 (WF-07)", () => {
       cy.contains("그룹 참여를 신청했어요").should("be.visible");
       cy.contains("button", "참여하기").should("not.exist");
     });
+
+    // 수락한 뒤에도 같이 매칭된 사람들을 볼 수 있어야 한다(2026-11-19 QA "수락 후 멤버 리스트를 볼 수 없음").
+    it("수락한 뒤에도 그룹 카드를 눌러 멤버 목록을 볼 수 있다", () => {
+      mockGroupWeek("matches-group-pending.json");
+      openGroupModal();
+
+      cy.contains("그룹 참여를 신청했어요").should("be.visible");
+      cy.contains("같은 취미, 취향 그룹").click();
+      cy.contains("프로필 선택", { timeout: 6000 }).should("be.visible");
+      cy.contains("댕이누나").should("be.visible");
+    });
   });
 
   describe("거절 플로우", () => {
