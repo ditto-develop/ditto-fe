@@ -88,6 +88,96 @@ describe("refreshSession", () => {
   });
 });
 
+/**
+ * 서버는 refresh 를 받는 순간 토큰을 바꾸고 옛 토큰을 30초 뒤 만료시킨다. 기다리기 상한(8초)에서
+ * 요청까지 끊으면 새 쿠키가 담긴 응답을 버려, 30초 뒤의 다음 refresh 가 2002 로 로그아웃된다
+ * (2026-11-23 조사). 그래서 기다리기만 멈추고 요청은 끝까지 받는다.
+ */
+describe("refreshSession 의 기다리기 상한", () => {
+  type Deferred = { signal: AbortSignal; resolve: (res: Response) => void };
+  let pendingFetches: Deferred[];
+
+  /** 응답을 테스트가 직접 돌려줄 때까지 끝나지 않는 fetch. abort 되면 AbortError 로 끝난다. */
+  const holdFetch = () => {
+    fetchMock.mockImplementation(
+      (_url: string, init: RequestInit) =>
+        new Promise<Response>((resolve, reject) => {
+          const signal = init.signal as AbortSignal;
+          pendingFetches.push({ signal, resolve });
+          signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+        }),
+    );
+  };
+
+  /** 응답 본문 읽기까지 끝나도록 마이크로태스크를 비운다(setImmediate 는 가짜 타이머가 아니다). */
+  const flush = () => new Promise<void>((resolve) => setImmediate(resolve));
+
+  beforeEach(() => {
+    pendingFetches = [];
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  });
+
+  afterEach(async () => {
+    // 남은 요청을 끝내 모듈의 진행 중 상태를 비운다. 안 그러면 다음 테스트가 여기에 합류한다.
+    pendingFetches.forEach((pending) => pending.resolve(jsonResponse(503, {})));
+    await vi.runAllTimersAsync();
+    await flush();
+    vi.useRealTimers();
+  });
+
+  it("8초가 지나면 unreachable 을 주지만 요청은 끊지 않는다", async () => {
+    holdFetch();
+
+    const result = refreshSession();
+    await vi.advanceTimersByTimeAsync(8000);
+
+    await expect(result).resolves.toEqual({ kind: "unreachable" });
+    expect(pendingFetches).toHaveLength(1);
+    expect(pendingFetches[0].signal.aborted).toBe(false);
+  });
+
+  it("기다리기를 멈춘 뒤 늦게 온 토큰은 저장하지 않는다", async () => {
+    holdFetch();
+
+    const result = refreshSession();
+    await vi.advanceTimersByTimeAsync(8000);
+    await result;
+
+    pendingFetches[0].resolve(jsonResponse(200, { success: true, data: { accessToken: "late" } }));
+    await flush();
+
+    expect(auth.setTokens).not.toHaveBeenCalled();
+  });
+
+  it("늦은 요청이 남아 있으면 다시 불러도 새 요청을 보내지 않고 합류한다", async () => {
+    holdFetch();
+
+    const first = refreshSession();
+    await vi.advanceTimersByTimeAsync(8000);
+    await first;
+
+    const second = refreshSession();
+    pendingFetches[0].resolve(jsonResponse(200, { success: true, data: { accessToken: "new" } }));
+
+    await expect(second).resolves.toEqual({ kind: "ok", accessToken: "new" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(auth.setTokens).toHaveBeenCalledWith("new");
+  });
+
+  it("요청 상한(20초)에 걸리면 끊고, 다음 refresh 는 새 요청을 보낸다", async () => {
+    holdFetch();
+
+    const first = refreshSession();
+    await vi.advanceTimersByTimeAsync(20_000);
+    await first;
+    expect(pendingFetches[0].signal.aborted).toBe(true);
+
+    void refreshSession();
+    await flush();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("externalApiFetch 의 401 재시도", () => {
   const unauthorized = () => jsonResponse(401, { success: false, error: { code: "0003" } });
 

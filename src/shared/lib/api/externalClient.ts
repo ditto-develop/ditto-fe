@@ -31,13 +31,29 @@ type ExternalRequestOptions = {
 const REFRESH_PATH = "/api/v1/users/auth/refresh";
 
 /**
- * 세션 검증(refresh)의 응답 대기 상한.
+ * 세션 검증(refresh)을 **기다리는** 상한. 요청을 끊는 시간이 아니다.
  *
  * fetch에는 기본 타임아웃이 없다. 이 요청이 영영 끝나지 않으면 ClientLayout의
  * `isVerifyingSession`이 true로 굳어 **Splash가 화면을 영구히 덮는다** — 사용자에게는
- * "스플래시에서 안 넘어간다"로 보인다. 실패로 떨어뜨려야 로그인 화면이라도 나온다.
+ * "스플래시에서 안 넘어간다"로 보인다. 그래서 이 시간이 지나면 호출부에는 `unreachable`을 준다.
+ *
+ * 다만 요청 자체는 끊지 않는다(`REFRESH_REQUEST_LIMIT_MS`). 서버는 refresh를 받는 순간
+ * refresh 토큰을 새로 발급하고 옛 토큰을 30초 뒤 만료시킨다(서버 ADR 0034). 예전처럼 8초에
+ * abort 하면, 느린 망(앱 복귀 직후 등)에서 서버는 이미 토큰을 바꿨는데 새 쿠키가 담긴 응답을
+ * 우리가 버린다. 기기에는 옛 쿠키만 남고, 30초 뒤의 다음 refresh가 2002로 거부돼 로그아웃된다
+ * (2026-11-23 조사 — 운영 로그의 2002 묶음). 끝까지 받으면 쿠키는 웹뷰가 알아서 저장한다.
  */
 const REFRESH_TIMEOUT_MS = 8000;
+
+/**
+ * refresh **요청** 자체의 상한. 이 시간이 지나면 abort 한다.
+ *
+ * 응답을 끝까지 받으려고 두는 값이라 기다리기 상한보다 길다. 다만 상한이 아예 없으면, 끝나지 않는
+ * 요청 하나가 이 문서의 이후 refresh를 전부 붙잡는다(늦은 요청에 합류하므로 — `refreshRequest` 주석).
+ * 그동안은 refresh마다 8초씩 기다리다 실패해 홈이 비어 보이므로 오래 둘 수 없다.
+ * refresh는 서버 트랜잭션 하나라 20초 넘게 답이 없는 연결은 돌아오지 않는다고 본다.
+ */
+const REFRESH_REQUEST_LIMIT_MS = 20_000;
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, "");
 
@@ -77,15 +93,30 @@ function toApiError(
  * 상한을 건 fetch. 시간이 지나면 abort 되어 호출부의 catch로 떨어진다.
  * AbortSignal.timeout은 사파리 지원이 늦어(16+) 직접 컨트롤러를 만든다.
  */
-async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REFRESH_TIMEOUT_MS);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
         return await fetch(url, { ...init, signal: controller.signal });
     } finally {
         clearTimeout(timeoutId);
     }
+}
+
+/**
+ * `promise`를 최대 `ms`까지만 기다린다. 늦거나 실패하면 `fallback`.
+ * `promise`는 취소하지 않는다 — 뒤에서 계속 진행된다.
+ */
+function waitAtMost<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+    return new Promise((resolve) => {
+        const timeoutId = setTimeout(() => resolve(fallback), ms);
+        const settle = (value: T) => {
+            clearTimeout(timeoutId);
+            resolve(value);
+        };
+        promise.then(settle, () => settle(fallback));
+    });
 }
 
 /**
@@ -123,6 +154,60 @@ function reportRefresh(result: RefreshResult): void {
     });
 }
 
+/**
+ * 지금 날아가고 있는 refresh **요청**. 호출부가 기다리기를 멈춰도(`REFRESH_TIMEOUT_MS`)
+ * 응답이 오거나 요청 상한(`REFRESH_REQUEST_LIMIT_MS`)에 걸릴 때까지 남아 있다.
+ *
+ * 그 사이 refresh를 다시 부르면 새 요청을 보내지 않고 여기에 합류한다. 새로 보내면 같은 옛
+ * 쿠키를 또 들고 가는데, 먼저 보낸 요청이 이미 토큰을 바꿨다면 서버는 그 쿠키를 30초만
+ * 받아 준다. 합류하면 먼저 보낸 요청의 새 쿠키를 그대로 받는다.
+ *
+ * 결과만 돌려주고 JS 상태는 건드리지 않는다. 반영은 제때 받은 호출부(`refreshSession`)가 한다.
+ */
+let refreshRequest: Promise<RefreshResult> | null = null;
+
+function requestRefresh(): Promise<RefreshResult> {
+    if (refreshRequest) return refreshRequest;
+
+    const request = (async (): Promise<RefreshResult> => {
+        try {
+            const refreshUrl = `${getExternalApiBase()}${REFRESH_PATH}`;
+            console.log(`[externalApiFetch] → POST ${refreshUrl} (token refresh)`);
+            const apiKey = process.env.NEXT_PUBLIC_DITTO_API_KEY;
+            const res = await fetchWithTimeout(
+                refreshUrl,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                        ...(apiKey ? { "X-API-Key": apiKey } : {}),
+                    },
+                    credentials: "include",
+                },
+                REFRESH_REQUEST_LIMIT_MS,
+            );
+            type RefreshData = { accessToken?: string };
+            const json = (await res.json().catch(() => null)) as ExternalResponse<RefreshData> | null;
+            console.log(`[externalApiFetch] ← ${res.status} POST ${refreshUrl} (token refresh)`, json);
+            const newToken = json?.data?.accessToken;
+            if (res.ok && json?.success && newToken) return { kind: "ok", accessToken: newToken };
+            // 서버가 세션을 판정한 응답이 아니다(게이트웨이 오류·본문 없음).
+            if (res.status >= 500 || !json) return { kind: "unreachable" };
+            return { kind: "rejected", code: getErrorCode(json.error) };
+        } catch {
+            return { kind: "unreachable" };
+        }
+    })();
+
+    refreshRequest = request;
+    const clear = () => {
+        if (refreshRequest === request) refreshRequest = null;
+    };
+    request.then(clear, clear);
+    return request;
+}
+
 // 토큰 refresh 정본: 동시에 여러 401이 발생해도 refresh 요청은 1회만 발생(single-flight).
 // generated client(client.ts)의 tryRefreshToken도 이 함수로 위임된다.
 let refreshPromise: Promise<RefreshResult> | null = null;
@@ -130,46 +215,26 @@ let refreshPromise: Promise<RefreshResult> | null = null;
 export function refreshSession(): Promise<RefreshResult> {
     if (refreshPromise) return refreshPromise;
 
-    refreshPromise = (async (): Promise<RefreshResult> => {
-        let result: RefreshResult;
-        try {
-            const refreshUrl = `${getExternalApiBase()}${REFRESH_PATH}`;
-            console.log(`[externalApiFetch] → POST ${refreshUrl} (token refresh)`);
-            const apiKey = process.env.NEXT_PUBLIC_DITTO_API_KEY;
-            const res = await fetchWithTimeout(refreshUrl, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                    ...(apiKey ? { "X-API-Key": apiKey } : {}),
-                },
-                credentials: "include",
-            });
-            type RefreshData = { accessToken?: string };
-            const json = (await res.json().catch(() => null)) as ExternalResponse<RefreshData> | null;
-            console.log(`[externalApiFetch] ← ${res.status} POST ${refreshUrl} (token refresh)`, json);
-            const newToken = json?.data?.accessToken;
-            if (res.ok && json?.success && newToken) {
-                setTokens(newToken);
-                result = { kind: "ok", accessToken: newToken };
-            } else if (res.status >= 500 || !json) {
-                // 서버가 세션을 판정한 응답이 아니다(게이트웨이 오류·본문 없음).
-                result = { kind: "unreachable" };
-            } else {
-                const code = getErrorCode(json.error);
-                notifySanctionedIfBlocked(code);
-                result = { kind: "rejected", code };
-            }
-        } catch {
-            result = { kind: "unreachable" };
-        } finally {
-            refreshPromise = null;
-        }
+    const pending = (async (): Promise<RefreshResult> => {
+        const result = await waitAtMost(requestRefresh(), REFRESH_TIMEOUT_MS, { kind: "unreachable" });
+        /*
+         * 기다리기를 멈춘 뒤 늦게 도착한 결과는 JS 상태에 반영하지 않는다. 호출부는 이미
+         * unreachable 로 처리했고, 그 사이 로그아웃했을 수도 있다 — 늦은 accessToken 을 저장하면
+         * 끝난 세션이 되살아난다. 새 refresh 쿠키는 응답이 도착할 때 웹뷰가 이미 저장했으므로,
+         * 다음 refresh 가 그 쿠키로 새 accessToken 을 받는다.
+         */
+        if (result.kind === "ok") setTokens(result.accessToken);
+        if (result.kind === "rejected") notifySanctionedIfBlocked(result.code);
         reportRefresh(result);
         return result;
     })();
 
-    return refreshPromise;
+    refreshPromise = pending;
+    const clear = () => {
+        if (refreshPromise === pending) refreshPromise = null;
+    };
+    pending.then(clear, clear);
+    return pending;
 }
 
 /** 새 accessToken만 필요한 호출부용. 실패 사유를 구분해야 하면 `refreshSession`을 쓴다. */
