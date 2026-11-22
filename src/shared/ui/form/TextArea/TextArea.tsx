@@ -1,36 +1,41 @@
 import React, { useState, forwardRef, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import styled from "styled-components";
-import { Caption1 } from "@/shared/ui";
 
 interface TextAreaWithActionsProps {
   id: string; // 각 컴포넌트 고유 ID
   maxLength?: number;
-  minLength?: number;
   initialValue?: string;
   placeholder?: string;
-  /** 바깥(폼 검증)에서 이 항목을 오류로 표시하고 싶을 때. 내부 error와 별개로 테두리를 강조한다. */
+  /** 바깥(폼 검증)에서 이 항목을 오류로 표시하고 싶을 때 테두리를 강조한다. */
   invalid?: boolean;
 
   activeId: string | null; // 현재 편집 중인 ID (부모에서 관리)
-  onChangeActive: (id: string | null) => void;
+  /** 이 항목을 편집 상태로 바꿔 달라고 부모에 알린다(입력창에 포커스가 오거나 저장된 답을 눌렀을 때). */
   onRequestFocusChange: (id: string) => void;
   /**
    * 입력창이 실제로 포커스를 얻고 잃을 때 알린다(≒ 키보드가 열리고 닫힐 때).
-   * 편집 상태(activeId)와 달리 화면 아무 곳이나 눌러 포커스를 잃으면 곧바로 false가 된다.
+   * 편집 상태(activeId)는 부모가 이 신호를 보고 거둔다.
    */
   onFocusChange?: (focused: boolean) => void;
 
+  /** 포커스를 잃을 때 바뀐 값이 있으면 그 값으로 부른다. 지운 답은 빈 문자열로 온다. */
   onSave?: (value: string) => void;
-  onCancel?: () => void;
 }
 
 export interface TextAreaWithActionsRef {
-  save: () => boolean;
   getValue: () => string;
-  /** 편집 중인 입력에서 포커스를 정상적으로 거둔다(키보드를 닫는다). */
+  /** 입력창에서 포커스를 거둔다(키보드를 닫는다). 포커스가 있었다면 그 값이 저장된다. */
   blur: () => void;
 }
 
+/**
+ * 소개 노트 답변 입력창. 저장/취소 버튼 없이 포커스를 잃는 순간 저장한다.
+ *
+ * 예전에는 답마다 저장/취소를 눌러야 했고, 쓰던 답을 저장하지 않으면 다른 칸으로 옮겨 가지도
+ * 못하게 막았다(토스트로 "저장 또는 취소 후 이동"). 다른 칸을 누를 때마다 걸리는 게
+ * 불편하다는 QA(2026-11-16 "꼭 저장을 눌러야 할 필요가 있을까?")로, 다른 곳을 누르거나
+ * 키보드를 내리면 쓴 그대로 저장되게 바꿨다.
+ */
 export const TextAreaWithActions = forwardRef<
   TextAreaWithActionsRef,
   TextAreaWithActionsProps
@@ -39,16 +44,11 @@ export const TextAreaWithActions = forwardRef<
     {
       id,
       maxLength = 100,
-      // 최소 글자 수 제한은 없앴다(2026-09-08). 짧은 답변도 그대로 저장된다.
-      // 빈 답변만 막는다 — 저장할 내용이 없기 때문.
-      minLength = 0,
       initialValue = "",
       placeholder = "",
       invalid = false,
       activeId,
-      onChangeActive,
       onSave,
-      onCancel,
       onRequestFocusChange,
       onFocusChange,
     },
@@ -56,13 +56,22 @@ export const TextAreaWithActions = forwardRef<
   ) => {
     const [value, setValue] = useState(initialValue);
     const [savedValue, setSavedValue] = useState(initialValue);
-    const [error, setError] = useState<string | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const isActive = activeId === id;
     const isSaved = savedValue.length > 0;
-    /** 다른 답변을 편집 중이라 지금은 손댈 수 없는 상태. */
-    const isLocked = activeId !== null && !isActive;
+
+    /**
+     * 쓴 값을 저장된 값으로 확정한다. 바뀐 게 없으면 아무것도 하지 않는다.
+     * 공백만 남은 답은 빈 답으로 본다 — 그대로 두면 내용 없는 칸이 저장된 것처럼 보인다.
+     */
+    const commit = () => {
+      const next = value.trim().length === 0 ? "" : value;
+      if (next !== value) setValue(next);
+      if (next === savedValue) return;
+      setSavedValue(next);
+      onSave?.(next);
+    };
 
     const handleFocus = () => {
       onFocusChange?.(true);
@@ -70,20 +79,8 @@ export const TextAreaWithActions = forwardRef<
     };
 
     const handleBlur = () => {
+      commit();
       onFocusChange?.(false);
-    };
-
-    /**
-     * 편집 중인 다른 답변이 있을 때는 포커스 자체를 옮기지 않는다.
-     *
-     * readOnly 텍스트필드로 포커스가 튀면 iOS가 키보드를 blur 없이 내리는데,
-     * 이때 키보드 때문에 밀어 올렸던 뷰포트 오프셋이 복구되지 않는다.
-     * 화면이 통째로 아래로 내려가고 위쪽에 빈(검은) 영역이 남는 증상이 이것이다.
-     */
-    const handlePointerDown = (event: React.PointerEvent<HTMLTextAreaElement>) => {
-      if (!isLocked) return;
-      event.preventDefault();
-      onRequestFocusChange(id);
     };
 
     /**
@@ -107,59 +104,22 @@ export const TextAreaWithActions = forwardRef<
       textarea.setSelectionRange(end, end);
     }, [isActive]);
 
-    const handleSave = (): boolean => {
-      if (value.trim().length === 0) {
-        setError("내용을 입력해주세요");
-        return false;
-      }
-      if (value.length < minLength) {
-        setError(`${minLength}자 이상 작성해주세요`);
-        return false;
-      }
-      // 저장하면 이 textarea는 SavedText로 교체된다. 포커스가 남은 채로 사라지면
-      // iOS에서 키보드가 비정상 종료되므로, 사라지기 전에 먼저 포커스를 거둔다.
-      textareaRef.current?.blur();
-      setError(null);
-      setSavedValue(value);
-      onChangeActive(null);
-      onSave?.(value);
-      return true;
-    };
-
     useImperativeHandle(ref, () => ({
-      save: handleSave,
       getValue: () => value,
       blur: () => textareaRef.current?.blur(),
     }));
-
-    const handleCancel = () => {
-      textareaRef.current?.blur();
-      setValue(savedValue || initialValue);
-      setError(null);
-      onChangeActive(null);
-      onCancel?.();
-    };
 
     const handleSavedClick = () => {
       onRequestFocusChange(id);
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      if (isActive) {
-        setValue(e.target.value);
-        if (
-          error &&
-          e.target.value.trim().length > 0 &&
-          e.target.value.length >= minLength
-        ) {
-          setError(null);
-        }
-      }
+      setValue(e.target.value);
     };
 
     return (
       <Container>
-        <Wrapper $error={!!error || invalid}>
+        <Wrapper $error={invalid}>
           {isSaved && !isActive ? (
             <SavedText onClick={handleSavedClick}>{savedValue}</SavedText>
           ) : (
@@ -176,10 +136,8 @@ export const TextAreaWithActions = forwardRef<
                 onChange={handleChange}
                 onFocus={handleFocus}
                 onBlur={handleBlur}
-                onPointerDown={handlePointerDown}
                 placeholder={placeholder}
                 maxLength={maxLength}
-                readOnly={isLocked}
               />
             </GrowWrap>
           )}
@@ -189,16 +147,6 @@ export const TextAreaWithActions = forwardRef<
               <p>
                 {value.length}/{maxLength}
               </p>
-
-              <ActionGroup>
-                <button className="cancel" onClick={handleCancel}>
-                  취소
-                </button>
-                <button className="save" onClick={handleSave}>
-                  저장
-                </button>
-                {error && <SavedEmoji src="/icons/status/textfield-error.svg" alt="error" />}
-              </ActionGroup>
             </FooterRow>
           ) : (
             isSaved && (
@@ -208,7 +156,6 @@ export const TextAreaWithActions = forwardRef<
             )
           )}
         </Wrapper>
-        {error && <Caption1 style={{paddingTop: "8px"}} $color="var(--color-semantic-status-negative)">{error}</Caption1>}
       </Container>
     );
   }
@@ -307,34 +254,6 @@ const FooterRow = styled.div`
 
 const SavedFooterRow = styled(FooterRow)`
   justify-content: flex-end;
-`;
-
-const ActionGroup = styled.div`
-  display: flex;
-  gap: 16px;
-  align-items: center;
-
-  button {
-    border: none;
-    background: none;
-    font-size: var(--typography-body-2-normal-font-size);
-    cursor: pointer;
-    padding: 4px 0;
-  }
-
-  .cancel {
-    color: var(--color-semantic-label-alternative);
-  }
-
-  .save {
-    color: var(--color-semantic-label-normal);
-    font-weight: 600;
-  }
-
-  .save:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
 `;
 
 const SavedEmoji = styled.img`

@@ -37,10 +37,10 @@ describe("edit intro note", () => {
     // 저장된 답변을 눌러 편집한다.
     cy.contains("짐은 단출하게 챙기는 편이에요.").click();
     cy.contains("Q1.").parent().find("textarea").clear().type("카메라, 지갑, 친구");
-    // 질문별 "저장"은 화면 안에서만 반영된다. 서버에는 "수정 완료"에서 한 번에 쓴다 —
+    // 포커스를 잃을 때의 저장은 화면 안에서만 반영된다. 서버에는 "수정 완료"에서 한 번에 쓴다 —
     // 그래야 최소 3개·필수 질문 조건을 건너뛴 채 하나씩 저장되는 일이 없다.
-    cy.contains("Q1.").parent().contains("button", "저장").click();
-    cy.contains("카메라, 지갑, 친구").should("be.visible");
+    cy.contains("소개 노트 수정하기").click();
+    cy.contains("p", "카메라, 지갑, 친구").should("be.visible");
     cy.get("@putMyIntroNoteV1.all").should("have.length", 0);
 
     cy.contains("수정 완료").click();
@@ -57,8 +57,8 @@ describe("edit intro note", () => {
 
     cy.contains("따뜻함").click();
     cy.contains("Q10.").parent().find("textarea").clear().type("느긋한 사람");
-    // 입력 중에는 하단 CTA가 숨는다(키보드에 겹치기 때문). 저장하지 않은 채 포커스만
-    // 거두고 제출한다 — 저장 안 한 값도 그대로 제출되는지까지 같이 본다.
+    // 입력 중에는 하단 CTA가 숨는다(키보드에 겹치기 때문). 포커스를 거두고 제출한다 —
+    // 고친 값이 그대로 제출되는지까지 같이 본다.
     cy.contains("소개 노트 수정하기").click();
     cy.contains("수정 완료").click();
 
@@ -124,7 +124,7 @@ describe("edit intro note", () => {
    * 편집이 끝나면 화면을 원점(0,0)으로 되돌리던 코드가 있었다. 답변 하나를 저장할 때마다
    * 맨 위로 튀었다(QA 2026-09-10). 2026-09-27 부터는 문서 대신 본문(main)이 스크롤된다.
    */
-  it("저장/취소해도 보던 질문 자리에 남는다", () => {
+  it("편집을 마쳐도 보던 질문 자리에 남는다", () => {
     cy.viewport("iphone-x");
     cy.visit("/profile/intro-note");
     cy.wait("@getMyIntroNotesV1");
@@ -133,13 +133,17 @@ describe("edit intro note", () => {
     cy.get("main").invoke("scrollTop").as("beforeY");
 
     cy.contains("Q8.").parent().find("textarea, p").last().click();
-    cy.contains("Q8.").parent().contains("button", "취소").click();
+    cy.focused().should("match", "textarea");
+    // 포커스를 거둔다(=키보드를 내린다). 그 자리에서 답이 저장된다. 다른 곳을 누르면 Cypress 가
+    // 그 요소로 스크롤해 버려 위치를 비교할 수 없으므로 blur 만 일으킨다.
+    cy.focused().blur();
+    cy.contains("Q8.").parent().find("textarea").should("not.exist");
 
     cy.get("@beforeY").then((beforeY) => {
       const before = Number(beforeY);
       expect(before, "편집 전 스크롤 위치").to.be.greaterThan(0);
       cy.get("main").should(($main) => {
-        expect($main[0].scrollTop, "취소 후 스크롤 위치").to.be.closeTo(before, 120);
+        expect($main[0].scrollTop, "편집을 마친 뒤 스크롤 위치").to.be.closeTo(before, 120);
       });
     });
   });

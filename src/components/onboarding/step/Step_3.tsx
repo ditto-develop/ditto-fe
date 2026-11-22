@@ -55,16 +55,20 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
     const [showRequiredHint, setShowRequiredHint] = useState(false);
     // 입력창이 실제로 포커스를 쥐고 있는지(≒ 키보드가 떠 있는지).
     const [inputFocused, setInputFocused] = useState(false);
-    const { showToast, removeToast } = useToast();
+    const { showToast } = useToast();
     const textAreaRefs = useRef<(TextAreaWithActionsRef | null)[]>([]);
     const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
     const progressRef = useRef<HTMLDivElement | null>(null);
     const blurTimer = useRef<number | null>(null);
 
     /**
-     * 포커스를 잃어도 곧바로 확정하지 않는다.
-     * 저장/취소 버튼을 누르면 blur가 먼저 오는데, 그 순간 CTA를 되돌리면 레이아웃이
-     * 움직여 클릭이 빗나간다. 한 박자 기다렸다가 정말 포커스가 떠났을 때만 반영한다.
+     * 포커스를 잃어도 곧바로 편집 상태를 풀지 않는다.
+     *
+     * 답은 blur 에서 이미 저장됐다(TextAreaWithActions). 여기서 미루는 건 화면 쪽이다 —
+     * 편집이 풀리면 입력창이 저장된 글(<p>)로 바뀌고 글자 수 줄이 사라지며, 하단 CTA 가
+     * 돌아온다. 다른 답을 누르는 mousedown 에서 blur 가 오는데 그 순간 레이아웃이 움직이면
+     * 누른 자리가 밀려 클릭이 빗나간다. 한 박자 기다렸다가 정말 포커스가 떠났을 때만 푼다.
+     * 그 사이 다른 답에 포커스가 오면 그 답이 편집 상태를 이어받는다.
      */
     const handleInputFocusChange = useCallback((focused: boolean) => {
       if (blurTimer.current !== null) {
@@ -78,6 +82,7 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
       blurTimer.current = window.setTimeout(() => {
         blurTimer.current = null;
         setInputFocused(false);
+        setActiveId(null);
       }, 150);
     }, []);
 
@@ -88,34 +93,16 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
       [],
     );
 
+    /**
+     * 다른 답을 누르면 곧바로 그 답으로 옮겨 간다. 쓰던 답은 포커스를 잃으며 저장된다.
+     * 저장된 답(<p>)은 포커스를 받을 수 없는 요소라 브라우저가 쓰던 입력창의 포커스를
+     * 거두지 않을 수 있다(iOS) — 그래서 여기서 직접 거둔다. 이미 거둬졌다면 아무 일도 없다.
+     */
     const onRequestFocusChange = (newlyFocusedId: string) => {
       if (activeId && activeId !== newlyFocusedId) {
-        // 편집 중인 입력에서 포커스를 정상적으로 거둔다.
-        // 키보드가 닫혀야 화면 하단 고정 토스트가 가리지 않고, iOS에서 뷰포트가 밀린 채
-        // 남지 않는다.
         textAreaRefs.current[activeIndex]?.blur();
-        showToast(
-          "작성 중인 다른 답변이 있어요. 저장 또는 취소 후 이동해 주세요.",
-          "default",
-          {
-            id: "save-confirmation",
-            actionLabel: "저장",
-            actionColor: "var(--color-semantic-inverse-primary)",
-            // 액션(저장)이나 닫기를 누를 때까지 떠 있어야 한다. 자동으로 사라지면
-            // 왜 다른 답변으로 넘어가지 않는지 알 수 없다.
-            duration: 0,
-            onAction: () => {
-              const success = textAreaRefs.current[activeIndex]?.save();
-              if (success) {
-                setActiveId(newlyFocusedId);
-                removeToast("save-confirmation");
-              }
-            },
-          }
-        );
-      } else {
-        setActiveId(newlyFocusedId);
       }
+      setActiveId(newlyFocusedId);
     };
 
     const saveIntroduceAt = (index: number, value: string) => {
@@ -237,25 +224,9 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
     }, [activeIndex, keyboardInset]);
 
     // 키보드가 떠 있는 동안만 부모가 하단 CTA를 감춘다(겹쳐서 입력 영역이 좁아지는 문제).
-    // 편집 상태(activeId)에 묶으면 화면 아무 곳이나 눌러 키보드를 내렸을 때 CTA가
-    // 돌아오지 않는다 — activeId는 저장/취소로만 풀리기 때문.
     useEffect(() => {
       onEditingChange?.(inputFocused);
     }, [inputFocused, onEditingChange]);
-
-    /*
-     * 저장/취소로 충돌이 풀렸으니 안내 토스트는 스스로 걷는다(이제 자동으로 사라지지 않는다).
-     *
-     * 예전에는 여기서 `window.scrollTo(0, 0)` 도 같이 했다. iOS 가 키보드로 밀어 올린
-     * 뷰포트 오프셋을 되돌리지 않는 증상을 덮으려던 것인데, 그 원인(잠긴 readOnly 입력창으로
-     * 포커스가 튀는 것)은 TextAreaWithActions 의 pointerdown 차단으로 이미 막았다.
-     * 남은 건 부작용뿐이었다 — 문서 전체가 스크롤되는 화면(프로필 > 소개 노트 수정)에서
-     * 답변 하나를 저장할 때마다 화면이 맨 위로 튀었다.
-     */
-    useEffect(() => {
-      if (activeId !== null) return;
-      removeToast("save-confirmation");
-    }, [activeId, removeToast]);
 
     return (
       <IntroContainer $keyboardInset={keyboardInset}>
@@ -297,7 +268,6 @@ export const Step3Intro = forwardRef<Step3Ref, Step3Props>(
                 placeholder={q.placeholder}
                 invalid={highlightRequired}
                 activeId={activeId}
-                onChangeActive={setActiveId}
                 onRequestFocusChange={onRequestFocusChange}
                 onFocusChange={handleInputFocusChange}
                 onSave={(v) => {

@@ -33,14 +33,55 @@ describe("onboarding flow", () => {
 
     cy.contains("소개 노트 작성하기", { timeout: 6000 }).should("be.visible");
     cy.get("textarea").first().click().type("커피");
-    cy.contains("button", "저장").click();
+    // 저장 버튼은 없다. 다른 곳을 눌러 포커스를 거두면 바로 저장된다(2026-11-16 QA).
+    cy.contains("소개 노트 작성하기").click();
 
-    cy.wait("@putIntroNote");
+    cy.wait("@putIntroNote").its("request.body").should("deep.equal", { answer: "커피" });
     cy.contains("10자 이상 작성해주세요").should("not.exist");
     // 저장되면 입력창이 저장된 답변 텍스트로 바뀐다.
-    // 버튼을 누르는 사이 목록이 스크롤되므로 화면 안으로 되돌린 뒤 확인한다.
-    cy.contains("커피").scrollIntoView().should("be.visible");
+    cy.contains("p", "커피").scrollIntoView().should("be.visible");
     cy.contains("1/10 질문 완료").scrollIntoView().should("be.visible");
+  });
+
+  /**
+   * 쓰던 답을 두고 다른 답을 누르면 막지 않고 바로 옮겨 간다. 쓰던 답은 그때 저장된다.
+   * 예전에는 "작성 중인 다른 답변이 있어요. 저장 또는 취소 후 이동해 주세요." 토스트로 막았다
+   * (2026-11-16 QA "다른 칸을 누를려고 할 때 움직이는게 불편함").
+   */
+  it("moves to another answer right away and saves the one being written", () => {
+    cy.clockPeriod("QUIZ");
+    cy.mockApi();
+    cy.intercept("GET", "**/api/v1/users/me/intro-notes", {
+      statusCode: 200,
+      body: { success: true, data: { answers: [], completedCount: 0 } },
+    }).as("getMyIntroNotesEmpty");
+    cy.intercept("PUT", "**/api/v1/users/me/intro-notes/*", {
+      statusCode: 200,
+      body: { success: true, data: { answers: [], completedCount: 1 } },
+    }).as("putIntroNote");
+    cy.login();
+    cy.visit("/onboarding/intro");
+
+    cy.contains("소개 노트 작성하기", { timeout: 6000 }).should("be.visible");
+    cy.contains("button", "저장").should("not.exist");
+    cy.contains("button", "취소").should("not.exist");
+
+    cy.get("textarea").eq(0).click().type("짐은 단출하게");
+    cy.get("textarea").eq(1).click().type("산책");
+
+    cy.wait("@putIntroNote").its("request.body").should("deep.equal", { answer: "짐은 단출하게" });
+    cy.contains("작성 중인 다른 답변이 있어요").should("not.exist");
+    cy.document().its("activeElement.value").should("eq", "산책");
+    cy.contains("1/10 질문 완료").should("be.visible");
+
+    // 저장된 답을 다시 눌러 고치면 고친 값으로 다시 저장된다.
+    cy.contains("p", "짐은 단출하게").click();
+    cy.document().its("activeElement.value").should("eq", "짐은 단출하게");
+    cy.focused().type("만 챙겨요");
+    cy.contains("소개 노트 작성하기").click();
+    cy.get("@putIntroNote.all").should("have.length", 3);
+    cy.contains("p", "짐은 단출하게만 챙겨요").should("be.visible");
+    cy.contains("2/10 질문 완료").should("be.visible");
   });
 
   // 편집 중에는 하단 CTA를 감춘다 — 키보드 위에 겹쳐 입력 영역이 좁아지기 때문.
@@ -59,50 +100,13 @@ describe("onboarding flow", () => {
     cy.contains("button", "다 작성했어요").should("not.exist");
     cy.contains("button", "다음에 할래요").should("not.exist");
 
-    // 저장/취소 없이 화면 다른 곳을 눌러 포커스만 잃어도(=키보드가 내려가도) CTA는 돌아온다.
+    // 화면 다른 곳을 눌러 포커스를 잃으면(=키보드가 내려가면) CTA는 돌아온다.
     cy.contains("소개 노트 작성하기").click();
     cy.contains("button", "다 작성했어요").should("be.visible");
 
-    // 다시 편집하면 또 감춰지고, 취소하면 돌아온다.
+    // 다시 편집하면 또 감춰진다.
     cy.get("textarea").first().click();
     cy.contains("button", "다 작성했어요").should("not.exist");
-    cy.contains("button", "취소").click();
-    cy.contains("button", "다 작성했어요").should("be.visible");
-  });
-
-  /**
-   * 화면을 벗어나면 그 화면에서 뜬 안내 토스트도 같이 사라져야 한다.
-   *
-   * "작성 중인 다른 답변이 있어요" 토스트는 액션(저장)이 달려 있어 스스로 사라지지 않는다.
-   * 예전에는 다음 화면까지 따라와서, 눌러도 아무 일이 없는 버튼이 계속 떠 있었다.
-   */
-  it("dismisses the action toast when leaving the screen that raised it", () => {
-    cy.clockPeriod("QUIZ");
-    cy.mockApi();
-    cy.intercept("GET", "**/api/v1/users/me/intro-notes", {
-      statusCode: 200,
-      body: { success: true, data: { answers: [], completedCount: 0 } },
-    }).as("getMyIntroNotesEmpty");
-    cy.login();
-    cy.visit("/onboarding/intro");
-
-    cy.contains("소개 노트 작성하기", { timeout: 6000 }).should("be.visible");
-
-    // 한 답변을 편집하는 중에 다른 답변을 누르면 저장을 요구하는 토스트가 뜬다.
-    cy.get("textarea").eq(0).click();
-    cy.get("textarea").eq(1).click();
-    cy.contains("작성 중인 다른 답변이 있어요", { timeout: 4000 }).should("be.visible");
-
-    /*
-     * 저장하지 않고 화면을 떠난다. 포커스가 풀리면 하단 CTA가 돌아온다.
-     * "다음에 할래요"가 위 버튼과 같은 52px 버튼이 된 뒤로(2026-10-26) 하단 고정 토스트가 그 대부분을
-     * 덮는다 — 토스트가 "저장 또는 취소 후 이동"을 요구하는 안내라 그대로 둔다. 이 테스트는 떠날 때
-     * 토스트가 걷히는지를 보므로 덮임 검사만 건너뛴다.
-     */
-    cy.contains("button", "다음에 할래요", { timeout: 4000 }).click({ force: true });
-
-    cy.location("pathname", { timeout: 6000 }).should("match", /^\/onboarding\/complete\/?$/);
-    cy.contains("작성 중인 다른 답변이 있어요").should("not.exist");
   });
 
   // Q10은 필수다. 다른 답을 아무리 채워도 Q10이 비면 완료되지 않고, 어느 질문인지 화면에 표시된다.
@@ -134,7 +138,7 @@ describe("onboarding flow", () => {
 
   /**
    * 완료 검증은 입력창에 떠 있는 값으로 통과한다. 그렇다면 그 값도 저장돼야 한다 —
-   * Q10 을 쓰고 질문별 "저장"을 누르지 않은 채 완료하면 검증만 통과하고 Q10 은 빈 채로
+   * Q10 을 쓰고 저장하지 않은 채 완료하면 검증만 통과하고 Q10 은 빈 채로
    * 남았다(2026-10-04 QA "자기소개노트 10번 필수인데 넘어가짐").
    */
   it("saves an unsaved Q10 answer when completing", () => {
@@ -155,7 +159,7 @@ describe("onboarding flow", () => {
 
     cy.wait("@getMyIntroNotesWithoutRequired");
     cy.get("textarea").last().click().type("호기심 많은");
-    // 질문 저장 없이 포커스만 거둔다(키보드를 내린 상태). 하단 CTA 가 돌아온다.
+    // 포커스를 거둔다(키보드를 내린 상태). 하단 CTA 가 돌아온다.
     cy.contains("소개 노트 작성하기").click();
     cy.contains("button", "다 작성했어요").click();
 

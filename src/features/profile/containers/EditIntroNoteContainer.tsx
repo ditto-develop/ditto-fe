@@ -39,7 +39,7 @@ export function EditIntroNoteContainer() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     // 답변 편집 중에는 하단 CTA를 감춘다 — position:fixed 라 키보드 위에 겹쳐
-    // 입력창과 저장/취소 버튼을 가린다. 온보딩 소개 노트와 같은 처리다.
+    // 입력창을 가린다. 온보딩 소개 노트와 같은 처리다.
     const [editingAnswer, setEditingAnswer] = useState(false);
 
     useEffect(() => {
@@ -62,7 +62,7 @@ export function EditIntroNoteContainer() {
     };
 
     /**
-     * 저장은 "수정 완료"에서만 한다.
+     * 서버 저장은 "수정 완료"에서만 한다. 입력창이 포커스를 잃을 때의 저장은 화면 안에서만 반영된다.
      *
      * 예전에는 질문별 저장 버튼이 곧바로 서버에 썼다. 그러면 최소 3개·필수 질문 조건과
      * 무관하게 답변이 하나씩 반영돼, 조건에 못 미치는 상태가 그대로 저장됐다.
