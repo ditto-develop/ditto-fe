@@ -233,9 +233,9 @@ const Overlay = styled.div`
   animation: ${slideInRight} 0.28s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 `;
 
+/* 상태바 인셋은 TopNavigation 이 스스로 비운다. 여기서 또 주면 앱에서만 바 위에 빈 띠가 생긴다. */
 const Header = styled.div`
   flex-shrink: 0;
-  padding-top: env(safe-area-inset-top, 0px);
   background-color: var(--color-semantic-background-normal-normal);
 `;
 
