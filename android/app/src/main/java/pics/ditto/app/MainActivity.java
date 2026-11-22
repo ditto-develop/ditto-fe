@@ -2,6 +2,7 @@ package pics.ditto.app;
 
 import android.net.Uri;
 import android.os.Bundle;
+import android.webkit.CookieManager;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
@@ -51,6 +52,29 @@ public class MainActivity extends BridgeActivity {
             // true 를 돌려주면 이벤트를 소비해 저장 메뉴가 뜨지 않는다.
             return !isChatImage(result.getExtra());
         });
+    }
+
+    /**
+     * 화면을 떠날 때 웹뷰 쿠키를 디스크에 쓴다. 이게 없으면 가끔 로그인이 풀린다.
+     *
+     * 서버는 refresh 할 때마다 refresh 토큰을 새로 내려주고(`Set-Cookie`), 옛 토큰은 30초만 더
+     * 받아 준다(서버 ADR 0034). 그런데 웹뷰는 새 쿠키를 한동안 메모리에만 두었다가 나중에
+     * 디스크에 쓰고, Capacitor 도 이 시점에 flush 하지 않는다. 앱을 열자마자 refresh 가 돌고
+     * (콜드 스타트는 늘 refresh 한다) 잠깐 보고 나간 사이 OS 가 프로세스를 정리하면 디스크에는 옛
+     * 쿠키만 남는다. 다음 실행은 그 옛 쿠키로 refresh 해 2002(만료)를 받고 FE 가 토큰을 지운다 —
+     * "나갔다 들어오면 로그인이 풀려 있다"(2026-11-23 조사, 운영 로그의 2002 묶음).
+     *
+     * onPause 가 아니라 onStop 이다. 프로세스는 onStop 이 돌아온 뒤부터 정리될 수 있으므로 그 전에
+     * 끝내면 충분하고, onPause 는 알림 창을 내리는 것만으로도 불려 디스크 쓰기를 둘 자리가 아니다.
+     * flush() 는 쓰기가 끝날 때까지 막는데, 그래야 돌아온 직후 정리돼도 쿠키가 남는다.
+     *
+     * 막지 못하는 경우: 백그라운드로 간 **뒤에** 도착한 refresh 응답의 쿠키. 그건 서버가 옛 토큰을
+     * 더 오래 받아 주는 쪽(BE)에서 막아야 한다.
+     */
+    @Override
+    public void onStop() {
+        super.onStop();
+        CookieManager.getInstance().flush();
     }
 
     private boolean isChatImage(String url) {
