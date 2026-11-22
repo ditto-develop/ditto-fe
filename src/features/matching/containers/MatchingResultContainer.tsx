@@ -98,6 +98,13 @@ export function MatchingResultContainer({
     const requestCandidates = sorted.filter((m) => !m.hasReceivedRequest);
     const acceptCandidates = sorted.filter((m) => m.hasReceivedRequest);
     const displayCandidates = activeTab === "request" ? requestCandidates : acceptCandidates;
+    /*
+     * 수락하기 탭 레드닷. 아직 답하지 않은 신청이 있는 동안만 켠다 — 탭을 열어 보기만 해서는 꺼지지 않고,
+     * 수락·거절해야 꺼진다(2026-11-23 결정). 한 사람과 성사되면 서버가 나머지 신청을 CANCELLED 로 바꾸므로
+     * 그때도 꺼진다. 상태 폴링(5초)을 따라 화면을 열어 둔 채로도 켜지고 꺼진다.
+     */
+    const hasPendingReceived = acceptCandidates.some((m) => m.hasPendingReceivedRequest);
+    const tabs = TABS.map((tab) => (tab.value === "accept" ? { ...tab, showDot: hasPendingReceived } : tab));
 
     return (
         <PageContainer>
@@ -123,7 +130,7 @@ export function MatchingResultContainer({
                     </SecretNotice>
                 )}
                 <SegmentedControl
-                    tabs={TABS}
+                    tabs={tabs}
                     value={activeTab}
                     onChange={selectTab}
                 />

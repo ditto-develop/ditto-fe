@@ -89,6 +89,81 @@ describe("3.1 매칭 결과 - 1:1 매칭 (WF-06)", () => {
     });
   });
 
+  // 아직 답하지 않은(PENDING) 받은 신청이 있는 동안만 수락하기 탭에 점을 띄운다.
+  // 탭을 열어 보기만 해서는 꺼지지 않고, 수락·거절해야 꺼진다(2026-11-23 결정).
+  describe("수락하기 탭 레드닷", () => {
+    const acceptDot = '[data-testid="segmented-control-dot-accept"]';
+    const requestDot = '[data-testid="segmented-control-dot-request"]';
+
+    type Status = { receivedRequests: object[] };
+
+    // 나중에 건 intercept 가 먼저 맞는다 — mockApi 의 상태 응답을 덮어쓴다.
+    const stubStatus = (fixture: string, transform: (status: Status) => object = (status) => status) => {
+      cy.fixture(fixture).then((status: Status) => {
+        cy.intercept("GET", "**/api/**/matching/status/**", {
+          statusCode: 200,
+          body: { success: true, data: transform(status) },
+        }).as("getStubbedStatus");
+      });
+    };
+
+    it("답하지 않은 신청이 있으면 수락하기 탭에만 점이 뜨고, 탭을 열어도 남는다", () => {
+      cy.mockApi({ matchesFixture: "matches-1on1-received.json", matchingStatusFixture: "matching-status-received.json" });
+      cy.visit("/matching");
+
+      cy.get(acceptDot, { timeout: 6000 }).should("be.visible");
+      cy.get(requestDot).should("not.exist");
+
+      cy.contains("수락하기").click();
+      cy.contains("상대가 대화를 신청했어요").should("be.visible");
+      cy.get(acceptDot).should("be.visible");
+    });
+
+    it("받은 신청이 없으면 점이 없다", () => {
+      cy.mockApi({ matchesFixture: "matches-1on1-populated.json" });
+      cy.visit("/matching");
+
+      // 후보는 상태 조회까지 끝난 뒤에 그려진다 — 후보가 보이면 점 여부도 정해진 상태다.
+      cy.contains("수민", { timeout: 6000 }).should("be.visible");
+      cy.get(acceptDot).should("not.exist");
+    });
+
+    it("거절한 신청만 있으면 점이 없다", () => {
+      cy.mockApi({ matchesFixture: "matches-1on1-received.json", matchingStatusFixture: "matching-status-rejected.json" });
+      cy.visit("/matching");
+
+      cy.contains("내가 신청을 거절했어요", { timeout: 6000 }).should("be.visible");
+      cy.get(acceptDot).should("not.exist");
+    });
+
+    it("수락한 신청은 수락하기 탭에 남지만 점은 없다", () => {
+      cy.mockApi({ matchesFixture: "matches-1on1-received.json" });
+      stubStatus("matching-status-received.json", (status) => ({
+        ...status,
+        hasAcceptedMatch: true,
+        acceptedMatchUserId: 501,
+        receivedRequests: status.receivedRequests.map((request) => ({ ...request, status: "ACCEPTED" })),
+      }));
+      cy.visit("/matching");
+      cy.wait("@getStubbedStatus");
+
+      cy.contains("수락하기").click();
+      cy.contains("수민", { timeout: 6000 }).should("be.visible");
+      cy.get(acceptDot).should("not.exist");
+    });
+
+    it("화면을 열어 둔 채로 신청에 답하면 다음 상태 조회에서 점이 꺼진다", () => {
+      cy.mockApi({ matchesFixture: "matches-1on1-received.json", matchingStatusFixture: "matching-status-received.json" });
+      cy.visit("/matching");
+      cy.get(acceptDot, { timeout: 6000 }).should("be.visible");
+
+      // 다른 기기에서 거절한 상황. 상태 폴링은 5초 간격이다.
+      stubStatus("matching-status-rejected.json");
+      cy.wait("@getStubbedStatus", { timeout: 8000 });
+      cy.get(acceptDot).should("not.exist");
+    });
+  });
+
   describe("거절된 요청", () => {
     // 서버는 거절된 요청도 목록에 그대로 내려준다(보낸 목록에서 "거절당함"을 보여주려면 필요).
     // 화면이 상태로 걸러야 하며, 걸러지지 않으면 이미 거절한 요청이 수락하기 탭에 계속 남는다.

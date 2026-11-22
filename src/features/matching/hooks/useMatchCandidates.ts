@@ -19,6 +19,11 @@ export interface MatchItem {
     totalQuestions: number;
     hasRequested: boolean;
     hasReceivedRequest: boolean;
+    /**
+     * 상대가 보낸 신청에 내가 아직 답하지 않았다(PENDING). 수락하기 탭의 레드닷이 이 값을 본다.
+     * hasReceivedRequest 는 수락한 신청(ACCEPTED)도 참이라 레드닷에는 쓸 수 없다.
+     */
+    hasPendingReceivedRequest: boolean;
     /** 내가 보낸 신청을 상대가 거절했다 */
     wasRejectedByThem: boolean;
     /** 상대가 보낸 신청을 내가 거절했다 */
@@ -93,6 +98,7 @@ function mergeWithStatus(
             matchRate: c.scoreBreakdown?.quizMatchRate ?? c.matchRate ?? 0,
             hasRequested: isActive(sent),
             hasReceivedRequest: isActive(received),
+            hasPendingReceivedRequest: received?.status === "PENDING",
             wasRejectedByThem,
             didRejectThem,
             wasCancelled,

@@ -5,6 +5,8 @@ import styled from "styled-components";
 interface Tab<T extends string> {
     value: T;
     label: string;
+    /** 라벨 오른쪽 위에 빨간 점을 띄운다. 이 탭에 사용자가 처리할 것이 있다는 표시다. */
+    showDot?: boolean;
 }
 
 interface SegmentedControlProps<T extends string> {
@@ -26,7 +28,16 @@ export function SegmentedControl<T extends string>({
                     $active={tab.value === value}
                     onClick={() => onChange(tab.value)}
                 >
-                    {tab.label}
+                    <TabLabel>
+                        {tab.label}
+                        {tab.showDot && (
+                            <TabDot
+                                data-testid={`segmented-control-dot-${tab.value}`}
+                                role="img"
+                                aria-label="새 알림"
+                            />
+                        )}
+                    </TabLabel>
                 </TabButton>
             ))}
         </Container>
@@ -63,4 +74,21 @@ const TabButton = styled.button<{ $active: boolean }>`
     line-height: var(--typography-body-2-normal-line-height);
     letter-spacing: var(--typography-body-2-normal-letter-spacing);
     transition: background-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+`;
+
+/* 점이 생기고 사라져도 라벨이 가운데에서 움직이지 않도록 점은 흐름 밖에 둔다. */
+const TabLabel = styled.span`
+    position: relative;
+`;
+
+/* 색은 홈 알림 종의 점(MainHeader AlarmDot)과 같다. */
+const TabDot = styled.span`
+    position: absolute;
+    top: var(--spacing-2px);
+    left: 100%;
+    margin-left: var(--spacing-2px);
+    width: var(--spacing-6px);
+    height: var(--spacing-6px);
+    border-radius: 50%;
+    background-color: var(--color-semantic-status-negative);
 `;
