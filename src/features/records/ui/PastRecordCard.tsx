@@ -17,7 +17,7 @@ export function PastRecordCard({ record, onOpen }: PastRecordCardProps) {
 
   return (
     <Card type="button" onClick={() => onOpen(record.quizSetId)}>
-      <Meta>{formatRecordMeta(record, { withWeek: true })}</Meta>
+      <Meta>{formatRecordMeta(record)}</Meta>
       <TitleRow>
         <Title>{record.title}</Title>
         <Chevron name="navigation.chevronRight" size={24} />

@@ -27,38 +27,12 @@ export function formatWeekOf(weekStartedOn: string): string {
 }
 
 /**
- * 그 주 월요일 → "몇째 주". 서버 `OperationWeek.weekOfMonth`(`WeekFields.of(MONDAY, 1)`)와 같은 규칙이다 —
- * 그 달 1일이 든 월~일 주가 1주차다. 기록 응답에 주차가 없어 `weekStartedOn` 에서 계산한다.
+ * "그룹 · 10월 26일 주" (Figma 3254:37528 · 3254:37958 · 3255:37092).
+ * 시안의 맨 앞 "N주차" 는 뺀다 — 달마다 다시 세는 번호라 10월 19일 주와 11월 16일 주가 둘 다 "4주차" 로
+ * 보였다(QA 1119). 날짜("N월 N일 주")가 이미 주를 가리킨다.
  */
-export function weekOfMonth(weekStartedOn: string): number | null {
-  const date = parseDate(weekStartedOn);
-  if (!date) return null;
-  // 1일 앞에 그 주의 며칠이 지난달에 있는지(월=0 … 일=6).
-  const daysBeforeFirst = (new Date(Date.UTC(date.year, date.month - 1, 1)).getUTCDay() + 6) % 7;
-  return Math.floor((date.day + daysBeforeFirst - 1) / 7) + 1;
-}
-
-/** "11월 2주차 퀴즈"·"2주차" 처럼 쓰는 주차 라벨. 날짜를 못 읽으면 빈 문자열. */
-export function formatWeekLabel(weekStartedOn: string): string {
-  const week = weekOfMonth(weekStartedOn);
-  return week === null ? "" : `${week}주차`;
-}
-
-type RecordMetaOptions = {
-  /** 맨 앞에 "4주차" 를 붙인다(기록 탭 카드). 상세 화면은 제목이 "4주차 퀴즈" 라 뺀다. */
-  withWeek?: boolean;
-};
-
-/** "4주차 · 1:1 · 10월 26일 주" (Figma 3254:37528 · 3254:37958 · 3255:37092). */
-export function formatRecordMeta(
-  record: { matchingType: QuizMatchingType; weekStartedOn: string },
-  { withWeek = false }: RecordMetaOptions = {},
-): string {
-  return [
-    withWeek ? formatWeekLabel(record.weekStartedOn) : null,
-    matchingTypeLabel(record.matchingType),
-    formatWeekOf(record.weekStartedOn),
-  ]
+export function formatRecordMeta(record: { matchingType: QuizMatchingType; weekStartedOn: string }): string {
+  return [matchingTypeLabel(record.matchingType), formatWeekOf(record.weekStartedOn)]
     .filter(Boolean)
     .join(" · ");
 }

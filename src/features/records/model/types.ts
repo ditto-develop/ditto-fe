@@ -40,7 +40,7 @@ export type QuizHistoryCurrentWeek = {
 /** 끝까지 푼 퀴즈셋 하나. 목록은 최신 주가 먼저고 이번 주도 들어 있다. */
 export type QuizHistoryWeek = {
   quizSetId: number;
-  /** 그 주의 월요일, yyyy-MM-dd. 주차("11월 2주차")도 이 값에서 계산한다(서버 OperationWeek). */
+  /** 그 주의 월요일, yyyy-MM-dd. 화면에는 "10월 26일 주" 로 쓴다. */
   weekStartedOn: string;
   matchingType: QuizMatchingType;
   title: string;

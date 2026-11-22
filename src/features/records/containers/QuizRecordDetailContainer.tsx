@@ -7,7 +7,6 @@ import styled from "styled-components";
 import { MainBottomNav } from "@/app/home/MainBottomNav";
 import { useQuizRecordDetail } from "@/features/records/hooks/useQuizRecords";
 import { useRevealCountdown } from "@/features/records/hooks/useRevealCountdown";
-import { formatWeekLabel } from "@/features/records/lib/recordFormat";
 import { RecordAnswerList } from "@/features/records/ui/RecordAnswerList";
 import { RecordDetailHeaderCard } from "@/features/records/ui/RecordDetailHeaderCard";
 import { RecordResultList } from "@/features/records/ui/RecordResultList";
@@ -24,8 +23,9 @@ type QuizRecordDetailContainerProps = {
 
 /**
  * 퀴즈셋 하나의 기록. 서버 `phase` 로 두 화면이 갈린다(기기 시계로 판정하지 않는다).
- * - 공개 전: "N주차 퀴즈" — 내 답변 보기 [3254:37938]
- * - 공개 후: "N주차 퀴즈 결과" — 마감 후 퀴즈 결과 [3255:37086]
+ * - 공개 전: "퀴즈" — 내 답변 보기 [3254:37938]
+ * - 공개 후: "퀴즈 결과" — 마감 후 퀴즈 결과 [3255:37086]
+ * 시안 제목 앞의 "N주차" 는 뺀다(QA 1119) — 어느 주인지는 머리 카드의 "N월 N일 주" 가 말한다.
  *
  * 공개 전 화면을 띄워 둔 채 공개 시각(목 0시)이 지나면 다시 불러 결과 화면으로 바꾼다.
  */
@@ -44,7 +44,8 @@ export function QuizRecordDetailContainer({ quizSetId }: QuizRecordDetailContain
     return () => clearInterval(id);
   }, [hasData, revealed, countdown.expired, reload]);
 
-  const title = data ? `${formatWeekLabel(data.weekStartedOn)} 퀴즈${revealed ? " 결과" : ""}` : "";
+  // 불러오기 전에는 비워 둔다 — "퀴즈" 를 먼저 그렸다가 "퀴즈 결과" 로 바뀌지 않게.
+  const title = data ? (revealed ? "퀴즈 결과" : "퀴즈") : "";
 
   return (
     <Page>

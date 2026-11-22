@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import styled from "styled-components";
 
 type RecordCardHeadingProps = {
-  /** "4주차 · 1:1 · 10월 26일 주" */
+  /** "1:1 · 10월 26일 주" */
   meta: string;
   title: string;
   /** "제출 완료 · 12개 답변" / "10월 27일 21:14 제출" */

@@ -27,7 +27,7 @@ export function ThisWeekRecordCard({ record, currentWeek, onOpen }: ThisWeekReco
   return (
     <Card>
       <RecordCardHeading
-        meta={formatRecordMeta(record, { withWeek: true })}
+        meta={formatRecordMeta(record)}
         title={record.title}
         // 시안은 "제출 완료 · 12개 답변" 인데 기록 목록 응답에 답변 수가 없다(IMP-1 BE-2).
         subtitle="제출 완료"

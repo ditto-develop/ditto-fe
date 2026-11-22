@@ -57,8 +57,9 @@ describe("퀴즈 기록 탭", () => {
     cy.contains("답한 질문").next().should("have.text", "36");
     cy.contains("소수 의견").next().should("have.text", "5");
 
-    // 주차는 서버 OperationWeek 규칙(1일이 든 월~일 주가 1주차) — 2026-10-26 주는 10월 5주차다.
-    cy.contains("5주차 · 1:1 · 10월 26일 주").should("be.visible");
+    // 메타 줄에 "N주차" 를 쓰지 않는다 — 달마다 다시 세서 다른 달의 주와 겹쳐 보였다(QA 1119).
+    cy.contains("1:1 · 10월 26일 주").should("be.visible");
+    cy.contains("주차").should("not.exist");
     cy.contains("이번 주").should("be.visible");
     cy.contains("h2", "시간이 멈춘다면").should("be.visible");
     // 기록 목록 응답에 답변 수가 없어 "제출 완료" 만 쓴다.
@@ -67,7 +68,8 @@ describe("퀴즈 기록 탭", () => {
 
     cy.contains("h2", "지난 퀴즈").should("be.visible");
     cy.contains("button", "가을 밤, 같이 볼 영화").within(() => {
-      cy.contains("4주차 · 그룹 · 10월 19일 주");
+      cy.contains("그룹 · 10월 19일 주");
+      cy.contains("주차").should("not.exist");
       cy.contains("결과 보기 · 소수 의견 2개");
     });
     cy.contains("button", "비 오는 날의 기억").should("contain.text", "결과 보기 · 소수 의견 3개");
@@ -76,7 +78,7 @@ describe("퀴즈 기록 탭", () => {
     cy.location("pathname").should("match", /^\/records\/42\/?$/);
     cy.wait("@getQuizRecord42", { timeout: 15000 });
 
-    cy.contains("5주차 퀴즈").should("be.visible");
+    cy.contains(/^퀴즈$/).should("be.visible");
     cy.contains("결과 공개 전").should("be.visible");
     cy.contains("1:1 · 10월 26일 주").should("be.visible");
     // 응답에 제출 시각이 없어 "10월 27일 21:14 제출" 줄은 그리지 않는다.
@@ -104,7 +106,7 @@ describe("퀴즈 기록 탭", () => {
     cy.location("pathname").should("match", /^\/records\/41\/?$/);
     cy.wait("@getQuizRecord41", { timeout: 15000 });
 
-    cy.contains("4주차 퀴즈 결과").should("be.visible");
+    cy.contains(/^퀴즈 결과$/).should("be.visible");
     cy.contains("결과 공개").should("be.visible");
     cy.contains("그룹 · 10월 19일 주").should("be.visible");
     cy.contains("312명 참여").should("not.exist");
@@ -168,7 +170,7 @@ describe("퀴즈 기록 탭", () => {
     cy.visit("/records/41");
     cy.wait("@getLateRecord41", { timeout: 15000 });
 
-    cy.contains("4주차 퀴즈 결과").should("be.visible");
+    cy.contains(/^퀴즈 결과$/).should("be.visible");
     cy.get('[data-testid="record-overlap-tile"]').should("not.exist");
     cy.contains("답이 겹친 사람").should("not.exist");
     cy.contains("소수 의견").parent().find("strong").should("have.text", "2개");

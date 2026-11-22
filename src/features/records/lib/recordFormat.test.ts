@@ -4,12 +4,10 @@ import {
   formatCountdown,
   formatRecordMeta,
   formatRevealMoment,
-  formatWeekLabel,
   formatWeekOf,
   isWeekRevealed,
   matchingTypeLabel,
   pastRecordLabel,
-  weekOfMonth,
 } from "@/features/records/lib/recordFormat";
 
 const record = { matchingType: "ONE_TO_ONE" as const, weekStartedOn: "2026-11-02" };
@@ -25,23 +23,8 @@ describe("recordFormat", () => {
     expect(formatWeekOf("")).toBe("");
   });
 
-  it("주차는 서버 OperationWeek(WeekFields MONDAY, 1)와 같다 — 1일이 든 월~일 주가 1주차", () => {
-    // 2026-11-01 은 일요일이라 10/26~11/01 주가 11월 1주차, 11/02 주가 2주차다.
-    expect(weekOfMonth("2026-11-02")).toBe(2);
-    expect(weekOfMonth("2026-11-30")).toBe(6);
-    // 2026-10-01 은 목요일 — 10/26 주는 5주차.
-    expect(weekOfMonth("2026-10-26")).toBe(5);
-    // 2026-06-01 은 월요일 — 그날이 1주차.
-    expect(weekOfMonth("2026-06-01")).toBe(1);
-    // 월 경계 주(7/27~8/2)는 시작일의 달(7월) 기준 5주차.
-    expect(weekOfMonth("2026-07-27")).toBe(5);
-    expect(weekOfMonth("")).toBeNull();
-    expect(formatWeekLabel("2026-11-02")).toBe("2주차");
-    expect(formatWeekLabel("bad")).toBe("");
-  });
-
   it("메타 줄 — 카드·상세·결과", () => {
-    expect(formatRecordMeta(record, { withWeek: true })).toBe("2주차 · 1:1 · 11월 2일 주");
+    // 맨 앞 "N주차" 는 쓰지 않는다(QA 1119).
     expect(formatRecordMeta(record)).toBe("1:1 · 11월 2일 주");
     // 퀴즈 결과에도 참여자 수를 붙이지 않는다.
     expect(formatRecordMeta({ ...record, matchingType: "GROUP" })).toBe("그룹 · 11월 2일 주");
