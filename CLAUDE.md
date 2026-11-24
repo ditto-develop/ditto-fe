@@ -428,6 +428,41 @@ npm run test:e2e:cypress
 
 ---
 
+## 12.2 Before/After Captures (Required for Every Task)
+
+**Every task report shows the before and after of what changed.** The user asked for this
+explicitly (2026-11-24). Do not skip it and do not wait to be asked. A task is not reported
+as done without it.
+
+- **Screen changes**: capture the same screen in the same state before and after, put each pair
+  side by side in one image (left = 변경 전, right = 변경 후), and link that image in the final
+  report with a one-line note per pair saying what changed.
+- Cover every state the change touches, not only the happy path (e.g. pending / already
+  responded / empty / error), as long as existing mocks can reach it.
+- **No visible change** (API-only, refactor, infra, docs): say "화면 변화 없음" in one line and show
+  the before/after in the form that fits instead: request/response, log line, command output,
+  or behavior described side by side.
+- PR descriptions attach the same image under "Screenshots / Evidence" (§18).
+
+How (used for the group-invite change, 2026-11-24):
+
+1. **Before = HEAD, not Figma.** Figma can lag the code. Check HEAD out into a scratchpad worktree:
+   `git worktree add --detach <scratchpad>/before HEAD`, then `cp -cR node_modules <scratchpad>/before/`
+   (APFS clone, fast and no extra disk; a symlink can break Turbopack) and copy `.env.local`.
+2. Write one capture spec in the scratchpad that reaches the state with the existing Cypress
+   mocks (`cy.clockPeriod`, `cy.mockApi`, fixtures), sets `cy.viewport(393, 852)`, hides the Next
+   dev overlay (inject `nextjs-portal{display:none!important}`), and calls
+   `cy.screenshot(name, { capture: "viewport" })`.
+3. Copy the spec into `cypress/e2e/_capture/` of each tree and run it against that tree's own dev
+   server (after: `next dev -p 3100`, before: `next dev -p 3101`, via `start-server-and-test`) with
+   `--config baseUrl=…,screenshotsFolder=<scratchpad>/capture/{before,after}`.
+   Delete `_capture/` right after. Never commit it.
+4. Compose the pairs into one image (Pillow in a scratchpad venv works).
+5. Clean up with `git worktree remove --force <scratchpad>/before`. Captures stay in the
+   scratchpad, never in the repo.
+
+---
+
 ## 13. Deployment Verification
 
 ### 13.0 How Deployment Works (read this first)
@@ -744,7 +779,7 @@ Explain the motivation.
 
 ## Screenshots / Evidence
 
-Add if applicable.
+Before/after captures (§12.2). Required. For changes with no visible difference, say "화면 변화 없음" and show the before/after evidence that fits.
 ```
 
 ---
@@ -757,3 +792,4 @@ Add if applicable.
 - Prefer concrete file-level feedback.
 - Provide Codex-ready prompts when follow-up implementation is needed.
 - Do not claim validation passed unless there is evidence.
+- End every task report with the before/after captures (§12.2).
