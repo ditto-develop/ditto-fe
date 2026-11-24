@@ -198,7 +198,6 @@ Cypress.Commands.add("mockApi", (options: MockApiOptions = {}) => {
       }).as(index === 0 ? "getGroupMatches" : `getGroupMatches${index + 1}`);
     });
   }
-  mockFixture("POST", ["**/api/v1/matches/group/*/accept", "**/api/matches/group/*/accept"], "group-accept.json", "acceptGroupMatch");
   cy.intercept("POST", "**/api/**/matches/group/*/decline", emptySuccessResponse()).as("declineGroupMatch");
 
   const systemPeriod = (Cypress.env("systemPeriod") as PeriodName | undefined) ?? "QUIZ";

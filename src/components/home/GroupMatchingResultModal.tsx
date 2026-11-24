@@ -19,7 +19,7 @@ import {
 } from "@/shared/ui";
 import type { AlertStatus } from "@/components/display/Card";
 import type { GroupCandidateGroupDto, MatchCandidateDto } from "@/features/matching/api/matchingApi";
-import { acceptGroupMatch, declineGroupMatch } from "@/features/matching/api/matchingApi";
+import { declineGroupMatch } from "@/features/matching/api/matchingApi";
 import { API_ERROR_CODE, hasApiErrorCode } from "@/shared/lib/api/apiError";
 import { formatAgeRange } from "@/shared/lib/formatAge";
 import { toLocationLabel } from "@/shared/lib/profileLabels";
@@ -49,6 +49,13 @@ function getBadgeBgColor(status: AlertStatus): string {
 }
 
 /**
+ * 그룹 초대의 기본값은 참여다(ditto-server #397). 금 00:00 응답 마감까지 거절하지 않으면 서버가
+ * 참여로 바꾸므로 응답 버튼은 "거절하기"만 둔다. 이 안내가 없으면 버튼이 하나뿐인 이유를 알 수 없다
+ * (BE 위키 Frontend-Group-Matching-Guide §응답하지 않으면 참여).
+ */
+const AUTO_JOIN_NOTICE = "거절하지 않으면 금요일 00:00에 자동으로 참여돼요.";
+
+/**
  * 내 화면이 서버와 어긋났다는 신호. 다른 탭·기기에서 먼저 응답했을 때 온다.
  * 에러로 띄우지 않고 후보 목록을 다시 받아 화면을 맞춘다
  * (BE 위키 Frontend-Group-Matching-Guide §에러 코드).
@@ -58,8 +65,8 @@ function isStaleGroupError(error: unknown): boolean {
     error,
     API_ERROR_CODE.FORBIDDEN,              // 0003 — 내가 후보가 아닌 그룹
     API_ERROR_CODE.NOT_FOUND,              // 0004 — 없는 그룹
-    API_ERROR_CODE.GROUP_ALREADY_ACCEPTED, // 5005
-    API_ERROR_CODE.GROUP_ALREADY_DECLINED, // 5006 (자동 거절 포함)
+    API_ERROR_CODE.GROUP_ALREADY_ACCEPTED, // 5005 — 다른 기기(예전 앱)에서 수락
+    API_ERROR_CODE.GROUP_ALREADY_DECLINED, // 5006 (다른 그룹 수락에 따른 자동 거절 포함)
     API_ERROR_CODE.MATCH_NOT_CURRENT_WEEK, // 5008 — 지난 주 후보(탭을 열어 둔 채 주가 바뀐 경우)
   );
 }
@@ -89,10 +96,11 @@ function toProfileDetail(c: MatchCandidateDto, index: number) {
 interface GroupMatchingResultModalProps {
   isOpen: boolean;
   onClose: () => void;
-  /** 응답 대상 후보 그룹. 수락·거절은 퀴즈셋이 아니라 `groupMatchId`로 보낸다. */
+  /**
+   * 응답 대상 후보 그룹. 거절은 퀴즈셋이 아니라 `groupMatchId`로 보낸다.
+   * 수락 API(`POST /matches/group/{id}/accept`)는 예전 앱을 위해 서버에 남아 있을 뿐 이 화면은 부르지 않는다.
+   */
   group: GroupCandidateGroupDto;
-  /** 수락 성공. isFormed 면 이번 수락으로 성사됐거나 이미 성사된 그룹이다. */
-  onAccepted: (isFormed: boolean) => void;
   onDeclined: () => void;
   /** 서버와 어긋남(0003/0004/5005/5006/5008) — 후보 목록 재조회를 요청한다. */
   onStale: () => void;
@@ -105,18 +113,14 @@ export function GroupMatchingResultModal({
   isOpen,
   onClose,
   group,
-  onAccepted,
   onDeclined,
   onStale,
   groupName = DEFAULT_GROUP_NAME,
 }: GroupMatchingResultModalProps) {
-  const { showToast, removeToast } = useToast();
-  const [accepting, setAccepting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
   const [profileSelect, setProfileSelect] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<ReturnType<typeof toProfileDetail> | null>(null);
   const [rejectAlertOpen, setRejectAlertOpen] = useState(false);
-  const [joinConfirmOpen, setJoinConfirmOpen] = useState(false);
 
   const candidates = group.members;
 
@@ -130,7 +134,8 @@ export function GroupMatchingResultModal({
   const topBadge = getMatchBadgeInfo(avgMatched, totalQ);
 
   /**
-   * 수락은 했지만 아직 성사 전(수락자 3명 미만). 응답을 끝냈으니 하단 CTA 만 내린다.
+   * 수락은 했지만 아직 성사 전(수락자 3명 미만). 이 화면에는 수락 버튼이 없으므로 예전 앱에서
+   * 수락한 경우다. 응답을 끝냈으니 하단 CTA 만 내린다.
    * 그룹 카드(멤버 목록)는 계속 열린다 — 예전에는 카드까지 잠가, 수락한 뒤로는 같이 매칭된
    * 사람들을 다시 볼 길이 없었다(2026-11-19 QA "수락 후 멤버 리스트를 볼 수 없음").
    */
@@ -145,44 +150,6 @@ export function GroupMatchingResultModal({
     showToast("이미 응답한 그룹이에요. 최신 결과를 다시 불러올게요.", "default", { duration: 3000 });
     onClose();
     onStale();
-  };
-
-  const handleAccept = async () => {
-    if (accepting) return;
-    setAccepting(true);
-    setError(null);
-    try {
-      const result = await acceptGroupMatch(group.groupMatchId);
-      trackEvent("group_match_join", { ok: true });
-      onAccepted(result.isFormed);
-
-      if (result.isFormed) {
-        const toastId = `group-join-active-${Date.now()}`;
-        showToast("그룹에 참여했어요. 대화는 금요일에 시작돼요.", "default", {
-          id: toastId,
-          actionLabel: "확인",
-          onAction: () => removeToast(toastId),
-          duration: 3000,
-        });
-        onClose();
-      } else {
-        showToast(
-          "그룹 참여를 신청했어요. 3명 이상이 참여하면 금요일에 대화가 시작돼요.",
-          "default",
-          { duration: 3000 }
-        );
-      }
-    } catch (e) {
-      // 실패도 센다. 여기가 크면 "참여가 안 된다"는 이탈이 흥미 상실로 오독된다.
-      trackEvent("group_match_join", { ok: false });
-      if (isStaleGroupError(e)) {
-        handleStale();
-        return;
-      }
-      setError(e instanceof Error ? e.message : "참여 중 오류가 발생했습니다.");
-    } finally {
-      setAccepting(false);
-    }
   };
 
   return (
@@ -279,33 +246,20 @@ export function GroupMatchingResultModal({
               </GroupCard>
             </CardWrapper>
           )}
-
-          {error && (
-            <FeedbackBox $isError>
-              <Body2Normal $color="var(--color-semantic-status-negative)">{error}</Body2Normal>
-            </FeedbackBox>
-          )}
         </ContentBody>
 
-        {/* 응답을 마쳤으면(참여·거절) 더 할 행동이 없으니 CTA 를 내린다. */}
+        {/*
+          응답 전(PENDING)에는 "거절하기"만 둔다 — 거절하지 않으면 마감에 참여로 처리된다(#397).
+          응답을 마쳤으면(참여·거절) 더 할 행동이 없으니 CTA 를 내린다.
+        */}
         {candidates.length > 0 && !hasResponded && (
           <BottomActions>
-            <ActionRow>
-              <EqualActionButton
-                variant="secondary"
-                disabled={accepting}
-                onClick={() => setRejectAlertOpen(true)}
-              >
-                거절하기
-              </EqualActionButton>
-              <EqualActionButton
-                variant="primary"
-                disabled={accepting}
-                onClick={!accepting ? () => setJoinConfirmOpen(true) : undefined}
-              >
-                {accepting ? "참여 중..." : "참여하기"}
-              </EqualActionButton>
-            </ActionRow>
+            <AutoJoinNotice $color="var(--color-semantic-label-alternative)">
+              {AUTO_JOIN_NOTICE}
+            </AutoJoinNotice>
+            <ActionButton variant="secondary" onClick={() => setRejectAlertOpen(true)}>
+              거절하기
+            </ActionButton>
           </BottomActions>
         )}
       </FullScreenModal>
@@ -398,24 +352,6 @@ export function GroupMatchingResultModal({
           onClick: () => setRejectAlertOpen(false),
         }}
         onClose={() => setRejectAlertOpen(false)}
-      />
-
-      <AlertModal
-        isOpen={joinConfirmOpen}
-        title="이 그룹에 참여할까요?"
-        message="한 번 참여하기를 선택하면 취소할 수 없어요."
-        confirmParams={{
-          text: "네, 참여할게요",
-          onClick: () => {
-            setJoinConfirmOpen(false);
-            handleAccept();
-          },
-        }}
-        cancelParams={{
-          text: "아니요",
-          onClick: () => setJoinConfirmOpen(false),
-        }}
-        onClose={() => setJoinConfirmOpen(false)}
       />
     </>
   );
@@ -570,18 +506,14 @@ const GroupInfo = styled.div`
   min-width: 0;
 `;
 
-const FeedbackBox = styled.div<{ $isError?: boolean }>`
-  padding: 12px 16px;
-  border-radius: 12px;
-  background-color: ${({ $isError }) =>
-    $isError ? "rgba(179, 53, 40, 0.08)" : "rgba(85, 122, 85, 0.08)"};
-`;
-
 const BottomActions = styled.div`
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   padding: 16px;
   /* viewport 고정 하단 바. BottomActionArea와 동일한 인셋 규칙을 따른다. */
   padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
@@ -590,13 +522,9 @@ const BottomActions = styled.div`
   z-index: 10;
 `;
 
-const ActionRow = styled.div`
-  display: flex;
-  gap: 12px;
-`;
-
-const EqualActionButton = styled(ActionButton)`
-  flex: 1;
+/* 버튼 위 안내 한 줄. ActionSheet 의 caption 과 같은 자리·톤이다. */
+const AutoJoinNotice = styled(Label2)`
+  text-align: center;
 `;
 
 const ChevronIcon = styled.img`

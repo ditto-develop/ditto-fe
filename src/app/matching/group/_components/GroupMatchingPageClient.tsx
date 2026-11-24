@@ -57,7 +57,8 @@ async function fetchGroupMatching(): Promise<GroupMatchingState> {
  * 그룹 주의 매칭 결과·매칭 실패(`MATCH_RESULT`·`NO_MATCH`)와 인원 미달(`GROUP_NOT_FORMED`)
  * 알림이 여기로 온다(BE 위키 Frontend-DeepLink-Guide, ditto-fe#23). 홈의 그룹 결과 모달은
  * 매칭 카드 버튼으로만 열려 URL 로 들어올 수 없어서, 같은 모달을 이 경로의 화면으로 띄운다.
- * 닫으면(참여 성사·거절 포함) 들어오기 전 화면으로, 없으면 홈으로 간다.
+ * 응답은 거절뿐이다 — 거절하지 않으면 금 00:00에 서버가 참여로 처리한다(ditto-server #397).
+ * 닫으면(거절 포함) 들어오기 전 화면으로, 없으면 홈으로 간다.
  */
 export function GroupMatchingPageClient() {
   const router = useRouter();
@@ -112,14 +113,6 @@ export function GroupMatchingPageClient() {
       onClose={goBack}
       group={activeGroup}
       groupName={groupName}
-      // 홈과 같다: 수락하면 같은 주의 다른 후보는 서버에서 자동 거절된다.
-      onAccepted={(isFormed) =>
-        setState((prev) =>
-          prev.status === "ready" && prev.groups.length > 0
-            ? { ...prev, groups: [{ ...prev.groups[0], myStatus: "ACCEPTED", isFormed }] }
-            : prev,
-        )
-      }
       onDeclined={() =>
         setState((prev) =>
           prev.status === "ready" ? { ...prev, groups: prev.groups.slice(1) } : prev,

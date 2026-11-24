@@ -4,7 +4,6 @@
  */
 
 import {
-    acceptExternalGroupMatch,
     acceptExternalMatchRequest,
     declineExternalGroupMatch,
     getExternalGroupCandidates,
@@ -167,19 +166,8 @@ export interface GetGroupCandidatesResponse {
     groups: GroupCandidateGroupDto[];
 }
 
-export interface GroupMatchAcceptResult {
-    groupMatchId: string;
-    quizSetId: string;
-    acceptedCount: number;
-    isFormed: boolean;
-}
-
 export function getGroupCandidates(): Promise<GetGroupCandidatesResponse> {
     return getExternalGroupCandidates();
-}
-
-export function acceptGroupMatch(groupMatchId: string): Promise<GroupMatchAcceptResult> {
-    return acceptExternalGroupMatch(groupMatchId);
 }
 
 export function declineGroupMatch(groupMatchId: string): Promise<void> {

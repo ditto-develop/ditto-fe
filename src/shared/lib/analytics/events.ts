@@ -136,8 +136,10 @@ export interface AnalyticsEventMap {
   match_request_send: { ok: boolean };
   match_request_accept: { ok: boolean };
   match_request_reject: { ok: boolean };
-  /** 그룹 매칭 참여/거절. */
-  group_match_join: { ok: boolean };
+  /**
+   * 그룹 매칭 거절. 참여는 FE 이벤트가 없다 — 거절하지 않으면 금 00:00에 서버가 참여로 처리한다(#397).
+   * 예전 `group_match_join`(수락 버튼)은 버튼이 사라지며 함께 뺐다.
+   */
   group_match_decline: Record<string, never>;
 
   /**

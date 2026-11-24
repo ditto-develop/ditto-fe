@@ -235,17 +235,11 @@ export const handlers = [
    * 후보 그룹 목록은 "참여한 그룹 퀴즈셋 없음"(0004)으로 내려준다 —
    * 이 값이 있어야 홈이 1:1 경로로 갈린다. 그룹 플로우는 Cypress 가 픽스처로 덮어 검증한다.
    *
-   * 수락·거절은 **퀴즈셋이 아니라 groupMatchId** 로 지정한다(BE 위키 Frontend-Group-Matching-Guide).
+   * 거절은 **퀴즈셋이 아니라 groupMatchId** 로 지정한다(BE 위키 Frontend-Group-Matching-Guide).
+   * 수락은 FE 가 부르지 않는다 — 거절하지 않으면 금 00:00에 서버가 참여로 처리한다(#397).
    */
   http.get(apiPath("/matches/group"), () =>
     failure("0004", "참여한 그룹 퀴즈셋이 없습니다.", 404)),
-  http.post(apiPath("/matches/group/[^/]+/accept"), ({ request }) =>
-    HttpResponse.json(success({
-      groupMatchId: Number(new URL(request.url).pathname.match(/\/group\/([^/]+)\/accept/)?.[1]),
-      quizSetId: 102,
-      acceptedCount: 3,
-      isFormed: true,
-    }))),
   http.post(apiPath("/matches/group/[^/]+/decline"), () => HttpResponse.json(success(null))),
 
   // 평가는 대상 한 명씩 PUT으로 확정된다. 진행률/완료가 화면 분기를 좌우하므로 인메모리로 상태를 들고 간다.

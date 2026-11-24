@@ -17,7 +17,6 @@ import type {
     GetMatchingStatusResponse,
     GroupCandidateGroupDto,
     GroupInvitationStatus,
-    GroupMatchAcceptResult,
     MatchCandidateDto,
     MatchRequestDto,
     ScoreBreakdownDto,
@@ -85,14 +84,6 @@ type ExternalCandidateGroup = {
     averageMatchedQuestions: number;
     totalQuestions: number;
     members?: ExternalMatchCandidate[];
-};
-
-// POST /api/v1/matches/group/{groupMatchId}/accept 응답 (GroupMatchAcceptResponse)
-type ExternalGroupMatchAccept = {
-    groupMatchId: ExternalId;
-    quizSetId: ExternalId;
-    acceptedCount: number;
-    isFormed: boolean;
 };
 
 // GET /api/v1/matching/status/{quizSetId} 응답 (MatchingStatusResponse)
@@ -552,25 +543,13 @@ export async function getExternalGroupCandidates(): Promise<GetGroupCandidatesRe
 }
 
 /**
- * 후보 그룹 수락. **퀴즈셋이 아니라 그룹 ID로 지정한다** — 후보가 여럿이라
- * 어느 그룹에 응답하는지 서버가 알 수 없다.
+ * 후보 그룹 거절. **퀴즈셋이 아니라 그룹 ID로 지정한다** — 후보가 여럿이라 어느 그룹에 응답하는지
+ * 서버가 알 수 없다. 거절한 그룹은 이후 목록에서 사라진다.
  *
- * 성사(3명 수락) 뒤에도 수락할 수 있다. 정원이 4~6명이라 4번째 이후 수락이 정상이고,
- * 이때는 이미 열린 방에 합류한다(`isFormed: true`, `acceptedCount` 만 증가).
+ * 수락 API(`POST /matches/group/{id}/accept`)는 부르지 않는다. 그룹 초대의 기본값이 참여라
+ * 금 00:00 마감까지 거절하지 않으면 서버가 참여로 처리한다(ditto-server #397). 서버는 예전 앱을
+ * 위해 수락 API 를 남겨 두었다.
  */
-export function acceptExternalGroupMatch(groupMatchId: string): Promise<GroupMatchAcceptResult> {
-    return externalApiFetch<ExternalGroupMatchAccept>(
-        `/api/v1/matches/group/${groupMatchId}/accept`,
-        { method: "POST" },
-    ).then((result) => ({
-        groupMatchId: toId(result.groupMatchId),
-        quizSetId: toId(result.quizSetId),
-        acceptedCount: result.acceptedCount,
-        isFormed: result.isFormed,
-    }));
-}
-
-/** 후보 그룹 거절. 거절한 그룹은 이후 목록에서 사라진다. */
 export function declineExternalGroupMatch(groupMatchId: string): Promise<void> {
     return externalApiFetch<null>(`/api/v1/matches/group/${groupMatchId}/decline`, {
         method: "POST",

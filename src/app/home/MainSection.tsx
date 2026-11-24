@@ -316,10 +316,11 @@ export function MainSection() {
   /**
    * 그룹 화면은 `groups[0]`만으로 전부 갈린다(BE 위키 §화면 상태 판단).
    * - 후보 없음 → 매칭 실패
-   * - PENDING → 매칭 결과(거절하기 / 참여하기)
-   * - ACCEPTED && !isFormed → 참여함 · 인원 대기
+   * - PENDING → 매칭 결과(거절하기만. 거절하지 않으면 금 00:00에 참여로 처리된다, #397)
+   * - ACCEPTED && !isFormed → 참여함 · 인원 대기(예전 앱에서 수락한 경우)
    * - ACCEPTED && isFormed → 매칭 완료
-   * 대화 기간에는 성사된 그룹을 수락한 경우만 남긴다.
+   * 대화 기간에는 성사된 그룹을 수락한 경우만 남긴다. 마감에 자동 참여한 사람도 서버가
+   * `ACCEPTED` 로 바꿔 주므로 같은 기준이다.
    */
   const activeGroup = groups[0];
   const groupMatchType: MatchingCardType = isGroupMatchFailed(activeGroup, period === "CHATTING")
@@ -330,24 +331,26 @@ export function MainSection() {
   const resolvedCandidates = isGroupWeek ? (activeGroup?.members ?? []) : candidates;
 
   /**
-   * 수락하면 같은 주의 다른 후보는 서버에서 자동 거절된다 — 목록에서도 지워 둔다.
-   * 정원이 4~6명이고 성사는 3명이라, 이미 성사된 그룹에 4번째로 수락하는 것도 정상 경로다.
+   * 거절한 그룹은 서버 목록에서도 사라진다. 다음 후보가 있으면 추가 요청 없이 이어서 보여 준다.
+   *
+   * 시크릿 매칭 상태도 다시 읽는다. 초대에 답하지 않은 그룹 완주자는 `NONE` 이지만 거절하면 그 자리에서
+   * 1:1 을 풀 수 있게 되어 서버가 `ELIGIBLE` 을 준다 — 기획의 "거절 직후 홈 카드를 SM-01 로"다. 카드는
+   * 그룹 화면 상태가 아니라 이 서버 상태로만 띄운다(BE 위키 Frontend-Secret-Matching-Guide §1, #393).
    */
-  const handleGroupAccepted = (isFormed: boolean) => {
-    setGroups((prev) =>
-      prev.length === 0 ? prev : [{ ...prev[0], myStatus: "ACCEPTED", isFormed }],
-    );
+  const handleGroupDeclined = () => {
+    setGroups((prev) => prev.slice(1));
+    void reloadSecretStatus();
   };
-
-  /** 거절한 그룹은 서버 목록에서도 사라진다. 다음 후보가 있으면 추가 요청 없이 이어서 보여 준다. */
-  const handleGroupDeclined = () => setGroups((prev) => prev.slice(1));
 
   /**
    * 다른 탭·기기에서 먼저 응답했거나 주가 바뀌어 서버와 어긋났을 때(0003/5005/5006/5008).
-   * 에러를 띄우는 대신 목록을 다시 받아 화면을 맞춘다.
+   * 에러를 띄우는 대신 목록을 다시 받아 화면을 맞춘다. 그룹 상태가 바뀌었으니 시크릿 상태도 같이 읽는다.
    */
   const refreshGroups = async () => {
-    const result = await getGroupCandidates().catch(() => null);
+    const [result] = await Promise.all([
+      getGroupCandidates().catch(() => null),
+      reloadSecretStatus(),
+    ]);
     setGroups(result?.groups ?? []);
   };
 
@@ -417,7 +420,6 @@ export function MainSection() {
             hasAcceptedMatch={hasAcceptedMatch}
             acceptedCandidate={acceptedCandidate}
             group={activeGroup}
-            onGroupAccepted={handleGroupAccepted}
             onGroupDeclined={handleGroupDeclined}
             onGroupStale={refreshGroups}
             quizSetId={quizSetId}

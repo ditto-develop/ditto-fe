@@ -3,12 +3,13 @@
  * node-id 673-12674
  *
  * 계약 정본: BE 위키 `Frontend-Group-Matching-Guide`.
- * 그룹 매칭은 선착순 방 배정이 아니라 **미리 짜인 후보 그룹에 수락/거절**하는 흐름이다.
- * 화면 상태는 전부 `GET /matches/group` 의 `groups[0]`에서 나온다.
+ * 그룹 매칭은 선착순 방 배정이 아니라 **미리 짜인 후보 그룹에 응답**하는 흐름이다.
+ * 초대의 기본값은 참여다 — 금 00:00 마감까지 거절하지 않으면 서버가 참여로 바꾼다(ditto-server #397).
+ * 그래서 응답 버튼은 "거절하기"뿐이다. 화면 상태는 전부 `GET /matches/group` 의 `groups[0]`에서 나온다.
  *
- * - 그룹 결과 모달(서버가 계산한 평균 일치, 그룹 카드, 멤버 정보)
+ * - 그룹 결과 모달(서버가 계산한 평균 일치, 그룹 카드, 멤버 정보, 자동 참여 안내)
  * - 프로필 선택 → 멤버 상세(후보 목록 카드 + 소개노트 미리보기 3문항)
- * - 참여 → 확인 모달 → (성사) 매칭 완료 / (미성사) 인원 대기
+ * - 예전 앱에서 이미 수락한 그룹 → 인원 대기(CTA 없음)
  * - 거절 → 다음 후보가 있으면 이어서, 없으면 매칭 실패
  * - 다른 기기에서 먼저 응답(5005/5006) → 목록 재조회
  */
@@ -43,8 +44,10 @@ describe("3.1 매칭 결과 - 그룹 매칭 (WF-07)", () => {
       cy.contains("같은 취미, 취향 그룹").should("be.visible");
       // members 는 나를 뺀 목록이고 일치 수 내림차순이라 첫 멤버는 겜돌이(9문항)다.
       cy.contains("겜돌이님 외 3명").should("be.visible");
-      cy.contains("거절하기").should("be.visible");
-      cy.contains("button", "참여하기").should("exist").and("not.be.disabled");
+      // 응답 버튼은 거절하기뿐이고, 거절하지 않으면 마감에 참여로 처리된다는 안내가 붙는다(#397).
+      cy.contains("button", "거절하기").should("be.visible");
+      cy.contains("거절하지 않으면 금요일 00:00에 자동으로 참여돼요.").should("be.visible");
+      cy.contains("button", "참여하기").should("not.exist");
     });
   });
 
@@ -118,54 +121,20 @@ describe("3.1 매칭 결과 - 그룹 매칭 (WF-07)", () => {
     });
   });
 
-  describe("참여 플로우", () => {
-    it("참여 → 확인 모달 → (성사) 매칭 완료로 전환된다", () => {
-      mockGroupWeek();
-      openGroupModal();
-
-      cy.contains("참여하기").click();
-      cy.contains("이 그룹에 참여할까요?").should("be.visible");
-      cy.contains("한 번 참여하기를 선택하면 취소할 수 없어요.").should("be.visible");
-      cy.contains("네, 참여할게요").click();
-
-      cy.wait("@acceptGroupMatch");
-      cy.contains("그룹에 참여했어요. 대화는 금요일에 시작돼요.", { timeout: 6000 }).should("be.visible");
-      cy.contains("매칭 완료").should("be.visible");
-      cy.contains("만남이 이루어졌어요!").should("be.visible");
-    });
-
-    it("참여 → (수락자 3명 미만) 인원 대기 상태가 노출된다", () => {
-      mockGroupWeek();
-      // 수락은 됐지만 아직 성사 전 — isFormed:false
-      cy.intercept("POST", "**/api/**/matches/group/*/accept", {
-        statusCode: 200,
-        body: {
-          success: true,
-          data: { groupMatchId: 5, quizSetId: 102, acceptedCount: 1, isFormed: false },
-        },
-      }).as("acceptGroupPending");
-
-      openGroupModal();
-
-      cy.contains("참여하기").click();
-      cy.contains("네, 참여할게요").click();
-
-      cy.wait("@acceptGroupPending");
-      cy.contains("그룹 참여를 신청했어요. 3명 이상이 참여하면 금요일에 대화가 시작돼요.", { timeout: 6000 })
-        .should("be.visible");
-      cy.contains("그룹 참여를 신청했어요").should("be.visible");
-      // 응답을 끝냈으므로 하단 CTA 가 사라진다.
-      cy.contains("button", "참여하기").should("not.exist");
-      cy.contains("button", "거절하기").should("not.exist");
-    });
-
-    it("이미 수락한 그룹으로 다시 들어오면 인원 대기 상태로 열린다", () => {
-      // 서버가 myStatus: ACCEPTED, isFormed: false 를 주는 경우(새로고침·재진입)
+  /**
+   * 이 화면에는 수락 버튼이 없지만, 서버는 예전 앱을 위해 수락 API 를 남겨 두었다(#397).
+   * 그래서 매칭 기간에도 `ACCEPTED` 가 올 수 있다.
+   */
+  describe("예전 앱에서 이미 수락한 그룹", () => {
+    it("인원 대기 상태로 열리고 응답 버튼·자동 참여 안내가 없다", () => {
+      // 서버가 myStatus: ACCEPTED, isFormed: false 를 주는 경우
       mockGroupWeek("matches-group-pending.json");
       openGroupModal();
 
       cy.contains("그룹 참여를 신청했어요").should("be.visible");
       cy.contains("button", "참여하기").should("not.exist");
+      cy.contains("button", "거절하기").should("not.exist");
+      cy.contains("거절하지 않으면 금요일 00:00에 자동으로 참여돼요.").should("not.exist");
     });
 
     // 수락한 뒤에도 같이 매칭된 사람들을 볼 수 있어야 한다(2026-11-19 QA "수락 후 멤버 리스트를 볼 수 없음").
@@ -220,21 +189,22 @@ describe("3.1 매칭 결과 - 그룹 매칭 (WF-07)", () => {
 
       cy.contains("아니요").click();
       cy.contains("그룹 참여를 거절할까요?").should("not.exist");
-      cy.contains("참여하기").should("be.visible");
+      cy.contains("button", "거절하기").should("be.visible");
     });
   });
 
   describe("다른 기기에서 먼저 응답한 경우", () => {
-    it("이미 수락한 초대(5005)면 에러 대신 목록을 다시 받아 화면을 맞춘다", () => {
+    it("거절했는데 이미 수락한 초대(5005)면 에러 대신 목록을 다시 받아 화면을 맞춘다", () => {
+      // 예전 앱이 깔린 다른 기기에서 먼저 수락한 경우다.
       mockGroupWeek();
-      cy.intercept("POST", "**/api/**/matches/group/*/accept", {
+      cy.intercept("POST", "**/api/**/matches/group/*/decline", {
         statusCode: 409,
         body: {
           success: false,
           data: null,
           error: { code: "5005", message: "이미 수락한 초대입니다.", statusCode: 409 },
         },
-      }).as("acceptConflict");
+      }).as("declineConflict");
 
       openGroupModal();
 
@@ -247,10 +217,10 @@ describe("3.1 매칭 결과 - 그룹 매칭 (WF-07)", () => {
         }).as("getGroupMatchesAfterConflict");
       });
 
-      cy.contains("참여하기").click();
-      cy.contains("네, 참여할게요").click();
+      cy.contains("거절하기").click({ force: true });
+      cy.contains("네, 거절할게요").click();
 
-      cy.wait("@acceptConflict");
+      cy.wait("@declineConflict");
       cy.contains("이미 응답한 그룹이에요. 최신 결과를 다시 불러올게요.", { timeout: 6000 }).should("be.visible");
       cy.wait("@getGroupMatchesAfterConflict");
       cy.contains("매칭 완료", { timeout: 6000 }).should("be.visible");

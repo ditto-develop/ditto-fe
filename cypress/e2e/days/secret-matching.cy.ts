@@ -123,6 +123,38 @@ describe("시크릿 매칭 홈 카드", () => {
     cy.contains("진행 중인 대화가 없어요.").should("not.exist");
     cy.get('[data-testid="secret-matching-card"]').should("not.exist");
   });
+
+  /**
+   * 그룹 초대에 답하지 않은 그룹 완주자는 `NONE` 이지만, 거절하면 그 자리에서 1:1 을 풀 수 있어 서버가
+   * `ELIGIBLE` 을 준다(ditto-server #393·#397). 기획의 "거절 직후 홈 카드를 SM-01 로"는 그룹 화면이 아니라
+   * 이 서버 상태로 띄운다 — 그래서 거절하면 시크릿 상태를 다시 읽어야 한다.
+   */
+  it("그룹 초대를 거절하면 시크릿 상태를 다시 읽어 기회 카드로 바꾼다", () => {
+    cy.clockPeriod("MATCHING");
+    cy.mockApi({
+      secretMatchingFixture: "secret-matching-none.json",
+      groupMatchesFixture: "matches-group.json",
+    });
+    cy.login();
+    cy.visit("/home");
+
+    cy.contains("이번주 매칭", { timeout: 6000 }).should("be.visible");
+    cy.get('[data-testid="secret-matching-card"]').should("not.exist");
+    cy.contains("대화 신청하기").click();
+
+    cy.fixture("secret-matching-eligible.json").then((data: unknown) => {
+      cy.intercept("GET", "**/api/v1/matching/secret-state*", { success: true, data, error: null }).as(
+        "getSecretStateAfterDecline",
+      );
+    });
+    cy.contains("button", "거절하기", { timeout: 6000 }).click({ force: true });
+    cy.contains("네, 거절할게요").click();
+    cy.wait("@declineGroupMatch");
+    cy.wait("@getSecretStateAfterDecline");
+
+    cy.contains("시크릿 매칭 기회가 있어요", { timeout: 6000 }).should("be.visible");
+    cy.contains("진행 중인 매칭이 없어요").should("not.exist");
+  });
 });
 
 describe("시크릿 매칭 플래그", () => {

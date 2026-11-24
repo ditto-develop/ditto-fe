@@ -50,7 +50,6 @@ export function MatchingDay({
   hasAcceptedMatch = false,
   acceptedCandidate,
   group,
-  onGroupAccepted,
   onGroupDeclined,
   onGroupStale,
   chatRoom,
@@ -68,7 +67,6 @@ export function MatchingDay({
   acceptedCandidate?: MatchCandidateDto;
   /** 응답 대상 후보 그룹(`groups[0]`). 그룹 주가 아니면 undefined다. */
   group?: GroupCandidateGroupDto;
-  onGroupAccepted?: (isFormed: boolean) => void;
   onGroupDeclined?: () => void;
   /** 서버와 상태가 어긋났을 때(0003/5005/5006/5008) 후보 목록을 다시 받는다. */
   onGroupStale?: () => void;
@@ -404,7 +402,6 @@ export function MatchingDay({
           onClose={() => setGroupModalOpen(false)}
           group={group}
           groupName={groupName}
-          onAccepted={(isFormed) => onGroupAccepted?.(isFormed)}
           onDeclined={() => onGroupDeclined?.()}
           onStale={() => onGroupStale?.()}
         />

@@ -11,7 +11,7 @@
 - `group`: the candidate group being answered (`groups[0]` of `GET /matches/group`). Group screen state comes only from `myStatus`/`isFormed` — the matching-status flags `groupJoined`/`groupJoinPending`/`groupDeclined` are not used (BE wiki `Frontend-Group-Matching-Guide`)
 - `chatRoom`: latest chat-room preview, unread count, and CTA state
 - `quizSetId`: localStorage notification key suffix
-- `onStartChat`, `onGroupAccepted`, `onGroupDeclined`, `onGroupStale`: parent callbacks
+- `onStartChat`, `onGroupDeclined`, `onGroupStale`: parent callbacks
 - `secretRound`: the candidates came from a Fri/Sat 20:00 secret-matching round (IMP-2). Rendered with `isChatTime=false` (candidate card → `/matching`) but the countdown targets Monday 00:00 because it is already the chatting period. The secret-matching states without candidates (ELIGIBLE/WAITING/AUTO_ENTERED/ENDED) are not drawn here — `MainSection` renders `SecretMatchingHome` instead, and only in place of the no-match card
 
 ## State Transitions
@@ -21,8 +21,9 @@
 - `selectedProfile=null -> profile`: opened by tapping an accepted-match card or a selectable group profile item.
 - `groupModalOpen=false -> true`: opened by pressing the group matching CTA during matching period.
 - Decline in the group result modal calls `onGroupDeclined`; the parent drops `groups[0]` so the next candidate group shows without another request, and the fail-match empty state appears once the list is empty.
-- Accept calls `onGroupAccepted(isFormed)`; the parent marks the group `ACCEPTED` and drops the rest (the server auto-declines the other candidates for the week).
-- `0003`/`0004`/`5005`/`5006`/`5008` on accept or decline means another tab or device answered first, or the operation week rolled over while the tab stayed open: the modal closes and `onGroupStale` refetches the candidate list instead of surfacing an error.
+- There is no accept button. A group invite defaults to joining: if the user does not decline by the Friday 00:00 deadline, the server marks it `ACCEPTED` within a minute (ditto-server #397). The `PENDING` modal shows only "거절하기" plus the auto-join notice. The server keeps the accept API for old app builds, so `ACCEPTED` can still show up during the matching period.
+- After a decline the home also reloads the secret-matching state: a group finisher who declined can take the 1:1 quiz right away, and the server answers `ELIGIBLE` (SM-01 card).
+- `0003`/`0004`/`5005`/`5006`/`5008` on decline means another tab or device answered first, or the operation week rolled over while the tab stayed open: the modal closes and `onGroupStale` refetches the candidate list instead of surfacing an error.
 
 ## Outputs
 
