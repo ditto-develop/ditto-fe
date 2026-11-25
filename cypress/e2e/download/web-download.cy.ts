@@ -51,7 +51,8 @@ describe("web download", () => {
   it("shows the app screenshots with real size", () => {
     cy.visit("/download");
 
-    cy.get("img[src^='/assets/download/hero-phone']")
+    // 첫 화면 슬라이드: 홈 → 퀴즈 참여 완료
+    cy.get("[data-testid='hero-slide'] img")
       .should("have.length", 2)
       .each(($img) => {
         cy.wrap($img).should(($el) => {
@@ -61,7 +62,8 @@ describe("web download", () => {
         });
       });
     cy.contains("퀴즈부터 매칭, 대화까지").scrollIntoView();
-    cy.get("img[src^='/assets/download/screen-']")
+    // 한 주의 흐름: 퀴즈 · 매칭 결과 · 대화 · 평가
+    cy.get("li img[src^='/assets/download/phone-']")
       .should("have.length", 4)
       .each(($img) => {
         cy.wrap($img).should(($el) => {
@@ -72,21 +74,57 @@ describe("web download", () => {
       });
   });
 
+  /**
+   * 지금 장이 카드 틀에 딱 맞게 놓였는지 본다. 옆 장이 몇 px 라도 비치면 실패한다
+   * (스크롤 스냅으로 만들었을 때 Safari 에서 옆 장 가장자리가 비쳤다).
+   */
+  function expectSlideAligned(index: number) {
+    cy.get("[data-testid='hero-slider-viewport']").should(($viewport) => {
+      const frame = $viewport[0].getBoundingClientRect();
+      const slide = $viewport.find("[data-testid='hero-slide']")[index].getBoundingClientRect();
+      expect(slide.left, "slide left").to.be.closeTo(frame.left, 0.5);
+      expect(slide.width, "slide width").to.be.closeTo(frame.width, 0.5);
+    });
+  }
+
   it("slides the hero picture with the dots", () => {
     cy.visit("/download");
 
     // 점을 누르면 저절로 넘기기가 멈추고 그 장으로 간다.
     cy.get("button[aria-label='2번째 그림 보기']").click();
     cy.get("button[aria-label='2번째 그림 보기']").should("have.attr", "aria-current", "true");
-    cy.get("[data-testid='hero-slider-track']").should(($track) => {
-      expect($track[0].scrollLeft).to.be.closeTo($track[0].clientWidth, 2);
-    });
+    expectSlideAligned(1);
 
     cy.get("button[aria-label='1번째 그림 보기']").click();
     cy.get("button[aria-label='1번째 그림 보기']").should("have.attr", "aria-current", "true");
-    cy.get("[data-testid='hero-slider-track']").should(($track) => {
-      expect($track[0].scrollLeft).to.be.closeTo(0, 2);
-    });
+    expectSlideAligned(0);
+  });
+
+  it("slides the hero picture with a swipe", () => {
+    cy.visit("/download");
+    cy.get("button[aria-label='1번째 그림 보기']").click();
+    expectSlideAligned(0);
+
+    const swipe = (fromX: number, toX: number) =>
+      cy
+        .get("[data-testid='hero-slider-viewport']")
+        .trigger("pointerdown", { pointerId: 1, isPrimary: true, button: 0, clientX: fromX, clientY: 300 })
+        .trigger("pointermove", { pointerId: 1, isPrimary: true, clientX: (fromX + toX) / 2, clientY: 302 })
+        .trigger("pointerup", { pointerId: 1, isPrimary: true, button: 0, clientX: toX, clientY: 304 });
+
+    // 왼쪽으로 밀면 다음 장, 오른쪽으로 밀면 이전 장.
+    swipe(300, 100);
+    cy.get("button[aria-label='2번째 그림 보기']").should("have.attr", "aria-current", "true");
+    expectSlideAligned(1);
+
+    swipe(100, 300);
+    cy.get("button[aria-label='1번째 그림 보기']").should("have.attr", "aria-current", "true");
+    expectSlideAligned(0);
+
+    // 살짝만 밀면 넘어가지 않는다.
+    swipe(300, 280);
+    cy.get("button[aria-label='1번째 그림 보기']").should("have.attr", "aria-current", "true");
+    expectSlideAligned(0);
   });
 
   it("opens the privacy policy and support pages from the footer", () => {

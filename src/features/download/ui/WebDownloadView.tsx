@@ -3,10 +3,10 @@
 import styled from "styled-components";
 
 import { HeroSlider } from "@/features/download/ui/HeroSlider";
-import type { HeroSlide } from "@/features/download/ui/HeroSlider";
+import { HERO_SLIDES, WEEK_SCREENS } from "@/features/download/model/landingScreens";
+import { PhoneImage } from "@/features/download/ui/PhoneImage";
 import { APP_STORE_URL, PLAY_STORE_URL } from "@/shared/lib/appStore";
-import type { IconName } from "@/shared/ui";
-import { Body1Normal, Button, Caption1, Icon, Label1Normal, Title2, Title3 } from "@/shared/ui";
+import { Body1Normal, Button, Caption1, Headline1, Label1Normal, Title2, Title3 } from "@/shared/ui";
 
 interface WebDownloadViewProps {
   /** Play 스토어 공개 출시 후에는 출시 알림 신청 대신 Google Play 버튼을 보여 준다(`isPlayStoreReleased`). */
@@ -16,66 +16,9 @@ interface WebDownloadViewProps {
 }
 
 /**
- * 첫 화면 슬라이드. 스토어 스크린샷 1·2번은 한 장면을 둘로 나눈 것이라 이어 넘기면 폰이 옆으로
- * 지나가는 것처럼 보인다. 그림 안의 문구는 잘라 내고 폰만 남겼다(800×1176).
- */
-const HERO_SLIDES: readonly HeroSlide[] = [
-  {
-    src: "/assets/download/hero-phone.webp",
-    alt: "디토 앱 홈 화면. 이번 주 퀴즈와 한 주의 타임라인이 보인다",
-    width: 800,
-    height: 1176,
-  },
-  {
-    src: "/assets/download/hero-phone-2.webp",
-    alt: "퀴즈 참여 완료 화면. 목요일에 매칭 결과가 공개된다는 안내가 보인다",
-    width: 800,
-    height: 1176,
-  },
-];
-
-/**
- * 한 주의 흐름. 그림은 스토어 등록용 스크린샷(build/play-store)을 웹 크기로 줄인 것이라 그림 안에
- * 제목이 이미 있다. 칩은 그 장면이 한 주의 언제인지만 붙인다(월–수 퀴즈 · 목 매칭 · 금–일 대화).
- */
-const WEEK_SCREENS = [
-  {
-    src: "/assets/download/screen-quiz.webp",
-    when: "월–수",
-    what: "퀴즈",
-    alt: "매주 12개의 질문에 답하는 퀴즈 화면",
-  },
-  {
-    src: "/assets/download/screen-profile.webp",
-    when: "목",
-    what: "매칭 결과",
-    alt: "같은 답을 고른 사람의 소개 노트 화면",
-  },
-  {
-    src: "/assets/download/screen-chat.webp",
-    when: "금–일",
-    what: "72시간 대화",
-    alt: "매칭된 사람과 나누는 대화 화면",
-  },
-  {
-    src: "/assets/download/screen-review.webp",
-    when: "만남 후",
-    what: "평가",
-    alt: "만남 후 상대를 평가하는 화면",
-  },
-] as const;
-
-const TRUST_POINTS: readonly { icon: IconName; text: string }[] = [
-  // action.lock 은 그림 자체가 28% 투명이라 다른 아이콘보다 흐리다 — 같은 세트의 진한 자물쇠를 쓴다.
-  { icon: "action.lockOutline", text: "나와 같은 답을 고른 사람에게만 프로필이 공개돼요" },
-  { icon: "status.profileCheck", text: "만 19세 이상만 참여할 수 있어요" },
-  { icon: "status.circleExclamation", text: "불편한 대화는 채팅방에서 바로 신고할 수 있어요" },
-];
-
-/**
  * 웹 다운로드 안내. 브라우저로 들어오면 어느 주소든 이 화면이 뜬다(`shouldShowWebDownload`).
- * 앱을 깔게 하는 랜딩이라 첫 화면에 소개와 스토어 버튼을 두고, 아래로 한 주의 흐름(스크린샷)과
- * 안심 포인트를 보여 준 뒤 스토어 버튼을 한 번 더 둔다.
+ * 앱을 깔게 하는 랜딩이라 첫 화면에 소개와 스토어 버튼을 두고, 아래로 한 주의 흐름(앱 화면)을
+ * 보여 준 뒤 스토어 버튼을 한 번 더 둔다.
  *
  * App Store 버튼은 https 링크다 — iPhone 에서 누르면 App Store 앱의 디토 페이지로 바로 넘어간다.
  */
@@ -131,32 +74,26 @@ export function WebDownloadView({
                   <ShotWhen>{screen.when}</ShotWhen>
                   {screen.what}
                 </ShotChip>
-                <ShotImage src={screen.src} alt={screen.alt} width={600} height={1200} loading="lazy" />
+                <ShotText>
+                  <Headline1 as="h3" $weight="bold">
+                    {screen.title}
+                  </Headline1>
+                  <Label1Normal $color="var(--color-semantic-label-neutral)">{screen.description}</Label1Normal>
+                </ShotText>
+                <ShotPhone>
+                  <PhoneImage
+                    src={screen.src}
+                    alt={screen.alt}
+                    width={screen.width}
+                    height={screen.height}
+                    loading="lazy"
+                  />
+                </ShotPhone>
               </Shot>
             ))}
           </Gallery>
         </Inner>
       </WeekSection>
-
-      <TrustSection>
-        <Inner>
-          <SectionHead>
-            <Title3 as="h2">안심하고 시작하세요</Title3>
-          </SectionHead>
-          <TrustList>
-            {TRUST_POINTS.map((point) => (
-              <TrustItem key={point.icon}>
-                <TrustIcon>
-                  <Icon name={point.icon} size={20} />
-                </TrustIcon>
-                <Body1Normal $weight="medium" $color="var(--color-semantic-label-normal)">
-                  {point.text}
-                </Body1Normal>
-              </TrustItem>
-            ))}
-          </TrustList>
-        </Inner>
-      </TrustSection>
 
       <FinalSection>
         <Inner>
@@ -352,7 +289,8 @@ const Gallery = styled.ul`
   display: flex;
   gap: var(--space-4);
   margin: var(--space-8) calc(-1 * var(--space-5)) 0;
-  padding: var(--space-2) var(--space-5) var(--space-4);
+  /* 폰 그림자가 가로 스크롤 영역에 잘리지 않게 아래를 넉넉히 둔다. */
+  padding: var(--space-2) var(--space-5) var(--space-8);
   list-style: none;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
@@ -404,65 +342,29 @@ const ShotWhen = styled.span`
   color: var(--color-semantic-static-white);
 `;
 
-const ShotImage = styled.img`
-  display: block;
-  width: 100%;
-  height: auto;
-  border-radius: var(--space-5);
-  box-shadow: var(--style-semantic-shadow-emphasize);
-`;
-
-/* ---------- 안심 포인트 ---------- */
-
-const TrustSection = styled.section`
-  padding: var(--space-16) 0 var(--space-8);
-
-  ${DESKTOP} {
-    padding: var(--space-20) 0 var(--space-10);
-  }
-`;
-
-const TrustList = styled.ul`
+/* 설명이 한 줄이든 두 줄이든 폰이 같은 높이에 놓이도록 글자 칸이 남는 높이를 채운다. */
+const ShotText = styled.div`
   display: flex;
+  flex: 1 0 auto;
   flex-direction: column;
-  gap: var(--space-3);
-  margin: var(--space-6) 0 0;
-  padding: 0;
-  list-style: none;
-
-  ${DESKTOP} {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--space-4);
-  }
-`;
-
-const TrustItem = styled.li`
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-radius: var(--space-4);
-  background-color: var(--color-semantic-background-elevated-alternative);
+  gap: var(--space-1);
   word-break: keep-all;
 `;
 
-const TrustIcon = styled.span`
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: var(--space-10);
-  height: var(--space-10);
-  border-radius: 50%;
-  background-color: var(--color-semantic-fill-normal);
-  color: var(--color-semantic-label-normal);
+const ShotPhone = styled.div`
+  width: 100%;
+  max-width: 240px;
+  margin-top: var(--space-3);
 `;
 
 /* ---------- 마지막 다운로드 유도 ---------- */
 
 const FinalSection = styled.section`
-  padding: var(--space-8) 0 var(--space-10);
+  padding: var(--space-12) 0 var(--space-10);
+
+  ${DESKTOP} {
+    padding: var(--space-20) 0 var(--space-12);
+  }
 `;
 
 const FinalCard = styled.div`
