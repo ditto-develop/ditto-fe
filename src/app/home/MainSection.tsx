@@ -69,6 +69,15 @@ async function getLatestChatRoom(): Promise<ChatRoom | undefined> {
 }
 
 /**
+ * 이번 주 1:1 방. 매칭 기간(목)에는 1:1 만 열려 있고, 최근순 첫 방이 지난 주말에 예약된 재매칭 방일 수
+ * 있어서 유형으로 고른다. 최근순이라 첫 PERSONAL 이 이번 주 방이다.
+ */
+async function getLatestPersonalChatRoom(): Promise<ChatRoom | undefined> {
+  const rooms = await getChatRooms();
+  return rooms.find((room) => room.sourceType === "PERSONAL");
+}
+
+/**
  * 그룹 주인데 1:1 도 늦게 푼 경우(시크릿 매칭, BE ADR 0053 — 그룹 미성사자는 금 00:00 부터 1:1 을 풀 수 있다)의
  * 1:1 쪽 데이터. 그룹 화면 상태(`candidates`·`hasAcceptedMatch`)와 섞지 않으려고 따로 든다 — 섞으면 그룹 주의
  * 매칭 카드가 1:1 수락 카드로 바뀐다. 시크릿 결과(SECRET_RESULT)와 늦은 1:1 성사 때만 쓴다.
@@ -80,9 +89,8 @@ type LateOneToOne = {
   acceptedCandidate?: MatchCandidateDto;
 };
 
-const ACCEPTED_TOAST_BEFORE_CHAT = "대화를 수락했어요! 대화는 금요일에 시작돼요.";
-/** 대화 기간(금~일)의 수락 — 시크릿 매칭처럼 성사 즉시 방이 열린다. */
-const ACCEPTED_TOAST_IN_CHAT = "대화를 수락했어요! 지금 바로 대화를 시작해 보세요.";
+/** 1:1 은 수락 즉시 방이 열린다(목요일 포함, BE 1:1 즉시 개방) — 요일과 상관없이 같은 문구다. */
+const ACCEPTED_TOAST = "대화를 수락했어요! 지금 바로 대화를 시작해 보세요.";
 
 export function MainSection() {
   const [period, setPeriod] = useState<Period | null>(null);
@@ -123,15 +131,12 @@ export function MainSection() {
     router.replace("/home");
   }, [searchParams, router]);
 
-  /**
-   * 수락 토스트는 기간을 안 뒤에 띄운다. 매칭 기간(목)의 수락은 금요일에 방이 열리지만, 대화 기간(금~일)의
-   * 수락 — 시크릿 매칭이 그렇다 — 은 방이 바로 열린다. 기간 조회가 실패하면 예전 문구로 띄운다.
-   */
+  /** 수락 토스트는 홈 로딩이 끝난 뒤 띄운다 — 스켈레톤 위에 떴다가 카드가 밀고 들어오지 않게. */
   useEffect(() => {
     if (!acceptedToastPending || loading) return;
     setAcceptedToastPending(false);
-    showToast(period === "CHATTING" ? ACCEPTED_TOAST_IN_CHAT : ACCEPTED_TOAST_BEFORE_CHAT, "success");
-  }, [acceptedToastPending, loading, period, showToast]);
+    showToast(ACCEPTED_TOAST, "success");
+  }, [acceptedToastPending, loading, showToast]);
 
 
   /**
@@ -227,12 +232,13 @@ export function MainSection() {
           setQuizSetId(fetchedQuizSetId);
           setCandidates(fetchedCandidates);
 
-          // 매칭 상태와 최신 채팅방도 서로 독립이라 함께 기다린다.
+          // 매칭 상태와 최신 채팅방도 서로 독립이라 함께 기다린다. 1:1 방은 수락 즉시 열리므로
+          // 매칭 기간(목)에도 방을 읽는다 — 성사 카드가 대화 카드로 그려진다.
           const [status, latestChatRoom] = await Promise.all([
             getMatchingStatus(fetchedQuizSetId),
-            fetchedPeriod === "CHATTING"
-              ? getLatestChatRoom().catch(() => undefined)
-              : Promise.resolve(undefined),
+            (fetchedPeriod === "CHATTING" ? getLatestChatRoom() : getLatestPersonalChatRoom()).catch(
+              () => undefined,
+            ),
           ]);
 
           const { hasAcceptedMatch: accepted, acceptedMatchUserId } = status;
@@ -406,6 +412,37 @@ export function MainSection() {
     );
   };
 
+  const getChatPath = (room: ChatRoom) =>
+    room.sourceType === "GROUP"
+      ? `/chat/group/${room.roomId}`
+      : `/chat/one-on-one/${room.roomId}`;
+
+  /**
+   * 방은 서버가 만든다 — 1:1은 매칭 수락 즉시(목요일 포함), 그룹은 정원이 차는 즉시.
+   * 클라가 방을 만드는 경로는 없으므로 아직 안 보이면 다시 읽어 본다.
+   */
+  const handleStartChat = async () => {
+    try {
+      const room =
+        chatRoom ?? (await (period === "CHATTING" ? getLatestChatRoom() : getLatestPersonalChatRoom()));
+      if (!room) {
+        showToast("아직 대화방이 열리지 않았어요. 잠시 후 다시 시도해주세요.", "error");
+        return;
+      }
+
+      setChatRoom(room);
+      router.push(getChatPath(room));
+    } catch {
+      showToast("채팅방을 열 수 없어요. 잠시 후 다시 시도해주세요.", "error");
+    }
+  };
+
+  /**
+   * 1:1 이 성사됐으면 매칭 기간(목)에도 대화 카드로 그린다 — 방이 수락 즉시 열린다.
+   * 그룹은 그대로 금 00:00 에 열리므로 매칭 기간에는 "매칭 완료"(잠긴 버튼) 카드다.
+   */
+  const oneToOneChatOpen = !isGroupWeek && hasAcceptedMatch;
+
   const ControlSection = () => {
     switch (period) {
       case "QUIZ":
@@ -413,12 +450,14 @@ export function MainSection() {
       case "MATCHING":
         return renderSecretMatching(false) ?? (
           <MatchingDay
-            isChatTime={false}
+            isChatTime={oneToOneChatOpen}
             matchType={resolvedMatchType}
             buttonState="primary"
             candidates={resolvedCandidates}
             hasAcceptedMatch={hasAcceptedMatch}
             acceptedCandidate={acceptedCandidate}
+            chatRoom={oneToOneChatOpen ? chatRoom : undefined}
+            onStartChat={oneToOneChatOpen ? handleStartChat : undefined}
             group={activeGroup}
             onGroupDeclined={handleGroupDeclined}
             onGroupStale={refreshGroups}
@@ -427,29 +466,6 @@ export function MainSection() {
           />
         );
       case "CHATTING": {
-        const getChatPath = (room: ChatRoom) =>
-          room.sourceType === "GROUP"
-            ? `/chat/group/${room.roomId}`
-            : `/chat/one-on-one/${room.roomId}`;
-
-        /**
-         * 방은 서버가 만든다 — 1:1은 매칭 수락 즉시, 그룹은 정원이 차는 즉시.
-         * 클라가 방을 만드는 경로는 없으므로 아직 안 보이면 다시 읽어 본다.
-         */
-        const handleStartChat = async () => {
-          try {
-            const room = chatRoom ?? (await getLatestChatRoom());
-            if (!room) {
-              showToast("아직 대화방이 열리지 않았어요. 잠시 후 다시 시도해주세요.", "error");
-              return;
-            }
-
-            setChatRoom(room);
-            router.push(getChatPath(room));
-          } catch {
-            showToast("채팅방을 열 수 없어요. 잠시 후 다시 시도해주세요.", "error");
-          }
-        };
         return renderSecretMatching(true, handleStartChat) ?? (
           <MatchingDay
             isChatTime={true}

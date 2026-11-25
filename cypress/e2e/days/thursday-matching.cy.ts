@@ -40,11 +40,13 @@ describe("thursday matching day", () => {
     cy.contains("대화 신청 완료", { timeout: 6000 }).should("be.visible");
   });
 
-  it("renders the accepted matching card on home", () => {
+  // 1:1 방은 수락 즉시 열린다(목요일 포함). 성사 카드는 금요일을 기다리지 않고 대화 카드로 그려진다.
+  it("renders the accepted matching card on home as an open chat", () => {
     cy.visit("/home");
 
-    cy.contains("이번주 매칭", { timeout: 6000 }).should("be.visible");
-    cy.contains("매칭 완료").should("be.visible");
+    cy.contains("이번주 만남", { timeout: 6000 }).should("be.visible");
     cy.contains("수민").should("be.visible");
+    cy.contains("대화 계속하기").click();
+    cy.location("pathname").should("match", /^\/chat\/one-on-one\/1\/?$/);
   });
 });

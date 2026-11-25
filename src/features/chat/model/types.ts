@@ -168,7 +168,7 @@ export type ChatRoom = {
   lastMessage: ChatMessage | null;
   unreadCount: number;
   createdAt: string;
-  /** 개방 시각(금요일 00:00). 이 시각 전에는 전송·구독이 막힌다. */
+  /** 개방 시각. 1:1 은 수락 시각(수락 즉시 열림), 그룹·재매칭은 금요일 00:00. 이 시각 전에는 전송·구독이 막힌다. */
   opensAt: string | null;
   /** 자동 종료 예정 시각. 남은 시간 카운트다운의 기준. */
   expiresAt: string | null;

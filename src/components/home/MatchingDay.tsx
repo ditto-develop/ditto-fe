@@ -92,16 +92,19 @@ export function MatchingDay({
   const { showToast } = useToast();
   const notifKey = quizSetId ? matchAcceptedNotifKey(quizSetId) : null;
 
-  // 매칭 수락 알림: quizSetId 확정 후 localStorage 확인
+  /**
+   * 매칭 수락 알림: quizSetId 확정 후 localStorage 확인.
+   * 1:1 방은 수락 즉시 열리므로(목요일 포함) 기간과 상관없이 "바로 대화"를 안내한다.
+   */
   useEffect(() => {
     if (!notifKey) return;
-    if (!hasAcceptedMatch || !acceptedCandidate || isChatTime) return;
+    if (!hasAcceptedMatch || !acceptedCandidate) return;
     const seen = localStorage.getItem(notifKey);
     if (!seen) {
-      showToast("상대방이 대화를 수락했어요! 대화는 금요일에 시작돼요.", "success");
+      showToast("상대방이 대화를 수락했어요! 지금 바로 대화를 시작해 보세요.", "success");
       localStorage.setItem(notifKey, "1");
     }
-  }, [notifKey, hasAcceptedMatch, acceptedCandidate, isChatTime, showToast]);
+  }, [notifKey, hasAcceptedMatch, acceptedCandidate, showToast]);
 
   /**
    * 이 카드가 지금 어떤 모습인지. 아래 분기와 **같은 순서**로 판정해야 한다 —
@@ -148,7 +151,7 @@ export function MatchingDay({
   const timeLeft = useTargetDayCountdown(isChatTime || secretRound ? 1 : 5);
 
   /**
-   * 매칭은 됐지만 아직 대화 기간이 아닐 때의 잠긴 버튼.
+   * 그룹 매칭은 됐지만 아직 대화 기간이 아닐 때의 잠긴 버튼(그룹 방은 금 00:00 에 열린다).
    * 눌러도 아무 일이 없으면 고장난 것처럼 보인다 — 언제 열리는지 알려 준다.
    */
   const notifyChatNotOpenYet = () => {
@@ -220,7 +223,10 @@ export function MatchingDay({
     );
   }
 
-  // 매칭 확정 상태: "매칭 완료" 카드 (MATCHING 기간에만 — CHATTING 기간엔 대화 화면으로)
+  /*
+   * 1:1 매칭 확정인데 대화 카드로 그리지 않은 경우의 "매칭 완료" 카드. 홈은 1:1 이 성사되면 매칭 기간에도
+   * isChatTime 으로 대화 카드를 그리므로 대개 오지 않는다. 와도 방은 이미 열려 있으니 버튼을 잠그지 않는다.
+   */
   if (hasAcceptedMatch && acceptedCandidate && !isChatTime) {
     const acceptedBadge = getMatchBadgeInfo(
       acceptedCandidate.scoreBreakdown?.matchedQuestions ?? 0,
@@ -255,15 +261,15 @@ export function MatchingDay({
             setSelectedProfile(profile);
           }} />}
           buttonSection={
-            <ActionContainer>
-              <ActionButton
-                variant="disabled"
-                onClick={notifyChatNotOpenYet}
-                icon={<img src="/icons/action/lock.svg" alt="" />}
-              >
-                대화 시작하기
-              </ActionButton>
-            </ActionContainer>
+            <MatchingButton
+              cardType="one"
+              buttonState={buttonState}
+              isChatTime
+              onClick={() => {
+                trackClick("start_chat");
+                onStartChat?.();
+              }}
+            />
           }
         />
         <ProfileDetailModal
