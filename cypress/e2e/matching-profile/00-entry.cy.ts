@@ -58,7 +58,8 @@ describe("진입 — 홈 매칭 카드", () => {
   });
 
   describe("매칭 완료 진입", () => {
-    it("1:1 매칭 완료 시 '매칭 완료' 카드가 노출된다", () => {
+    // 1:1 방은 수락 즉시 열린다(목요일 포함) — 금요일을 기다리는 '매칭 완료' 카드 대신 대화 카드다.
+    it("1:1 매칭 완료 시 매칭 기간에도 바로 대화 카드가 노출된다", () => {
       cy.mockApi({
         matchesFixture: "matches-1on1-populated.json",
         matchingStatusFixture: "matching-status-accepted.json",
@@ -66,9 +67,9 @@ describe("진입 — 홈 매칭 카드", () => {
       cy.login();
       cy.visit("/home");
 
-      cy.contains("매칭 완료", { timeout: 6000 }).should("be.visible");
-      cy.contains("만남이 이루어졌어요!").should("be.visible");
+      cy.contains("이번주 만남", { timeout: 6000 }).should("be.visible");
       cy.contains("수민").should("be.visible");
+      cy.contains("매칭 완료").should("not.exist");
     });
 
     it("그룹 매칭 완료 시 '매칭 완료' 그룹 카드가 노출된다", () => {

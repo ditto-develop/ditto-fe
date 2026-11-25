@@ -448,7 +448,7 @@ export const GroupJoinedCard = ({ candidates, onCardClick }: { candidates: Match
 };
 
 export const AcceptedMatchCard = ({ candidate, onClick }: { candidate: MatchCandidateDto; onClick?: () => void }) => {
-  const timeLeft = useTargetDayCountdown(5); // 금요일(대화 시작일)까지
+  const timeLeft = useTargetDayCountdown(1); // 1:1 방은 수락 즉시 열린다 — 대화가 끝나는 월요일까지
   const avatarUrl = candidate.profileImageUrl || getAvatarUrl(candidate.gender);
   const meta = `${formatAgeRange(candidate.age)} · ${formatGender(candidate.gender)}${candidate.location ? ` · ${toLocationLabel(candidate.location)}` : ""}`;
 
