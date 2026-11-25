@@ -47,6 +47,48 @@ describe("web download", () => {
     cy.location("pathname").should("match", /^\/download\/?$/);
   });
 
+  // 예전 화면은 그림 캐러셀이 높이 0으로 접혀 그림이 하나도 보이지 않았다. 그림이 실제로 그려지는지 본다.
+  it("shows the app screenshots with real size", () => {
+    cy.visit("/download");
+
+    cy.get("img[src^='/assets/download/hero-phone']")
+      .should("have.length", 2)
+      .each(($img) => {
+        cy.wrap($img).should(($el) => {
+          const img = $el[0] as HTMLImageElement;
+          expect(img.naturalWidth, img.src).to.be.greaterThan(0);
+          expect(img.getBoundingClientRect().height, img.src).to.be.greaterThan(200);
+        });
+      });
+    cy.contains("퀴즈부터 매칭, 대화까지").scrollIntoView();
+    cy.get("img[src^='/assets/download/screen-']")
+      .should("have.length", 4)
+      .each(($img) => {
+        cy.wrap($img).should(($el) => {
+          const img = $el[0] as HTMLImageElement;
+          expect(img.naturalWidth, img.src).to.be.greaterThan(0);
+          expect(img.getBoundingClientRect().height, img.src).to.be.greaterThan(200);
+        });
+      });
+  });
+
+  it("slides the hero picture with the dots", () => {
+    cy.visit("/download");
+
+    // 점을 누르면 저절로 넘기기가 멈추고 그 장으로 간다.
+    cy.get("button[aria-label='2번째 그림 보기']").click();
+    cy.get("button[aria-label='2번째 그림 보기']").should("have.attr", "aria-current", "true");
+    cy.get("[data-testid='hero-slider-track']").should(($track) => {
+      expect($track[0].scrollLeft).to.be.closeTo($track[0].clientWidth, 2);
+    });
+
+    cy.get("button[aria-label='1번째 그림 보기']").click();
+    cy.get("button[aria-label='1번째 그림 보기']").should("have.attr", "aria-current", "true");
+    cy.get("[data-testid='hero-slider-track']").should(($track) => {
+      expect($track[0].scrollLeft).to.be.closeTo(0, 2);
+    });
+  });
+
   it("opens the privacy policy and support pages from the footer", () => {
     cy.visit("/download");
     cy.contains("button", "개인정보처리방침").click();
